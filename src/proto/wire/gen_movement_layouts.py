@@ -92,12 +92,70 @@ EXTRAS = {
 
 # CPP tables that read gated fields (Timestamp, Pitch, Fall*, Transport*) with none of the
 # presence gates every other update carries; a reader cannot know from the table what to
-# read, so no layout is better than this one until P1-C's reader lift says what the client reads.
+# read, so no layout is better than this one. P1-C's reader lift supplies all three from
+# the client instead (LIFTED below), so the opcodes still get a row.
 EXCLUDED = {
     "MovementUpdateKnockBack":     "no HasTimestamp/HasPitch/HasFallData/HasTransportData gates",
     "MovementUpdateRunBackSpeed":  "same",
     "MovementUpdateWalkSpeed":     "same",
 }
+
+# Tables lifted from the client's own readers by lift_client_reader.py (the
+# reader named per table, from Wow-64.c of build 15595), because CPP's tables
+# for these three read gated fields with no gates. The lifter reproduces
+# MovementUpdateRunSpeed from its reader exactly (its --control mode), which is
+# what makes these three trustworthy.
+LIFTED = {
+    "MovementUpdateKnockBack": ("sub_140382F50", [
+        "HasUnknownBit", "GuidBit4", "HasMovementFlags", "HasPitch", "HasTimestamp", "GuidBit1",
+        "GuidBit0", "GuidBit3", "GuidBit2", "GuidBit7", "HasSpline", "HasTransportData",
+        "TransportGuidBit7", "TransportGuidBit5", "TransportGuidBit1", "TransportGuidBit6",
+        "HasTransportTime2", "TransportGuidBit2", "TransportGuidBit4", "TransportGuidBit0",
+        "HasVehicleId", "TransportGuidBit3", "GuidBit5", "HasSplineElevation",
+        "HasMovementFlags2", "GuidBit6", "Flags", "HasFallData", "HasFallDirection",
+        "HasOrientation", "Flags2", "FlushBits", "PositionO", "FallCosAngle",
+        "FallHorizontalSpeed", "FallSinAngle", "FallTime", "FallVerticalSpeed",
+        "SplineElevation", "GuidByte3", "TransportGuidByte5", "TransportVehicleId",
+        "TransportGuidByte7", "TransportSeat", "TransportGuidByte3", "TransportGuidByte6",
+        "TransportPositionZ", "TransportGuidByte1", "TransportPositionY", "TransportPositionX",
+        "TransportGuidByte2", "TransportGuidByte0", "TransportPositionO", "TransportTime",
+        "TransportGuidByte4", "TransportTime2", "Pitch", "PositionZ", "Timestamp", "PositionX",
+        "GuidByte4", "GuidByte6", "GuidByte7", "GuidByte2", "GuidByte1", "PositionY",
+        "GuidByte0", "GuidByte5"]),
+    "MovementUpdateRunBackSpeed": ("sub_14038E360", [
+        "GuidBit1", "GuidBit2", "HasSplineElevation", "GuidBit4", "GuidBit3", "HasFallData",
+        "GuidBit6", "HasTimestamp", "GuidBit0", "HasUnknownBit", "HasMovementFlags", "HasPitch",
+        "HasSpline", "GuidBit5", "HasMovementFlags2", "Flags2", "HasOrientation", "Flags",
+        "HasFallDirection", "HasTransportData", "TransportGuidBit5", "HasTransportTime2",
+        "TransportGuidBit3", "TransportGuidBit1", "TransportGuidBit6", "TransportGuidBit7",
+        "TransportGuidBit2", "TransportGuidBit4", "TransportGuidBit0", "HasVehicleId",
+        "GuidBit7", "FlushBits", "TransportPositionX", "TransportGuidByte2",
+        "TransportGuidByte5", "TransportGuidByte4", "TransportGuidByte6", "TransportTime2",
+        "TransportGuidByte0", "TransportGuidByte3", "TransportPositionY", "TransportGuidByte7",
+        "TransportVehicleId", "TransportPositionZ", "TransportTime", "TransportSeat",
+        "TransportGuidByte1", "TransportPositionO", "GuidByte4", "FallTime",
+        "FallHorizontalSpeed", "FallCosAngle", "FallSinAngle", "FallVerticalSpeed",
+        "Timestamp", "SplineElevation", "GuidByte1", "PositionO", "GuidByte0", "GuidByte5",
+        "GuidByte3", "PositionX", "PositionY", "Pitch", "GuidByte7", "ExtraFloat",
+        "GuidByte2", "GuidByte6", "PositionZ"]),
+    "MovementUpdateWalkSpeed": ("sub_14038EFE0", [
+        "HasPitch", "HasOrientation", "HasUnknownBit", "GuidBit3", "HasSplineElevation",
+        "GuidBit2", "HasTransportData", "TransportGuidBit6", "TransportGuidBit3",
+        "TransportGuidBit2", "TransportGuidBit0", "TransportGuidBit4", "HasTransportTime2",
+        "TransportGuidBit7", "TransportGuidBit1", "TransportGuidBit5", "HasVehicleId",
+        "GuidBit7", "GuidBit5", "GuidBit1", "HasFallData", "GuidBit0", "HasMovementFlags2",
+        "HasTimestamp", "HasMovementFlags", "GuidBit6", "HasFallDirection", "Flags2", "Flags",
+        "HasSpline", "GuidBit4", "FlushBits", "Pitch", "TransportGuidByte6",
+        "TransportGuidByte0", "TransportGuidByte4", "TransportGuidByte2", "TransportPositionX",
+        "TransportGuidByte7", "TransportTime", "TransportTime2", "TransportPositionZ",
+        "TransportSeat", "TransportGuidByte5", "TransportVehicleId", "TransportPositionO",
+        "TransportGuidByte1", "TransportPositionY", "TransportGuidByte3", "SplineElevation",
+        "FallVerticalSpeed", "FallHorizontalSpeed", "FallCosAngle", "FallSinAngle", "FallTime",
+        "GuidByte1", "GuidByte4", "GuidByte2", "GuidByte6", "GuidByte7", "Timestamp",
+        "PositionO", "PositionY", "GuidByte0", "PositionZ", "PositionX", "GuidByte3",
+        "GuidByte5", "ExtraFloat"]),
+}
+assert set(LIFTED) == set(EXCLUDED)
 
 src = io.open(SRC, encoding="utf-8").read()
 
@@ -126,6 +184,11 @@ emitted_opmap = {op: t for op, t in opmap.items() if t not in EXCLUDED}
 assert len(emitted_order) == 106, len(emitted_order)
 assert len(emitted_opmap) == 108, len(emitted_opmap)
 
+lifted_order = [name for name in order if name in LIFTED]
+lifted_opmap = {op: t for op, t in opmap.items() if t in LIFTED}
+assert len(lifted_order) == 3, len(lifted_order)
+assert len(lifted_opmap) == 3, len(lifted_opmap)
+
 def wire(name, elements):
     extras = list(EXTRAS.get(name, ["ExtraFloat"] * elements.count("MSEExtraElement")))
     out = []
@@ -144,25 +207,30 @@ def wire(name, elements):
 buf = io.StringIO()
 buf.write("// SPDX-License-Identifier: GPL-3.0-or-later\n//\n")
 buf.write("// GENERATED -- do not edit. Regenerate with src/proto/wire/gen_movement_layouts.py.\n//\n")
-buf.write("// %d movement-status layouts for %d opcodes of build 15595, transcribed from the\n" % (len(emitted_order), len(emitted_opmap)))
+buf.write("// %d movement-status layouts for %d opcodes of build 15595, %d of them transcribed from the\n"
+          % (len(emitted_order) + len(lifted_order), len(emitted_opmap) + len(lifted_opmap), len(emitted_order)))
 buf.write("// Cataclysm Preservation Project's MovementStructures.cpp (%s, GPL-3.0-or-later)\n" % SOURCE_REV)
 buf.write("// into Wire's vocabulary, with that source's per-packet extra elements spliced in\n")
-buf.write("// place. Every table is CPP-SOURCED and BINARY-UNVERIFIED: P1-B's real-client goldens\n")
+buf.write("// place. Every CPP table is CPP-SOURCED and BINARY-UNVERIFIED: P1-B's real-client goldens\n")
 buf.write("// and P1-C's reader lift are what turn a table into a verified one, and the legacy\n")
 buf.write("// fence in MovementCodecTest records where the tree's older transcription disagrees.\n")
 buf.write("// One rename: MSEFallCosAngle -> FallSinAngle and MSEFallSinAngle -> FallCosAngle, in every\n")
 buf.write("// table -- P1-B's client golden proved the source's mapping backwards (see ELEMENT_NAMES).\n//\n")
-buf.write("// %d of the source's tables are excluded -- no layout, no MAP row -- because they read\n" % len(EXCLUDED))
-buf.write("// gated fields with none of the presence gates, so no table would be better than a wrong one:\n")
+buf.write("// %d of the source's tables were excluded -- they read gated fields with none of the\n" % len(EXCLUDED))
+buf.write("// presence gates, so no table of theirs would be better than a wrong one -- and are\n")
+buf.write("// supplied by the client's own readers instead (LIFTED in the generator, lifted by\n")
+buf.write("// src/proto/wire/lift_client_reader.py, which reproduces MovementUpdateRunSpeed from\n")
+buf.write("// its reader exactly; those three are CLIENT-SOURCED, the only ones here that are):\n")
 for name in sorted(EXCLUDED):
     op = next(o for o, t in opmap.items() if t == name)
     buf.write("//   %s (%s): %s\n" % (name, op, EXCLUDED[name]))
 buf.write("//\n")
 buf.write("// LAYOUT(name, elements...)   one table\n// MAP(opcode, name)           one registry row\n\n")
-for name in order:
-    if name in EXCLUDED:
-        continue
-    elems = wire(name, tables[name])
+
+
+def layout(name, elems, note=None):
+    if note:
+        buf.write("// %s\n" % note)
     buf.write("LAYOUT(%s,\n" % name)
     line = "   "
     for e in elems:
@@ -172,7 +240,18 @@ for name in order:
             line = "   "
         line += item
     buf.write(line.rstrip(",") + ")\n\n")
-for op in sorted(emitted_opmap):
-    buf.write("MAP(%s, %s)\n" % (op, emitted_opmap[op]))
+
+
+for name in order:
+    if name not in EXCLUDED:
+        layout(name, wire(name, tables[name]))
+for name in lifted_order:
+    reader, elems = LIFTED[name]
+    layout(name, elems + ["End"],
+           "lifted from the client reader %s; see lift_client_reader.py" % reader)
+rows = dict(emitted_opmap, **lifted_opmap)
+for op in sorted(rows):
+    buf.write("MAP(%s, %s)\n" % (op, rows[op]))
 io.open(OUT, "w", encoding="utf-8", newline="\n").write(buf.getvalue())
-print("wrote %s: %d tables, %d rows (%d excluded)" % (OUT, len(emitted_order), len(emitted_opmap), len(EXCLUDED)))
+print("wrote %s: %d tables, %d rows (%d of them lifted from the client's readers)"
+      % (OUT, len(emitted_order) + len(lifted_order), len(emitted_opmap) + len(lifted_opmap), len(LIFTED)))

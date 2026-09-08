@@ -76,6 +76,7 @@
 #include "ObjectLookup.h"
 #include "movement/WireParity.h"
 #include "wire/MovementCapture.h"
+#include "wire/MovementFamilies.h"
 #include "wire/MovementSequences.h"
 
 #define MOVEMENT_PACKET_TIME_DELAY 0
@@ -362,6 +363,7 @@ void WorldSession::HandleMoveTeleportAckOpcode(WorldPacket& recv_data)
 
     recv_data.ReadGuidMask<5, 0, 1, 6, 3, 7, 2, 4>(guid);
     recv_data.ReadGuidBytes<4, 2, 7, 6, 5, 1, 3, 0>(guid);
+    WireParity::InboundTeleportAck(recv_data, counter, time, guid.GetRawValue());
 
     DEBUG_LOG("Guid: %s", guid.GetString().c_str());
     DEBUG_LOG("Counter %u, time %u", counter, time / IN_MILLISECONDS);
@@ -422,10 +424,10 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recv_data)
         recv_data.hexlike();
     }
 
-    // ExecuteOpcode already recorded this packet if the registry has a whole-packet
-    // layout for it -- the exact complement of the condition there; the ones it
-    // lacks are exactly what P1-C needs a capture of.
-    if (Wire::MovementCapture::IsOpen() && !Wire::IsPacketLayout(opcode))
+    // ExecuteOpcode already recorded this packet if the wire layer knows it -- a
+    // whole-packet layout or a family -- the exact complement of the condition
+    // there; what neither describes is what the next worklist needs a capture of.
+    if (Wire::MovementCapture::IsOpen() && !Wire::IsKnown(opcode))
     {
         Wire::MovementCapture::Record('C', opcode, recv_data.contents(), recv_data.size());
     }
@@ -567,6 +569,14 @@ void WorldSession::HandleSetActiveMoverOpcode(WorldPacket& recv_data)
     recv_data.hexlike();
 
     ObjectGuid guid;
+
+    // The shadow runs before the legacy read, not after it: that read calls the
+    // write templates on the packet it received, so it appends a byte and fills
+    // nothing, and anything judged afterwards would be looking at bytes the
+    // client never sent. What it compares against is the mover the session holds
+    // -- what the check below was meant to test the client's guid against. The
+    // handler itself is P2's, with the rest of mover authority.
+    WireParity::InboundMover(recv_data, _player->GetMover()->GetObjectGuid().GetRawValue());
 
     recv_data.WriteGuidMask<7, 2, 1, 0, 4, 5, 6, 3>(guid);
     recv_data.WriteGuidBytes<3, 2, 4, 0, 5, 1, 6, 7>(guid);

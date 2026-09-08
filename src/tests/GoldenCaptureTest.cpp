@@ -319,3 +319,55 @@ TEST(GoldenCapture_client_fall_blocks_settle_the_fall_angle_labels)
     REQUIRE(echoed[MSG_MOVE_HEARTBEAT] + echoed[CMSG_MOVE_START_STRAFE_LEFT] +
             echoed[CMSG_MOVE_SET_FACING] + echoed[CMSG_MOVE_START_BACKWARD] >= 1);
 }
+
+// A second real 15595 client's session (branch feat/movement-wire-families), around the
+// families the generated registry cannot describe on its own: the client's own teleport
+// ack and active mover, and this server's teleport, knockback and several hundred
+// monster moves. See src/tests/goldens/movement/README.md for the session's contents.
+TEST(GoldenCapture_families_client_built_lines_replay_clean)
+{
+    loadtest::ReplayReport report;
+    ReplayGoldenByDirection("client-15595-families.log", 'C', report);
+    CHECK(report.lines >= 200);
+    CHECK_EQ(report.malformed, uint32(0));
+    CHECK_EQ(report.failed, uint32(0));
+    CHECK_EQ(report.unregistered, uint32(0));
+    CHECK_EQ(report.exact, report.decoded);
+    CHECK(report.byOpcode.at(CMSG_MOVE_TELEPORT_ACK).exact >= 3);
+    CHECK(report.byOpcode.at(CMSG_SET_ACTIVE_MOVER).exact >= 2);
+    CHECK(report.byOpcode.at(CMSG_MOVE_KNOCK_BACK_ACK).exact >= 3);
+}
+
+TEST(GoldenCapture_families_server_built_lines_fail_only_where_the_legacy_writer_is_known_wrong)
+{
+    // This server's own packets from the same session. SMSG_CLIENT_CONTROL_UPDATE has no
+    // floor here: this tree sends none at login (the client assumes control without one);
+    // P2's packet matrix decides whether that is right. SMSG_MOVE_UPDATE_KNOCK_BACK is
+    // ABSENT, not wrong: no observer stood in the world for this session, and that relay
+    // goes only to the observers around the mover, so there was nothing to capture. The
+    // live gate's two-bot pair (an observer holding nearby while a walker is knocked back)
+    // did capture one, and the shadow judged it under the lifted layout: decoded whole and
+    // re-encoded exact. So the relay (MovementHandler.cpp, `data << movementInfo`) is not
+    // WotLK-shaped after all, and the collision-height writer below is the one known
+    // server-side failure that remains.
+    loadtest::ReplayReport report;
+    ReplayGoldenByDirection("client-15595-families.log", 'S', report);
+    CHECK(report.lines >= 200);
+    CHECK_EQ(report.malformed, uint32(0));
+    CHECK_EQ(report.unregistered, uint32(0));
+    CHECK(report.byOpcode.at(SMSG_MONSTER_MOVE).exact >= 200);
+    CHECK_EQ(report.byOpcode.at(SMSG_MONSTER_MOVE).failed, uint32(0));
+    CHECK(report.byOpcode.at(SMSG_MOVE_TELEPORT).exact >= 3);
+    CHECK(report.byOpcode.at(SMSG_MOVE_KNOCK_BACK).exact >= 3);
+    // SMSG_MOVE_SET_COLLISION_HGT: the one known legacy writer in this session (P1-B) --
+    // Unit.cpp still writes the WotLK shape, not the 4.3.4 one.
+    CHECK_EQ(report.byOpcode.at(SMSG_MOVE_SET_COLLISION_HGT).failed, uint32(1));
+    for (std::map<uint16, loadtest::ReplayRow>::const_iterator it = report.byOpcode.begin(); it != report.byOpcode.end(); ++it)
+    {
+        if (it->first != SMSG_MOVE_SET_COLLISION_HGT)
+        {
+            CHECK_EQ(it->second.failed, uint32(0));
+            CHECK_EQ(it->second.exact, it->second.decoded);
+        }
+    }
+}

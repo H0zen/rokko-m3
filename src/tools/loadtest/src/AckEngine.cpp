@@ -58,8 +58,10 @@ namespace loadtest
             { SMSG_MOVE_SET_COLLISION_HGT,     CMSG_MOVE_SET_COLLISION_HGT_ACK         },
             { SMSG_MOVE_SET_CAN_TRANSITION_BETWEEN_SWIM_AND_FLY,
               CMSG_MOVE_SET_CAN_TRANSITION_BETWEEN_SWIM_AND_FLY_ACK                     },
-            { SMSG_MOVE_KNOCK_BACK,            CMSG_MOVE_KNOCK_BACK_ACK                },
-            { SMSG_MOVE_TELEPORT,              CMSG_MOVE_TELEPORT_ACK                  },
+            // SMSG_MOVE_KNOCK_BACK and SMSG_MOVE_TELEPORT are not here: neither
+            // carries a movement status, so this engine could never decode one.
+            // The peer answers both from their own codecs (P1-C's families), which
+            // is why a change with no layout is a defect again rather than a gap.
         };
         return pairs;
     }

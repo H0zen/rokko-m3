@@ -152,6 +152,78 @@ TEST(Walker_reports_a_walk_the_way_the_client_does)
     CHECK_EQ(walker.Starts(), uint32(1));
     CHECK_EQ(walker.Heartbeats(), uint32(3));
     CHECK_EQ(walker.Stops(), uint32(1));
+    CHECK_EQ(walker.Relocations(), uint32(0));
+}
+
+TEST(Walker_counts_the_legs_a_teleport_cut_short)
+{
+    // The arithmetic the walk verdict rests on: a teleport landing mid-leg ends
+    // that leg where it stands, sends NO stop for it, and opens a fresh leg with
+    // a fresh start. So one interrupted leg means starts == legs + 1 and stops
+    // == legs -- which reads as a lost walk unless the relocations are counted.
+    loadtest::WalkScript script;
+    script.seconds = 2;
+    script.leadMs = 0;
+    script.headingSet = true;
+    script.heading = 0.0f;
+    Wire::Vec4 start;
+    start.x = 100.0f;
+    loadtest::Walker walker(script, 0x42, start);
+
+    std::vector<WorldPacket> out = walker.Advance(1000);
+    REQUIRE(out.size() == 1);
+    CHECK_EQ(int(out[0].GetOpcode()), int(CMSG_MOVE_START_FORWARD));
+
+    Wire::Vec4 landed;
+    landed.x = 500.0f;
+    walker.Relocate(landed);                 // the server carried the mover away
+    CHECK_EQ(walker.Relocations(), uint32(1));
+    CHECK(!walker.Started());
+    CHECK_EQ(walker.Stops(), uint32(0));     // no stop is owed from the old place
+
+    out = walker.Advance(2000);              // a fresh leg from where it landed
+    REQUIRE(out.size() == 1);
+    CHECK_EQ(int(out[0].GetOpcode()), int(CMSG_MOVE_START_FORWARD));
+    CHECK_EQ(DecodeWalk(out[0]).pos.x, 500.0f);
+
+    out = walker.Advance(4000);              // the restarted leg's two seconds are up
+    REQUIRE(out.size() == 1);
+    CHECK_EQ(int(out[0].GetOpcode()), int(CMSG_MOVE_STOP));
+    CHECK(walker.Done());
+    // legs == 1: starts == legs + relocations, stops == legs.
+    CHECK_EQ(walker.Starts(), uint32(2));
+    CHECK_EQ(walker.Stops(), uint32(1));
+    CHECK_EQ(walker.Relocations(), uint32(1));
+}
+
+TEST(Walker_does_not_count_a_teleport_that_lands_between_legs)
+{
+    // Relocating a walker that has no leg running costs no extra start and skips
+    // no stop, so it must not be counted: it would break the very arithmetic the
+    // count exists to keep straight.
+    loadtest::WalkScript script;
+    script.seconds = 1;
+    script.leadMs = 3000;
+    Wire::Vec4 start;
+    loadtest::Walker walker(script, 0x42, start);
+
+    Wire::Vec4 landed;
+    landed.x = 7.0f;
+    walker.Relocate(landed);                 // before the first leg opens
+    CHECK_EQ(walker.Relocations(), uint32(0));
+    CHECK_EQ(walker.Position().x, 7.0f);     // it still moved the mover
+
+    std::vector<WorldPacket> out = walker.Advance(0);   // Relocate cleared the lead
+    REQUIRE(out.size() == 1);
+    CHECK_EQ(int(out[0].GetOpcode()), int(CMSG_MOVE_START_FORWARD));
+    out = walker.Advance(1000);
+    REQUIRE(out.size() == 1);
+    CHECK_EQ(int(out[0].GetOpcode()), int(CMSG_MOVE_STOP));
+    CHECK(walker.Done());
+    walker.Relocate(landed);                 // and after the last leg closes
+    CHECK_EQ(walker.Relocations(), uint32(0));
+    CHECK_EQ(walker.Starts(), uint32(1));
+    CHECK_EQ(walker.Stops(), uint32(1));
 }
 
 TEST(Walker_waits_out_its_lead_and_uses_the_facing_by_default)
@@ -181,6 +253,7 @@ TEST(Walker_with_no_seconds_never_moves)
 }
 
 #include "AckEngine.hpp"
+#include "wire/MovementFamilies.h"
 
 namespace
 {
@@ -515,26 +588,27 @@ TEST(AckEngine_answers_a_real_speed_change_from_the_registry_layouts)
 
 TEST(AckEngine_knows_which_known_pairs_still_lack_a_layout)
 {
-    // Knock-back and teleport are hand-written packets in every source (P1-C);
-    // the turn-rate and pitch-rate acks have no layout in any source yet. Every
-    // other pair has both halves in the registry now.
+    // The table is the engine's business only: a change whose status the engine
+    // can decode and echo back as an ack. Knock-back and teleport carry no
+    // movement status at all, so they are not in it -- they have families, and
+    // the peer answers them from those codecs (P1-C). Everything the table does
+    // hold has a registry layout for its change; the turn-rate and pitch-rate
+    // acks are the only halves no source has a layout for yet.
     for (const loadtest::ChangePair& pair : loadtest::KnownChangePairs())
     {
-        const bool handWritten = pair.change == SMSG_MOVE_KNOCK_BACK || pair.change == SMSG_MOVE_TELEPORT;
-        const bool noAckSource = pair.change == SMSG_MOVE_SET_TURN_RATE || pair.change == SMSG_MOVE_SET_PITCH_RATE;
-        if (handWritten)
-        {
-            CHECK(Wire::SequenceFor(pair.change) == nullptr);
-            continue;
-        }
+        CHECK(pair.change != SMSG_MOVE_KNOCK_BACK);
+        CHECK(pair.change != SMSG_MOVE_TELEPORT);
         CHECK(Wire::SequenceFor(pair.change) != nullptr);
-        if (noAckSource)
+        if (pair.change == SMSG_MOVE_SET_TURN_RATE || pair.change == SMSG_MOVE_SET_PITCH_RATE)
         {
             CHECK(Wire::SequenceFor(pair.ack) == nullptr);
             continue;
         }
         CHECK(Wire::SequenceFor(pair.ack) != nullptr);
     }
+    // And the two that left are answered elsewhere, not forgotten.
+    CHECK(Wire::IsFamily(SMSG_MOVE_KNOCK_BACK));
+    CHECK(Wire::IsFamily(SMSG_MOVE_TELEPORT));
 }
 
 TEST(AckEngine_stamps_the_mover_as_it_stands_when_the_ack_is_sent)

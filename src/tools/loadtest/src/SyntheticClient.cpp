@@ -28,8 +28,12 @@
 #include "AckEngine.hpp"
 #include "TimeSync.hpp"
 #include "Walker.hpp"
+#include "wire/KnockBackCodec.h"
 #include "wire/MovementCodec.h"
+#include "wire/MovementFamilies.h"
 #include "wire/MovementSequences.h"
+#include "wire/MoverCodec.h"
+#include "wire/TeleportCodec.h"
 
 #include "Auth/Sha1.h"
 #include "LinkSlot.h"
@@ -734,8 +738,8 @@ namespace loadtest
         return true;
     }
 
-    bool SyntheticClient::Dispatch(WorldPacket& packet, AckEngine& acks, uint32 nowTicks,
-                                   std::string& error)
+    bool SyntheticClient::Dispatch(WorldPacket& packet, AckEngine& acks, Walker& walker,
+                                   uint32 nowTicks, std::string& error)
     {
         PeerReport& report = m_result.peer;
         const uint16 opcode = packet.GetOpcode();
@@ -791,6 +795,87 @@ namespace loadtest
                 ++report.controlUpdates;
                 return true;
 
+            case SMSG_MOVE_TELEPORT:
+            {
+                Wire::Teleport t;
+                packet.rpos(0);
+                packet.ResetBitReader();
+                if (!Wire::DecodeTeleport(packet, t).ok())
+                {
+                    ++report.decodeFailures[opcode];
+                    return true;
+                }
+                ++report.teleports;
+                // A real client answers with its own clock, then is at the new place.
+                Wire::TeleportAck ack;
+                ack.counter = t.counter;
+                ack.time = nowTicks;
+                ack.guid = t.guid;
+                WorldPacket reply(CMSG_MOVE_TELEPORT_ACK, 16);
+                Wire::EncodeTeleportAck(reply, ack);
+                if (!Send(StreamFor(CMSG_MOVE_TELEPORT_ACK), reply, error)) { return false; }
+                ++report.teleportAcks;
+                report.teleportFinal = t.pos;
+                walker.Relocate(t.pos);
+                acks.SetMover(walker.Status());
+                Trace("teleported to %.1f %.1f %.1f, acked counter %u", t.pos.x, t.pos.y, t.pos.z, t.counter);
+                return true;
+            }
+
+            case SMSG_MOVE_KNOCK_BACK:
+            {
+                Wire::KnockBack k;
+                packet.rpos(0);
+                packet.ResetBitReader();
+                if (!Wire::DecodeKnockBack(packet, k).ok())
+                {
+                    ++report.decodeFailures[opcode];
+                    return true;
+                }
+                ++report.knockBacks;
+                // The ack is the mover's status carrying the knock as its fall block
+                // (CMSG_MOVE_KNOCK_BACK_ACK is a registered layout).
+                Wire::MovementStatus reply = walker.Status();
+                reply.counter = k.counter;
+                // Stamped from the peer's own clock, like the time-sync and
+                // teleport replies: an ack with time 0 would relay to a paired
+                // observer as an SMSG_MOVE_UPDATE_KNOCK_BACK out of any order.
+                reply.has.timestamp = true;
+                reply.time = nowTicks;
+                reply.fall.present = true;
+                reply.fall.hasDirection = true;
+                reply.fall.time = 0;
+                reply.fall.vertical = k.vertical;
+                reply.fall.horizontal = k.horizontal;
+                reply.fall.cosAngle = k.directionX;
+                reply.fall.sinAngle = k.directionY;
+                WorldPacket ackPacket(CMSG_MOVE_KNOCK_BACK_ACK, 64);
+                Wire::Encode(ackPacket, Wire::SequenceFor(CMSG_MOVE_KNOCK_BACK_ACK), reply);
+                if (!Send(StreamFor(CMSG_MOVE_KNOCK_BACK_ACK), ackPacket, error)) { return false; }
+                ++report.knockBackAcks;
+                Trace("knocked back (h %.1f v %.1f), acked counter %u", k.horizontal, k.vertical, k.counter);
+                return true;
+            }
+
+            case SMSG_MOVE_SET_ACTIVE_MOVER:
+            {
+                Wire::ActiveMover m;
+                packet.rpos(0);
+                packet.ResetBitReader();
+                if (!Wire::DecodeActiveMover(packet, SMSG_MOVE_SET_ACTIVE_MOVER, m).ok()) { ++report.decodeFailures[opcode]; }
+                else { ++report.activeMoverSets; }
+                return true;
+            }
+
+            case SMSG_MONSTER_MOVE:
+            case SMSG_MONSTER_MOVE_TRANSPORT:
+            {
+                const Wire::Verdict v = Wire::Judge(opcode, packet, false);
+                if (!v.decoded || !v.exact) { ++report.decodeFailures[opcode]; }
+                else { ++report.monsterMoves; }
+                return true;
+            }
+
             default:
                 if (acks.IsChange(opcode))
                 {
@@ -834,7 +919,7 @@ namespace loadtest
             {
                 for (WorldPacket& packet : stream->inbox)
                 {
-                    if (!Dispatch(packet, acks, now, error))
+                    if (!Dispatch(packet, acks, walker, now, error))
                     {
                         return false;
                     }
@@ -877,6 +962,7 @@ namespace loadtest
         report.walkStarts = walker.Starts();
         report.walkHeartbeats = walker.Heartbeats();
         report.walkStops = walker.Stops();
+        report.relocations = walker.Relocations();
         report.walkFinal = walker.Position();
         report.walkLastTime = walker.LastStampedTime();
         report.acksSent = acks.Sent();

@@ -2,17 +2,20 @@
 //
 // GENERATED -- do not edit. Regenerate with src/proto/wire/gen_movement_layouts.py.
 //
-// 106 movement-status layouts for 108 opcodes of build 15595, transcribed from the
+// 109 movement-status layouts for 111 opcodes of build 15595, 106 of them transcribed from the
 // Cataclysm Preservation Project's MovementStructures.cpp (716f480 (2026-05-05), GPL-3.0-or-later)
 // into Wire's vocabulary, with that source's per-packet extra elements spliced in
-// place. Every table is CPP-SOURCED and BINARY-UNVERIFIED: P1-B's real-client goldens
+// place. Every CPP table is CPP-SOURCED and BINARY-UNVERIFIED: P1-B's real-client goldens
 // and P1-C's reader lift are what turn a table into a verified one, and the legacy
 // fence in MovementCodecTest records where the tree's older transcription disagrees.
 // One rename: MSEFallCosAngle -> FallSinAngle and MSEFallSinAngle -> FallCosAngle, in every
 // table -- P1-B's client golden proved the source's mapping backwards (see ELEMENT_NAMES).
 //
-// 3 of the source's tables are excluded -- no layout, no MAP row -- because they read
-// gated fields with none of the presence gates, so no table would be better than a wrong one:
+// 3 of the source's tables were excluded -- they read gated fields with none of the
+// presence gates, so no table of theirs would be better than a wrong one -- and are
+// supplied by the client's own readers instead (LIFTED in the generator, lifted by
+// src/proto/wire/lift_client_reader.py, which reproduces MovementUpdateRunSpeed from
+// its reader exactly; those three are CLIENT-SOURCED, the only ones here that are):
 //   MovementUpdateKnockBack (SMSG_MOVE_UPDATE_KNOCK_BACK): no HasTimestamp/HasPitch/HasFallData/HasTransportData gates
 //   MovementUpdateRunBackSpeed (SMSG_MOVE_UPDATE_RUN_BACK_SPEED): same
 //   MovementUpdateWalkSpeed (SMSG_MOVE_UPDATE_WALK_SPEED): same
@@ -1195,6 +1198,58 @@ LAYOUT(MoveUnsetCanTransitionBetweenSwimAndFly,
     E::GuidBit2, E::GuidByte5, E::GuidByte2, E::GuidByte7, E::GuidByte0, E::MovementCounter,
     E::GuidByte6, E::GuidByte4, E::GuidByte3, E::GuidByte1, E::End)
 
+// lifted from the client reader sub_14038E360; see lift_client_reader.py
+LAYOUT(MovementUpdateRunBackSpeed,
+    E::GuidBit1, E::GuidBit2, E::HasSplineElevation, E::GuidBit4, E::GuidBit3, E::HasFallData,
+    E::GuidBit6, E::HasTimestamp, E::GuidBit0, E::HasUnknownBit, E::HasMovementFlags, E::HasPitch,
+    E::HasSpline, E::GuidBit5, E::HasMovementFlags2, E::Flags2, E::HasOrientation, E::Flags,
+    E::HasFallDirection, E::HasTransportData, E::TransportGuidBit5, E::HasTransportTime2,
+    E::TransportGuidBit3, E::TransportGuidBit1, E::TransportGuidBit6, E::TransportGuidBit7,
+    E::TransportGuidBit2, E::TransportGuidBit4, E::TransportGuidBit0, E::HasVehicleId, E::GuidBit7,
+    E::FlushBits, E::TransportPositionX, E::TransportGuidByte2, E::TransportGuidByte5,
+    E::TransportGuidByte4, E::TransportGuidByte6, E::TransportTime2, E::TransportGuidByte0,
+    E::TransportGuidByte3, E::TransportPositionY, E::TransportGuidByte7, E::TransportVehicleId,
+    E::TransportPositionZ, E::TransportTime, E::TransportSeat, E::TransportGuidByte1,
+    E::TransportPositionO, E::GuidByte4, E::FallTime, E::FallHorizontalSpeed, E::FallCosAngle,
+    E::FallSinAngle, E::FallVerticalSpeed, E::Timestamp, E::SplineElevation, E::GuidByte1,
+    E::PositionO, E::GuidByte0, E::GuidByte5, E::GuidByte3, E::PositionX, E::PositionY, E::Pitch,
+    E::GuidByte7, E::ExtraFloat, E::GuidByte2, E::GuidByte6, E::PositionZ, E::End)
+
+// lifted from the client reader sub_14038EFE0; see lift_client_reader.py
+LAYOUT(MovementUpdateWalkSpeed,
+    E::HasPitch, E::HasOrientation, E::HasUnknownBit, E::GuidBit3, E::HasSplineElevation,
+    E::GuidBit2, E::HasTransportData, E::TransportGuidBit6, E::TransportGuidBit3,
+    E::TransportGuidBit2, E::TransportGuidBit0, E::TransportGuidBit4, E::HasTransportTime2,
+    E::TransportGuidBit7, E::TransportGuidBit1, E::TransportGuidBit5, E::HasVehicleId, E::GuidBit7,
+    E::GuidBit5, E::GuidBit1, E::HasFallData, E::GuidBit0, E::HasMovementFlags2, E::HasTimestamp,
+    E::HasMovementFlags, E::GuidBit6, E::HasFallDirection, E::Flags2, E::Flags, E::HasSpline,
+    E::GuidBit4, E::FlushBits, E::Pitch, E::TransportGuidByte6, E::TransportGuidByte0,
+    E::TransportGuidByte4, E::TransportGuidByte2, E::TransportPositionX, E::TransportGuidByte7,
+    E::TransportTime, E::TransportTime2, E::TransportPositionZ, E::TransportSeat,
+    E::TransportGuidByte5, E::TransportVehicleId, E::TransportPositionO, E::TransportGuidByte1,
+    E::TransportPositionY, E::TransportGuidByte3, E::SplineElevation, E::FallVerticalSpeed,
+    E::FallHorizontalSpeed, E::FallCosAngle, E::FallSinAngle, E::FallTime, E::GuidByte1,
+    E::GuidByte4, E::GuidByte2, E::GuidByte6, E::GuidByte7, E::Timestamp, E::PositionO,
+    E::PositionY, E::GuidByte0, E::PositionZ, E::PositionX, E::GuidByte3, E::GuidByte5,
+    E::ExtraFloat, E::End)
+
+// lifted from the client reader sub_140382F50; see lift_client_reader.py
+LAYOUT(MovementUpdateKnockBack,
+    E::HasUnknownBit, E::GuidBit4, E::HasMovementFlags, E::HasPitch, E::HasTimestamp, E::GuidBit1,
+    E::GuidBit0, E::GuidBit3, E::GuidBit2, E::GuidBit7, E::HasSpline, E::HasTransportData,
+    E::TransportGuidBit7, E::TransportGuidBit5, E::TransportGuidBit1, E::TransportGuidBit6,
+    E::HasTransportTime2, E::TransportGuidBit2, E::TransportGuidBit4, E::TransportGuidBit0,
+    E::HasVehicleId, E::TransportGuidBit3, E::GuidBit5, E::HasSplineElevation, E::HasMovementFlags2,
+    E::GuidBit6, E::Flags, E::HasFallData, E::HasFallDirection, E::HasOrientation, E::Flags2,
+    E::FlushBits, E::PositionO, E::FallCosAngle, E::FallHorizontalSpeed, E::FallSinAngle,
+    E::FallTime, E::FallVerticalSpeed, E::SplineElevation, E::GuidByte3, E::TransportGuidByte5,
+    E::TransportVehicleId, E::TransportGuidByte7, E::TransportSeat, E::TransportGuidByte3,
+    E::TransportGuidByte6, E::TransportPositionZ, E::TransportGuidByte1, E::TransportPositionY,
+    E::TransportPositionX, E::TransportGuidByte2, E::TransportGuidByte0, E::TransportPositionO,
+    E::TransportTime, E::TransportGuidByte4, E::TransportTime2, E::Pitch, E::PositionZ,
+    E::Timestamp, E::PositionX, E::GuidByte4, E::GuidByte6, E::GuidByte7, E::GuidByte2,
+    E::GuidByte1, E::PositionY, E::GuidByte0, E::GuidByte5, E::End)
+
 MAP(CMSG_CAST_SPELL, CastSpellEmbeddedMovement)
 MAP(CMSG_CHANGE_SEATS_ON_CONTROLLED_VEHICLE, ChangeSeatsOnControlledVehicle)
 MAP(CMSG_DISMISS_CONTROLLED_VEHICLE, DismissControlledVehicle)
@@ -1273,9 +1328,12 @@ MAP(SMSG_MOVE_UNSET_HOVER, MoveUnsetHover)
 MAP(SMSG_MOVE_UPDATE_COLLISION_HEIGHT, MovementUpdateCollisionHeight)
 MAP(SMSG_MOVE_UPDATE_FLIGHT_BACK_SPEED, MoveUpdateFlightBackSpeed)
 MAP(SMSG_MOVE_UPDATE_FLIGHT_SPEED, MovementUpdateFlightSpeed)
+MAP(SMSG_MOVE_UPDATE_KNOCK_BACK, MovementUpdateKnockBack)
+MAP(SMSG_MOVE_UPDATE_RUN_BACK_SPEED, MovementUpdateRunBackSpeed)
 MAP(SMSG_MOVE_UPDATE_RUN_SPEED, MovementUpdateRunSpeed)
 MAP(SMSG_MOVE_UPDATE_SWIM_BACK_SPEED, MoveUpdateSwimBackSpeed)
 MAP(SMSG_MOVE_UPDATE_SWIM_SPEED, MovementUpdateSwimSpeed)
+MAP(SMSG_MOVE_UPDATE_WALK_SPEED, MovementUpdateWalkSpeed)
 MAP(SMSG_MOVE_WATER_WALK, MoveWaterWalk)
 MAP(SMSG_PLAYER_MOVE, MovementUpdate)
 MAP(SMSG_SPLINE_MOVE_FEATHER_FALL, SplineMoveSetFeatherFall)

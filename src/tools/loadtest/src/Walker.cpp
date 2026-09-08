@@ -57,6 +57,34 @@ namespace loadtest
         return status;
     }
 
+    void Walker::Relocate(const Wire::Vec4& pos)
+    {
+        // The mover was carried somewhere else, so whatever leg was running is
+        // over: leaving it running would leave a stop, and a return leg's
+        // snap-to-origin, owed from a place the character is no longer at. The
+        // state is reset as if no leg had started -- heading kept, `--return`'s
+        // second leg still owed if it was -- and no CMSG_MOVE_STOP is sent for
+        // the leg that ends here: the server has just teleported this mover, and
+        // a stop reported from the old place would be a lie about where it is.
+        // The next Advance starts a fresh leg from `pos`, with no lead.
+        //
+        // Count it only when a leg was actually running: that is the case that
+        // costs an extra start and skips a stop, and so the case a walk verdict
+        // has to know about. A teleport that lands between legs -- during the
+        // lead, before the return leg opens, or after the walk is done -- opens
+        // no fresh leg, so counting it would be the arithmetic error the count
+        // exists to prevent. `m_started` alone does not say a leg is running: it
+        // is still set when the last leg stopped and `m_done` went up, which is
+        // exactly when a teleport is most likely to arrive (the peer holds after
+        // the walk), so both are asked. Status() reads the pair the same way.
+        if (m_started && !m_done) { ++m_relocations; }
+        m_pos = pos;
+        m_origin = pos;
+        m_started = false;
+        m_armed = false;
+        m_script.leadMs = 0;
+    }
+
     WorldPacket Walker::Packet(uint16 opcode, uint32 flags, uint32 nowTicks) const
     {
         Wire::MovementStatus status = Status();

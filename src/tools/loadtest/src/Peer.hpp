@@ -34,6 +34,8 @@
 #include "wire/MovementStatus.h"
 
 #include <map>
+#include <string>
+#include <vector>
 
 namespace loadtest
 {
@@ -73,6 +75,9 @@ namespace loadtest
         WalkScript walk;
         AckPolicy  ack;
         uint64     observeGuid = 0;  ///< count SMSG_MOVE_UPDATE relays for this mover
+        /// What the run must have seen for it to have proved anything: each name
+        /// gets its own verdict line. "teleport", "knockback", "splines".
+        std::vector<std::string> expect;
     };
 
     /// One relayed movement status (SMSG_PLAYER_MOVE, the client's SMSG_MOVE_UPDATE) the peer saw.
@@ -92,12 +97,22 @@ namespace loadtest
         uint32     walkStarts = 0;
         uint32     walkHeartbeats = 0;
         uint32     walkStops = 0;
+        uint32     relocations = 0;    ///< legs cut short by a teleport: one extra start each, no stop
         Wire::Vec4 walkFinal;
         uint32     walkLastTime = 0;   ///< the movement time stamped on the walker's last packet
 
         uint32      observedTarget = 0;
         uint32      observedOthers = 0;
         Observation lastTargetObservation;
+
+        // The hand-written families (P1-C): what the peer decoded and how it answered.
+        uint32     teleports = 0;      ///< SMSG_MOVE_TELEPORT decoded
+        uint32     teleportAcks = 0;   ///< CMSG_MOVE_TELEPORT_ACK sent back
+        Wire::Vec4 teleportFinal;      ///< where the last teleport put the mover
+        uint32     knockBacks = 0;     ///< SMSG_MOVE_KNOCK_BACK decoded
+        uint32     knockBackAcks = 0;  ///< CMSG_MOVE_KNOCK_BACK_ACK sent back
+        uint32     activeMoverSets = 0; ///< SMSG_MOVE_SET_ACTIVE_MOVER decoded
+        uint32     monsterMoves = 0;   ///< SMSG_MONSTER_MOVE(_TRANSPORT) decoded and re-encoded exact
 
         std::map<uint16, uint32> decodeFailures;      ///< by opcode
         std::map<uint16, uint32> unregisteredChanges; ///< change opcodes with no layout yet

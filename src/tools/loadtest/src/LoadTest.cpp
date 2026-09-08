@@ -80,12 +80,13 @@ namespace
             "  --verbose            trace each milestone as it is reached\n"
             "\n"
             "Protocol peer (movement P0-B):\n"
-            "  --replay FILE        judge a capture file offline: decode every line with the registry, re-encode, compare bytes; exit 0 when clean\n"
+            "  --replay FILE        judge a capture file offline: decode every line the wire knows -- a registry layout or a family -- re-encode, compare bytes; exit 0 when clean\n"
             "  --walk SECONDS       walk straight ahead for SECONDS once in the world\n"
             "  --heading DEGREES    walk in this direction instead of the character's facing\n"
             "  --return             walk the same time back, so the character ends where it began\n"
             "  --ack MODE           answer movement changes: immediate | delay:MS | mismatch | stale | drop\n"
             "  --observe GUID       count relayed movement of this mover\n"
+            "  --expect a,b,c       require the run to have seen these: teleport | knockback | splines\n"
             "  --pair ACCOUNT:GUID  run a second, observing session of that character alongside,\n"
             "                       watching this one, and print the relay verdict\n"
             "\n"
@@ -239,6 +240,21 @@ int main(int argc, char** argv)
                 return 2;
             }
         }
+        else if (arg == "--expect")
+        {
+            if (!WantsValue(argc, i, "--expect")) { return 2; }
+            const std::string list = argv[++i];
+            size_t at = 0;
+            while (at <= list.size())
+            {
+                const size_t comma = list.find(',', at);
+                const size_t end = comma == std::string::npos ? list.size() : comma;
+                const std::string what = list.substr(at, end - at);
+                if (!what.empty()) { config.script.expect.push_back(what); }
+                if (comma == std::string::npos) { break; }
+                at = comma + 1;
+            }
+        }
         else if (arg == "--observe")
         {
             if (!WantsValue(argc, i, "--observe")) { return 2; }
@@ -268,7 +284,8 @@ int main(int argc, char** argv)
     if (!replayPath.empty())
     {
         // Offline: no server, no account. Every line of the capture through the
-        // registry's layout and back, judged by the bytes.
+        // codec the wire has for it -- a registry layout or a family -- and back,
+        // judged by the bytes.
         std::ifstream capture(replayPath.c_str());
         if (!capture)
         {
@@ -457,8 +474,8 @@ int main(int argc, char** argv)
     const loadtest::PeerReport& peer = result.peer;
     std::printf("PEER timesync answered=%u controlUpdates=%u other=%u\n",
                 peer.timeSyncsAnswered, peer.controlUpdates, peer.otherPackets);
-    std::printf("PEER walk start=%u heartbeats=%u stop=%u final=%.1f %.1f %.1f lastTime=%u\n",
-                peer.walkStarts, peer.walkHeartbeats, peer.walkStops,
+    std::printf("PEER walk start=%u heartbeats=%u stop=%u relocations=%u final=%.1f %.1f %.1f lastTime=%u\n",
+                peer.walkStarts, peer.walkHeartbeats, peer.walkStops, peer.relocations,
                 peer.walkFinal.x, peer.walkFinal.y, peer.walkFinal.z, peer.walkLastTime);
     std::printf("PEER acks sent=%u dropped=%u pending=%u unregistered=",
                 peer.acksSent, peer.acksDropped, peer.acksPending);
@@ -468,6 +485,12 @@ int main(int argc, char** argv)
         std::printf("0x%.4X:%u ", uint32(it->first), it->second);
     }
     std::printf("\n");
+    // activeMover can only be 0 on this tree: nothing here writes
+    // SMSG_MOVE_SET_ACTIVE_MOVER yet, so a zero is the expected reading and not a
+    // pass -- it says nothing about whether the codec would judge one correctly.
+    std::printf("PEER teleports=%u/%u knockbacks=%u/%u activeMover=%u splines=%u\n",
+                peer.teleports, peer.teleportAcks, peer.knockBacks, peer.knockBackAcks,
+                peer.activeMoverSets, peer.monsterMoves);
     std::printf("PEER decodefail ");
     for (std::map<uint16, uint32>::const_iterator it = peer.decodeFailures.begin();
          it != peer.decodeFailures.end(); ++it)
@@ -495,35 +518,42 @@ int main(int argc, char** argv)
 
     if (config.script.walk.seconds > 0)
     {
-        // One start and one stop per leg, and heartbeats at three quarters of the
-        // nominal cadence or better. A real client sends no overdue heartbeat
-        // retroactively, so the slack is what keeps a stall of this process from
-        // reading as the server losing the walk.
+        // One stop per leg, and one start per leg PLUS one per relocation: a
+        // teleport that lands mid-leg ends that leg where it stands, sends no
+        // stop for it (a stop from the old place would be a lie about where the
+        // mover is), and opens a fresh leg with a fresh start -- so the leg that
+        // was interrupted pays its stop only when the restarted leg finishes.
+        // starts == legs + relocations and stops == legs is that arithmetic;
+        // without the relocations term an ordinary teleport read as a lost walk.
+        // Heartbeats at three quarters of the nominal cadence or better: a real
+        // client sends no overdue heartbeat retroactively, so the slack is what
+        // keeps a stall of this process from reading as the server losing the walk.
         const uint32 legs = config.script.walk.returnHome ? 2 : 1;
         const uint32 nominal = config.script.walk.seconds * 1000 / config.script.walk.heartbeatMs * legs;
-        const bool walkOk = peer.walkStarts == legs && peer.walkStops == legs &&
+        const bool walkOk = peer.walkStarts == legs + peer.relocations && peer.walkStops == legs &&
                             peer.walkHeartbeats * 4 >= nominal * 3;
-        std::printf("PEER VERDICT walk %s (start %u, heartbeats %u of %u nominal, stop %u, legs %u)\n",
+        std::printf("PEER VERDICT walk %s (start %u, heartbeats %u of %u nominal, stop %u, legs %u, relocations %u)\n",
                     walkOk ? "OK" : "BUG", peer.walkStarts, peer.walkHeartbeats, nominal,
-                    peer.walkStops, legs);
+                    peer.walkStops, legs, peer.relocations);
         verdictsOk = verdictsOk && walkOk;
     }
 
     if (config.holdSeconds > 0)
     {
         // Every change the server sent must have decoded with its registry layout,
-        // and the only changes allowed to have no layout are the two hand-written
-        // packets (P1-C) and the two rate changes no source has an ack layout for.
-        // This verdict covers every packet the peer decodes, not only the changes
-        // -- nobody should narrow it later. A delayed ack still pending when the
-        // hold ended is a change that went unanswered.
+        // and the only changes still allowed to have no layout are the two rate
+        // changes no source has an ack layout for. The knockback and the teleport
+        // were exempt until P1-C: they have families now, the peer answers them
+        // from their own codecs, and a change with neither a layout nor a family
+        // is a defect again. This verdict covers every packet the peer decodes,
+        // not only the changes -- nobody should narrow it later. A delayed ack
+        // still pending when the hold ended is a change that went unanswered.
         bool acksOk = peer.decodeFailures.empty() && peer.acksPending == 0;
         for (std::map<uint16, uint32>::const_iterator it = peer.unregisteredChanges.begin();
              it != peer.unregisteredChanges.end(); ++it)
         {
             const uint16 op = it->first;
-            if (op != SMSG_MOVE_KNOCK_BACK && op != SMSG_MOVE_TELEPORT &&
-                op != SMSG_MOVE_SET_TURN_RATE && op != SMSG_MOVE_SET_PITCH_RATE)
+            if (op != SMSG_MOVE_SET_TURN_RATE && op != SMSG_MOVE_SET_PITCH_RATE)
             {
                 acksOk = false;
             }
@@ -531,6 +561,37 @@ int main(int argc, char** argv)
         std::printf("PEER VERDICT acks %s (sent %u, dropped %u, pending %u)\n", acksOk ? "OK" : "BUG",
                     peer.acksSent, peer.acksDropped, peer.acksPending);
         verdictsOk = verdictsOk && acksOk;
+    }
+
+    // --expect names what the run must actually have seen. A family the server
+    // never sent leaves its counters at zero, which reads as "the codec works"
+    // to anyone skimming the PEER line; naming it makes the absence a BUG.
+    for (size_t i = 0; i < config.script.expect.size(); ++i)
+    {
+        const std::string& what = config.script.expect[i];
+        bool ok = false;
+        if (what == "teleport")
+        {
+            ok = peer.teleports >= 1 && peer.teleportAcks == peer.teleports;
+            std::printf("PEER VERDICT teleport %s (%u seen, %u acked, at %.1f %.1f %.1f)\n", ok ? "OK" : "BUG",
+                        peer.teleports, peer.teleportAcks, peer.teleportFinal.x, peer.teleportFinal.y, peer.teleportFinal.z);
+        }
+        else if (what == "knockback")
+        {
+            ok = peer.knockBacks >= 1 && peer.knockBackAcks == peer.knockBacks;
+            std::printf("PEER VERDICT knockback %s (%u seen, %u acked)\n", ok ? "OK" : "BUG", peer.knockBacks, peer.knockBackAcks);
+        }
+        else if (what == "splines")
+        {
+            ok = peer.monsterMoves >= 1 && peer.decodeFailures.count(SMSG_MONSTER_MOVE) == 0
+                 && peer.decodeFailures.count(SMSG_MONSTER_MOVE_TRANSPORT) == 0;
+            std::printf("PEER VERDICT splines %s (%u monster moves decoded exact)\n", ok ? "OK" : "BUG", peer.monsterMoves);
+        }
+        else
+        {
+            std::printf("PEER VERDICT %s BUG (unknown expectation)\n", what.c_str());
+        }
+        verdictsOk = verdictsOk && ok;
     }
 
     // The server relays movement only inside the observer's visibility range

@@ -66,6 +66,19 @@ set(SRC_GRP_PROTO
     wire/gen_movement_layouts.py
     wire/MovementCapture.h
     wire/MovementCapture.cpp
+    wire/ByteReader.h
+    wire/GuidCodec.h
+    wire/GuidCodec.cpp
+    wire/KnockBackCodec.h
+    wire/KnockBackCodec.cpp
+    wire/MonsterMoveCodec.h
+    wire/MonsterMoveCodec.cpp
+    wire/MovementFamilies.h
+    wire/MovementFamilies.cpp
+    wire/MoverCodec.h
+    wire/MoverCodec.cpp
+    wire/TeleportCodec.h
+    wire/TeleportCodec.cpp
 )
 source_group("proto" FILES ${SRC_GRP_PROTO})
 

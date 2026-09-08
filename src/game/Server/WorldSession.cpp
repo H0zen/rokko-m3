@@ -62,6 +62,7 @@
 #include "WorldPacket.h"
 #include "movement/WireParity.h"
 #include "wire/MovementCapture.h"
+#include "wire/MovementFamilies.h"
 #include "wire/MovementSequences.h"
 #include "WorldSession.h"
 #include "Player.h"
@@ -292,9 +293,10 @@ void WorldSession::SendPacket(WorldPacket const* packet)
     // WorldSocket::SendPacket, there is no failure to react to here.
 
     // The other direction of the same capture: what this server puts on the wire
-    // for the opcodes the registry knows, so a replay can judge the legacy writers
-    // by the same layouts the client reads with.
-    if (Wire::MovementCapture::IsOpen() && Wire::IsPacketLayout(packet->GetOpcode()))
+    // for the opcodes the wire layer knows -- a registry layout or a hand-written
+    // family (P1-C) -- so a replay can judge the legacy writers by the same
+    // codecs the client reads with.
+    if (Wire::MovementCapture::IsOpen() && Wire::IsKnown(packet->GetOpcode()))
     {
         Wire::MovementCapture::Record('S', packet->GetOpcode(), packet->contents(), packet->size());
     }
@@ -1552,10 +1554,11 @@ void WorldSession::HandleConnectToFailed(WorldPacket& /*recvPacket*/)
  */
 void WorldSession::ExecuteOpcode(OpcodeHandler const& opHandle, WorldPacket* packet)
 {
-    // Passive capture of every packet the registry has a layout for, at the one
-    // place every handler is reached from; the handler-local hook in
-    // HandleMovementOpcodes covers what the registry lacks (P1-C's worklist).
-    if (Wire::MovementCapture::IsOpen() && Wire::IsPacketLayout(packet->GetOpcode()))
+    // Passive capture of every packet the wire layer can decode -- a registry
+    // layout or a hand-written family -- at the one place every handler is
+    // reached from; the handler-local hook in HandleMovementOpcodes covers what
+    // is still unknown to both (P1-C's remaining worklist).
+    if (Wire::MovementCapture::IsOpen() && Wire::IsKnown(packet->GetOpcode()))
     {
         Wire::MovementCapture::Record('C', packet->GetOpcode(), packet->contents(), packet->size());
     }

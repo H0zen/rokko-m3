@@ -81,8 +81,10 @@ TEST(Replay_judges_real_client_shaped_lines_exact)
 
 TEST(Replay_counts_an_unregistered_opcode_without_judging_it)
 {
+    // CMSG_PING: not a movement packet at all, so neither a registry layout nor
+    // a family. (SMSG_MOVE_KNOCK_BACK stood here until P1-C gave it a family.)
     std::stringstream capture;
-    capture << "S 0x5CB4 0102030405\n";          // SMSG_MOVE_KNOCK_BACK: no layout (P1-C)
+    capture << "C 0x444D 0102030405\n";
     const loadtest::ReplayReport report = loadtest::Replay(capture);
     CHECK_EQ(report.lines, uint32(1));
     CHECK_EQ(report.unregistered, uint32(1));
@@ -141,4 +143,23 @@ TEST(Replay_counts_an_embedded_layout_apart_and_does_not_judge_it)
     CHECK_EQ(report.unregistered, uint32(0));
     CHECK(report.Clean());
     CHECK_EQ(report.byOpcode.at(CMSG_USE_ITEM).embedded, uint32(1));
+}
+
+TEST(Replay_judges_a_family_packet_like_a_registry_one)
+{
+    // A knockback the tree's writer produced for guid 0x46 (Task 2's bytes)
+    // and a control update: neither has a layout, both have a family, both
+    // are judged, decoded, exact.
+    std::stringstream capture;
+    capture << "S 0x5CB4 " "80" "00000000" "07000000" "00002041" "000040C1" "0000803F" "47" "\n"
+            << "S 0x2837 014601\n"
+            << "C 0x3314 1047\n";
+    const loadtest::ReplayReport report = loadtest::Replay(capture);
+    CHECK_EQ(report.lines, uint32(3));
+    CHECK_EQ(report.decoded, uint32(3));
+    CHECK_EQ(report.exact, uint32(3));
+    CHECK_EQ(report.unregistered, uint32(0));
+    CHECK(report.Clean());
+    CHECK_EQ(report.byOpcode.at(SMSG_MOVE_KNOCK_BACK).exact, uint32(1));
+    CHECK_EQ(report.byOpcode.at(CMSG_SET_ACTIVE_MOVER).exact, uint32(1));
 }

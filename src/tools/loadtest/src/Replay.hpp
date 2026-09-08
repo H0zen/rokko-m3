@@ -51,7 +51,7 @@ namespace loadtest
     struct ReplayRow
     {
         uint32 lines = 0;        ///< capture lines with this opcode
-        uint32 unregistered = 0; ///< no layout: counted, not judged
+        uint32 unregistered = 0; ///< no layout and no family: counted, not judged
         uint32 embedded = 0;     ///< the layout is a block inside the packet (the cast opcodes): counted, not judged
         uint32 decoded = 0;      ///< decoded whole (ok, consumed == size)
         uint32 failed = 0;       ///< decode error or a short read
@@ -67,8 +67,9 @@ namespace loadtest
         /// `malformed` and nowhere else, so a file's total is lines + malformed.
         uint32 lines = 0, malformed = 0, unregistered = 0, embedded = 0, decoded = 0, failed = 0, exact = 0;
 
-        /// True when every registered line decoded whole and re-encoded byte for byte,
-        /// and nothing was malformed. Unregistered lines never make it false.
+        /// True when every line the wire knows -- a registry layout or a family --
+        /// decoded whole and re-encoded byte for byte, and nothing was malformed.
+        /// Unregistered lines never make it false.
         bool Clean() const { return malformed == 0 && failed == 0 && exact == decoded; }
     };
 

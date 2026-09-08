@@ -263,6 +263,7 @@ class ChatHandler
         bool HandleDebugMinionCommand(char* args);
         bool HandleDebugModItemValueCommand(char* args);
         bool HandleDebugModValueCommand(char* args);
+        bool HandleDebugMovementKnockBackCommand(char* args);
         bool HandleDebugSetAuraStateCommand(char* args);
         bool HandleDebugSetItemValueCommand(char* args);
         bool HandleDebugSetValueCommand(char* args);

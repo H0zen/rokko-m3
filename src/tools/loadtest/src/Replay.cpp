@@ -27,10 +27,9 @@
 
 #include "Opcodes.h"
 #include "WorldPacket.h"
-#include "wire/MovementCodec.h"
+#include "wire/MovementFamilies.h"
 #include "wire/MovementSequences.h"
 
-#include <cstring>
 #include <istream>
 #include <sstream>
 
@@ -44,19 +43,6 @@ namespace loadtest
             if (c >= 'A' && c <= 'F') { return c - 'A' + 10; }
             if (c >= 'a' && c <= 'f') { return c - 'a' + 10; }
             return -1;
-        }
-
-        std::string Hex(uint8 const* bytes, size_t size)
-        {
-            static const char digits[] = "0123456789ABCDEF";
-            std::string out;
-            out.reserve(size * 2);
-            for (size_t i = 0; i < size; ++i)
-            {
-                out += digits[bytes[i] >> 4];
-                out += digits[bytes[i] & 0x0F];
-            }
-            return out;
         }
     }
 
@@ -133,8 +119,7 @@ namespace loadtest
                 ++report.embedded;
                 continue;
             }
-            const Wire::Sequence layout = Wire::SequenceFor(line.opcode);
-            if (!layout)
+            if (!Wire::IsKnown(line.opcode))
             {
                 ++row.unregistered;
                 ++report.unregistered;
@@ -142,35 +127,29 @@ namespace loadtest
             }
             WorldPacket packet(line.opcode, line.bytes.size());
             packet.append(line.bytes.data(), line.bytes.size());
-            Wire::MovementStatus status;
-            Wire::DecodeResult result;
-            if (!Wire::DecodeWhole(packet, layout, status, result, false))
+            const Wire::Verdict v = Wire::Judge(line.opcode, packet, false);
+            if (!v.decoded)
             {
-                ++row.failed;
-                ++report.failed;
+                ++row.failed; ++report.failed;
                 if (row.firstProblem.empty())
                 {
                     std::ostringstream why;
-                    why << "line " << number << ": decode " << Wire::ErrorName(result.error)
-                        << ", consumed " << result.consumed << " of " << line.bytes.size();
+                    why << "line " << number << ": decode " << Wire::ErrorName(v.result.error)
+                        << ", consumed " << v.result.consumed << " of " << line.bytes.size();
                     row.firstProblem = why.str();
                 }
                 continue;
             }
-            ++row.decoded;
-            ++report.decoded;
-            WorldPacket again(line.opcode, line.bytes.size());
-            Wire::Encode(again, layout, status);
-            if (again.size() == line.bytes.size() && std::memcmp(again.contents(), line.bytes.data(), again.size()) == 0)
-            {
-                ++row.exact;
-                ++report.exact;
-            }
+            ++row.decoded; ++report.decoded;
+            if (v.exact) { ++row.exact; ++report.exact; }
             else if (row.firstProblem.empty())
             {
+                // The byte offset matters more than the two lengths: an inexact
+                // re-encoding is often the same length as the packet, and then
+                // the lengths alone say nothing about what the writer got wrong.
                 std::ostringstream why;
-                why << "line " << number << ": re-encoded to " << Hex(again.contents(), again.size())
-                    << " from " << Hex(line.bytes.data(), line.bytes.size());
+                why << "line " << number << ": re-encoded to " << v.reencoded << " byte(s), " << line.bytes.size()
+                    << " on the wire, first difference at byte " << v.firstDifference;
                 row.firstProblem = why.str();
             }
         }

@@ -626,6 +626,11 @@ namespace
         { CMSG_MOVE_SET_CAN_FLY,       "legacy is a 45-element stub" },
         { CMSG_MOVE_SPLINE_DONE,       "legacy leads with a counter CPP does not put there" },
         { SMSG_PLAYER_MOVE,            "CPP reads HasHeightChangeFailed where legacy has the unnamed bit, and flushes" },
+        // Task 5's lift, not CPP: the legacy header's table for this one is a
+        // gated table and agrees with the client's reader element for element
+        // -- the single difference is the FlushBits the lift makes explicit
+        // where the legacy array just stops writing bits.
+        { SMSG_MOVE_UPDATE_KNOCK_BACK, "lifted from the client; legacy matches element for element but has no FlushBits" },
     };
 
     template <size_t N>
@@ -674,14 +679,15 @@ TEST(MovementSequences_agrees_with_the_legacy_arrays_exactly_where_it_should)
         if (swapped)  { CHECK(SameLayout(e->sequence, legacy, true)); CHECK(!SameLayout(e->sequence, legacy, false)); }
         if (differs)  { CHECK(!SameLayout(e->sequence, legacy, false)); CHECK(!SameLayout(e->sequence, legacy, true)); }
     }
-    // 38 legacy opcodes, minus SMSG_MOVE_UPDATE_KNOCK_BACK whose only CPP table is excluded (see the generator)
-    CHECK_EQ(covered, 37);
+    // 38 legacy opcodes; SMSG_MOVE_UPDATE_KNOCK_BACK joined them when Task 5's
+    // lift gave it a registry row (see the generator's LIFTED).
+    CHECK_EQ(covered, 38);
 }
 
 TEST(MovementSequences_registers_every_layout_of_the_source)
 {
     const Wire::Registry r = Wire::AllSequences();
-    CHECK_EQ(int(r.end - r.begin), 108);
+    CHECK_EQ(int(r.end - r.begin), 111);
     for (Wire::Entry const* e = r.begin; e != r.end; ++e)
     {
         REQUIRE(e->sequence != nullptr);
@@ -711,10 +717,81 @@ TEST(MovementSequences_registers_every_layout_of_the_source)
     CHECK(Wire::SequenceFor(SMSG_MOVE_TELEPORT) == nullptr);
     CHECK(Wire::SequenceFor(SMSG_MOVE_SET_ACTIVE_MOVER) == nullptr);
     CHECK(Wire::SequenceFor(SMSG_CLIENT_CONTROL_UPDATE) == nullptr);
-    // CPP's tables for these read fields with no presence gate; excluded until P1-C's reader lift
-    CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_KNOCK_BACK) == nullptr);
-    CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_RUN_BACK_SPEED) == nullptr);
-    CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_WALK_SPEED) == nullptr);
+    // lifted from the client's readers (Task 5 of P1-C)
+    CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_KNOCK_BACK) != nullptr);
+    CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_RUN_BACK_SPEED) != nullptr);
+    CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_WALK_SPEED) != nullptr);
+}
+
+TEST(MovementSequences_the_lifted_tables_carry_presence_gates)
+{
+    // The reason the three were excluded: CPP's tables read gated fields with
+    // no gate. The client's own readers have the gates; a lifted table must too.
+    const uint16 ops[3] = { SMSG_MOVE_UPDATE_KNOCK_BACK, SMSG_MOVE_UPDATE_RUN_BACK_SPEED, SMSG_MOVE_UPDATE_WALK_SPEED };
+    for (int i = 0; i < 3; ++i)
+    {
+        Wire::Sequence s = Wire::SequenceFor(ops[i]);
+        REQUIRE(s != nullptr);
+        bool hasFallGate = false, hasTransportGate = false, readsFall = false, readsTransport = false;
+        for (Wire::Sequence p = s; *p != Wire::Element::End; ++p)
+        {
+            if (*p == Wire::Element::HasFallData) { hasFallGate = true; }
+            if (*p == Wire::Element::HasTransportData) { hasTransportGate = true; }
+            if (*p == Wire::Element::FallTime) { readsFall = true; }
+            if (*p == Wire::Element::TransportPositionX) { readsTransport = true; }
+        }
+        // The two implications below are vacuously true of a table that reads
+        // neither block -- which is exactly the shape the exclusion was about --
+        // so pin that these three do read both before asking whether they gate.
+        CHECK(readsFall);
+        CHECK(readsTransport);
+        CHECK(!readsFall || hasFallGate);
+        CHECK(!readsTransport || hasTransportGate);
+    }
+}
+
+TEST(MovementSequences_the_lifted_tables_round_trip_a_full_status)
+{
+    // Every field the fixture fills survives a pass through each lifted table:
+    // the three carry the whole status, gates included, so nothing may drop.
+    const uint16 ops[3] = { SMSG_MOVE_UPDATE_KNOCK_BACK, SMSG_MOVE_UPDATE_RUN_BACK_SPEED, SMSG_MOVE_UPDATE_WALK_SPEED };
+    for (int i = 0; i < 3; ++i)
+    {
+        Wire::Sequence s = Wire::SequenceFor(ops[i]);
+        REQUIRE(s != nullptr);
+        const Wire::MovementStatus in = FullFixture();
+        WorldPacket p(ops[i], 256);
+        Wire::Encode(p, s, in);
+        Wire::MovementStatus out;
+        REQUIRE(Wire::Decode(p, s, out).ok());
+        // The mover guid first: it is sixteen elements (eight presence bits and
+        // eight bytes), and because the encoder and the decoder walk the same
+        // table, a table missing one of them round-trips happily -- the guid is
+        // the only thing that notices. The fixture's guid has every byte
+        // non-zero, so every one of the eight is on the wire to be lost.
+        CHECK_EQ(out.guid, in.guid);
+        CHECK_EQ(out.guid2, in.guid2);
+        CHECK(out.pos == in.pos);
+        CHECK_EQ(out.flags, in.flags);
+        CHECK_EQ(out.flags2, in.flags2);
+        CHECK_EQ(out.time, in.time);
+        CHECK_EQ(out.pitch, in.pitch);
+        CHECK_EQ(out.splineElevation, in.splineElevation);
+        CHECK_EQ(int(out.fall.present), int(in.fall.present));
+        CHECK_EQ(int(out.fall.hasDirection), int(in.fall.hasDirection));
+        CHECK_EQ(out.fall.time, in.fall.time);
+        CHECK_EQ(out.fall.vertical, in.fall.vertical);
+        CHECK_EQ(out.fall.horizontal, in.fall.horizontal);
+        CHECK_EQ(out.fall.cosAngle, in.fall.cosAngle);
+        CHECK_EQ(out.fall.sinAngle, in.fall.sinAngle);
+        CHECK_EQ(int(out.transport.present), int(in.transport.present));
+        CHECK_EQ(out.transport.guid, in.transport.guid);
+        CHECK(out.transport.pos == in.transport.pos);
+        CHECK_EQ(out.transport.time, in.transport.time);
+        CHECK_EQ(out.transport.time2, in.transport.time2);
+        CHECK_EQ(out.transport.vehicleId, in.transport.vehicleId);
+        CHECK_EQ(int(out.transport.seat), int(in.transport.seat));
+    }
 }
 
 TEST(MovementSequences_every_layout_re_encodes_its_own_bytes)
@@ -877,6 +954,6 @@ TEST(MovementCodec_DecodeWhole_names_the_bytes_a_layout_left_behind)
     CHECK(result.error == Wire::DecodeError::LeftBytes);
     CHECK_EQ(result.consumed, bytes);
     CHECK_EQ(out.pos.x, Wire::MovementStatus().pos.x);   // whole, or nothing
-    CHECK(std::string(Wire::ErrorName(result.error)) == "left bytes");
-    CHECK(std::string(Wire::ErrorName(Wire::DecodeError::Overread)) == "overread");
+    CHECK_STR(Wire::ErrorName(result.error), "left bytes");
+    CHECK_STR(Wire::ErrorName(Wire::DecodeError::Overread), "overread");
 }

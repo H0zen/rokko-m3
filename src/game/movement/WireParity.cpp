@@ -28,10 +28,14 @@
 #include "Unit.h"
 #include "Geometry/Placement.h"
 #include "OpcodeTable.h"
+#include "Opcodes.h"
 #include "WorldPacket.h"
 #include "wire/MovementCodec.h"
+#include "wire/MovementFamilies.h"
 #include "wire/MovementParity.h"
 #include "wire/MovementSequences.h"
+#include "wire/MoverCodec.h"
+#include "wire/TeleportCodec.h"
 
 #include <atomic>
 #include <cstdio>
@@ -45,9 +49,11 @@ namespace WireParity
     {
         std::atomic<bool> g_enabled{ false };
 
-        // One row per registry entry, indexed by Wire::RegistryIndex. Counters are
-        // atomics because map threads and the network thread both arrive here; the
-        // first-mismatch text is written once, under the lock.
+        // One row per registry entry followed by one per family opcode: the
+        // registry rows are indexed by Wire::RegistryIndex and the family rows by
+        // RegistrySize() + Wire::FamilyIndex, which is what RowIndex below says.
+        // Counters are atomics because map threads and the network thread both
+        // arrive here; the first-mismatch text is written once, under the lock.
         struct Row
         {
             std::atomic<uint32> inSeen{ 0 };
@@ -57,6 +63,7 @@ namespace WireParity
             std::atomic<uint32> vehicleIdInFallTime{ 0 };
             std::atomic<uint32> outSeen{ 0 };
             std::atomic<uint32> outFailed{ 0 };
+            std::atomic<uint32> outInexact{ 0 };
             std::atomic<bool>   hasFirst{ false };
             std::string         first;
         };
@@ -69,8 +76,30 @@ namespace WireParity
             // (Master::ShutdownWorld's report, then whatever static destruction
             // follows), and static destruction order across singletons is not
             // ours to control.
-            static std::vector<Row>* rows = new std::vector<Row>(Wire::RegistrySize());
+            static std::vector<Row>* rows = new std::vector<Row>(Wire::RegistrySize() + Wire::FamilyCount());
             return *rows;
+        }
+
+        /// The row `opcode` counts in, or -1 when neither the registry nor the
+        /// family table names it. Registry rows come first so an existing index
+        /// keeps its meaning. An embedded layout answers with its registry index,
+        /// which is a row nothing writes to: every caller gates on IsKnown or
+        /// IsPacketLayout first, and both reject an embedded layout.
+        int RowIndex(uint16 opcode)
+        {
+            const int registry = Wire::RegistryIndex(opcode);
+            if (registry >= 0) { return registry; }
+            const int family = Wire::FamilyIndex(opcode);
+            if (family >= 0) { return int(Wire::RegistrySize()) + family; }
+            return -1;
+        }
+
+        /// The opcode a row counts, for the report: the registry's own for a
+        /// registry row, the family table's for a family row.
+        uint16 RowOpcode(size_t i)
+        {
+            if (i < Wire::RegistrySize()) { return Wire::AllSequences().begin[i].opcode; }
+            return Wire::FamilyOpcodeAt(i - Wire::RegistrySize());
         }
 
         void NoteFirst(Row& row, std::string const& text)
@@ -153,7 +182,11 @@ namespace WireParity
         // flushed its trailing bits yet (WorldSession::SendPacket does that later),
         // rather than from the client, whose packet the legacy reader has just read
         // and whose bit cursor therefore holds read state.
-        void Judge(Row& row, uint16 opcode, WorldPacket const& packet, MovementInfo const& legacy, bool relayed)
+        //
+        // Not "Judge": Wire::Judge is the wire's own round-trip verdict, used a
+        // few lines below in Outbound, and two functions of that name in one unit
+        // is one too many.
+        void CompareToLegacy(Row& row, uint16 opcode, WorldPacket const& packet, MovementInfo const& legacy, bool relayed)
         {
             ++row.inSeen;
             Wire::MovementStatus wire;
@@ -242,7 +275,7 @@ namespace WireParity
     {
         if (!Enabled()) { return; }
         if (!Wire::IsPacketLayout(opcode)) { return; }
-        Judge(Rows()[size_t(Wire::RegistryIndex(opcode))], opcode, packet, legacy, false);
+        CompareToLegacy(Rows()[size_t(RowIndex(opcode))], opcode, packet, legacy, false);
     }
 
     void Relay(uint16 opcode, WorldPacket const& packet, MovementInfo const& legacy)
@@ -252,26 +285,108 @@ namespace WireParity
         // and that writer has not flushed its trailing bits yet.
         if (!Enabled()) { return; }
         if (!Wire::IsPacketLayout(opcode)) { return; }
-        Judge(Rows()[size_t(Wire::RegistryIndex(opcode))], opcode, packet, legacy, true);
+        CompareToLegacy(Rows()[size_t(RowIndex(opcode))], opcode, packet, legacy, true);
     }
 
     void Outbound(uint16 opcode, WorldPacket const& packet)
     {
         if (!Enabled()) { return; }
-        if (!Wire::IsPacketLayout(opcode)) { return; }
-        const int i = Wire::RegistryIndex(opcode);
-        Row& row = Rows()[size_t(i)];
+        if (!Wire::IsKnown(opcode)) { return; }
+        Row& row = Rows()[size_t(RowIndex(opcode))];
         ++row.outSeen;
-        Wire::MovementStatus wire;
-        Wire::DecodeResult result;
-        // SendPacket flushed this packet's trailing bits before the hook ran, so
-        // the copy carries every byte the wire will: nothing left to flush.
-        if (!Wire::DecodeWhole(packet, Wire::SequenceFor(opcode), wire, result, false))
+        // SendPacket flushed this packet's trailing bits before the hook ran.
+        const Wire::Verdict v = Wire::Judge(opcode, packet, false);
+        if (!v.decoded)
         {
             ++row.outFailed;
             char text[128];
             std::snprintf(text, sizeof(text), "0x%.4X %s: outbound decode %s, consumed %u, payload %u", uint32(opcode),
-                          LookupOpcodeName(opcode), Wire::ErrorName(result.error), uint32(result.consumed), uint32(packet.size()));
+                          LookupOpcodeName(opcode), Wire::ErrorName(v.result.error), uint32(v.result.consumed), uint32(packet.size()));
+            NoteFirst(row, text);
+            return;
+        }
+        if (!v.exact)
+        {
+            // The offset, not the two lengths: an inexact re-encoding is often
+            // exactly as long as the packet, and then the lengths say nothing
+            // about which field the writer got wrong.
+            ++row.outInexact;
+            char text[160];
+            std::snprintf(text, sizeof(text), "0x%.4X %s: outbound re-encodes to %u byte(s), %u on the wire, first difference at byte %ld",
+                          uint32(opcode), LookupOpcodeName(opcode), uint32(v.reencoded), uint32(packet.size()), v.firstDifference);
+            NoteFirst(row, text);
+        }
+    }
+
+    void InboundMover(WorldPacket const& packet, uint64 sessionMover)
+    {
+        if (!Enabled()) { return; }
+        const int i = RowIndex(CMSG_SET_ACTIVE_MOVER);
+        if (i < 0) { return; }
+        Row& row = Rows()[size_t(i)];
+        ++row.inSeen;
+        WorldPacket copy(packet);
+        copy.rpos(0);
+        copy.ResetBitReader();
+        Wire::ActiveMover value;
+        Wire::DecodeResult r = Wire::DecodeActiveMover(copy, CMSG_SET_ACTIVE_MOVER, value);
+        // A decode that stopped short of the payload is a short read, not a
+        // success -- Wire::Judge calls that LeftBytes, and so does this.
+        if (r.ok() && r.consumed != copy.size()) { r.error = Wire::DecodeError::LeftBytes; }
+        if (!r.ok())
+        {
+            ++row.inFailed;
+            char text[128];
+            std::snprintf(text, sizeof(text), "0x3314 CMSG_SET_ACTIVE_MOVER: decode %s, consumed %u of %u",
+                          Wire::ErrorName(r.error), uint32(r.consumed), uint32(copy.size()));
+            NoteFirst(row, text);
+            return;
+        }
+        if (value.guid != sessionMover)
+        {
+            // The client naming a mover this session does not hold -- the
+            // disagreement the legacy handler's own check was written to catch.
+            ++row.inMismatch;
+            char text[128];
+            std::snprintf(text, sizeof(text), "0x3314 CMSG_SET_ACTIVE_MOVER: guid %llu, session mover %llu",
+                          (unsigned long long)value.guid, (unsigned long long)sessionMover);
+            NoteFirst(row, text);
+        }
+    }
+
+    void InboundTeleportAck(WorldPacket const& packet, uint32 legacyCounter, uint32 legacyTime, uint64 legacyGuid)
+    {
+        if (!Enabled()) { return; }
+        const int i = RowIndex(CMSG_MOVE_TELEPORT_ACK);
+        if (i < 0) { return; }
+        Row& row = Rows()[size_t(i)];
+        ++row.inSeen;
+        WorldPacket copy(packet);
+        copy.rpos(0);
+        copy.ResetBitReader();
+        Wire::TeleportAck value;
+        Wire::DecodeResult r = Wire::DecodeTeleportAck(copy, value);
+        if (r.ok() && r.consumed != copy.size()) { r.error = Wire::DecodeError::LeftBytes; }
+        if (!r.ok())
+        {
+            ++row.inFailed;
+            char text[128];
+            std::snprintf(text, sizeof(text), "0x390C CMSG_MOVE_TELEPORT_ACK: decode %s, consumed %u of %u",
+                          Wire::ErrorName(r.error), uint32(r.consumed), uint32(copy.size()));
+            NoteFirst(row, text);
+            return;
+        }
+        // The first field that differs, in the order the packet carries them.
+        char const* field = NULL;
+        unsigned long long mine = 0, theirs = 0;
+        if (value.counter != legacyCounter)   { field = "counter"; mine = value.counter; theirs = legacyCounter; }
+        else if (value.time != legacyTime)    { field = "time";    mine = value.time;    theirs = legacyTime; }
+        else if (value.guid != legacyGuid)    { field = "guid";    mine = value.guid;    theirs = legacyGuid; }
+        if (field)
+        {
+            ++row.inMismatch;
+            char text[128];
+            std::snprintf(text, sizeof(text), "0x390C CMSG_MOVE_TELEPORT_ACK: %s %llu, legacy read %llu", field, mine, theirs);
             NoteFirst(row, text);
         }
     }
@@ -295,17 +410,17 @@ namespace WireParity
         // both go through Report -- so it stays file-local.
         std::string Summary()
         {
-            uint32 inSeen = 0, inFailed = 0, inMismatch = 0, swapped = 0, vehicle = 0, outSeen = 0, outFailed = 0;
+            uint32 inSeen = 0, inFailed = 0, inMismatch = 0, swapped = 0, vehicle = 0, outSeen = 0, outFailed = 0, outInexact = 0;
             for (Row const& r : Rows())
             {
                 inSeen += r.inSeen; inFailed += r.inFailed; inMismatch += r.inMismatch;
                 swapped += r.labelSwapped; vehicle += r.vehicleIdInFallTime;
-                outSeen += r.outSeen; outFailed += r.outFailed;
+                outSeen += r.outSeen; outFailed += r.outFailed; outInexact += r.outInexact;
             }
             char text[256];
             std::snprintf(text, sizeof(text),
-                          "wire parity %s: in %u seen, %u failed, %u mismatched (%u fall-label swapped, %u vehicle id in fall time); out %u seen, %u failed",
-                          Enabled() ? "on" : "off", inSeen, inFailed, inMismatch, swapped, vehicle, outSeen, outFailed);
+                          "wire parity %s: in %u seen, %u failed, %u mismatched (%u fall-label swapped, %u vehicle id in fall time); out %u seen, %u failed, %u inexact",
+                          Enabled() ? "on" : "off", inSeen, inFailed, inMismatch, swapped, vehicle, outSeen, outFailed, outInexact);
             return text;
         }
     }
@@ -313,7 +428,6 @@ namespace WireParity
     void Report(std::function<void(std::string const&)> const& line)
     {
         line(Summary());
-        const Wire::Registry r = Wire::AllSequences();
         std::vector<Row>& rows = Rows();
         for (size_t i = 0; i < rows.size(); ++i)
         {
@@ -322,19 +436,21 @@ namespace WireParity
             {
                 continue;
             }
+            const uint16 opcode = RowOpcode(i);
             char text[256];
-            std::snprintf(text, sizeof(text), "  0x%.4X %-44s in %u/%u/%u (swapped %u, vehicle %u)  out %u/%u",
-                          uint32(r.begin[i].opcode), LookupOpcodeName(r.begin[i].opcode),
+            std::snprintf(text, sizeof(text), "  0x%.4X %-44s in %u/%u/%u (swapped %u, vehicle %u)  out %u/%u inexact %u",
+                          uint32(opcode), LookupOpcodeName(opcode),
                           uint32(row.inSeen), uint32(row.inFailed), uint32(row.inMismatch),
                           uint32(row.labelSwapped), uint32(row.vehicleIdInFallTime),
-                          uint32(row.outSeen), uint32(row.outFailed));
+                          uint32(row.outSeen), uint32(row.outFailed), uint32(row.outInexact));
             line(text);
             if (row.hasFirst.load(std::memory_order_acquire))
             {
                 line("    " + row.first);
             }
         }
-        line("  columns: in seen/failed/mismatched (the SMSG_PLAYER_MOVE row counts the relays this server built), out seen/failed");
+        line("  columns: in seen/failed/mismatched (the SMSG_PLAYER_MOVE row counts the relays this server built), out seen/failed, inexact");
+        line("  inexact: decoded whole but re-encodes to different bytes");
         line("  vehicle counts only packets carrying both a fall block and a transport vehicle id; a 0 is not evidence the defect is absent");
     }
 }

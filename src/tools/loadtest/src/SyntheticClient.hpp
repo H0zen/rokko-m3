@@ -186,8 +186,9 @@ namespace loadtest
             bool Serve(std::string& error);
 
             /// One inbound packet during Serve. False only on a send failure.
-            bool Dispatch(WorldPacket& packet, class AckEngine& acks, uint32 nowTicks,
-                          std::string& error);
+            /// `walker` is the mover this session reports: a teleport moves it.
+            bool Dispatch(WorldPacket& packet, class AckEngine& acks, class Walker& walker,
+                          uint32 nowTicks, std::string& error);
 
             /// Sends on `stream`, enciphered iff that stream has armed.
             bool Send(Stream& stream, const WorldPacket& packet, std::string& error);

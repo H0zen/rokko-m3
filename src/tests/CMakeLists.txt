@@ -67,6 +67,7 @@ set(SRC_GRP_TESTS
     PeerTest.cpp
     ReplayTest.cpp
     GoldenCaptureTest.cpp
+    FamilyCodecTest.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/TimeSync.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/Walker.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/AckEngine.cpp

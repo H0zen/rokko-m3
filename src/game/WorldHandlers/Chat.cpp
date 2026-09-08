@@ -272,6 +272,12 @@ ChatCommand* ChatHandler::getCommandTable()
         { NULL,             0,                  false, NULL,                                                "", NULL }
     };
 
+    static ChatCommand debugMovementCommandTable[] =
+    {
+        { "knockback",      SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleDebugMovementKnockBackCommand,   "", NULL },
+        { NULL,             0,                  false, NULL,                                                "", NULL }
+    };
+
     static ChatCommand debugCommandTable[] =
     {
         { "anim",           SEC_GAMEMASTER,     false, &ChatHandler::HandleDebugAnimCommand,                "", NULL },
@@ -285,6 +291,7 @@ ChatCommand* ChatHandler::getCommandTable()
         { "minion",         SEC_GAMEMASTER,     false, &ChatHandler::HandleDebugMinionCommand,              "", NULL },
         { "moditemvalue",   SEC_ADMINISTRATOR,  false, &ChatHandler::HandleDebugModItemValueCommand,        "", NULL },
         { "modvalue",       SEC_ADMINISTRATOR,  false, &ChatHandler::HandleDebugModValueCommand,            "", NULL },
+        { "movement",       SEC_ADMINISTRATOR,  true,  NULL,                                                "", debugMovementCommandTable },
         { "play",           SEC_MODERATOR,      false, NULL,                                                "", debugPlayCommandTable },
         { "recv",           SEC_ADMINISTRATOR,  false, &ChatHandler::HandleDebugRecvOpcodeCommand,          "", NULL },
         { "send",           SEC_ADMINISTRATOR,  false, NULL,                                                "", debugSendCommandTable },

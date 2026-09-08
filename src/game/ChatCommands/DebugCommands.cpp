@@ -1899,3 +1899,52 @@ void ChatHandler::DumpPetsOn(Map* on, char const* label)
                         owner ? owner->GetGuidStr().c_str() : "(none)");
     }
 }
+
+/**
+ * @brief .debug movement knockback [#player] [horizontal] [vertical]
+ *
+ * Knocks the named player (or the selection, or the caller) straight back
+ * from their facing. Exists so a knockback can be produced on demand -- from
+ * the console too -- for the wire captures and the peer's live gate.
+ *
+ * From the console there is no selection and no caller, so the player must be
+ * named. And NAME THE PLAYER WHENEVER YOU GIVE SPEEDS: the tree's argument
+ * helpers cannot tell a name from a number, so `knockback 20 15` takes "20" as
+ * the player's name and leaves 15 as the only speed. Both speeds are optional
+ * and default to 10, but a speed that is not a number at all is refused rather
+ * than quietly replaced by that default.
+ */
+bool ChatHandler::HandleDebugMovementKnockBackCommand(char* args)
+{
+    Player* target = NULL;
+    ObjectGuid targetGuid;
+    std::string targetName;
+    char* nameStr = ExtractOptNotLastArg(&args);
+    if (!ExtractPlayerTarget(&nameStr, &target, &targetGuid, &targetName))
+    {
+        return false;
+    }
+
+    if (!target)
+    {
+        // The plain send, not the vararg one: mangos_string rows are runtime
+        // data, so the day this row gains a %s the vararg overload with no
+        // arguments becomes undefined behaviour.
+        SendSysMessage(LANG_PLAYER_NOT_FOUND);
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    // A speed that is not a number is a typo, not a request for the default:
+    // saying so (false prints the usage line) beats knocking the player back at
+    // 10/10 and leaving the operator to wonder why their number did nothing.
+    float horizontal = 10.0f, vertical = 10.0f;
+    if (!ExtractOptFloat(&args, horizontal, 10.0f) || !ExtractOptFloat(&args, vertical, 10.0f))
+    {
+        return false;
+    }
+
+    target->KnockBackWithAngle(target->Where().Facing() + M_PI_F, horizontal, vertical);
+    PSendSysMessage("Knocked %s back: horizontal %.1f, vertical %.1f", target->GetName(), horizontal, vertical);
+    return true;
+}

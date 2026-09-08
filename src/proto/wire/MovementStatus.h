@@ -40,6 +40,15 @@ namespace Wire
         bool operator==(Vec4 const& r) const { return x == r.x && y == r.y && z == r.z && o == r.o; }
     };
 
+    struct Vec3
+    {
+        float x = 0.0f;
+        float y = 0.0f;
+        float z = 0.0f;
+
+        bool operator==(Vec3 const& r) const { return x == r.x && y == r.y && z == r.z; }
+    };
+
     /**
      * @brief The movement-status block the 4.3.4 client and server exchange.
      *
