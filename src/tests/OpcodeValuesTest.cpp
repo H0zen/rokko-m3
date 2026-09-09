@@ -206,3 +206,20 @@ TEST(OpcodeValues_movement_changes_match_the_client)
     CHECK_EQ(int(SMSG_MOVE_UPDATE_COLLISION_HEIGHT),  0x59A3);   // reader sub_1403990B0
     CHECK_EQ(int(SMSG_MOVE_SET_ACTIVE_MOVER),         0x11B3);   // reader sub_14037F8D0
 }
+
+TEST(OpcodeValues_movement_updates_lifted_in_p2a)
+{
+    // Three more observer updates the matrix had no opcode name for at all: the client
+    // dispatches them, but the reference project has neither table nor opcode case for
+    // them (gen_movement_layouts.py's ADDED). Two sources per value, both client-binary
+    // and both quoted for traceability: the dispatch table's own reader column
+    // (client_opcode_table_434.tsv; a thin constructor -- P1-C's rule) and the field
+    // reader lift_client_reader.py actually lifted, which that constructor's one call
+    // resolves to.
+    CHECK_EQ(int(SMSG_MOVE_UPDATE_TELEPORT),  0x50B2);   // dispatch reader sub_1403975E0; field reader sub_140384210
+    CHECK_EQ(int(SMSG_MOVE_UPDATE_TURN_RATE), 0x5DA1);   // dispatch reader sub_140397590; field reader sub_14038C780
+    // PitchRate's value is pinned the same way, but its lift is BLOCKED: sub_14037B330
+    // takes a gate bit as `(unsigned __int8)~v85 >> 7`, a bitwise-complement the lifter's
+    // shift-register tracker does not parse. No registry row for it (see MovementLayouts.inc).
+    CHECK_EQ(int(SMSG_MOVE_UPDATE_PITCH_RATE), 0x1DB5);  // dispatch reader sub_140383A60; field reader sub_14037B330 (BLOCKED)
+}

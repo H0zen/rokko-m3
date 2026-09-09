@@ -75,6 +75,7 @@
 #include "ObjectMgr.h"
 #include "ObjectLookup.h"
 #include "movement/WireParity.h"
+#include "movement/WriterShadowHooks.h"
 #include "wire/MovementCapture.h"
 #include "wire/MovementFamilies.h"
 #include "wire/MovementSequences.h"
@@ -694,6 +695,14 @@ void WorldSession::SendKnockBack(float angle, float horizontalSpeed, float verti
     data << float(-verticalSpeed);                      // Z Movement speed (vertical)
     data << float(vcos);                                // x direction
     data.WriteGuidBytes<2, 0>(guid);
+
+    Motion::KnockBackParams shadow;
+    shadow.directionX = vcos;
+    shadow.directionY = vsin;
+    shadow.horizontal = horizontalSpeed;
+    shadow.vertical = -verticalSpeed;
+    WriterShadow::KnockBack(guid.GetRawValue(), shadow, data);
+
     SendPacket(&data);
 }
 

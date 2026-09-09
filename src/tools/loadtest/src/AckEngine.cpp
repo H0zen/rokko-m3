@@ -104,10 +104,15 @@ namespace loadtest
             return false;
         }
 
-        // Decode from a copy: the caller's packet keeps its read cursor.
+        // Decode from a copy: the caller's packet keeps its read cursor. The
+        // whole payload must be the change: trailing bytes are what the
+        // shadow and the replay call LeftBytes, and the peer agrees with them.
         WorldPacket copy(change);
+        copy.rpos(0);
+        copy.ResetBitReader();
         Wire::MovementStatus status;
-        if (!Wire::Decode(copy, in, status).ok())
+        Wire::DecodeResult const decoded = Wire::Decode(copy, in, status);
+        if (!decoded.ok() || decoded.consumed != copy.size())
         {
             ++m_decodeFailures[pair->change];
             return false;

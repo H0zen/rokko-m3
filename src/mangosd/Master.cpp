@@ -41,6 +41,7 @@
 #include "Timer.h"
 #include "World.h"
 #include "movement/WireParity.h"
+#include "movement/WriterShadowHooks.h"
 
 #ifdef _WIN32
 #include "ServiceWin32.h"
@@ -345,6 +346,11 @@ void Master::ShutdownWorld()
     if (WireParity::Saw())
     {
         WireParity::Report([](std::string const& line) { sLog.outString("%s", line.c_str()); });
+    }
+
+    if (WriterShadow::Saw())
+    {
+        WriterShadow::Report([](std::string const& line) { sLog.outString("%s", line.c_str()); });
     }
 
     sLog.outString("[shutdown] stopping the world listener");

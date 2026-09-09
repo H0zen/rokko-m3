@@ -586,6 +586,34 @@ TEST(AckEngine_answers_a_real_speed_change_from_the_registry_layouts)
     CHECK_EQ(engine.Sent(), uint32(1));
 }
 
+TEST(AckEngine_refuses_a_change_with_trailing_bytes)
+{
+    // Build exactly the change packet the neighbouring test answers, then
+    // append one byte: the whole payload must be the change.
+    loadtest::AckPolicy policy;
+    loadtest::AckEngine engine(policy, [](uint16 op) { return Wire::SequenceFor(op); });
+    Wire::MovementStatus mover;
+    mover.guid = 0x42;
+    mover.pos.x = 1.0f; mover.pos.y = 2.0f; mover.pos.z = 3.0f; mover.pos.o = 0.5f;
+    engine.SetMover(mover);
+
+    Wire::MovementStatus change;
+    change.guid = 0x42;
+    change.counter = 5;
+    change.value = 14.0f;
+    WorldPacket set(SMSG_MOVE_SET_RUN_SPEED, 32);
+    Wire::Encode(set, Wire::SequenceFor(SMSG_MOVE_SET_RUN_SPEED), change);
+
+    WorldPacket bent(set);
+    bent << uint8(0);
+    CHECK(!engine.Plan(bent, 1000));
+    REQUIRE(engine.DecodeFailures().count(SMSG_MOVE_SET_RUN_SPEED) == 1);
+    CHECK_EQ(engine.DecodeFailures().at(SMSG_MOVE_SET_RUN_SPEED), uint32(1));
+
+    // The unmodified packet is still answered: the guard is tight, not blanket.
+    REQUIRE(engine.Plan(set, 1000));
+}
+
 TEST(AckEngine_knows_which_known_pairs_still_lack_a_layout)
 {
     // The table is the engine's business only: a change whose status the engine

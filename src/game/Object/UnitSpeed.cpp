@@ -38,6 +38,7 @@
 #include "Spell.h"
 #include "Group.h"
 #include "SpellAuras.h"
+#include "movement/WriterShadowHooks.h"
 #include "MapManager.h"
 #include "CreatureAI.h"
 #include "TemporarySummon.h"
@@ -373,6 +374,7 @@ void Unit::SetSpeedRate(UnitMoveType mtype, float rate, bool forced, bool ignore
                     return;
             }
 
+            WriterShadow::Speed(*this, uint8(mtype), GetSpeed(mtype), data);
             ((Player*)this)->GetSession()->SendPacket(&data);
         }
 
@@ -465,6 +467,7 @@ void Unit::SetSpeedRate(UnitMoveType mtype, float rate, bool forced, bool ignore
                 return;
         }
 
+        WriterShadow::Speed(*this, uint8(mtype), GetSpeed(mtype), data);
         SendMessageToSet(&data, false);
     }
 

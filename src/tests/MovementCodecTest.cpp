@@ -687,7 +687,7 @@ TEST(MovementSequences_agrees_with_the_legacy_arrays_exactly_where_it_should)
 TEST(MovementSequences_registers_every_layout_of_the_source)
 {
     const Wire::Registry r = Wire::AllSequences();
-    CHECK_EQ(int(r.end - r.begin), 111);
+    CHECK_EQ(int(r.end - r.begin), 113);
     for (Wire::Entry const* e = r.begin; e != r.end; ++e)
     {
         REQUIRE(e->sequence != nullptr);
@@ -721,14 +721,23 @@ TEST(MovementSequences_registers_every_layout_of_the_source)
     CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_KNOCK_BACK) != nullptr);
     CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_RUN_BACK_SPEED) != nullptr);
     CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_WALK_SPEED) != nullptr);
+    // lifted from the client's readers with no reference counterpart at all (ADDED, Task 6
+    // of P2-A). PitchRate's own reader is BLOCKED (see gen_movement_layouts.py's ADDED
+    // comment) and so has no row here either.
+    CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_TELEPORT) != nullptr);
+    CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_TURN_RATE) != nullptr);
+    CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_PITCH_RATE) == nullptr);
 }
 
 TEST(MovementSequences_the_lifted_tables_carry_presence_gates)
 {
-    // The reason the three were excluded: CPP's tables read gated fields with
-    // no gate. The client's own readers have the gates; a lifted table must too.
-    const uint16 ops[3] = { SMSG_MOVE_UPDATE_KNOCK_BACK, SMSG_MOVE_UPDATE_RUN_BACK_SPEED, SMSG_MOVE_UPDATE_WALK_SPEED };
-    for (int i = 0; i < 3; ++i)
+    // The reason the first three were excluded: CPP's tables read gated fields with no
+    // gate. The client's own readers have the gates; a lifted table must too. The other
+    // two have no CPP table to have been excluded from (ADDED, Task 6 of P2-A) but read
+    // the same gated fields from the same kind of reader, so the same check applies.
+    const uint16 ops[5] = { SMSG_MOVE_UPDATE_KNOCK_BACK, SMSG_MOVE_UPDATE_RUN_BACK_SPEED, SMSG_MOVE_UPDATE_WALK_SPEED,
+                             SMSG_MOVE_UPDATE_TELEPORT, SMSG_MOVE_UPDATE_TURN_RATE };
+    for (int i = 0; i < 5; ++i)
     {
         Wire::Sequence s = Wire::SequenceFor(ops[i]);
         REQUIRE(s != nullptr);
@@ -752,10 +761,12 @@ TEST(MovementSequences_the_lifted_tables_carry_presence_gates)
 
 TEST(MovementSequences_the_lifted_tables_round_trip_a_full_status)
 {
-    // Every field the fixture fills survives a pass through each lifted table:
-    // the three carry the whole status, gates included, so nothing may drop.
-    const uint16 ops[3] = { SMSG_MOVE_UPDATE_KNOCK_BACK, SMSG_MOVE_UPDATE_RUN_BACK_SPEED, SMSG_MOVE_UPDATE_WALK_SPEED };
-    for (int i = 0; i < 3; ++i)
+    // Every field the fixture fills survives a pass through each lifted table: all five
+    // carry the whole status, gates included, so nothing may drop. Six when PitchRate's
+    // lift is unblocked; see the ADDED comment in gen_movement_layouts.py.
+    const uint16 ops[5] = { SMSG_MOVE_UPDATE_KNOCK_BACK, SMSG_MOVE_UPDATE_RUN_BACK_SPEED, SMSG_MOVE_UPDATE_WALK_SPEED,
+                             SMSG_MOVE_UPDATE_TELEPORT, SMSG_MOVE_UPDATE_TURN_RATE };
+    for (int i = 0; i < 5; ++i)
     {
         Wire::Sequence s = Wire::SequenceFor(ops[i]);
         REQUIRE(s != nullptr);

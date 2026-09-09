@@ -27,6 +27,7 @@
 #include <string>
 #include "World.h"
 #include "movement/WireParity.h"
+#include "movement/WriterShadowHooks.h"
 #include "wire/MovementCapture.h"
 #include "Database/DatabaseEnv.h"
 #include "Config/Config.h"
@@ -703,6 +704,13 @@ void World::LoadConfigSettings(bool reload)
     if (WireParity::Enabled())
     {
         sLog.outString("WORLD: Wire parity shadow ON (.server movement to read it)");
+    }
+
+    setConfig(CONFIG_BOOL_MOVEMENT_WRITER_SHADOW, "Movement.WriterShadow", false);
+    WriterShadow::Enable(getConfig(CONFIG_BOOL_MOVEMENT_WRITER_SHADOW));
+    if (WriterShadow::Enabled())
+    {
+        sLog.outString("WORLD: Writer shadow ON (.server movement to read it)");
     }
 
     sLog.outString();

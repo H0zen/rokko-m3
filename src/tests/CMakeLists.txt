@@ -68,6 +68,12 @@ set(SRC_GRP_TESTS
     ReplayTest.cpp
     GoldenCaptureTest.cpp
     FamilyCodecTest.cpp
+    MotionMatrixTest.cpp
+    PendingChangesTest.cpp
+    TimeBaseTest.cpp
+    MotionWritersTest.cpp
+    MotionStateTest.cpp
+    WriterShadowTest.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/TimeSync.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/Walker.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/AckEngine.cpp
@@ -143,6 +149,7 @@ target_compile_definitions(mangos_tests PRIVATE MANGOS_TEST_DATA_DIR="${CMAKE_CU
 
 target_link_libraries(mangos_tests
     PRIVATE
+        motion
         proto
         shared
         mangos_crypto
@@ -171,6 +178,11 @@ add_test(NAME proto_boundary
     COMMAND ${CMAKE_COMMAND}
         -DSOURCE_ROOT=${CMAKE_SOURCE_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckProtoBoundary.cmake)
+
+add_test(NAME motion_boundary
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_ROOT=${CMAKE_SOURCE_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckMotionBoundary.cmake)
 
 add_test(NAME warden_dormant_boundary
     COMMAND ${CMAKE_COMMAND}

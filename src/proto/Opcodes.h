@@ -335,6 +335,9 @@ enum OpcodesList
     SMSG_MOVE_UPDATE_FLIGHT_SPEED                         = 0x30B1, // 4.3.4 15595
     SMSG_MOVE_UPDATE_FLIGHT_BACK_SPEED                    = 0x74A0, // 4.3.4 15595
     SMSG_MOVE_UPDATE_COLLISION_HEIGHT                     = 0x59A3, // 4.3.4 15595
+    SMSG_MOVE_UPDATE_TELEPORT                             = 0x50B2, // 4.3.4 15595
+    SMSG_MOVE_UPDATE_TURN_RATE                            = 0x5DA1, // 4.3.4 15595
+    SMSG_MOVE_UPDATE_PITCH_RATE                           = 0x1DB5, // 4.3.4 15595
     SMSG_MOVE_SET_ACTIVE_MOVER                            = 0x11B3, // 4.3.4 15595
     SMSG_MOVE_FEATHER_FALL                                = 0x79B0, // 4.3.4 15595
     SMSG_MOVE_NORMAL_FALL                                 = 0x51B6, // 4.3.4 15595

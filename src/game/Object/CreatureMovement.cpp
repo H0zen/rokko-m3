@@ -36,6 +36,7 @@
 #include "WorldPacket.h"
 #include "Opcodes.h"
 #include "GridMap.h"
+#include "movement/WriterShadowHooks.h"
 
 /**
  * @brief Enables or disables walk mode for the creature.
@@ -94,6 +95,7 @@ void Creature::SetWalk(bool enable, bool asDefault)
             data.WriteGuidBytes<7, 0, 4, 6, 5, 1, 2, 3>(GetObjectGuid());
         }
 
+        WriterShadow::Flag(*this, Motion::ChangeType::Gait, enable, data);
         SendMessageToSet(&data, true);
     }
 }
@@ -128,6 +130,7 @@ void Creature::SetLevitate(bool enable)
             data.WriteGuidBytes<7, 3, 4, 2, 1, 6, 0, 5>(GetObjectGuid());
         }
 
+        WriterShadow::Flag(*this, Motion::ChangeType::GravityDisabled, enable, data);
         SendMessageToSet(&data, true);
     }
 }
@@ -167,6 +170,7 @@ void Creature::SetSwim(bool enable)
             data.WriteGuidBytes<6, 0, 7, 2, 3, 1, 5, 4>(GetObjectGuid());
         }
 
+        WriterShadow::Flag(*this, Motion::ChangeType::Swim, enable, data);
         SendMessageToSet(&data, true);
     }
 }
@@ -271,6 +275,7 @@ void Creature::SetCanFly(bool enable)
             data.WriteGuidBytes<7, 2, 3, 4, 5, 1, 6, 0>(GetObjectGuid());
         }
 
+        WriterShadow::Flag(*this, Motion::ChangeType::CanFly, enable, data);
         SendMessageToSet(&data, true);
     }
 }
@@ -305,6 +310,7 @@ void Creature::SetFeatherFall(bool enable)
             data.WriteGuidBytes<7, 6, 2, 0, 5, 4, 3, 1>(GetObjectGuid());
         }
 
+        WriterShadow::Flag(*this, Motion::ChangeType::FeatherFall, enable, data);
         SendMessageToSet(&data, true);
     }
 }
@@ -339,6 +345,7 @@ void Creature::SetHover(bool enable)
             data.WriteGuidBytes<4, 5, 3, 0, 2, 7, 6, 1>(GetObjectGuid());
         }
 
+        WriterShadow::Flag(*this, Motion::ChangeType::Hover, enable, data);
         SendMessageToSet(&data, false);
     }
 }
@@ -373,6 +380,7 @@ void Creature::SetRoot(bool enable)
             data.WriteGuidBytes<6, 3, 1, 5, 2, 0, 7, 4>(GetObjectGuid());
         }
 
+        WriterShadow::Flag(*this, Motion::ChangeType::Root, enable, data);
         SendMessageToSet(&data, true);
     }
 }
@@ -407,6 +415,7 @@ void Creature::SetWaterWalk(bool enable)
             data.WriteGuidBytes<5, 7, 3, 4, 1, 2, 0, 6>(GetObjectGuid());
         }
 
+        WriterShadow::Flag(*this, Motion::ChangeType::WaterWalk, enable, data);
         SendMessageToSet(&data, true);
     }
 }

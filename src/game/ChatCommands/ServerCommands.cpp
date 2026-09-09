@@ -46,6 +46,7 @@
 #include "MapPersistentStateMgr.h"
 #include "CorpseManager.h"
 #include "movement/WireParity.h"
+#include "movement/WriterShadowHooks.h"
 
 /**
  * @brief Handler for HandleServerInfoCommand command.
@@ -98,7 +99,8 @@ bool ChatHandler::HandleServerInfoCommand(char* /*args*/)
  * @brief Handler for HandleServerMovementCommand command.
  *
  * Prints the wire codec's shadow counters (Movement.WireParity): what the legacy
- * movement reader and the registry's layouts disagree on, per opcode.
+ * movement reader and the registry's layouts disagree on, per opcode. The writer
+ * shadow's counts follow (P2-A).
  *
  * @param args Command arguments.
  * @returns True if the command executed successfully, false otherwise.
@@ -106,6 +108,7 @@ bool ChatHandler::HandleServerInfoCommand(char* /*args*/)
 bool ChatHandler::HandleServerMovementCommand(char* /*args*/)
 {
     WireParity::Report([this](std::string const& line) { SendSysMessage(line.c_str()); });
+    WriterShadow::Report([this](std::string const& line) { SendSysMessage(line.c_str()); });
     return true;
 }
 

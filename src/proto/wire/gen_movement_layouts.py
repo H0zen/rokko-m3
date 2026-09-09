@@ -157,6 +157,48 @@ LIFTED = {
 }
 assert set(LIFTED) == set(EXCLUDED)
 
+# Tables the reference project has no table for at all, lifted from the client's readers
+# (P2-A task 6): the observer updates the packet matrix needs for a teleport and for the
+# two rate changes. Each entry names its opcode, because no reference opmap row exists.
+#
+# SMSG_MOVE_UPDATE_PITCH_RATE is not here. Its reader (sub_14037B330) takes one of its
+# gate bits as `(unsigned __int8)~v85 >> 7` -- a bitwise-complement before the `>> 7`
+# take -- which lift_client_reader.py's shift-register tracker does not parse (every
+# other reader takes a bit as `expr >> 7` or the signed `expr < 0` form; this is neither).
+# The lift exits 1: "1 bits whose shift register was not followed". That is not an unknown
+# callee -- HELPERS has nothing to add -- so extending the lifter for it is the separate
+# proof P2-A task 6's time box does not take on. The table is BLOCKED: no ADDED entry, no
+# MAP row, and the matrix's PitchRate observer cell stays 0 (PacketMatrix.cpp, Task 6).
+ADDED = {
+    "MovementUpdateTeleport":  ("SMSG_MOVE_UPDATE_TELEPORT",   "sub_140384210", [
+        "PositionZ", "PositionY", "PositionX", "HasOrientation", "HasSpline", "HasMovementFlags",
+        "GuidBit2", "GuidBit4", "GuidBit6", "HasFallData", "GuidBit0", "HasTransportData",
+        "GuidBit5", "TransportGuidBit1", "TransportGuidBit4", "TransportGuidBit5", "TransportGuidBit3", "TransportGuidBit0",
+        "HasTransportTime2", "TransportGuidBit7", "TransportGuidBit6", "HasVehicleId", "TransportGuidBit2", "HasUnknownBit",
+        "GuidBit7", "GuidBit3", "HasPitch", "HasMovementFlags2", "HasTimestamp", "HasFallDirection",
+        "Flags2", "HasSplineElevation", "Flags", "GuidBit1", "FlushBits", "GuidByte7",
+        "TransportGuidByte3", "TransportGuidByte4", "TransportPositionO", "TransportVehicleId", "TransportGuidByte1", "TransportTime2",
+        "TransportPositionZ", "TransportGuidByte7", "TransportGuidByte0", "TransportGuidByte6", "TransportGuidByte5", "TransportGuidByte2",
+        "TransportSeat", "TransportTime", "TransportPositionY", "TransportPositionX", "GuidByte6", "Pitch",
+        "SplineElevation", "PositionO", "GuidByte2", "GuidByte3", "GuidByte1", "FallTime",
+        "FallHorizontalSpeed", "FallSinAngle", "FallCosAngle", "FallVerticalSpeed", "GuidByte5", "GuidByte4",
+        "Timestamp", "GuidByte0"]),
+    "MovementUpdateTurnRate":  ("SMSG_MOVE_UPDATE_TURN_RATE",   "sub_14038C780", [
+        "ExtraFloat", "PositionY", "PositionX", "PositionZ", "HasSpline", "HasTransportData",
+        "TransportGuidBit0", "HasVehicleId", "TransportGuidBit6", "TransportGuidBit1", "TransportGuidBit2", "TransportGuidBit4",
+        "TransportGuidBit7", "HasTransportTime2", "TransportGuidBit3", "TransportGuidBit5", "HasPitch", "GuidBit5",
+        "HasOrientation", "GuidBit2", "GuidBit4", "HasMovementFlags2", "HasSplineElevation", "GuidBit3",
+        "HasTimestamp", "Flags2", "HasMovementFlags", "GuidBit1", "GuidBit0", "GuidBit6",
+        "HasFallData", "HasUnknownBit", "GuidBit7", "HasFallDirection", "Flags", "FlushBits",
+        "TransportGuidByte2", "TransportVehicleId", "TransportTime2", "TransportTime", "TransportGuidByte6", "TransportGuidByte1",
+        "TransportGuidByte7", "TransportGuidByte0", "TransportPositionX", "TransportPositionO", "TransportGuidByte3", "TransportPositionZ",
+        "TransportSeat", "TransportGuidByte4", "TransportPositionY", "TransportGuidByte5", "SplineElevation", "GuidByte2",
+        "PositionO", "Pitch", "FallCosAngle", "FallSinAngle", "FallHorizontalSpeed", "FallTime",
+        "FallVerticalSpeed", "GuidByte7", "GuidByte3", "GuidByte6", "Timestamp", "GuidByte4",
+        "GuidByte5", "GuidByte0", "GuidByte1"]),
+}
+assert len(ADDED) == 2, len(ADDED)   # PitchRate BLOCKED; see the comment above
+
 src = io.open(SRC, encoding="utf-8").read()
 
 tables = {}
@@ -178,6 +220,11 @@ assert all(t in tables for t in opmap.values())
 our_names = set(re.findall(r"^\s+((?:C|S|)MSG_[A-Z_0-9]+)\s*=", io.open("../Opcodes.h", encoding="utf-8").read(), re.M))
 missing = sorted(op for op in opmap if op not in our_names)
 assert not missing, "not in Opcodes.h: %s" % " ".join(missing)
+
+# ADDED's opcodes have no opmap row (no reference case to have found them by), so they need
+# their own check that Opcodes.h carries them.
+missing_added = sorted(op for op, _, _ in ADDED.values() if op not in our_names)
+assert not missing_added, "ADDED not in Opcodes.h: %s" % " ".join(missing_added)
 
 emitted_order = [name for name in order if name not in EXCLUDED]
 emitted_opmap = {op: t for op, t in opmap.items() if t not in EXCLUDED}
@@ -208,7 +255,8 @@ buf = io.StringIO()
 buf.write("// SPDX-License-Identifier: GPL-3.0-or-later\n//\n")
 buf.write("// GENERATED -- do not edit. Regenerate with src/proto/wire/gen_movement_layouts.py.\n//\n")
 buf.write("// %d movement-status layouts for %d opcodes of build 15595, %d of them transcribed from the\n"
-          % (len(emitted_order) + len(lifted_order), len(emitted_opmap) + len(lifted_opmap), len(emitted_order)))
+          % (len(emitted_order) + len(lifted_order) + len(ADDED),
+             len(emitted_opmap) + len(lifted_opmap) + len(ADDED), len(emitted_order)))
 buf.write("// Cataclysm Preservation Project's MovementStructures.cpp (%s, GPL-3.0-or-later)\n" % SOURCE_REV)
 buf.write("// into Wire's vocabulary, with that source's per-packet extra elements spliced in\n")
 buf.write("// place. Every CPP table is CPP-SOURCED and BINARY-UNVERIFIED: P1-B's real-client goldens\n")
@@ -220,10 +268,22 @@ buf.write("// %d of the source's tables were excluded -- they read gated fields 
 buf.write("// presence gates, so no table of theirs would be better than a wrong one -- and are\n")
 buf.write("// supplied by the client's own readers instead (LIFTED in the generator, lifted by\n")
 buf.write("// src/proto/wire/lift_client_reader.py, which reproduces MovementUpdateRunSpeed from\n")
-buf.write("// its reader exactly; those three are CLIENT-SOURCED, the only ones here that are):\n")
+buf.write("// its reader exactly). %d more tables have no reference counterpart at all -- CPP's\n" % len(ADDED))
+buf.write("// switch has no case and no table for them, only the client does -- and are lifted the\n")
+buf.write("// same way (ADDED in the generator, P2-A task 6). These %d are CLIENT-SOURCED, the only\n"
+          % (len(EXCLUDED) + len(ADDED)))
+buf.write("// ones here that are:\n")
 for name in sorted(EXCLUDED):
     op = next(o for o, t in opmap.items() if t == name)
     buf.write("//   %s (%s): %s\n" % (name, op, EXCLUDED[name]))
+for name in ADDED:
+    op, reader, elems = ADDED[name]
+    buf.write("//   %s (%s): no reference table; lifted from the client reader %s\n" % (name, op, reader))
+buf.write("//\n")
+buf.write("// A fourth client-only update, SMSG_MOVE_UPDATE_PITCH_RATE (0x1DB5), has no table here\n")
+buf.write("// either: its reader (sub_14037B330) takes a gate bit as a bitwise-complement (`~expr >> 7`)\n")
+buf.write("// that lift_client_reader.py cannot follow (see ADDED's comment above); it is BLOCKED, not\n")
+buf.write("// excluded -- there was never a source table to exclude.\n")
 buf.write("//\n")
 buf.write("// LAYOUT(name, elements...)   one table\n// MAP(opcode, name)           one registry row\n\n")
 
@@ -249,9 +309,17 @@ for name in lifted_order:
     reader, elems = LIFTED[name]
     layout(name, elems + ["End"],
            "lifted from the client reader %s; see lift_client_reader.py" % reader)
+for name in ADDED:
+    op, reader, elems = ADDED[name]
+    layout(name, elems + ["End"],
+           "lifted from the client reader %s; no reference table; see lift_client_reader.py" % reader)
 rows = dict(emitted_opmap, **lifted_opmap)
+for name in ADDED:
+    op, reader, elems = ADDED[name]
+    rows[op] = name
 for op in sorted(rows):
     buf.write("MAP(%s, %s)\n" % (op, rows[op]))
 io.open(OUT, "w", encoding="utf-8", newline="\n").write(buf.getvalue())
 print("wrote %s: %d tables, %d rows (%d of them lifted from the client's readers)"
-      % (OUT, len(emitted_order) + len(lifted_order), len(emitted_opmap) + len(lifted_opmap), len(LIFTED)))
+      % (OUT, len(emitted_order) + len(lifted_order) + len(ADDED),
+         len(emitted_opmap) + len(lifted_opmap) + len(ADDED), len(LIFTED) + len(ADDED)))

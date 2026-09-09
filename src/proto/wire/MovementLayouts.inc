@@ -2,7 +2,7 @@
 //
 // GENERATED -- do not edit. Regenerate with src/proto/wire/gen_movement_layouts.py.
 //
-// 109 movement-status layouts for 111 opcodes of build 15595, 106 of them transcribed from the
+// 111 movement-status layouts for 113 opcodes of build 15595, 106 of them transcribed from the
 // Cataclysm Preservation Project's MovementStructures.cpp (716f480 (2026-05-05), GPL-3.0-or-later)
 // into Wire's vocabulary, with that source's per-packet extra elements spliced in
 // place. Every CPP table is CPP-SOURCED and BINARY-UNVERIFIED: P1-B's real-client goldens
@@ -15,10 +15,20 @@
 // presence gates, so no table of theirs would be better than a wrong one -- and are
 // supplied by the client's own readers instead (LIFTED in the generator, lifted by
 // src/proto/wire/lift_client_reader.py, which reproduces MovementUpdateRunSpeed from
-// its reader exactly; those three are CLIENT-SOURCED, the only ones here that are):
+// its reader exactly). 2 more tables have no reference counterpart at all -- CPP's
+// switch has no case and no table for them, only the client does -- and are lifted the
+// same way (ADDED in the generator, P2-A task 6). These 5 are CLIENT-SOURCED, the only
+// ones here that are:
 //   MovementUpdateKnockBack (SMSG_MOVE_UPDATE_KNOCK_BACK): no HasTimestamp/HasPitch/HasFallData/HasTransportData gates
 //   MovementUpdateRunBackSpeed (SMSG_MOVE_UPDATE_RUN_BACK_SPEED): same
 //   MovementUpdateWalkSpeed (SMSG_MOVE_UPDATE_WALK_SPEED): same
+//   MovementUpdateTeleport (SMSG_MOVE_UPDATE_TELEPORT): no reference table; lifted from the client reader sub_140384210
+//   MovementUpdateTurnRate (SMSG_MOVE_UPDATE_TURN_RATE): no reference table; lifted from the client reader sub_14038C780
+//
+// A fourth client-only update, SMSG_MOVE_UPDATE_PITCH_RATE (0x1DB5), has no table here
+// either: its reader (sub_14037B330) takes a gate bit as a bitwise-complement (`~expr >> 7`)
+// that lift_client_reader.py cannot follow (see ADDED's comment above); it is BLOCKED, not
+// excluded -- there was never a source table to exclude.
 //
 // LAYOUT(name, elements...)   one table
 // MAP(opcode, name)           one registry row
@@ -1250,6 +1260,40 @@ LAYOUT(MovementUpdateKnockBack,
     E::Timestamp, E::PositionX, E::GuidByte4, E::GuidByte6, E::GuidByte7, E::GuidByte2,
     E::GuidByte1, E::PositionY, E::GuidByte0, E::GuidByte5, E::End)
 
+// lifted from the client reader sub_140384210; no reference table; see lift_client_reader.py
+LAYOUT(MovementUpdateTeleport,
+    E::PositionZ, E::PositionY, E::PositionX, E::HasOrientation, E::HasSpline, E::HasMovementFlags,
+    E::GuidBit2, E::GuidBit4, E::GuidBit6, E::HasFallData, E::GuidBit0, E::HasTransportData,
+    E::GuidBit5, E::TransportGuidBit1, E::TransportGuidBit4, E::TransportGuidBit5,
+    E::TransportGuidBit3, E::TransportGuidBit0, E::HasTransportTime2, E::TransportGuidBit7,
+    E::TransportGuidBit6, E::HasVehicleId, E::TransportGuidBit2, E::HasUnknownBit, E::GuidBit7,
+    E::GuidBit3, E::HasPitch, E::HasMovementFlags2, E::HasTimestamp, E::HasFallDirection, E::Flags2,
+    E::HasSplineElevation, E::Flags, E::GuidBit1, E::FlushBits, E::GuidByte7, E::TransportGuidByte3,
+    E::TransportGuidByte4, E::TransportPositionO, E::TransportVehicleId, E::TransportGuidByte1,
+    E::TransportTime2, E::TransportPositionZ, E::TransportGuidByte7, E::TransportGuidByte0,
+    E::TransportGuidByte6, E::TransportGuidByte5, E::TransportGuidByte2, E::TransportSeat,
+    E::TransportTime, E::TransportPositionY, E::TransportPositionX, E::GuidByte6, E::Pitch,
+    E::SplineElevation, E::PositionO, E::GuidByte2, E::GuidByte3, E::GuidByte1, E::FallTime,
+    E::FallHorizontalSpeed, E::FallSinAngle, E::FallCosAngle, E::FallVerticalSpeed, E::GuidByte5,
+    E::GuidByte4, E::Timestamp, E::GuidByte0, E::End)
+
+// lifted from the client reader sub_14038C780; no reference table; see lift_client_reader.py
+LAYOUT(MovementUpdateTurnRate,
+    E::ExtraFloat, E::PositionY, E::PositionX, E::PositionZ, E::HasSpline, E::HasTransportData,
+    E::TransportGuidBit0, E::HasVehicleId, E::TransportGuidBit6, E::TransportGuidBit1,
+    E::TransportGuidBit2, E::TransportGuidBit4, E::TransportGuidBit7, E::HasTransportTime2,
+    E::TransportGuidBit3, E::TransportGuidBit5, E::HasPitch, E::GuidBit5, E::HasOrientation,
+    E::GuidBit2, E::GuidBit4, E::HasMovementFlags2, E::HasSplineElevation, E::GuidBit3,
+    E::HasTimestamp, E::Flags2, E::HasMovementFlags, E::GuidBit1, E::GuidBit0, E::GuidBit6,
+    E::HasFallData, E::HasUnknownBit, E::GuidBit7, E::HasFallDirection, E::Flags, E::FlushBits,
+    E::TransportGuidByte2, E::TransportVehicleId, E::TransportTime2, E::TransportTime,
+    E::TransportGuidByte6, E::TransportGuidByte1, E::TransportGuidByte7, E::TransportGuidByte0,
+    E::TransportPositionX, E::TransportPositionO, E::TransportGuidByte3, E::TransportPositionZ,
+    E::TransportSeat, E::TransportGuidByte4, E::TransportPositionY, E::TransportGuidByte5,
+    E::SplineElevation, E::GuidByte2, E::PositionO, E::Pitch, E::FallCosAngle, E::FallSinAngle,
+    E::FallHorizontalSpeed, E::FallTime, E::FallVerticalSpeed, E::GuidByte7, E::GuidByte3,
+    E::GuidByte6, E::Timestamp, E::GuidByte4, E::GuidByte5, E::GuidByte0, E::GuidByte1, E::End)
+
 MAP(CMSG_CAST_SPELL, CastSpellEmbeddedMovement)
 MAP(CMSG_CHANGE_SEATS_ON_CONTROLLED_VEHICLE, ChangeSeatsOnControlledVehicle)
 MAP(CMSG_DISMISS_CONTROLLED_VEHICLE, DismissControlledVehicle)
@@ -1333,6 +1377,8 @@ MAP(SMSG_MOVE_UPDATE_RUN_BACK_SPEED, MovementUpdateRunBackSpeed)
 MAP(SMSG_MOVE_UPDATE_RUN_SPEED, MovementUpdateRunSpeed)
 MAP(SMSG_MOVE_UPDATE_SWIM_BACK_SPEED, MoveUpdateSwimBackSpeed)
 MAP(SMSG_MOVE_UPDATE_SWIM_SPEED, MovementUpdateSwimSpeed)
+MAP(SMSG_MOVE_UPDATE_TELEPORT, MovementUpdateTeleport)
+MAP(SMSG_MOVE_UPDATE_TURN_RATE, MovementUpdateTurnRate)
 MAP(SMSG_MOVE_UPDATE_WALK_SPEED, MovementUpdateWalkSpeed)
 MAP(SMSG_MOVE_WATER_WALK, MoveWaterWalk)
 MAP(SMSG_PLAYER_MOVE, MovementUpdate)

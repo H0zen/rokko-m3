@@ -288,6 +288,15 @@ Redirect.Stream1Crypt        = 1
 #        Default: 0 (off)
 #                 1 (on)
 #
+#    Movement.WriterShadow
+#        Build the movement kernel's packet beside every legacy movement writer
+#        (speeds, root, fly, water walk, feather fall, hover, gravity, collision
+#        height, knock-back, teleport, and the creature spline forms) and count
+#        where the bytes differ; read the counts with `.server movement`, and they
+#        are logged at shutdown. Diagnostic only: it never changes what is sent.
+#        Default: 0 (off)
+#                 1 (on)
+#
 #    UpdateUptimeInterval
 #        Update realm uptime period in minutes (for save data in 'uptime' table). Must be > 0
 #        Default: 10 (minutes)
@@ -340,6 +349,7 @@ mmap.ignoreMapIds                 = ""
 Movement.ArbiterShadow            = 0
 Movement.CaptureFile              = ""
 Movement.WireParity               = 0
+Movement.WriterShadow             = 0
 UpdateUptimeInterval              = 10
 MaxCoreStuckTime                  = 0
 AddonChannel                      = 1

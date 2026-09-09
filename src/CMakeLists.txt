@@ -30,6 +30,7 @@ add_subdirectory(shared)
 # The world protocol. Sits between shared and game: it links shared, game links
 # it, and it never links back up.
 add_subdirectory(proto)
+add_subdirectory(motion)
 
 add_subdirectory(genrev)
 

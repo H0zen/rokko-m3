@@ -126,6 +126,8 @@ target_link_libraries(game
         # proto never links game. That is what keeps the seam from silently
         # closing back up the first time someone needs sWorld from a socket.
         proto
+        # The movement kernel's pure units: game links motion, motion never links game.
+        motion
         RecastNavigation::Detour
         ZLIB::ZLIB
         $<$<BOOL:${SCRIPT_LIB_SD3}>:mangosscript>
