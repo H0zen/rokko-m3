@@ -1309,10 +1309,8 @@ void WorldSession::HandleFeatherFallAck(WorldPacket& recv_data)
     DEBUG_LOG("WORLD: Received opcode CMSG_MOVE_FEATHER_FALL_ACK");
 
     // not used
-    recv_data.rfinish();                                    // prevent warnings spam
-    /*
-        bitsream packet
-    */
+    MovementInfo movementInfo;
+    recv_data >> movementInfo;
 }
 
 /**
@@ -1323,10 +1321,8 @@ void WorldSession::HandleFeatherFallAck(WorldPacket& recv_data)
 void WorldSession::HandleMoveUnRootAck(WorldPacket& recv_data)
 {
     // not used
-    recv_data.rfinish();                                    // prevent warnings spam
-    /*
-        bitsream packet
-    */
+    MovementInfo movementInfo;
+    recv_data >> movementInfo;
 }
 
 /**
@@ -1337,10 +1333,8 @@ void WorldSession::HandleMoveUnRootAck(WorldPacket& recv_data)
 void WorldSession::HandleMoveRootAck(WorldPacket& recv_data)
 {
     // not used
-    recv_data.rfinish();                                    // prevent warnings spam
-    /*
-        bitsream packet
-    */
+    MovementInfo movementInfo;
+    recv_data >> movementInfo;
 }
 
 /**
@@ -1711,20 +1705,11 @@ void WorldSession::HandleTimeSyncResp(WorldPacket& recv_data)
 {
     uint32 counter, clientTicks;
     recv_data >> counter >> clientTicks;
-
-    DEBUG_LOG("WORLD: Received opcode CMSG_TIME_SYNC_RESP: counter %u, client ticks %u, time since last sync %u", counter, clientTicks, clientTicks - _player->m_timeSyncClient);
-
-    if (counter != _player->m_timeSyncCounter - 1)
-    {
-        DEBUG_LOG(" WORLD: Opcode CMSG_TIME_SYNC_RESP -- Wrong time sync counter from %s (cheater?)", _player->GetGuidStr().c_str());
-    }
-
-    uint32 ourTicks = clientTicks + (GameTime::GetGameTimeMS() - _player->m_timeSyncServer);
-
-    // diff should be small
-    DEBUG_LOG(" WORLD: Opcode CMSG_TIME_SYNC_RESP -- Our ticks: %u, diff %u, latency %u", ourTicks, ourTicks - clientTicks, GetLatency());
-
-    _player->m_timeSyncClient = clientTicks;
+    // The session clock learns the client's tick from the pair; a reply to a
+    // counter never sent, or too old to trust, is counted and changes nothing.
+    Motion::SampleResult const result = m_timeBase.Responded(counter, clientTicks, GameTime::GetGameTimeMS());
+    DEBUG_LOG("WORLD: CMSG_TIME_SYNC_RESP counter %u, client ticks %u: %s, delta %u, rtt %u",
+              counter, clientTicks, Motion::SampleResultName(result), m_timeBase.Delta(), m_timeBase.LastRtt());
 }
 
 /**

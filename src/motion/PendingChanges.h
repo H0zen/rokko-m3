@@ -65,7 +65,7 @@ namespace Motion
     enum class AckResult : uint8
     {
         Matched,          ///< the pending entry of that type had this counter; payload agreed
-        PayloadMismatch,  ///< same, but the echoed value disagrees; the entry is dropped and the
+        PayloadMismatch,  ///< same, but the echoed value disagrees or is not finite; the entry is dropped and the
                           ///< change stays desired-but-unconfirmed with nothing pending; P2-C
                           ///< decides the recovery (resend or resync)
         Tombstone,        ///< a retired or superseded counter; consumed silently

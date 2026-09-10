@@ -45,15 +45,18 @@ namespace Motion
         uint32 staleAfterMs;   ///< no sample for this long: not acquired, rebase falls back to server-now
         uint32 slewBandMs;     ///< a sample within this of the current delta slews; beyond it, jumps
         uint32 maxSlewMs;      ///< how far one sample may move the delta inside the band
-        TimeBaseConfig() : staleAfterMs(60000), slewBandMs(100), maxSlewMs(5) {}
+        uint32 maxSampleAgeMs; ///< a response to a request older than this is dropped rather than trusted
+        TimeBaseConfig() : staleAfterMs(60000), slewBandMs(100), maxSlewMs(5), maxSampleAgeMs(30000) {}
     };
 
-    enum class SampleResult : uint8 { Accepted, Slewed, Jumped, UnknownCounter };
+    enum class SampleResult : uint8 { Accepted, Slewed, Jumped, UnknownCounter, TooOld };
+
+    char const* SampleResultName(SampleResult result);
 
     struct TimeBaseCounters
     {
-        uint32 requested, samples, slewed, jumped, unknownCounter, fallbacks;
-        TimeBaseCounters() : requested(0), samples(0), slewed(0), jumped(0), unknownCounter(0), fallbacks(0) {}
+        uint32 requested, samples, slewed, jumped, unknownCounter, fallbacks, tooOld;
+        TimeBaseCounters() : requested(0), samples(0), slewed(0), jumped(0), unknownCounter(0), fallbacks(0), tooOld(0) {}
     };
 
     class TimeBase

@@ -327,6 +327,11 @@ namespace Wire
         }
     }
 
+    /// Unlike Detail::Run, this does not reset the buffer's bit cursor before
+    /// reading: the caller must hand a byte-aligned buffer. Every caller does
+    /// today -- a packet start, or a field read through ByteBuffer::read<T>(),
+    /// which resets the bit cursor itself. DecodeWhole and Detail::Run reset it
+    /// themselves; this one does not need to.
     DecodeResult Decode(ByteBuffer& in, Sequence sequence, MovementStatus& out)
     {
         DecodeResult result;

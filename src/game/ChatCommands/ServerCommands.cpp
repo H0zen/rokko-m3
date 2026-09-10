@@ -47,6 +47,8 @@
 #include "CorpseManager.h"
 #include "movement/WireParity.h"
 #include "movement/WriterShadowHooks.h"
+#include "WorldSession.h"
+#include "GameTime.h"
 
 /**
  * @brief Handler for HandleServerInfoCommand command.
@@ -109,6 +111,37 @@ bool ChatHandler::HandleServerMovementCommand(char* /*args*/)
 {
     WireParity::Report([this](std::string const& line) { SendSysMessage(line.c_str()); });
     WriterShadow::Report([this](std::string const& line) { SendSysMessage(line.c_str()); });
+
+    // The session clock, aggregated over every session (design v2 6.3): how many
+    // have a usable delta right now, and the running counts behind it.
+    uint32 const now = GameTime::GetGameTimeMS();
+    uint32 sessionCount = 0;
+    uint32 acquiredCount = 0;
+    Motion::TimeBaseCounters counters;
+    for (auto const& entry : sWorld.GetAllSessions())
+    {
+        WorldSession* session = entry.second;
+        if (!session)
+        {
+            continue;
+        }
+        ++sessionCount;
+        Motion::TimeBase const& timeBase = session->TimeBase();
+        if (timeBase.Acquired(now))
+        {
+            ++acquiredCount;
+        }
+        Motion::TimeBaseCounters const& c = timeBase.Counters();
+        counters.samples += c.samples;
+        counters.slewed += c.slewed;
+        counters.jumped += c.jumped;
+        counters.tooOld += c.tooOld;
+        counters.unknownCounter += c.unknownCounter;
+        counters.fallbacks += c.fallbacks;
+    }
+    PSendSysMessage("time base: %u sessions, %u acquired, samples %u, slewed %u, jumped %u, too old %u, unknown %u, fallbacks %u",
+                    sessionCount, acquiredCount, counters.samples, counters.slewed, counters.jumped,
+                    counters.tooOld, counters.unknownCounter, counters.fallbacks);
     return true;
 }
 

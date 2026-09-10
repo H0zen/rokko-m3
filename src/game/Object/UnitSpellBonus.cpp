@@ -58,8 +58,8 @@
 #include "movement/MoveSpline.h"
 #include "CreatureLinkingMgr.h"
 #include "GameTime.h"
-// NOTE: movement/MovementStructures.h intentionally NOT included here - it defines
-// the MovementStatusElements sequence arrays at file scope (one-TU-only), owned by Unit.cpp.
+// NOTE: no legacy movement-layout header to avoid here anymore -- the registry
+// in src/proto/wire is the only layout source (P2-B retired MovementStructures.h).
 
 #include <math.h>
 #include <stdarg.h>

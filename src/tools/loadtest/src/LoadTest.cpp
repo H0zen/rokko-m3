@@ -599,6 +599,11 @@ int main(int argc, char** argv)
     // away by speed x seconds. A pair placed further apart than that allows, or
     // on different maps, is a setup fault, not a relay verdict.
     const float kVisibilityYards = 90.0f;
+    // Consecutive relayed timestamps of one mover should advance at the rate
+    // their packets arrive: heartbeats arrive every 500 ms, the server relays
+    // on its map tick (up to 100 ms), and the peer polls on its own; 250 ms
+    // covers all three with room, and a stale or unrebased stamp is seconds off.
+    const uint32 kRelaySkewToleranceMs = 250;
     const bool  pairIn = pairResult.Reached(loadtest::Stage::InWorld) && pairResult.error.empty();
     const float sx = pairResult.worldPos.x - result.worldPos.x;
     const float sy = pairResult.worldPos.y - result.worldPos.y;
@@ -623,14 +628,17 @@ int main(int argc, char** argv)
         const float dx = seen.lastTargetObservation.pos.x - peer.walkFinal.x;
         const float dy = seen.lastTargetObservation.pos.y - peer.walkFinal.y;
         const float gap = std::sqrt(dx * dx + dy * dy);
-        // The observer must have seen the walker's relayed movement, and its last
-        // sighting must be where the walker says it stopped.
-        const bool relayOk = pairIn && seen.observedTarget >= 2 && gap <= 3.0f;
-        std::printf("PEER pair stage=%s error=%s observedTarget=%u observedOthers=%u lastSeen=%.1f %.1f gap=%.1f\n",
+        // The observer must have seen the walker's relayed movement, its last
+        // sighting must be where the walker says it stopped, and consecutive
+        // relayed timestamps must have advanced at wall-clock rate.
+        const bool relayOk = pairIn && seen.observedTarget >= 2 && gap <= 3.0f
+                              && seen.relayMaxSkew <= kRelaySkewToleranceMs;
+        std::printf("PEER pair stage=%s error=%s observedTarget=%u observedOthers=%u lastSeen=%.1f %.1f gap=%.1f maxSkew=%u over %u\n",
                     loadtest::StageName(pairResult.stage),
                     pairResult.error.empty() ? "-" : pairResult.error.c_str(),
                     seen.observedTarget, seen.observedOthers,
-                    seen.lastTargetObservation.pos.x, seen.lastTargetObservation.pos.y, gap);
+                    seen.lastTargetObservation.pos.x, seen.lastTargetObservation.pos.y, gap,
+                    seen.relayMaxSkew, seen.relaySkewSamples);
         std::printf("PEER VERDICT relay %s\n", relayOk ? "OK" : "BUG");
         verdictsOk = verdictsOk && relayOk;
     }

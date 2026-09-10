@@ -162,6 +162,7 @@ TEST(GoldenCapture_client_session_covers_the_checklist)
         SMSG_MOVE_SET_CAN_FLY, CMSG_MOVE_SET_CAN_FLY_ACK, SMSG_MOVE_UNSET_CAN_FLY,
         CMSG_MOVE_START_ASCEND, CMSG_MOVE_STOP_ASCEND,
         SMSG_MOVE_SET_FLIGHT_SPEED, CMSG_FORCE_FLIGHT_SPEED_CHANGE_ACK,
+        CMSG_FORCE_MOVE_ROOT_ACK, CMSG_FORCE_MOVE_UNROOT_ACK,
     };
     for (uint16 op : kRequired)
     {
@@ -174,12 +175,12 @@ TEST(GoldenCapture_client_session_covers_the_checklist)
     // Optional (steps 10-11): counted when present, so the report says what the run had.
     static const uint16 kOptional[] =
     {
-        SMSG_FORCE_MOVE_ROOT, CMSG_FORCE_MOVE_ROOT_ACK, SMSG_FORCE_MOVE_UNROOT, CMSG_FORCE_MOVE_UNROOT_ACK,
+        SMSG_FORCE_MOVE_ROOT, SMSG_FORCE_MOVE_UNROOT,
         CMSG_MOVE_CHNG_TRANSPORT,
     };
     int optional = 0;
     for (uint16 op : kOptional) { optional += report.byOpcode.count(op) == 1 ? 1 : 0; }
-    std::printf("    client golden: %d of 5 optional opcodes present\n", optional);
+    std::printf("    client golden: %d of 3 optional opcodes present\n", optional);
 }
 
 // Four protocol facts a real client's own bytes establish here, and P2's fall
@@ -369,5 +370,71 @@ TEST(GoldenCapture_families_server_built_lines_fail_only_where_the_legacy_writer
             CHECK_EQ(it->second.failed, uint32(0));
             CHECK_EQ(it->second.exact, it->second.decoded);
         }
+    }
+}
+
+// The relay flip's client session (P2-B, branch feat/movement-relay-flip): the
+// session whose taxi flights showed that the reference table for
+// CMSG_MOVE_SPLINE_DONE lacks the movement counter a 15595 client writes first.
+// One of its four spline-done packets overran that table and was rejected; the
+// other three decoded four bytes off into a status that happened to fit. The
+// generator's CORRECTED entry leads the table with the counter, and these four
+// lines are the witness: whole and exact, or the suite fails.
+TEST(GoldenCapture_flip_client_built_lines_replay_clean)
+{
+    loadtest::ReplayReport report;
+    ReplayGoldenByDirection("client-15595-flip.log", 'C', report);
+    CHECK(report.lines >= 200);
+    CHECK_EQ(report.malformed, uint32(0));
+    CHECK_EQ(report.failed, uint32(0));
+    CHECK_EQ(report.unregistered, uint32(0));
+    CHECK_EQ(report.exact, report.decoded);
+    CHECK(report.Clean());
+    // No spell was cast in the session: nothing embedded to count apart.
+    CHECK_EQ(report.embedded, uint32(0));
+    CHECK(report.byOpcode.count(CMSG_MOVE_SPLINE_DONE) == 1);
+    if (report.byOpcode.count(CMSG_MOVE_SPLINE_DONE) == 1)
+    {
+        CHECK_EQ(report.byOpcode.at(CMSG_MOVE_SPLINE_DONE).lines, uint32(4));
+        CHECK_EQ(report.byOpcode.at(CMSG_MOVE_SPLINE_DONE).exact, uint32(4));
+    }
+    // The acks the flip made live decode-or-throw (hover excepted: nothing in
+    // the session hovers), the former 45-element stub and its ack, the speed
+    // acks whose correct-or-kick the flip switched on, and the acks of the two
+    // lifted families.
+    static const uint16 kRequired[] =
+    {
+        CMSG_MOVE_WATER_WALK_ACK, CMSG_MOVE_FEATHER_FALL_ACK,
+        CMSG_FORCE_MOVE_ROOT_ACK, CMSG_FORCE_MOVE_UNROOT_ACK,
+        CMSG_MOVE_SET_CAN_FLY, CMSG_MOVE_SET_CAN_FLY_ACK,
+        CMSG_FORCE_RUN_SPEED_CHANGE_ACK, CMSG_FORCE_SWIM_SPEED_CHANGE_ACK, CMSG_FORCE_FLIGHT_SPEED_CHANGE_ACK,
+        CMSG_MOVE_KNOCK_BACK_ACK, CMSG_MOVE_TELEPORT_ACK,
+    };
+    for (uint16 op : kRequired)
+    {
+        CHECK(report.byOpcode.count(op) == 1);
+        if (report.byOpcode.count(op) == 1)
+        {
+            CHECK(report.byOpcode.at(op).exact >= 1);
+        }
+    }
+}
+
+TEST(GoldenCapture_flip_server_built_lines_fail_only_where_the_legacy_writer_is_known_wrong)
+{
+    loadtest::ReplayReport report;
+    ReplayGoldenByDirection("client-15595-flip.log", 'S', report);
+    CHECK(report.lines >= 50);
+    CHECK_EQ(report.malformed, uint32(0));
+    CHECK_EQ(report.unregistered, uint32(0));
+    CHECK_EQ(report.exact, report.decoded);
+    // SMSG_MOVE_SET_COLLISION_HGT: the legacy writer still emits the WotLK
+    // shape until P2-C; one at each of the session's four taxi landings.
+    CHECK_EQ(report.failed, uint32(4));
+    CHECK_EQ(report.byOpcode.at(SMSG_MOVE_SET_COLLISION_HGT).failed, uint32(4));
+    CHECK_EQ(report.byOpcode.at(SMSG_MOVE_SET_COLLISION_HGT).decoded, uint32(0));
+    for (std::map<uint16, loadtest::ReplayRow>::const_iterator it = report.byOpcode.begin(); it != report.byOpcode.end(); ++it)
+    {
+        if (it->first != SMSG_MOVE_SET_COLLISION_HGT) { CHECK_EQ(it->second.failed, uint32(0)); }
     }
 }

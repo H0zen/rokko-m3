@@ -799,11 +799,27 @@ enum MovementFlags2
     MOVEFLAG2_INTERP_MASK       = MOVEFLAG2_INTERP_MOVEMENT | MOVEFLAG2_INTERP_TURNING | MOVEFLAG2_INTERP_PITCHING
 };
 
+class MovementInfo;
+
+namespace Wire { struct MovementStatus; }
+
+namespace Movement
+{
+    Wire::MovementStatus ToWire(MovementInfo const& record);
+    void FromWire(Wire::MovementStatus const& status, MovementInfo& record);
+}
+
 class MovementInfo
 {
     public:
+        // The bridge (movement/MovementBridge.h) maps this record to the wire
+        // status and back; it needs the private fields both ways.
+        friend Wire::MovementStatus Movement::ToWire(MovementInfo const&);
+        friend void Movement::FromWire(Wire::MovementStatus const&, MovementInfo&);
+
         MovementInfo() : moveFlags(MOVEFLAG_NONE), moveFlags2(MOVEFLAG2_NONE), time(0),
-            t_time(0), t_seat(-1), t_time2(0), s_pitch(0.0f), fallTime(0), splineElevation(0.0f), byteParam(0) {}
+            t_time(0), t_seat(-1), t_time2(0), s_pitch(0.0f), fallTime(0), splineElevation(0.0f), byteParam(0),
+            counter(0), extraFloat(0.0f), extraTwoBits(0), vehicleId(0) {}
 
         // Read/Write methods
         void Read(ByteBuffer& data, uint16 opcode);
@@ -830,6 +846,7 @@ class MovementInfo
             t_pos.o = o;
             t_time = time;
             t_seat = seat;
+            si.hasTransportData = true;
         }
         void ClearTransportData()
         {
@@ -840,6 +857,7 @@ class MovementInfo
             t_pos.o = 0.0f;
             t_time = 0;
             t_seat = -1;
+            si.hasTransportData = false;
         }
         /// Drop stale fall state so object creates built after a teleport carry no fall block.
         void ClearFallData()
@@ -859,6 +877,10 @@ class MovementInfo
         uint32 GetTransportTime2() const { return t_time2; }
         uint32 GetFallTime() const { return fallTime; }
         int8 GetByteParam() const { return byteParam; }
+        uint32 GetCounter() const { return counter; }
+        float GetExtraFloat() const { return extraFloat; }
+        uint8 GetExtraTwoBits() const { return extraTwoBits; }
+        uint32 GetVehicleId() const { return vehicleId; }
         void ChangeOrientation(float o) { pos.o = o; }
         void ChangePosition(float x, float y, float z, float o) { pos.x = x; pos.y = y; pos.z = z; pos.o = o; }
         void UpdateTime(uint32 _time) { time = _time; }
@@ -874,7 +896,9 @@ class MovementInfo
         {
             StatusInfo() : hasFallData(false), hasFallDirection(false), hasOrientation(false),
                 hasPitch(false), hasSpline(false), hasSplineElevation(false),
-                hasTimeStamp(false), hasTransportTime2(false), hasTransportTime3(false) { }
+                hasTimeStamp(false), hasTransportTime2(false), hasVehicleId(false),
+                hasTransportData(false), hasUnknownBit(false), hasEmptyFlagsBlock(false),
+                hasEmptyFlags2Block(false), hasHeightChangeFailed(false) { }
             bool hasFallData        : 1;
             bool hasFallDirection   : 1;
             bool hasOrientation     : 1;
@@ -883,7 +907,15 @@ class MovementInfo
             bool hasSplineElevation : 1;
             bool hasTimeStamp       : 1;
             bool hasTransportTime2  : 1;
-            bool hasTransportTime3  : 1;
+            bool hasVehicleId       : 1; ///< renamed from hasTransportTime3: presence of the transport's vehicle id
+            // What the wire carries and the legacy reader threw away (P2-B): an
+            // explicit transport-present gate, the layout's unnamed bit, the two
+            // empty-flags-block markers, and SMSG_MOVE_UPDATE's height-change-failed bit.
+            bool hasTransportData      : 1;
+            bool hasUnknownBit         : 1;
+            bool hasEmptyFlagsBlock    : 1;
+            bool hasEmptyFlags2Block   : 1;
+            bool hasHeightChangeFailed : 1;
         };
 
         JumpInfo const& GetJumpInfo() const { return jump; }
@@ -916,6 +948,13 @@ class MovementInfo
         // status info
         StatusInfo si;
         int8 byteParam;
+        // What the wire carries and the legacy reader threw away (P2-B): the ack
+        // counter, a change's value (a speed, a height), its two-bit reason, and a
+        // transport's vehicle id, which the legacy reader stored into fallTime.
+        uint32   counter;
+        float    extraFloat;
+        uint8    extraTwoBits;
+        uint32   vehicleId;
 };
 
 inline WorldPacket& operator<< (WorldPacket& buf, MovementInfo const& mi)

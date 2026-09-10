@@ -5,9 +5,11 @@
 // 111 movement-status layouts for 113 opcodes of build 15595, 106 of them transcribed from the
 // Cataclysm Preservation Project's MovementStructures.cpp (716f480 (2026-05-05), GPL-3.0-or-later)
 // into Wire's vocabulary, with that source's per-packet extra elements spliced in
-// place. Every CPP table is CPP-SOURCED and BINARY-UNVERIFIED: P1-B's real-client goldens
-// and P1-C's reader lift are what turn a table into a verified one, and the legacy
-// fence in MovementCodecTest records where the tree's older transcription disagrees.
+// place. Every CPP table is CPP-SOURCED and BINARY-UNVERIFIED: the real-client goldens
+// under src/tests/goldens/movement and P1-C's reader lift are what turn a table into a
+// verified one. The legacy fence that recorded where the tree's older transcription
+// disagreed retired with that transcription (P2-B); one of its differences was CPP's
+// mistake, not the tree's, and is CORRECTED below.
 // One rename: MSEFallCosAngle -> FallSinAngle and MSEFallSinAngle -> FallCosAngle, in every
 // table -- P1-B's client golden proved the source's mapping backwards (see ELEMENT_NAMES).
 //
@@ -24,6 +26,10 @@
 //   MovementUpdateWalkSpeed (SMSG_MOVE_UPDATE_WALK_SPEED): same
 //   MovementUpdateTeleport (SMSG_MOVE_UPDATE_TELEPORT): no reference table; lifted from the client reader sub_140384210
 //   MovementUpdateTurnRate (SMSG_MOVE_UPDATE_TURN_RATE): no reference table; lifted from the client reader sub_14038C780
+//
+// 1 CPP table(s) a real client's packets contradict are CORRECTED in place (the
+// generator's CORRECTED, each with its witness golden):
+//   MoveSplineDone (CMSG_MOVE_SPLINE_DONE): MovementCounter leads; CPP's table starts at the position
 //
 // A fourth client-only update, SMSG_MOVE_UPDATE_PITCH_RATE (0x1DB5), has no table here
 // either: its reader (sub_14037B330) takes a gate bit as a bitwise-complement (`~expr >> 7`)
@@ -417,21 +423,22 @@ LAYOUT(MoveChngTransport,
     E::FallTime, E::FallHorizontalSpeed, E::FallCosAngle, E::FallSinAngle, E::FallVerticalSpeed,
     E::PositionO, E::Pitch, E::SplineElevation, E::Timestamp, E::End)
 
+// CORRECTED: the movement counter leads, as a real client writes it (see the generator)
 LAYOUT(MoveSplineDone,
-    E::PositionY, E::PositionX, E::PositionZ, E::GuidBit6, E::HasOrientation, E::HasFallData,
-    E::HasTimestamp, E::GuidBit2, E::HasSplineElevation, E::GuidBit4, E::HasTransportData,
-    E::GuidBit3, E::HasMovementFlags, E::GuidBit0, E::HasUnknownBit, E::GuidBit1, E::GuidBit5,
-    E::HasPitch, E::HasSpline, E::HasMovementFlags2, E::GuidBit7, E::TransportGuidBit1,
-    E::TransportGuidBit7, E::TransportGuidBit5, E::TransportGuidBit3, E::TransportGuidBit4,
-    E::TransportGuidBit6, E::HasTransportTime2, E::TransportGuidBit2, E::HasVehicleId,
-    E::TransportGuidBit0, E::HasFallDirection, E::Flags2, E::Flags, E::GuidByte7, E::GuidByte4,
-    E::GuidByte5, E::GuidByte6, E::GuidByte0, E::GuidByte1, E::GuidByte2, E::GuidByte3,
-    E::FallVerticalSpeed, E::FallSinAngle, E::FallCosAngle, E::FallHorizontalSpeed, E::FallTime,
-    E::Pitch, E::PositionO, E::TransportGuidByte1, E::TransportVehicleId, E::TransportGuidByte7,
-    E::TransportTime, E::TransportPositionY, E::TransportPositionX, E::TransportPositionZ,
-    E::TransportSeat, E::TransportPositionO, E::TransportGuidByte0, E::TransportTime2,
-    E::TransportGuidByte2, E::TransportGuidByte3, E::TransportGuidByte5, E::TransportGuidByte6,
-    E::TransportGuidByte4, E::Timestamp, E::SplineElevation, E::End)
+    E::MovementCounter, E::PositionY, E::PositionX, E::PositionZ, E::GuidBit6, E::HasOrientation,
+    E::HasFallData, E::HasTimestamp, E::GuidBit2, E::HasSplineElevation, E::GuidBit4,
+    E::HasTransportData, E::GuidBit3, E::HasMovementFlags, E::GuidBit0, E::HasUnknownBit,
+    E::GuidBit1, E::GuidBit5, E::HasPitch, E::HasSpline, E::HasMovementFlags2, E::GuidBit7,
+    E::TransportGuidBit1, E::TransportGuidBit7, E::TransportGuidBit5, E::TransportGuidBit3,
+    E::TransportGuidBit4, E::TransportGuidBit6, E::HasTransportTime2, E::TransportGuidBit2,
+    E::HasVehicleId, E::TransportGuidBit0, E::HasFallDirection, E::Flags2, E::Flags, E::GuidByte7,
+    E::GuidByte4, E::GuidByte5, E::GuidByte6, E::GuidByte0, E::GuidByte1, E::GuidByte2,
+    E::GuidByte3, E::FallVerticalSpeed, E::FallSinAngle, E::FallCosAngle, E::FallHorizontalSpeed,
+    E::FallTime, E::Pitch, E::PositionO, E::TransportGuidByte1, E::TransportVehicleId,
+    E::TransportGuidByte7, E::TransportTime, E::TransportPositionY, E::TransportPositionX,
+    E::TransportPositionZ, E::TransportSeat, E::TransportPositionO, E::TransportGuidByte0,
+    E::TransportTime2, E::TransportGuidByte2, E::TransportGuidByte3, E::TransportGuidByte5,
+    E::TransportGuidByte6, E::TransportGuidByte4, E::Timestamp, E::SplineElevation, E::End)
 
 LAYOUT(MoveNotActiveMover,
     E::PositionZ, E::PositionX, E::PositionY, E::HasMovementFlags2, E::HasTransportData,

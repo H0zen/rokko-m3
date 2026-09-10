@@ -27,6 +27,19 @@
 
 namespace Motion
 {
+    char const* SampleResultName(SampleResult result)
+    {
+        switch (result)
+        {
+            case SampleResult::Accepted:       return "accepted";
+            case SampleResult::Slewed:         return "slewed";
+            case SampleResult::Jumped:         return "jumped";
+            case SampleResult::UnknownCounter: return "unknown counter";
+            case SampleResult::TooOld:         return "too old";
+        }
+        return "unknown";
+    }
+
     TimeBase::TimeBase(TimeBaseConfig const& config)
         : m_config(config), m_acquired(false), m_delta(0), m_lastRtt(0), m_lastSampleAt(0), m_outstandingCount(0)
     {
@@ -62,6 +75,12 @@ namespace Motion
         const int keep = m_outstandingCount - (found + 1);
         for (int i = 0; i < keep; ++i) { m_outstanding[i] = m_outstanding[found + 1 + i]; }
         m_outstandingCount = uint8(keep);
+
+        if (serverNow - sentAt > m_config.maxSampleAgeMs)
+        {
+            ++m_counters.tooOld;
+            return SampleResult::TooOld;
+        }
 
         const uint32 rtt = serverNow - sentAt;
         const uint32 serverAtTick = sentAt + rtt / 2;

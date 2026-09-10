@@ -79,8 +79,7 @@
 #include "wire/MovementCapture.h"
 #include "wire/MovementFamilies.h"
 #include "wire/MovementSequences.h"
-
-#define MOVEMENT_PACKET_TIME_DELAY 0
+#include "wire/TeleportCodec.h"
 
 /**
  * @brief Handles the packet-based worldport acknowledgement.
@@ -360,11 +359,17 @@ void WorldSession::HandleMoveTeleportAckOpcode(WorldPacket& recv_data)
 
     ObjectGuid guid;
     uint32 counter, time;
-    recv_data >> counter >> time;
 
-    recv_data.ReadGuidMask<5, 0, 1, 6, 3, 7, 2, 4>(guid);
-    recv_data.ReadGuidBytes<4, 2, 7, 6, 5, 1, 3, 0>(guid);
-    WireParity::InboundTeleportAck(recv_data, counter, time, guid.GetRawValue());
+    Wire::TeleportAck ack;
+    Wire::DecodeResult const r = Wire::DecodeTeleportAck(recv_data, ack);
+    if (!r.ok())
+    {
+        WireParity::Rejected(CMSG_MOVE_TELEPORT_ACK, r.error);
+        throw ByteBufferException(false, recv_data.rpos(), 0, recv_data.size());
+    }
+    counter = ack.counter;
+    time = ack.time;
+    guid = ObjectGuid(ack.guid);
 
     DEBUG_LOG("Guid: %s", guid.GetString().c_str());
     DEBUG_LOG("Counter %u, time %u", counter, time / IN_MILLISECONDS);
@@ -447,7 +452,6 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recv_data)
     MovementInfo movementInfo;
     recv_data >> movementInfo;
     /*----------------*/
-    WireParity::Inbound(opcode, recv_data, movementInfo);
 
     if (!VerifyMovementInfo(movementInfo))
     {
@@ -476,7 +480,6 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recv_data)
 
     WorldPacket data(SMSG_PLAYER_MOVE, recv_data.size());
     data << movementInfo;
-    WireParity::Relay(SMSG_PLAYER_MOVE, data, movementInfo);
     mover->SendMessageToSetExcept(&data, _player);
 }
 
@@ -495,10 +498,9 @@ void WorldSession::HandleForceSpeedChangeAckOpcodes(WorldPacket& recv_data)
     MovementInfo movementInfo;
     float  newspeed;
 
-    recv_data >> guid.ReadAsPacked();
-    recv_data >> Unused<uint32>();                          // counter or moveEvent
     recv_data >> movementInfo;
-    recv_data >> newspeed;
+    guid = movementInfo.GetGuid();
+    newspeed = movementInfo.GetExtraFloat();
 
     // now can skip not our packet
     if (_player->GetObjectGuid() != guid)
@@ -570,14 +572,6 @@ void WorldSession::HandleSetActiveMoverOpcode(WorldPacket& recv_data)
     recv_data.hexlike();
 
     ObjectGuid guid;
-
-    // The shadow runs before the legacy read, not after it: that read calls the
-    // write templates on the packet it received, so it appends a byte and fills
-    // nothing, and anything judged afterwards would be looking at bytes the
-    // client never sent. What it compares against is the mover the session holds
-    // -- what the check below was meant to test the client's guid against. The
-    // handler itself is P2's, with the rest of mover authority.
-    WireParity::InboundMover(recv_data, _player->GetMover()->GetObjectGuid().GetRawValue());
 
     recv_data.WriteGuidMask<7, 2, 1, 0, 4, 5, 6, 3>(guid);
     recv_data.WriteGuidBytes<3, 2, 4, 0, 5, 1, 6, 7>(guid);
@@ -714,18 +708,9 @@ void WorldSession::SendKnockBack(float angle, float horizontalSpeed, float verti
 void WorldSession::HandleMoveHoverAck(WorldPacket& recv_data)
 {
     DEBUG_LOG("CMSG_MOVE_HOVER_ACK");
-    uint64 guid;
-    guid = recv_data.readPackGUID(); // unused
-    recv_data.read_skip<uint32>();
 
     MovementInfo movementInfo;
     recv_data >> movementInfo;
-    recv_data.read_skip<uint32>();
-
-    /*
-    MovementInfo movementInfo;
-    recv_data >> movementInfo;
-    */
 }
 
 /**
@@ -737,12 +722,8 @@ void WorldSession::HandleMoveWaterWalkAck(WorldPacket& recv_data)
 {
     DEBUG_LOG("CMSG_MOVE_WATER_WALK_ACK");
 
-    recv_data.rfinish();
-
-    /*
     MovementInfo movementInfo;
     recv_data >> movementInfo;
-    */
 }
 
 /**
@@ -796,8 +777,18 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo) const
         return false;
     }
 
-    if (movementInfo.GetTransportGuid())
+    MovementInfo::StatusInfo const& si = movementInfo.GetStatusInfo();
+    if (si.hasTransportData)
     {
+        // The wire's gate, not the guid, decides whether a transport block is
+        // present -- and the writer forwards it on that gate. A block announced
+        // with an empty guid names no transport the server knows; it is dropped
+        // here rather than relayed as one.
+        if (movementInfo.GetTransportGuid().IsEmpty())
+        {
+            return false;
+        }
+
         // WHERE HE STANDS ON THE DECK MAP. The wire spells this field t_x/t_y/t_z and the
         // protocol calls it an offset, but the moment it is ours it is a position on the
         // vessel's own map -- nothing is composed with it, ever.
@@ -845,12 +836,10 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo) const
  */
 void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
 {
-    //if (m_clientTimeDelay == 0)
-    //{
-    //    m_clientTimeDelay = GameTime::GetGameTimeMS - movementInfo.GetTime();
-    //}
-    //movementInfo.UpdateTime(movementInfo.GetTime() + m_clientTimeDelay + MOVEMENT_PACKET_TIME_DELAY);
-    movementInfo.UpdateTime(movementInfo.GetTime() + GetLatency());
+    // Design v2 6.3: the client's timestamp is rebased to server time through the
+    // session clock before it is stored or relayed. Until the first time-sync
+    // pair lands the clock falls back to server-now and counts it.
+    movementInfo.UpdateTime(m_timeBase.Rebase(movementInfo.GetTime(), GameTime::GetGameTimeMS()));
 
     Unit* mover = _player->GetMover();
 

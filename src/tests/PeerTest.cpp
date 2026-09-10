@@ -77,6 +77,21 @@ TEST(PeerReport_defaults_are_empty)
     CHECK_EQ(r.observedTarget, uint32(0));
     CHECK(r.unregisteredChanges.empty());
     CHECK_EQ(r.acksSent, uint32(0));
+    CHECK_EQ(r.relayMaxSkew, uint32(0));
+    CHECK_EQ(r.relaySkewSamples, uint32(0));
+}
+
+TEST(RelaySkew_is_the_difference_between_the_relayed_gap_and_the_arrival_gap)
+{
+    loadtest::Observation a, b;
+    a.time = 1000; a.atTicks = 5000;
+    b.time = 1500; b.atTicks = 5480;       // relayed 500 apart, arrived 480 apart
+    CHECK_EQ(loadtest::RelaySkew(a, b), 20u);
+    b.time = 1480; b.atTicks = 5500;       // the other way round
+    CHECK_EQ(loadtest::RelaySkew(a, b), 20u);
+    a.time = 0xFFFFFF00u; b.time = 0x000000F4u;   // the relayed clock wraps
+    a.atTicks = 100; b.atTicks = 600;
+    CHECK_EQ(loadtest::RelaySkew(a, b), 0u);
 }
 
 #include "Walker.hpp"

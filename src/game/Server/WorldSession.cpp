@@ -180,7 +180,7 @@ WorldSession::WorldSession(uint32 id, const std::string& accountName,
     m_expansion(expansion), _logoutTime(0),
     m_inQueue(false), m_playerLoading(false), m_playerLogout(false), m_playerRecentlyLogout(false), m_playerSave(false),
     m_sessionDbcLocale(sWorld.GetAvailableDbcLocale(locale)), m_sessionDbLocaleIndex(sObjectMgr.GetIndexForLocale(locale)),
-    m_latency(), m_clientTimeDelay(0), m_tutorialState(TUTORIALDATA_UNCHANGED)
+    m_latency(), m_badPackets(0), m_tutorialState(TUTORIALDATA_UNCHANGED)
 {
     if (m_Socket)
     {
@@ -301,9 +301,9 @@ void WorldSession::SendPacket(WorldPacket const* packet)
         Wire::MovementCapture::Record('S', packet->GetOpcode(), packet->contents(), packet->size());
     }
 
-    if (WireParity::Enabled() && packet->GetOpcode() != SMSG_PLAYER_MOVE)
+    if (WireParity::Enabled())
     {
-        WireParity::Outbound(packet->GetOpcode(), *packet);   // the relay is compared at its writer
+        WireParity::Outbound(packet->GetOpcode(), *packet);
     }
 
     m_Socket->SendPacket(*packet);
@@ -451,6 +451,7 @@ bool WorldSession::Update(PacketFilter& updater)
         {
             sLog.outError("WorldSession::Update ByteBufferException occured while parsing a packet (opcode: %u) from client %s, accountid=%i.",
                           packet->GetOpcode(), GetRemoteAddress().c_str(), GetAccountId());
+            ++m_badPackets;
             if (sLog.HasLogLevelOrHigher(LOG_LVL_DEBUG))
             {
                 DEBUG_LOG("Dumping error causing packet:");
@@ -784,7 +785,6 @@ void WorldSession::HandlePingOpcode(WorldPacket& recvPacket)
         recvPacket.HasStream() ? recvPacket.GetStream() : proto::LinkSlot::Zero;
 
     SetLatency(stream, latency);
-    ResetClientTimeDelay();
 
     // Echo the sequence, not the latency: the client matches a pong to the
     // ping it answers by this value alone, and drops one it cannot place.

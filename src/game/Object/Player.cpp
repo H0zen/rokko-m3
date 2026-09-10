@@ -6215,19 +6215,19 @@ void Player::ResetTimeSync()
 {
     m_timeSyncCounter = 0;
     m_timeSyncTimer = 0;
-    m_timeSyncClient = 0;
-    m_timeSyncServer = GameTime::GetGameTimeMS();
+    GetSession()->TimeBase().Reset();
 }
 
 void Player::SendTimeSync()
 {
+    GetSession()->TimeBase().Requested(m_timeSyncCounter, GameTime::GetGameTimeMS());
+
     WorldPacket data(SMSG_TIME_SYNC_REQ, 4);
     data << uint32(m_timeSyncCounter++);
     GetSession()->SendPacket(&data);
 
     // Schedule next sync in 10 sec
     m_timeSyncTimer = 10000;
-    m_timeSyncServer = GameTime::GetGameTimeMS();
 }
 
 bool Player::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const

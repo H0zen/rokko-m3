@@ -217,6 +217,26 @@ assert len(tables) == 109, len(tables)
 assert len(opmap) == 111, len(opmap)
 assert all(t in tables for t in opmap.values())
 
+# CPP tables the client's own packets contradict, corrected in place: the table keeps
+# CPP's name, its row and every element the reference has, and leads with the element
+# named here. Each entry's witness is a real-client golden.
+#
+# MoveSplineDone (CMSG_MOVE_SPLINE_DONE): CPP's table starts at the position, but a
+# 15595 client writes its movement counter first. The tree's retired legacy table led
+# with MSEMovementCounter; the client's sender (sub_140221580 in Wow-64.c) builds the
+# packet from the id it is handed, and the status block follows; and the four
+# spline-done packets of P2-B's client session (src/tests/goldens/movement/
+# client-15595-flip.log, the relay flip's live gate, taxi flights of several legs)
+# decode exactly with the counter and misalign without it -- three decoded four bytes
+# off into a status that happened to fit, the fourth overran its packet and was
+# rejected, and the multi-node flight it ended did not continue.
+CORRECTED = {
+    "MoveSplineDone": "MSECounter",
+}
+for name, first in CORRECTED.items():
+    assert name in tables and first not in tables[name], name
+    tables[name] = [first] + tables[name]
+
 our_names = set(re.findall(r"^\s+((?:C|S|)MSG_[A-Z_0-9]+)\s*=", io.open("../Opcodes.h", encoding="utf-8").read(), re.M))
 missing = sorted(op for op in opmap if op not in our_names)
 assert not missing, "not in Opcodes.h: %s" % " ".join(missing)
@@ -259,9 +279,11 @@ buf.write("// %d movement-status layouts for %d opcodes of build 15595, %d of th
              len(emitted_opmap) + len(lifted_opmap) + len(ADDED), len(emitted_order)))
 buf.write("// Cataclysm Preservation Project's MovementStructures.cpp (%s, GPL-3.0-or-later)\n" % SOURCE_REV)
 buf.write("// into Wire's vocabulary, with that source's per-packet extra elements spliced in\n")
-buf.write("// place. Every CPP table is CPP-SOURCED and BINARY-UNVERIFIED: P1-B's real-client goldens\n")
-buf.write("// and P1-C's reader lift are what turn a table into a verified one, and the legacy\n")
-buf.write("// fence in MovementCodecTest records where the tree's older transcription disagrees.\n")
+buf.write("// place. Every CPP table is CPP-SOURCED and BINARY-UNVERIFIED: the real-client goldens\n")
+buf.write("// under src/tests/goldens/movement and P1-C's reader lift are what turn a table into a\n")
+buf.write("// verified one. The legacy fence that recorded where the tree's older transcription\n")
+buf.write("// disagreed retired with that transcription (P2-B); one of its differences was CPP's\n")
+buf.write("// mistake, not the tree's, and is CORRECTED below.\n")
 buf.write("// One rename: MSEFallCosAngle -> FallSinAngle and MSEFallSinAngle -> FallCosAngle, in every\n")
 buf.write("// table -- P1-B's client golden proved the source's mapping backwards (see ELEMENT_NAMES).\n//\n")
 buf.write("// %d of the source's tables were excluded -- they read gated fields with none of the\n" % len(EXCLUDED))
@@ -279,6 +301,13 @@ for name in sorted(EXCLUDED):
 for name in ADDED:
     op, reader, elems = ADDED[name]
     buf.write("//   %s (%s): no reference table; lifted from the client reader %s\n" % (name, op, reader))
+buf.write("//\n")
+buf.write("// %d CPP table(s) a real client's packets contradict are CORRECTED in place (the\n" % len(CORRECTED))
+buf.write("// generator's CORRECTED, each with its witness golden):\n")
+for name in sorted(CORRECTED):
+    op = next(o for o, t in opmap.items() if t == name)
+    buf.write("//   %s (%s): %s leads; CPP's table starts at the position\n"
+              % (name, op, ELEMENT_NAMES.get(CORRECTED[name], CORRECTED[name][3:])))
 buf.write("//\n")
 buf.write("// A fourth client-only update, SMSG_MOVE_UPDATE_PITCH_RATE (0x1DB5), has no table here\n")
 buf.write("// either: its reader (sub_14037B330) takes a gate bit as a bitwise-complement (`~expr >> 7`)\n")
@@ -304,7 +333,9 @@ def layout(name, elems, note=None):
 
 for name in order:
     if name not in EXCLUDED:
-        layout(name, wire(name, tables[name]))
+        layout(name, wire(name, tables[name]),
+               "CORRECTED: the movement counter leads, as a real client writes it (see the generator)"
+               if name in CORRECTED else None)
 for name in lifted_order:
     reader, elems = LIFTED[name]
     layout(name, elems + ["End"],
@@ -320,6 +351,6 @@ for name in ADDED:
 for op in sorted(rows):
     buf.write("MAP(%s, %s)\n" % (op, rows[op]))
 io.open(OUT, "w", encoding="utf-8", newline="\n").write(buf.getvalue())
-print("wrote %s: %d tables, %d rows (%d of them lifted from the client's readers)"
+print("wrote %s: %d tables, %d rows (%d of them lifted from the client's readers, %d corrected)"
       % (OUT, len(emitted_order) + len(lifted_order) + len(ADDED),
-         len(emitted_opmap) + len(lifted_opmap) + len(ADDED), len(LIFTED) + len(ADDED)))
+         len(emitted_opmap) + len(lifted_opmap) + len(ADDED), len(LIFTED) + len(ADDED), len(CORRECTED)))

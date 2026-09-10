@@ -559,129 +559,42 @@ TEST(MovementCodec_carries_the_transport_vehicle_id_only_under_its_gates)
     CHECK_BYTES(q.contents(), q.size(), { 0x00 });
 }
 
-// The tree's older transcription of these layouts: header-only arrays in
-// src/game/movement, safe to define in this one translation unit. Included only
-// here, and only so the fence below can say exactly how the two transcriptions differ.
-#include "MovementStructures.h"
-
-namespace
+TEST(MovementSequences_the_embedded_cast_block_gates_nothing_on_its_two_swapped_bits)
 {
-    static_assert(int(Wire::Element::ByteParam) == int(MSEByteParam),
-                  "the legacy prefix of the vocabulary must stay ordinal-mirrored");
-    Wire::Element WireOf(MovementStatusElements e)
+    // The legacy header and the registry named the unnamed bit and HasSpline the
+    // other way round in the cast packet's movement block (P1-B's fence). Neither
+    // gates a field in that table, so the bytes consumed are the same either way
+    // and only two flag labels differ; the handler reads the position only.
+    Wire::Sequence const seq = Wire::SequenceFor(CMSG_CAST_SPELL);
+    REQUIRE(seq != nullptr);
+    CHECK(Wire::IsEmbeddedLayout(CMSG_CAST_SPELL));
+    bool sawSpline = false, sawUnknown = false;
+    for (Wire::Sequence e = seq; *e != Wire::Element::End; ++e)
     {
-        return e == MSEEnd ? Wire::Element::End : Wire::Element(int(e));
+        if (*e == Wire::Element::HasSpline) { sawSpline = true; }
+        if (*e == Wire::Element::HasUnknownBit) { sawUnknown = true; }
+        // No element of this table is read under either gate: the codec's Decode
+        // consults has.spline and has.unknownBit for nothing but the flags it stores.
     }
+    CHECK(sawSpline);
+    CHECK(sawUnknown);
+    Wire::MovementStatus a, b;
+    a.guid = b.guid = 0x46; a.pos.x = b.pos.x = 1.0f;
+    a.has.spline = true;  b.has.unknownBit = true;
+    WorldPacket pa(CMSG_CAST_SPELL), pb(CMSG_CAST_SPELL);
+    Wire::Encode(pa, seq, a);
+    Wire::Encode(pb, seq, b);
+    CHECK_EQ(pa.size(), pb.size());   // the two labels move a bit, never a byte
 
-    // The registry is transcribed from the Cataclysm Preservation Project's tables
-    // (2026); the tree's own older transcription in MovementStructures.h came from
-    // an earlier TrinityCore. Where both cover an opcode, one of three things is
-    // true, and each is pinned so a drift on either side lands here, not on a client.
-
-    // Identical. P1-B's real-client golden settled the fall-direction floats
-    // (see gen_movement_layouts.py's ELEMENT_NAMES): a real CMSG_MOVE_JUMP's own
-    // bytes, and every packet the client sent while that jump's fall stayed
-    // open, show the legacy header's cos/sin labels for CMSG_MOVE_JUMP and its
-    // 27 siblings below are the ones the client's own bytes agree with, so the
-    // generator now emits the registry with those labels and every opcode that
-    // used to sit in kLegacyFallAngleSwapped is verbatim against the legacy
-    // table, not swapped.
-    //
-    // MovementSetRunMode and MovementSetWalkMode (CMSG_MOVE_SET_RUN_MODE,
-    // CMSG_MOVE_SET_WALK_MODE) also carry a fall block. The legacy header
-    // labels these two tables the CPP way and the other 28 the flipped way --
-    // the session has no run-mode or walk-mode toggle while airborne, so
-    // neither labeling is proven for these two specifically, only assumed: the
-    // registry follows the same rule the client proved on the other 28, moving
-    // these two the other way, out of verbatim and into
-    // kLegacyFallAngleSwapped. A capture with an airborne walk-mode toggle
-    // would settle them for real.
-    const uint16 kLegacyVerbatim[] =
-    {
-        CMSG_CHANGE_SEATS_ON_CONTROLLED_VEHICLE, CMSG_DISMISS_CONTROLLED_VEHICLE,
-        CMSG_MOVE_CHNG_TRANSPORT, CMSG_MOVE_FALL_LAND, CMSG_MOVE_JUMP, CMSG_MOVE_KNOCK_BACK_ACK,
-        CMSG_MOVE_NOT_ACTIVE_MOVER, CMSG_MOVE_SET_CAN_FLY_ACK, CMSG_MOVE_SET_FACING,
-        CMSG_MOVE_SET_PITCH, CMSG_MOVE_START_ASCEND, CMSG_MOVE_START_BACKWARD,
-        CMSG_MOVE_START_DESCEND, CMSG_MOVE_START_FORWARD, CMSG_MOVE_START_PITCH_DOWN,
-        CMSG_MOVE_START_PITCH_UP, CMSG_MOVE_START_STRAFE_LEFT, CMSG_MOVE_START_STRAFE_RIGHT,
-        CMSG_MOVE_START_SWIM, CMSG_MOVE_START_TURN_LEFT, CMSG_MOVE_START_TURN_RIGHT,
-        CMSG_MOVE_STOP, CMSG_MOVE_STOP_ASCEND, CMSG_MOVE_STOP_PITCH, CMSG_MOVE_STOP_STRAFE,
-        CMSG_MOVE_STOP_SWIM, CMSG_MOVE_STOP_TURN, MSG_MOVE_HEARTBEAT
-    };
-
-    // The two opcodes the flip moved out of kLegacyVerbatim (see above): the
-    // legacy header labels these two the CPP way, unlike the other 28, but the
-    // session never caught either airborne, so the registry only assumes the
-    // same rule applies rather than proving it here.
-    const uint16 kLegacyFallAngleSwapped[] = { CMSG_MOVE_SET_RUN_MODE, CMSG_MOVE_SET_WALK_MODE };
-
-    // Structurally different. The registry follows CPP until a golden says otherwise.
-    struct Differ { uint16 opcode; char const* why; };
-    const Differ kLegacyDiffers[] =
-    {
-        { CMSG_CAST_SPELL,             "the unnamed bit and HasSpline are the other way round" },
-        { CMSG_PET_CAST_SPELL,         "same layout as CMSG_CAST_SPELL" },
-        { CMSG_USE_ITEM,               "same layout as CMSG_CAST_SPELL" },
-        { CMSG_MOVE_FALL_RESET,        "legacy drops TransportTime (67 elements against 68)" },
-        { CMSG_MOVE_SET_CAN_FLY,       "legacy is a 45-element stub" },
-        { CMSG_MOVE_SPLINE_DONE,       "legacy leads with a counter CPP does not put there" },
-        { SMSG_PLAYER_MOVE,            "CPP reads HasHeightChangeFailed where legacy has the unnamed bit, and flushes" },
-        // Task 5's lift, not CPP: the legacy header's table for this one is a
-        // gated table and agrees with the client's reader element for element
-        // -- the single difference is the FlushBits the lift makes explicit
-        // where the legacy array just stops writing bits.
-        { SMSG_MOVE_UPDATE_KNOCK_BACK, "lifted from the client; legacy matches element for element but has no FlushBits" },
-    };
-
-    template <size_t N>
-    bool InList(uint16 opcode, const uint16 (&list)[N])
-    {
-        for (size_t i = 0; i < N; ++i) { if (list[i] == opcode) { return true; } }
-        return false;
-    }
-    bool InDiffers(uint16 opcode)
-    {
-        for (const Differ& d : kLegacyDiffers) { if (d.opcode == opcode) { return true; } }
-        return false;
-    }
-    Wire::Element SwapFall(Wire::Element e)
-    {
-        if (e == Wire::Element::FallCosAngle) { return Wire::Element::FallSinAngle; }
-        if (e == Wire::Element::FallSinAngle) { return Wire::Element::FallCosAngle; }
-        return e;
-    }
-    bool SameLayout(Wire::Sequence w, MovementStatusElements const* legacy, bool swapFall)
-    {
-        for (int i = 0;; ++i)
-        {
-            Wire::Element l = WireOf(legacy[i]);
-            if (swapFall) { l = SwapFall(l); }
-            if (w[i] != l) { return false; }
-            if (w[i] == Wire::Element::End) { return true; }
-        }
-    }
-}
-
-TEST(MovementSequences_agrees_with_the_legacy_arrays_exactly_where_it_should)
-{
-    const Wire::Registry r = Wire::AllSequences();
-    int covered = 0;
-    for (Wire::Entry const* e = r.begin; e != r.end; ++e)
-    {
-        MovementStatusElements const* legacy = GetMovementStatusElementsSequence(e->opcode);
-        if (!legacy) { continue; }
-        ++covered;
-        const bool verbatim = InList(e->opcode, kLegacyVerbatim);
-        const bool swapped  = InList(e->opcode, kLegacyFallAngleSwapped);
-        const bool differs  = InDiffers(e->opcode);
-        CHECK_EQ(int(verbatim) + int(swapped) + int(differs), 1);   // every covered opcode in exactly one set
-        if (verbatim) { CHECK(SameLayout(e->sequence, legacy, false)); }
-        if (swapped)  { CHECK(SameLayout(e->sequence, legacy, true)); CHECK(!SameLayout(e->sequence, legacy, false)); }
-        if (differs)  { CHECK(!SameLayout(e->sequence, legacy, false)); CHECK(!SameLayout(e->sequence, legacy, true)); }
-    }
-    // 38 legacy opcodes; SMSG_MOVE_UPDATE_KNOCK_BACK joined them when Task 5's
-    // lift gave it a registry row (see the generator's LIFTED).
-    CHECK_EQ(covered, 38);
+    Wire::MovementStatus a2, b2;
+    Wire::DecodeResult const ra = Wire::Decode(pa, seq, a2);
+    Wire::DecodeResult const rb = Wire::Decode(pb, seq, b2);
+    REQUIRE(ra.ok());
+    REQUIRE(rb.ok());
+    CHECK_EQ(ra.consumed, rb.consumed);
+    CHECK_EQ(ra.consumed, pa.size());
+    CHECK(a2.has.spline && !a2.has.unknownBit);
+    CHECK(!b2.has.spline && b2.has.unknownBit);
 }
 
 TEST(MovementSequences_registers_every_layout_of_the_source)
@@ -696,7 +609,8 @@ TEST(MovementSequences_registers_every_layout_of_the_source)
         while (e->sequence[n] != Wire::Element::End) { ++n; REQUIRE(n < 128); }
         for (Wire::Entry const* o = e + 1; o != r.end; ++o) { CHECK(o->opcode != e->opcode); }
     }
-    // The families §7 names, one probe each; the fence above covers the client set.
+    // The families §7 names, one probe each; the client set's own layouts are
+    // pinned by the goldens and the round-trip tests elsewhere in this file.
     CHECK(Wire::SequenceFor(SMSG_MOVE_SET_RUN_SPEED) != nullptr);
     CHECK(Wire::SequenceFor(SMSG_MOVE_UPDATE_RUN_SPEED) != nullptr);
     CHECK(Wire::SequenceFor(CMSG_FORCE_RUN_SPEED_CHANGE_ACK) != nullptr);

@@ -106,6 +106,20 @@ TEST(TimeBase_goes_stale_without_samples_and_resets_on_epoch_events)
     CHECK_EQ(tb.Delta(), uint32(5000u - 62000u));
 }
 
+TEST(TimeBase_drops_a_response_older_than_the_sample_age)
+{
+    // A reply to a request three sync periods old would put the sample point
+    // half a minute in the past and jump the delta; it is dropped and counted.
+    TimeBase tb;
+    tb.Requested(0, 1000);
+    CHECK(tb.Responded(0, 500000, 1000 + 30001) == SampleResult::TooOld);
+    CHECK(!tb.Acquired(31001));
+    CHECK_EQ(tb.Counters().tooOld, 1u);
+    tb.Requested(1, 40000);
+    CHECK(tb.Responded(1, 600000, 40000 + 30000) == SampleResult::Accepted);   // exactly the bound is still fresh
+    CHECK(tb.Acquired(70000));
+}
+
 TEST(TimeBase_ignores_a_response_to_a_counter_it_did_not_send)
 {
     TimeBase tb;

@@ -149,6 +149,17 @@ bool ChatHandler::HandlePInfoCommand(char* args)
                     accId, security, last_ip.c_str(), last_login.c_str(),
                     latencyHome, latencyWorld);
 
+    if (target)
+    {
+        Motion::TimeBase const& timeBase = target->GetSession()->TimeBase();
+        uint32 const now = GameTime::GetGameTimeMS();
+        Motion::TimeBaseCounters const& counters = timeBase.Counters();
+        PSendSysMessage("Clock: delta %u ms, rtt %u ms, samples %u, slewed %u, jumped %u, too old %u, unknown %u, fallbacks %u, %s, bad packets %u",
+                        timeBase.Delta(), timeBase.LastRtt(), counters.samples, counters.slewed, counters.jumped,
+                        counters.tooOld, counters.unknownCounter, counters.fallbacks,
+                        timeBase.Acquired(now) ? "acquired" : "not acquired", target->GetSession()->GetBadPacketCount());
+    }
+
     std::string timeStr = secsToTimeString(total_player_time, TimeFormat::ShortText, true);
     uint32 gold = money / GOLD;
     uint32 silv = (money % GOLD) / SILVER;

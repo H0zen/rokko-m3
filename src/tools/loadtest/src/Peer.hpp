@@ -89,6 +89,16 @@ namespace loadtest
         uint32     atTicks = 0;      ///< our clock when it arrived
     };
 
+    /// How far two relayed timestamps of one mover disagree with the wall clock
+    /// between their arrivals: |(later.time - earlier.time) - (later.atTicks -
+    /// earlier.atTicks)|, both differences modulo 2^32.
+    inline uint32 RelaySkew(Observation const& earlier, Observation const& later)
+    {
+        const uint32 relayed = later.time - earlier.time;
+        const uint32 arrived = later.atTicks - earlier.atTicks;
+        return relayed > arrived ? relayed - arrived : arrived - relayed;
+    }
+
     struct PeerReport
     {
         uint32 timeSyncsAnswered = 0;
@@ -104,6 +114,8 @@ namespace loadtest
         uint32      observedTarget = 0;
         uint32      observedOthers = 0;
         Observation lastTargetObservation;
+        uint32      relayMaxSkew = 0;      ///< worst RelaySkew seen between consecutive target observations
+        uint32      relaySkewSamples = 0;  ///< how many consecutive pairs fed relayMaxSkew
 
         // The hand-written families (P1-C): what the peer decoded and how it answered.
         uint32     teleports = 0;      ///< SMSG_MOVE_TELEPORT decoded

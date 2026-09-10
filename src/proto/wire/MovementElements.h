@@ -36,12 +36,13 @@ namespace Wire
      * A packet's layout is a sequence of these, terminated by End. The same
      * vocabulary drives both the reader and the writer (MovementCodec.h), so a
      * sequence can never be right for one direction and wrong for the other.
-     * Names follow the legacy MSE* enum in src/game/movement/MovementStructures.h
-     * where it has a name for the slot and the Cataclysm Preservation Project's
-     * where it does not (the vehicle id, which the legacy header misnamed as a
-     * third transport time, and the five P1 additions at the end). Every legacy
-     * element keeps its ordinal below End, which is what lets the fence test map
-     * the legacy arrays onto these by value.
+     * Names follow the legacy MSE* enum that lived in src/game/movement's now-
+     * retired MovementStructures.h (P2-B) where it had a name for the slot, and
+     * the Cataclysm Preservation Project's where it did not (the vehicle id,
+     * which the legacy header misnamed as a third transport time, and the five
+     * P1 additions at the end). The registry in src/proto/wire is the only
+     * layout source now; every element's ordinal below End is what once let the
+     * fence test map the legacy arrays onto these by value.
      */
     enum class Element : uint8
     {

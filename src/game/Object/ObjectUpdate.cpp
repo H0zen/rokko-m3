@@ -291,7 +291,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
         hasOrientation = !isType(TYPEMASK_ITEM),
         hasTimeStamp = true,
         hasTransportTime2 = false,
-        hasTransportTime3 = false;
+        hasVehicleId = false;
 
     if (isType(TYPEMASK_UNIT))
     {
@@ -318,7 +318,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
             hasFallDirection = unit->m_movementInfo.GetStatusInfo().hasFallDirection;
             hasElevation = unit->m_movementInfo.GetStatusInfo().hasSplineElevation;
             hasTransportTime2 = unit->m_movementInfo.GetStatusInfo().hasTransportTime2;
-            hasTransportTime3 = unit->m_movementInfo.GetStatusInfo().hasTransportTime3;
+            hasVehicleId = unit->m_movementInfo.GetStatusInfo().hasVehicleId;
         }
         else
         {
@@ -360,7 +360,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
             data->WriteGuidMask<1>(tGuid);
             data->WriteBit(hasTransportTime2);
             data->WriteGuidMask<4, 0, 6>(tGuid);
-            data->WriteBit(hasTransportTime3);
+            data->WriteBit(hasVehicleId);
             data->WriteGuidMask<7, 5, 3, 2>(tGuid);
         }
 
@@ -393,7 +393,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
     {
         ObjectGuid transGuid;
         data->WriteGuidMask<5>(transGuid);
-        data->WriteBit(hasTransportTime3);
+        data->WriteBit(hasVehicleId);
         data->WriteGuidMask<0, 3, 6, 1, 4, 2>(transGuid);
         data->WriteBit(hasTransportTime2);
         data->WriteGuidMask<7>(transGuid);
@@ -475,9 +475,11 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
             *data << float(unit->m_movementInfo.GetTransportPos()->z);
             data->WriteGuidBytes<0>(tGuid);
 
-            if (hasTransportTime3)
+            if (hasVehicleId)
             {
-                *data << uint32(unit->m_movementInfo.GetFallTime());
+                // The vehicle id has been its own field since P2-B; the legacy
+                // reader used to store it into the fall time.
+                *data << uint32(unit->m_movementInfo.GetVehicleId());
             }
 
             *data << int8(unit->m_movementInfo.GetTransportSeat());
@@ -525,7 +527,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
         ObjectGuid transGuid;
 
         data->WriteGuidBytes<0, 5>(transGuid);
-        if (hasTransportTime3)
+        if (hasVehicleId)
         {
             *data << uint32(0);
         }

@@ -27,6 +27,8 @@
 
 #include "PendingChanges.h"
 
+#include <limits>
+
 using namespace Motion;
 
 namespace
@@ -215,4 +217,33 @@ TEST(PendingChanges_a_new_epoch_restores_the_resync_budget)
     CHECK(events[0].action == TimeoutAction::Resync);
     CHECK_EQ(pending.Counters().resynced, 2u);
     CHECK_EQ(pending.Counters().kicked, 0u);
+}
+
+TEST(PendingChanges_a_non_finite_payload_is_a_mismatch)
+{
+    // fabs(NaN - v) > tolerance is false, so a NaN would confirm a change it
+    // does not echo. The legacy speed-ack handler has that hole; this does not.
+    PendingChanges pending((TimeoutPolicy()));
+    const uint32 c0 = pending.Open(SpeedChange(1, 7.0f), 0);
+    CHECK(pending.Ack(ChangeType::RunSpeed, c0, Speed(std::numeric_limits<float>::quiet_NaN()), 1).result == AckResult::PayloadMismatch);
+    const uint32 c1 = pending.Open(SpeedChange(1, 7.0f), 2);
+    CHECK(pending.Ack(ChangeType::RunSpeed, c1, Speed(std::numeric_limits<float>::infinity()), 3).result == AckResult::PayloadMismatch);
+    const uint32 c2 = pending.Open(SpeedChange(1, 7.0f), 4);
+    CHECK(pending.Ack(ChangeType::RunSpeed, c2, Speed(7.0f), 5).result == AckResult::Matched);
+    CHECK_EQ(pending.Counters().payloadMismatch, 2u);
+    CHECK_EQ(pending.Counters().matched, 1u);
+}
+
+TEST(PendingChanges_an_ack_sweeps_expired_tombstones_first)
+{
+    // A consumer that never ticks (enforcement off) must not grow tombstones
+    // without bound: an ack sweeps the expired ones before it looks for one.
+    PendingChanges pending((TimeoutPolicy()));
+    const uint32 c0 = pending.Open(SpeedChange(1, 7.0f), 0);
+    pending.Open(SpeedChange(1, 8.0f), 1);                                              // c0 becomes a tombstone that dies at 10001
+    CHECK_EQ(pending.Tombstones(), size_t(1));
+    CHECK(pending.Ack(ChangeType::Root, c0, Flag(), 5000).result == AckResult::NoPending);   // alive, and not this one
+    CHECK_EQ(pending.Tombstones(), size_t(1));
+    CHECK(pending.Ack(ChangeType::RunSpeed, c0, Speed(7.0f), 10001).result == AckResult::Stale);   // swept before the lookup
+    CHECK_EQ(pending.Tombstones(), size_t(0));
 }

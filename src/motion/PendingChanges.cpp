@@ -104,8 +104,11 @@ namespace Motion
         return entry.counter;
     }
 
-    AckOutcome PendingChanges::Ack(ChangeType type, uint32 counter, AckPayload const& payload, uint32 /*now*/)
+    AckOutcome PendingChanges::Ack(ChangeType type, uint32 counter, AckPayload const& payload, uint32 now)
     {
+        // A consumer that never ticks (enforcement off) must not grow tombstones
+        // without bound, so the sweep runs here as well as in Tick.
+        ExpireTombstones(now);
         AckOutcome out;
         if (counter >= m_next)
         {
@@ -118,7 +121,11 @@ namespace Motion
             if (m_pending[i].type != type || m_pending[i].counter != counter) { continue; }
             out.change = m_pending[i];
             m_pending.erase(m_pending.begin() + i);
-            if (payload.hasValue && std::fabs(payload.value - out.change.change.value) > kPayloadTolerance)
+            // A value that is not finite cannot echo anything: fabs(NaN - v) > tolerance
+            // is false, so without this test a NaN would confirm the change. The legacy
+            // speed-ack handler has that hole (MovementHandler.cpp:545); this does not.
+            const bool finite = std::isfinite(payload.value) && std::isfinite(out.change.change.value);
+            if (payload.hasValue && (!finite || std::fabs(payload.value - out.change.change.value) > kPayloadTolerance))
             {
                 out.result = AckResult::PayloadMismatch;
                 ++m_counters.payloadMismatch;
