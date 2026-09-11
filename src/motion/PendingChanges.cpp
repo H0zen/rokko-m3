@@ -34,6 +34,20 @@ namespace Motion
         const float kPayloadTolerance = 0.01f;   // the legacy speed-ack handler's tolerance (MovementHandler.cpp:544)
     }
 
+    char const* AckResultName(AckResult result)
+    {
+        switch (result)
+        {
+            case AckResult::Matched:         return "Matched";
+            case AckResult::PayloadMismatch: return "PayloadMismatch";
+            case AckResult::Tombstone:       return "Tombstone";
+            case AckResult::NoPending:       return "NoPending";
+            case AckResult::Stale:           return "Stale";
+            case AckResult::Future:          return "Future";
+            default:                         return "?";
+        }
+    }
+
     PendingChanges::PendingChanges(TimeoutPolicy const& policy)
         : m_policy(policy), m_next(0), m_epoch(0), m_resyncs(0)
     {
@@ -101,6 +115,23 @@ namespace Motion
         entry.resends = 0;
         m_pending.push_back(entry);
         ++m_counters.opened;
+        return entry.counter;
+    }
+
+    uint32 PendingChanges::Issue()
+    {
+        return m_next++;
+    }
+
+    uint32 PendingChanges::Reopen(PendingChange const& dropped, uint32 now)
+    {
+        PendingChange entry = dropped;
+        entry.counter = m_next++;
+        entry.epoch = m_epoch;
+        entry.sentAt = now;
+        ++entry.resends;
+        m_pending.push_back(entry);
+        ++m_counters.resent;
         return entry.counter;
     }
 

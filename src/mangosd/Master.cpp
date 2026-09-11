@@ -40,8 +40,8 @@
 #include "BuildInfo.h"
 #include "Timer.h"
 #include "World.h"
+#include "WorldSession.h"
 #include "movement/WireParity.h"
-#include "movement/WriterShadowHooks.h"
 
 #ifdef _WIN32
 #include "ServiceWin32.h"
@@ -348,9 +348,18 @@ void Master::ShutdownWorld()
         WireParity::Report([](std::string const& line) { sLog.outString("%s", line.c_str()); });
     }
 
-    if (WriterShadow::Saw())
+    // The movement kernel's acks, summed over every session since the server started
+    // (design v2 §6.2, §9): the players are gone by now, so the state counters -- which
+    // live on each Player's Motion::State -- are not summed here, only the acks, which
+    // outlive the session in the process-wide, atomic total.
     {
-        WriterShadow::Report([](std::string const& line) { sLog.outString("%s", line.c_str()); });
+        WorldSession::AckTotalsCounters const& acks = WorldSession::AckTotals();
+        if (acks.seen.load())
+        {
+            sLog.outString("acks: seen %u, matched %u, mismatched %u, resent %u, tombstone %u, stale %u, future %u, wrong guid %u, unverified %u, teleporting %u",
+                           acks.seen.load(), acks.matched.load(), acks.mismatched.load(), acks.resent.load(),
+                           acks.tombstone.load(), acks.stale.load(), acks.future.load(), acks.wrongGuid.load(), acks.unverified.load(), acks.teleporting.load());
+        }
     }
 
     sLog.outString("[shutdown] stopping the world listener");

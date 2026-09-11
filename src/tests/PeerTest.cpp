@@ -279,7 +279,7 @@ namespace
     const uint16 kFakeAck    = 0x1002;
     const Wire::Element kCounterLayout[] =
     {
-        Wire::Element::MovementCounter, Wire::Element::PositionX, Wire::Element::End
+        Wire::Element::MovementCounter, Wire::Element::PositionX, Wire::Element::ExtraFloat, Wire::Element::End
     };
 
     Wire::Sequence FakeLookup(uint16 opcode)
@@ -287,14 +287,20 @@ namespace
         return (opcode == kFakeChange || opcode == kFakeAck) ? kCounterLayout : nullptr;
     }
 
-    WorldPacket FakeChange(uint32 counter)
+    WorldPacket FakeChangeWithValue(uint32 counter, float value)
     {
         Wire::MovementStatus s;
         s.counter = counter;
         s.pos.x = 1.0f;
+        s.value = value;
         WorldPacket p(kFakeChange, 8);
         Wire::Encode(p, kCounterLayout, s);
         return p;
+    }
+
+    WorldPacket FakeChange(uint32 counter)
+    {
+        return FakeChangeWithValue(counter, 0.0f);
     }
 
     std::vector<loadtest::ChangePair> FakePairs()
@@ -312,6 +318,15 @@ namespace
         Wire::MovementStatus s;
         CHECK(Wire::Decode(ack, kCounterLayout, s).ok());
         return s.counter;
+    }
+
+    float ValueOf(WorldPacket& ack)
+    {
+        ack.rpos(0);
+        ack.ResetBitReader();
+        Wire::MovementStatus s;
+        CHECK(Wire::Decode(ack, kCounterLayout, s).ok());
+        return s.value;
     }
 }
 
@@ -344,6 +359,19 @@ TEST(AckEngine_delays_when_told_to)
     std::vector<WorldPacket> due = engine.Due(1250);
     REQUIRE(due.size() == 1);
     CHECK_EQ(CounterOf(due[0]), uint32(3));
+}
+
+TEST(AckEngine_answers_with_a_wrong_value_when_told_to)
+{
+    loadtest::AckPolicy policy;
+    policy.mode = loadtest::AckMode::WrongValue;
+    loadtest::AckEngine engine(policy, &FakeLookup, FakePairs());
+    REQUIRE(engine.Plan(FakeChangeWithValue(5, 7.0f), 1000));
+    std::vector<WorldPacket> due = engine.Due(1000);
+    REQUIRE(due.size() == 1);
+    CHECK_EQ(CounterOf(due[0]), uint32(5));
+    CHECK_EQ(ValueOf(due[0]), 8.0f);
+    CHECK_EQ(engine.ChangesSeen().at(kFakeChange), uint32(1));
 }
 
 TEST(AckEngine_reports_what_is_still_pending)
@@ -415,6 +443,11 @@ TEST(AckEngine_knows_the_real_pairs)
         }
     }
     CHECK(foundRun);
+}
+
+TEST(IsSpeedChange_names_the_nine_ackable_rate_changes)
+{
+    CHECK(loadtest::IsSpeedChange(SMSG_MOVE_SET_RUN_SPEED) && loadtest::IsSpeedChange(SMSG_MOVE_SET_PITCH_RATE) && !loadtest::IsSpeedChange(SMSG_FORCE_MOVE_ROOT));
 }
 
 TEST(Walker_returns_home_when_told_to)

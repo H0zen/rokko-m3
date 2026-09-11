@@ -68,6 +68,11 @@ namespace Motion
     MatrixRow const& MatrixRowAt(size_t index);
     /// The row whose mover or spline cell is `opcode`; `*isSpline` says which. Null otherwise.
     MatrixRow const* RowForOpcode(uint16 opcode, bool* isSpline);
+    /// The row an ack opcode answers to (the first row whose `ack` cell is `opcode`; the
+    /// rows of a flag pair share the type, which is all an ack needs). Null for 0 and for an
+    /// opcode no row names -- the turn-rate and pitch-rate acks, whose layouts the lifter
+    /// could not produce, among them.
+    MatrixRow const* RowForAck(uint16 opcode);
 }
 
 #endif

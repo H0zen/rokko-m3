@@ -66,6 +66,25 @@ namespace loadtest
         return pairs;
     }
 
+    bool IsSpeedChange(uint16 opcode)
+    {
+        switch (opcode)
+        {
+            case SMSG_MOVE_SET_WALK_SPEED:
+            case SMSG_MOVE_SET_RUN_SPEED:
+            case SMSG_MOVE_SET_RUN_BACK_SPEED:
+            case SMSG_MOVE_SET_SWIM_SPEED:
+            case SMSG_MOVE_SET_SWIM_BACK_SPEED:
+            case SMSG_MOVE_SET_TURN_RATE:
+            case SMSG_MOVE_SET_FLIGHT_SPEED:
+            case SMSG_MOVE_SET_FLIGHT_BACK_SPEED:
+            case SMSG_MOVE_SET_PITCH_RATE:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     AckEngine::AckEngine(const AckPolicy& policy, Lookup lookup, std::vector<ChangePair> pairs)
         : m_policy(policy), m_lookup(std::move(lookup)), m_pairs(std::move(pairs))
     {
@@ -118,6 +137,8 @@ namespace loadtest
             return false;
         }
 
+        ++m_changesSeen[pair->change];
+
         uint32 counter = status.counter;
 
         switch (m_policy.mode)
@@ -131,6 +152,8 @@ namespace loadtest
             case AckMode::Stale:
                 counter -= 1;
                 break;
+            case AckMode::WrongValue:
+                break;   // the value is altered below, once it is copied
             case AckMode::Delay:
             case AckMode::Immediate:
                 break;
@@ -141,6 +164,7 @@ namespace loadtest
         pending.guid    = status.guid;
         pending.counter = counter;
         pending.value   = status.value;
+        if (m_policy.mode == AckMode::WrongValue) { pending.value += 1.0f; }
         pending.twoBits = status.twoBits;
         pending.dueTicks = nowTicks + (m_policy.mode == AckMode::Delay ? m_policy.delayMs : 0);
         m_pending.push_back(pending);

@@ -66,8 +66,8 @@
 #include "GameTime.h"
 #include "Geometry/Placement.h"
 #include "movement/MovementBridge.h"
+#include "Writers.h"
 #include "movement/WireParity.h"
-#include "movement/WriterShadowHooks.h"
 #include "wire/MovementCodec.h"
 #include "wire/MovementSequences.h"
 #include "Transports.h"
@@ -188,7 +188,8 @@ Unit::Unit() :
     m_regenTimer(0),
     m_vehicleInfo(NULL),
     m_ThreatManager(this),
-    m_HostileRefManager(this)
+    m_HostileRefManager(this),
+    m_motion(Motion::Mode::ServerDriven, MotionPolicy(), Motion::Kinematics()), m_motionDropped(0)
 {
     m_objectType |= TYPEMASK_UNIT;
     m_objectTypeId = TYPEID_UNIT;
@@ -272,6 +273,10 @@ Unit::Unit() :
         m_speed_rate[i] = 1.0f;
     }
 
+    // The kernel starts from the unit's speeds; the flags are false and the height 0
+    // until a setter says otherwise. Server-driven until a Player says it is not.
+    m_motion = Motion::State(Motion::Mode::ServerDriven, MotionPolicy(), InitialKinematics());
+
     // remove aurastates allowing special moves
     for (int i = 0; i < MAX_REACTIVE; ++i)
     {
@@ -280,6 +285,74 @@ Unit::Unit() :
 
     m_isCreatureLinkingTrigger = false;
     m_isSpawningLinked = false;
+}
+
+Motion::TimeoutPolicy Unit::MotionPolicy()
+{
+    Motion::TimeoutPolicy policy;
+    policy.timeoutMs = sWorld.getConfig(CONFIG_UINT32_MOVEMENT_ACK_TIMEOUT);
+    policy.tombstoneTtlMs = sWorld.getConfig(CONFIG_UINT32_MOVEMENT_ACK_TOMBSTONE_TTL);
+    return policy;
+}
+
+Motion::Kinematics Unit::InitialKinematics() const
+{
+    Motion::Kinematics k;
+    for (int i = 0; i < MAX_MOVE_TYPE; ++i)
+    {
+        k.speed[i] = GetSpeed(UnitMoveType(i));
+    }
+    return k;
+}
+
+void Unit::SendEmissions(std::vector<Motion::Emission> const& emissions)
+{
+    if (!IsInWorld())
+    {
+        return;
+    }
+    const uint64 guid = GetObjectGuid().GetRawValue();
+    for (size_t i = 0; i < emissions.size(); ++i)
+    {
+        Motion::Emission const& e = emissions[i];
+        WorldPacket data;
+        switch (e.kind)
+        {
+            case Motion::EmissionKind::Mover:
+                // To the session that owns this unit's movement: the unit itself when it
+                // is a player. A controlled creature's owner arrives with P2-D.
+                if (GetTypeId() != TYPEID_PLAYER || !Motion::BuildMover(data, guid, e.counter, e.change))
+                {
+                    ++m_motionDropped;
+                    continue;
+                }
+                ((Player*)this)->GetSession()->SendPacket(&data);
+                break;
+            case Motion::EmissionKind::Spline:
+                if (!Motion::BuildSpline(data, guid, e.change))
+                {
+                    ++m_motionDropped;
+                    continue;
+                }
+                SendMessageToSet(&data, true);
+                break;
+            case Motion::EmissionKind::Observer:
+                if (!Motion::BuildObserver(data, guid, e.counter, e.change, Movement::ToWire(m_movementInfo)))
+                {
+                    ++m_motionDropped;
+                    continue;
+                }
+                if (GetTypeId() == TYPEID_PLAYER)
+                {
+                    SendMessageToSetExcept(&data, (Player const*)this);
+                }
+                else
+                {
+                    SendMessageToSet(&data, false);
+                }
+                break;
+        }
+    }
 }
 
 Unit::~Unit()
@@ -333,6 +406,27 @@ void Unit::Update(uint32 update_diff, uint32 p_time)
 
     CleanupDeletedAuras();
 
+    // Design v2 §6.2: the pending-change machine's timeouts, in the map phase. Only a
+    // client-driven unit has pending entries; a creature's Tick is a no-op and skipped.
+    if (GetTypeId() == TYPEID_PLAYER && m_motion.Pending().Size() > 0)
+    {
+        const uint32 now = GameTime::GetGameTimeMS();
+        SendEmissions(m_motion.Tick(now));
+        Player* player = (Player*)this;
+        if (m_motion.ResyncRequested())
+        {
+            m_motion.ClearResync();
+            sLog.outError("Movement: player %s (account %u) did not acknowledge a movement change in time; resynced",
+                          player->GetName(), player->GetSession()->GetAccountId());
+            player->ResyncMovement();
+        }
+        if (m_motion.KickRequested())
+        {
+            BASIC_LOG("Player %s from account id %u kicked for not acknowledging movement changes", player->GetName(), player->GetSession()->GetAccountId());
+            player->GetSession()->KickPlayer();
+            m_motion.ClearKick();
+        }
+    }
 
     if (CanHaveThreatList())
     {
@@ -6855,48 +6949,6 @@ bool Unit::HasWorgenForm() const
     return HasAuraType(SPELL_AURA_ALLOW_WORGEN_TRANSFORM);
 }
 
-void Unit::BuildForceMoveRootPacket(WorldPacket* data, bool apply, uint32 value)
-{
-    if (apply)
-    {
-        data->Initialize(SMSG_FORCE_MOVE_ROOT, 13);
-        data->WriteGuidMask<2, 7, 6, 0, 5, 4, 1, 3>(GetObjectGuid());
-        data->WriteGuidBytes<1, 0, 2, 5>(GetObjectGuid());
-        *data << uint32(value);
-        data->WriteGuidBytes<3, 4, 7, 6>(GetObjectGuid());
-    }
-    else
-    {
-        data->Initialize(SMSG_FORCE_MOVE_UNROOT, 13);
-        data->WriteGuidMask<0, 1, 3, 7, 5, 2, 4, 6>(GetObjectGuid());
-        data->WriteGuidBytes<3, 6, 1>(GetObjectGuid());
-        *data << uint32(value);
-        data->WriteGuidBytes<2, 0, 7, 4, 5>(GetObjectGuid());
-    }
-    WriterShadow::Flag(*this, Motion::ChangeType::Root, apply, *data);
-}
-
-void Unit::BuildMoveSetCanFlyPacket(WorldPacket* data, bool apply, uint32 value)
-{
-    if (apply)
-    {
-        data->Initialize(SMSG_MOVE_SET_CAN_FLY, 13);
-        data->WriteGuidMask<1, 6, 5, 0, 7, 4, 2, 3>(GetObjectGuid());
-        data->WriteGuidBytes<6, 3>(GetObjectGuid());
-        *data << uint32(value);
-        data->WriteGuidBytes<2, 1, 4, 7, 0, 5>(GetObjectGuid());
-    }
-    else
-    {
-        data->Initialize(SMSG_MOVE_UNSET_CAN_FLY, 13);
-        data->WriteGuidMask<1, 4, 2, 5, 0, 3, 6, 7>(GetObjectGuid());
-        data->WriteGuidBytes<4, 6>(GetObjectGuid());
-        *data << uint32(value);
-        data->WriteGuidBytes<1, 0, 2, 3, 5, 7>(GetObjectGuid());
-    }
-    WriterShadow::Flag(*this, Motion::ChangeType::CanFly, apply, *data);
-}
-
 void Unit::BuildSendPlayVisualPacket(WorldPacket* data, uint32 value, bool impact)
 {
     data->Initialize(SMSG_PLAY_SPELL_VISUAL, 21);
@@ -6908,109 +6960,16 @@ void Unit::BuildSendPlayVisualPacket(WorldPacket* data, uint32 value, bool impac
     data->WriteGuidBytes<0, 4, 1, 6, 7, 2, 3, 5>(GetObjectGuid());
 }
 
-void Unit::BuildMoveWaterWalkPacket(WorldPacket* data, bool apply, uint32 value)
-{
-    if (apply)
-    {
-        data->Initialize(SMSG_MOVE_WATER_WALK, 13);
-        data->WriteGuidMask<4, 7, 6, 0, 1, 3, 5, 2>(GetObjectGuid());
-        data->WriteGuidBytes<0, 5, 2>(GetObjectGuid());
-        *data << uint32(value);
-        data->WriteGuidBytes<7, 3, 4, 1, 6>(GetObjectGuid());
-    }
-    else
-    {
-        data->Initialize(SMSG_MOVE_LAND_WALK, 13);
-        data->WriteGuidMask<5, 1, 6, 2, 3, 4, 0, 7>(GetObjectGuid());
-        data->WriteGuidBytes<6, 1, 7, 5, 4, 0, 3, 2>(GetObjectGuid());
-        *data << uint32(value);
-    }
-    WriterShadow::Flag(*this, Motion::ChangeType::WaterWalk, apply, *data);
-}
-
-void Unit::BuildMoveFeatherFallPacket(WorldPacket* data, bool apply, uint32 value)
-{
-    ObjectGuid guid = GetObjectGuid();
-
-    if (apply)
-    {
-        data->Initialize(SMSG_MOVE_FEATHER_FALL, 1 + 4 + 8);
-        data->WriteGuidMask<3, 1, 7, 0, 4, 2, 5, 6>(guid);
-        data->WriteGuidBytes<5, 7, 2>(guid);
-        *data << uint32(value);
-        data->WriteGuidBytes<0, 3, 4, 1, 6>(guid);
-    }
-    else
-    {
-        data->Initialize(SMSG_MOVE_NORMAL_FALL, 1 + 4 + 8);
-        *data << uint32(value);
-        data->WriteGuidMask<3, 0, 1, 5, 7, 4, 6, 2>(guid);
-        data->WriteGuidBytes<2, 7, 1, 4, 5, 0, 3, 6>(guid);
-    }
-    WriterShadow::Flag(*this, Motion::ChangeType::FeatherFall, apply, *data);
-}
-
-void Unit::BuildMoveHoverPacket(WorldPacket* data, bool apply, uint32 value)
-{
-    ObjectGuid guid = GetObjectGuid();
-
-    if (apply)
-    {
-        data->Initialize(SMSG_MOVE_SET_HOVER, 8 + 4 + 1);
-        data->WriteGuidMask<1, 4, 2, 3, 0, 5, 6, 7>(guid);
-        data->WriteGuidBytes<5, 4, 1, 2, 3, 6, 0, 7>(guid);
-        *data << uint32(0);
-    }
-    else
-    {
-        data->Initialize(SMSG_MOVE_UNSET_HOVER, 8 + 4 + 1);
-        data->WriteGuidMask<4, 6, 3, 1, 2, 7, 5, 0>(guid);
-        data->WriteGuidBytes<4, 5, 3, 6, 7, 1, 2, 0>(guid);
-        *data << uint32(0);
-    }
-    WriterShadow::Flag(*this, Motion::ChangeType::Hover, apply, *data);
-}
-
-void Unit::BuildMoveLevitatePacket(WorldPacket* data, bool apply, uint32 value)
-{
-    ObjectGuid guid = GetObjectGuid();
-
-    if (apply)
-    {
-        data->Initialize(SMSG_MOVE_GRAVITY_ENABLE);
-        data->WriteGuidMask<1, 4, 7, 5, 2, 0, 3, 6>(GetObjectGuid());
-        data->WriteGuidBytes<3>(GetObjectGuid());
-        *data << uint32(value);
-        data->WriteGuidBytes<7, 6, 4, 0, 1, 5, 2>(GetObjectGuid());
-    }
-    else
-    {
-        data->Initialize(SMSG_MOVE_GRAVITY_DISABLE);
-        data->WriteGuidMask<0, 1, 5, 7, 6, 4, 3, 2>(GetObjectGuid());
-        data->WriteGuidBytes<7, 2, 0>(GetObjectGuid());
-        *data << uint32(value);
-        data->WriteGuidBytes<5, 1, 3, 4, 6>(GetObjectGuid());
-    }
-    WriterShadow::Flag(*this, Motion::ChangeType::GravityDisabled, apply, *data);
-}
-
 void Unit::SendCollisionHeightUpdate(float height)
 {
-    if (GetTypeId() == TYPEID_PLAYER)
+    if (GetTypeId() != TYPEID_PLAYER)
     {
-        // Computed once and reused below: GetCollisionHeight(true) is up to four DBC
-        // lookups and two possible error logs, and the hook must not pay for a second
-        // call just to be handed the same value the packet already carries.
-        const float collisionHeight = ((Player*)this)->GetCollisionHeight(true);
-        WorldPacket data(SMSG_MOVE_SET_COLLISION_HGT, GetPackGUID().size() + 4 + 4);
-        data.WriteGuidMask<6, 1, 4, 7, 5, 2, 0, 3>(GetObjectGuid());
-        data.WriteGuidBytes<6, 0, 4, 3, 5>(GetObjectGuid());
-        data << uint32(sWorld.GetGameTime());   // Packet counter
-        data.WriteGuidBytes<1, 2, 7>(GetObjectGuid());
-        data << collisionHeight;
-        WriterShadow::Height(*this, collisionHeight, 0, data);
-        ((Player*)this)->GetSession()->SendPacket(&data);
+        return;
     }
+    // The 4.3.4 layout with a real counter (the legacy writer sent the WotLK shape on a
+    // game-time counter and threw this parameter away for a second lookup). Both callers
+    // are the mount and dismount paths: reason 1, "mount".
+    SendEmissions(m_motion.Apply(Motion::HeightChange(height, 1), GameTime::GetGameTimeMS()));
 }
 
 // This will create a new creature and set the current unit as the controller of that new creature

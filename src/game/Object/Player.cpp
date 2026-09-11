@@ -62,7 +62,6 @@
 #include "Util.h"
 #include "Transports.h"
 #include "TransportMap.h"
-#include "movement/WriterShadowHooks.h"
 #include "Weather.h"
 #include "BattleGround/BattleGround.h"
 #include "BattleGround/BattleGroundMgr.h"
@@ -316,6 +315,10 @@ UpdateMask Player::updateVisualBits;
 // one the declaration order happened to put first.
 Player::Player(WorldSession* session): Unit(), m_currencyMgr(this), m_honorMgr(this), m_spellCooldownMgr(this), m_glyphMgr(this), m_runeMgr(this), m_mover(this), m_camera(this), m_petMgr(this), m_achievementMgr(this), m_reputationMgr(this)
 {
+    // Design v2 §3.1: a player's own movement is client-driven; changes are negotiated
+    // with counters and acks. (Unit's constructor cannot know the type.)
+    m_motion.SetMode(Motion::Mode::ClientDriven, GameTime::GetGameTimeMS());
+
     m_transport = 0;
 
     m_speakTime = 0;
@@ -477,12 +480,6 @@ Player::Player(WorldSession* session): Unit(), m_currencyMgr(this), m_honorMgr(t
     m_resetTalentsTime = 0;
     // Initialize item update queue blocked flag to false
     m_itemUpdateQueueBlocked = false;
-
-    // Initialize forced speed changes for all move types to 0
-    for (int i = 0; i < MAX_MOVE_TYPE; ++i)
-    {
-        m_forced_speed_changes[i] = 0;
-    }
 
     // m_stableSlots now owned by m_petMgr; initialized in its ctor.
 
@@ -1624,49 +1621,19 @@ ChatTagFlags Player::GetChatTag() const
 
 void Player::SendTeleportPacket(float oldX, float oldY, float oldZ, float oldO)
 {
-    ObjectGuid guid = GetObjectGuid();
     ObjectGuid transportGuid = m_movementInfo.GetTransportGuid();
-
-    Motion::TeleportParams shadow;
-    shadow.pos.x = Where().X();
-    shadow.pos.y = Where().Y();
-    shadow.pos.z = Where().Z();
-    shadow.pos.o = Where().Facing();
-    shadow.hasTransport = !transportGuid.IsEmpty();
-    shadow.transportGuid = transportGuid.GetRawValue();
-
-    WorldPacket data(SMSG_MOVE_TELEPORT, 38);
-    data.WriteGuidMask<6, 0, 3, 2>(guid);
-    data.WriteBit(0);       // unknown
-    data.WriteBit(!transportGuid.IsEmpty());
-    data.WriteGuidMask<1>(guid);
-    if (transportGuid)
-    {
-        data.WriteGuidMask<1, 3, 2, 5, 0, 7, 6, 4>(transportGuid);
-    }
-
-    data.WriteGuidMask<4, 7, 5>(guid);
-
-    if (transportGuid)
-    {
-        data.WriteGuidBytes<5, 6, 1, 7, 0, 2, 4, 3>(transportGuid);
-    }
-
-    data << uint32(0);  // counter
-    data.WriteGuidBytes<1, 2, 3, 5>(guid);
-    data << float(Where().X());
-    data.WriteGuidBytes<4>(guid);
-    data << float(Where().Facing());
-    data.WriteGuidBytes<7>(guid);
-    data << float(Where().Z());
-    data.WriteGuidBytes<0, 6>(guid);
-    data << float(Where().Y());
-
+    Motion::TeleportParams params;
+    params.pos.x = Where().X();
+    params.pos.y = Where().Y();
+    params.pos.z = Where().Z();
+    params.pos.o = Where().Facing();
+    params.hasTransport = !transportGuid.IsEmpty();
+    params.transportGuid = transportGuid.GetRawValue();
+    // The packet names the destination; the player stays where it was until the ack
+    // lands (HandleMoveTeleportAckOpcode moves it), as before.
+    std::vector<Motion::Emission> const emissions = m_motion.Apply(Motion::TeleportChange(params), GameTime::GetGameTimeMS());
     Place().MoveTo(oldX, oldY, oldZ, oldO);
-
-    WriterShadow::Teleport(guid.GetRawValue(), shadow, data);
-
-    SendDirectMessage(&data);
+    SendEmissions(emissions);
 }
 
 /**
@@ -4690,18 +4657,16 @@ void Player::SendInitialPacketsAfterAddToMap()
         }
     }
 
-    if (HasAuraType(SPELL_AURA_MOD_STUN) || HasAuraType(SPELL_AURA_MOD_ROOT))
-    {
-        SetRoot(true);
-    }
+    // After the aura re-application above, not before it: fear, transform, safe fall's
+    // special case and the mounted flight-speed extras above are outside the kernel's
+    // state and still need their own resend, but water walk/feather fall/hover/fly are
+    // inside it, so the epoch's snapshot below already carries whatever the loop just
+    // changed instead of a second, superseding entry for the same flag.
+    StartMovementEpoch();
 
     SendAurasForTarget(this);
     SendEnchantmentDurations();                             // must be after add to map
     SendItemDurations();                                    // must be after add to map
-
-    UpdateSpeed(MOVE_RUN, true, 1.0f, true);
-    UpdateSpeed(MOVE_SWIM, true, 1.0f, true);
-    UpdateSpeed(MOVE_FLIGHT, true, 1.0f, true);
 }
 
 /**
@@ -6216,6 +6181,28 @@ void Player::ResetTimeSync()
     m_timeSyncCounter = 0;
     m_timeSyncTimer = 0;
     GetSession()->TimeBase().Reset();
+}
+
+void Player::StartMovementEpoch()
+{
+    const uint32 now = GameTime::GetGameTimeMS();
+    m_motion.NewEpoch(now);
+    std::vector<Motion::Change> const snapshot = m_motion.Snapshot();
+    for (size_t i = 0; i < snapshot.size(); ++i)
+    {
+        SendEmissions(m_motion.Apply(snapshot[i], now));
+    }
+}
+
+void Player::ResyncMovement()
+{
+    // A player on a transport takes the far-teleport branch of TeleportTo, a worldport
+    // for a missed ack; the tick's reissue is enough there, the snap waits.
+    if (GetTransport())
+    {
+        return;
+    }
+    TeleportTo(GetMapId(), Where().X(), Where().Y(), Where().Z(), Where().Facing(), TELE_TO_NOT_LEAVE_COMBAT | TELE_TO_NOT_UNSUMMON_PET);
 }
 
 void Player::SendTimeSync()

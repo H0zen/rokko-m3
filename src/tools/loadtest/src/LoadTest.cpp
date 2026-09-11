@@ -42,6 +42,7 @@
 // from its own database. It cannot tell this client from a real one, which is
 // the point.
 
+#include "AckEngine.hpp"
 #include "Replay.hpp"
 #include "SyntheticClient.hpp"
 
@@ -51,6 +52,7 @@
 #include <chrono>
 #include <cmath>
 #include <condition_variable>
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -84,9 +86,12 @@ namespace
             "  --walk SECONDS       walk straight ahead for SECONDS once in the world\n"
             "  --heading DEGREES    walk in this direction instead of the character's facing\n"
             "  --return             walk the same time back, so the character ends where it began\n"
-            "  --ack MODE           answer movement changes: immediate | delay:MS | mismatch | stale | drop\n"
+            "  --ack MODE           answer movement changes: immediate | delay:MS | mismatch | stale | wrongvalue | drop\n"
             "  --observe GUID       count relayed movement of this mover\n"
-            "  --expect a,b,c       require the run to have seen these: teleport | knockback | splines\n"
+            "  --expect a,b,c       require the run to have seen these: teleport | knockback | splines |\n"
+            "                       resend | resync | kick | updates:N | noupdates\n"
+            "                       (updates:N and noupdates read --pair's observer, or this run's own\n"
+            "                       --observe when it has no --pair)\n"
             "  --pair ACCOUNT:GUID  run a second, observing session of that character alongside,\n"
             "                       watching this one, and print the relay verdict\n"
             "\n"
@@ -229,6 +234,7 @@ int main(int argc, char** argv)
             else if (mode == "mismatch")        { config.script.ack.mode = loadtest::AckMode::Mismatch; }
             else if (mode == "drop")            { config.script.ack.mode = loadtest::AckMode::Drop; }
             else if (mode == "stale")           { config.script.ack.mode = loadtest::AckMode::Stale; }
+            else if (mode == "wrongvalue")      { config.script.ack.mode = loadtest::AckMode::WrongValue; }
             else if (mode.compare(0, 6, "delay:") == 0)
             {
                 config.script.ack.mode = loadtest::AckMode::Delay;
@@ -236,7 +242,7 @@ int main(int argc, char** argv)
             }
             else
             {
-                std::fprintf(stderr, "--ack wants immediate, delay:MS, mismatch, stale or drop\n");
+                std::fprintf(stderr, "--ack wants immediate, delay:MS, mismatch, stale, wrongvalue or drop\n");
                 return 2;
             }
         }
@@ -426,8 +432,10 @@ int main(int argc, char** argv)
 
     // Reaching the world is not the whole of it: a session dropped during the
     // hold has an error and the world stage both, and reporting that as OK would
-    // hide exactly the failure a long hold exists to catch.
-    const bool ok = result.Reached(loadtest::Stage::InWorld) && result.error.empty();
+    // hide exactly the failure a long hold exists to catch -- unless the kick was
+    // the expectation, when the server closing the socket is the run's proper end.
+    const bool kickExpected = std::find(config.script.expect.begin(), config.script.expect.end(), "kick") != config.script.expect.end();
+    const bool ok = result.Reached(loadtest::Stage::InWorld) && (result.error.empty() || (kickExpected && result.peer.kicked));
 
     std::printf("\n%s: %s\n", ok ? "OK" : "FAILED", loadtest::StageName(result.stage));
     if (!result.error.empty())
@@ -586,6 +594,72 @@ int main(int argc, char** argv)
             ok = peer.monsterMoves >= 1 && peer.decodeFailures.count(SMSG_MONSTER_MOVE) == 0
                  && peer.decodeFailures.count(SMSG_MONSTER_MOVE_TRANSPORT) == 0;
             std::printf("PEER VERDICT splines %s (%u monster moves decoded exact)\n", ok ? "OK" : "BUG", peer.monsterMoves);
+        }
+        else if (what == "resend")
+        {
+            // Every speed change the server sent was answered wrong and resent once, and
+            // not again: each speed opcode seen exactly twice.
+            uint32 twice = 0, other = 0;
+            for (std::map<uint16, uint32>::const_iterator it = peer.changesSeen.begin(); it != peer.changesSeen.end(); ++it)
+            {
+                if (!loadtest::IsSpeedChange(it->first)) { continue; }
+                if (it->second == 2) { ++twice; } else { ++other; }
+            }
+            ok = twice >= 7 && other == 0;
+            std::printf("PEER VERDICT resend %s (%u speed changes seen twice, %u otherwise)\n", ok ? "OK" : "BUG", twice, other);
+        }
+        else if (what == "resync")
+        {
+            // Under the timeout ladder with every ack dropped: the original, its resend,
+            // the resync's reissue -- at least three of each speed change -- and the
+            // teleport that snaps the client.
+            uint32 thrice = 0;
+            for (std::map<uint16, uint32>::const_iterator it = peer.changesSeen.begin(); it != peer.changesSeen.end(); ++it)
+            {
+                if (loadtest::IsSpeedChange(it->first) && it->second >= 3) { ++thrice; }
+            }
+            ok = thrice >= 7 && peer.teleports >= 1;
+            std::printf("PEER VERDICT resync %s (%u speed changes seen three times or more, %u teleports)\n", ok ? "OK" : "BUG", thrice, peer.teleports);
+        }
+        else if (what == "kick")
+        {
+            ok = peer.kicked;
+            std::printf("PEER VERDICT kick %s (%s)\n", ok ? "OK" : "BUG", peer.kicked ? "the server closed the socket during the hold" : "still connected when the hold ended");
+        }
+        else if (what.compare(0, 8, "updates:") == 0)
+        {
+            const uint32 want = uint32(std::strtoul(what.c_str() + 8, NULL, 10));
+            // --pair's observer, or (with no --pair) this run's own --observe: the
+            // launcher runs the observer as a separate process alongside a walker
+            // triggered by the console, and needs that process's own verdict.
+            if (pairAccount.empty() && config.script.observeGuid == 0)
+            {
+                std::printf("PEER VERDICT updates SETUP (no --pair and not observing)\n");
+            }
+            else
+            {
+                const std::map<uint16, uint32>& forms = pairAccount.empty() ? peer.observerForms : pairResult.peer.observerForms;
+                uint32 seen = 0;
+                for (std::map<uint16, uint32>::const_iterator it = forms.begin(); it != forms.end(); ++it)
+                {
+                    seen += it->second;
+                }
+                ok = seen >= want;
+                std::printf("PEER VERDICT updates %s (the observer saw %u observer forms for the walker, wanted %u)\n", ok ? "OK" : "BUG", seen, want);
+            }
+        }
+        else if (what == "noupdates")
+        {
+            if (pairAccount.empty() && config.script.observeGuid == 0)
+            {
+                std::printf("PEER VERDICT noupdates SETUP (no --pair and not observing)\n");
+            }
+            else
+            {
+                const std::map<uint16, uint32>& forms = pairAccount.empty() ? peer.observerForms : pairResult.peer.observerForms;
+                ok = forms.empty();
+                std::printf("PEER VERDICT noupdates %s (the observer saw %u observer forms for the walker)\n", ok ? "OK" : "BUG", uint32(forms.size()));
+            }
         }
         else
         {

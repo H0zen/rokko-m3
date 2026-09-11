@@ -46,6 +46,7 @@ namespace loadtest
         Delay,      ///< ack after `delayMs`
         Mismatch,   ///< ack at once with counter + 1: a counter the server never issued (the violation case)
         Stale,      ///< ack at once with counter - 1: an ack for a change already retired (consumed by a tombstone)
+        WrongValue, ///< ack at once, counter echoed, the value + 1.0: a payload the server did not send (the resend-once case)
         Drop        ///< never ack
     };
 
@@ -132,5 +133,14 @@ namespace loadtest
         uint32 acksDropped = 0;
         uint32 acksPending = 0;      ///< planned but not sent when the hold ended
         uint32 otherPackets = 0;
+
+        /// Observer forms seen for `observeGuid`, by opcode: the speed updates, the root
+        /// and unroot rebroadcasts, the collision-height, knock-back and teleport updates
+        /// (SMSG_PLAYER_MOVE is `observedTarget`).
+        std::map<uint16, uint32> observerForms;
+        /// Server-initiated changes decoded and answered (or dropped), by opcode: a
+        /// resend shows as a second change of the same opcode.
+        std::map<uint16, uint32> changesSeen;
+        bool kicked = false;         ///< the server closed the socket before the hold ended
     };
 }

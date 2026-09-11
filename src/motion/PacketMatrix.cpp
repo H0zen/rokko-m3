@@ -116,4 +116,14 @@ namespace Motion
         }
         return NULL;
     }
+
+    MatrixRow const* RowForAck(uint16 opcode)
+    {
+        if (!opcode) { return NULL; }
+        for (size_t i = 0; i < kRowCount; ++i)
+        {
+            if (kRows[i].ack == opcode) { return &kRows[i]; }
+        }
+        return NULL;
+    }
 }

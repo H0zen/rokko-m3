@@ -93,6 +93,25 @@ namespace
     /// modulus is not ours -- and leaving it sitting at the loading screen tells
     /// its owner nothing.
     const uint32 MAX_SECOND_STREAM_ATTEMPTS = 3;
+
+    WorldSession::AckTotalsCounters s_ackTotals;
+}
+
+WorldSession::AckTotalsCounters const& WorldSession::AckTotals()
+{
+    return s_ackTotals;
+}
+
+/**
+ * @brief Tallies one movement ack outcome, on this session and process-wide.
+ *
+ * @param field The AckCounters member the kernel's outcome names.
+ * @param total The same outcome's AckTotalsCounters member.
+ */
+void WorldSession::CountAck(uint32 AckCounters::*field, std::atomic<uint32> AckTotalsCounters::*total)
+{
+    ++(m_ackCounters.*field);
+    ++(s_ackTotals.*total);
 }
 
 /**

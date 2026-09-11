@@ -33,10 +33,8 @@
 
 #include "Creature.h"
 #include "WaypointMovementGenerator.h"
-#include "WorldPacket.h"
-#include "Opcodes.h"
 #include "GridMap.h"
-#include "movement/WriterShadowHooks.h"
+#include "GameTime.h"
 
 /**
  * @brief Enables or disables walk mode for the creature.
@@ -81,23 +79,7 @@ void Creature::SetWalk(bool enable, bool asDefault)
         m_movementInfo.RemoveMovementFlag(MOVEFLAG_WALK_MODE);
     }
 
-    if (IsInWorld())
-    {
-        WorldPacket data(enable ? SMSG_SPLINE_MOVE_SET_WALK_MODE : SMSG_SPLINE_MOVE_SET_RUN_MODE, 9);
-        if (enable)
-        {
-            data.WriteGuidMask<7, 6, 5, 1, 3, 4, 2, 0>(GetObjectGuid());
-            data.WriteGuidBytes<4, 2, 1, 6, 5, 0, 7, 3>(GetObjectGuid());
-        }
-        else
-        {
-            data.WriteGuidMask<5, 6, 3, 7, 2, 0, 4, 1>(GetObjectGuid());
-            data.WriteGuidBytes<7, 0, 4, 6, 5, 1, 2, 3>(GetObjectGuid());
-        }
-
-        WriterShadow::Flag(*this, Motion::ChangeType::Gait, enable, data);
-        SendMessageToSet(&data, true);
-    }
+    SendEmissions(m_motion.Apply(Motion::FlagChange(Motion::ChangeType::Gait, enable), GameTime::GetGameTimeMS()));
 }
 
 /**
@@ -116,23 +98,7 @@ void Creature::SetLevitate(bool enable)
         m_movementInfo.RemoveMovementFlag(MOVEFLAG_LEVITATING);
     }
 
-    if (IsInWorld())
-    {
-        WorldPacket data(enable ? SMSG_SPLINE_MOVE_GRAVITY_DISABLE : SMSG_SPLINE_MOVE_GRAVITY_ENABLE, 9);
-        if (enable)
-        {
-            data.WriteGuidMask<7, 3, 4, 2, 5, 1, 0, 6>(GetObjectGuid());
-            data.WriteGuidBytes<7, 1, 3, 4, 6, 2, 5, 0>(GetObjectGuid());
-        }
-        else
-        {
-            data.WriteGuidMask<5, 4, 7, 1, 3, 6, 2, 0>(GetObjectGuid());
-            data.WriteGuidBytes<7, 3, 4, 2, 1, 6, 0, 5>(GetObjectGuid());
-        }
-
-        WriterShadow::Flag(*this, Motion::ChangeType::GravityDisabled, enable, data);
-        SendMessageToSet(&data, true);
-    }
+    SendEmissions(m_motion.Apply(Motion::FlagChange(Motion::ChangeType::GravityDisabled, enable), GameTime::GetGameTimeMS()));
 }
 
 /**
@@ -156,23 +122,7 @@ void Creature::SetSwim(bool enable)
         m_movementInfo.RemoveMovementFlag(MOVEFLAG_SWIMMING);
     }
 
-    if (IsInWorld())
-    {
-        WorldPacket data(enable ? SMSG_SPLINE_MOVE_START_SWIM : SMSG_SPLINE_MOVE_STOP_SWIM, 9);
-        if (enable)
-        {
-            data.WriteGuidMask<1, 6, 0, 7, 3, 5, 2, 4>(GetObjectGuid());
-            data.WriteGuidBytes<3, 7, 2, 5, 6, 4, 1, 0>(GetObjectGuid());
-        }
-        else
-        {
-            data.WriteGuidMask<4, 1, 5, 3, 0, 7, 2, 6>(GetObjectGuid());
-            data.WriteGuidBytes<6, 0, 7, 2, 3, 1, 5, 4>(GetObjectGuid());
-        }
-
-        WriterShadow::Flag(*this, Motion::ChangeType::Swim, enable, data);
-        SendMessageToSet(&data, true);
-    }
+    SendEmissions(m_motion.Apply(Motion::FlagChange(Motion::ChangeType::Swim, enable), GameTime::GetGameTimeMS()));
 }
 
 /**
@@ -261,23 +211,7 @@ void Creature::SetCanFly(bool enable)
         m_movementInfo.RemoveMovementFlag(MOVEFLAG_CAN_FLY);
     }
 
-    if (IsInWorld())
-    {
-        WorldPacket data(enable ? SMSG_SPLINE_MOVE_SET_FLYING : SMSG_SPLINE_MOVE_UNSET_FLYING, 9);
-        if (enable)
-        {
-            data.WriteGuidMask<0, 4, 1, 6, 7, 2, 3, 5>(GetObjectGuid());
-            data.WriteGuidBytes<7, 0, 5, 6, 4, 1, 3, 2>(GetObjectGuid());
-        }
-        else
-        {
-            data.WriteGuidMask<5, 0, 4, 7, 2, 3, 1, 6>(GetObjectGuid());
-            data.WriteGuidBytes<7, 2, 3, 4, 5, 1, 6, 0>(GetObjectGuid());
-        }
-
-        WriterShadow::Flag(*this, Motion::ChangeType::CanFly, enable, data);
-        SendMessageToSet(&data, true);
-    }
+    SendEmissions(m_motion.Apply(Motion::FlagChange(Motion::ChangeType::CanFly, enable), GameTime::GetGameTimeMS()));
 }
 
 /**
@@ -296,23 +230,7 @@ void Creature::SetFeatherFall(bool enable)
         m_movementInfo.RemoveMovementFlag(MOVEFLAG_SAFE_FALL);
     }
 
-    if (IsInWorld())
-    {
-        WorldPacket data(enable ? SMSG_SPLINE_MOVE_FEATHER_FALL : SMSG_SPLINE_MOVE_NORMAL_FALL, 9);
-        if (enable)
-        {
-            data.WriteGuidMask<3, 2, 7, 5, 4, 6, 1, 0>(GetObjectGuid());
-            data.WriteGuidBytes<1, 4, 7, 6, 2, 0, 5, 3>(GetObjectGuid());
-        }
-        else
-        {
-            data.WriteGuidMask<3, 5, 1, 0, 7, 6, 2, 4>(GetObjectGuid());
-            data.WriteGuidBytes<7, 6, 2, 0, 5, 4, 3, 1>(GetObjectGuid());
-        }
-
-        WriterShadow::Flag(*this, Motion::ChangeType::FeatherFall, enable, data);
-        SendMessageToSet(&data, true);
-    }
+    SendEmissions(m_motion.Apply(Motion::FlagChange(Motion::ChangeType::FeatherFall, enable), GameTime::GetGameTimeMS()));
 }
 
 /**
@@ -331,23 +249,7 @@ void Creature::SetHover(bool enable)
         m_movementInfo.RemoveMovementFlag(MOVEFLAG_HOVER);
     }
 
-    if (IsInWorld())
-    {
-        WorldPacket data(enable ? SMSG_SPLINE_MOVE_SET_HOVER : SMSG_SPLINE_MOVE_UNSET_HOVER, 9);
-        if (enable)
-        {
-            data.WriteGuidMask<3, 7, 0, 1, 4, 6, 2, 5>(GetObjectGuid());
-            data.WriteGuidBytes<2, 4, 3, 1, 7, 0, 5, 6>(GetObjectGuid());
-        }
-        else
-        {
-            data.WriteGuidMask<6, 7, 4, 0, 3, 1, 5, 2>(GetObjectGuid());
-            data.WriteGuidBytes<4, 5, 3, 0, 2, 7, 6, 1>(GetObjectGuid());
-        }
-
-        WriterShadow::Flag(*this, Motion::ChangeType::Hover, enable, data);
-        SendMessageToSet(&data, false);
-    }
+    SendEmissions(m_motion.Apply(Motion::FlagChange(Motion::ChangeType::Hover, enable), GameTime::GetGameTimeMS()));
 }
 
 /**
@@ -366,23 +268,9 @@ void Creature::SetRoot(bool enable)
         m_movementInfo.RemoveMovementFlag(MOVEFLAG_ROOT);
     }
 
-    if (IsInWorld())
-    {
-        WorldPacket data(enable ? SMSG_SPLINE_MOVE_ROOT : SMSG_SPLINE_MOVE_UNROOT, 9);
-        if (enable)
-        {
-            data.WriteGuidMask<5, 4, 6, 1, 3, 7, 2, 0>(GetObjectGuid());
-            data.WriteGuidBytes<2, 1, 7, 3, 5, 0, 6, 4>(GetObjectGuid());
-        }
-        else
-        {
-            data.WriteGuidMask<0, 1, 6, 5, 3, 2, 7, 4>(GetObjectGuid());
-            data.WriteGuidBytes<6, 3, 1, 5, 2, 0, 7, 4>(GetObjectGuid());
-        }
-
-        WriterShadow::Flag(*this, Motion::ChangeType::Root, enable, data);
-        SendMessageToSet(&data, true);
-    }
+    // Server-driven: confirmed at once, the spline form to everyone in range (nothing
+    // while out of the world, as before).
+    SendEmissions(m_motion.Apply(Motion::FlagChange(Motion::ChangeType::Root, enable), GameTime::GetGameTimeMS()));
 }
 
 /**
@@ -401,21 +289,5 @@ void Creature::SetWaterWalk(bool enable)
         m_movementInfo.RemoveMovementFlag(MOVEFLAG_WATERWALKING);
     }
 
-    if (IsInWorld())
-    {
-        WorldPacket data(enable ? SMSG_SPLINE_MOVE_WATER_WALK : SMSG_SPLINE_MOVE_LAND_WALK, 9);
-        if (enable)
-        {
-            data.WriteGuidMask<6, 1, 4, 2, 3, 7, 5, 0>(GetObjectGuid());
-            data.WriteGuidBytes<0, 6, 3, 7, 4, 2, 5, 1>(GetObjectGuid());
-        }
-        else
-        {
-            data.WriteGuidMask<5, 0, 4, 6, 7, 2, 3, 1>(GetObjectGuid());
-            data.WriteGuidBytes<5, 7, 3, 4, 1, 2, 0, 6>(GetObjectGuid());
-        }
-
-        WriterShadow::Flag(*this, Motion::ChangeType::WaterWalk, enable, data);
-        SendMessageToSet(&data, true);
-    }
+    SendEmissions(m_motion.Apply(Motion::FlagChange(Motion::ChangeType::WaterWalk, enable), GameTime::GetGameTimeMS()));
 }

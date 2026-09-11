@@ -158,6 +158,19 @@ bool ChatHandler::HandlePInfoCommand(char* args)
                         timeBase.Delta(), timeBase.LastRtt(), counters.samples, counters.slewed, counters.jumped,
                         counters.tooOld, counters.unknownCounter, counters.fallbacks,
                         timeBase.Acquired(now) ? "acquired" : "not acquired", target->GetSession()->GetBadPacketCount());
+
+        WorldSession::AckCounters const& acks = target->GetSession()->GetAckCounters();
+        std::string pending;
+        std::vector<Motion::PendingChange> const entries = target->MotionState().Pending().All();
+        for (size_t i = 0; i < entries.size(); ++i)
+        {
+            char one[64];
+            snprintf(one, sizeof(one), "%s%s#%u %u ms", i ? ", " : "", Motion::ChangeName(entries[i].type), entries[i].counter, now - entries[i].sentAt);
+            pending += one;
+        }
+        PSendSysMessage("Acks: seen %u, matched %u, mismatched %u, resent %u, tombstone %u, stale %u, future %u, wrong guid %u, unverified %u, teleporting %u; pending: %s; last %s; dropped emissions %u",
+                        acks.seen, acks.matched, acks.mismatched, acks.resent, acks.tombstone, acks.stale, acks.future, acks.wrongGuid, acks.unverified, acks.teleporting,
+                        pending.empty() ? "none" : pending.c_str(), Motion::AckResultName(target->MotionState().LastAck()), target->GetMotionDropped());
     }
 
     std::string timeStr = secsToTimeString(total_player_time, TimeFormat::ShortText, true);

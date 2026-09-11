@@ -76,6 +76,7 @@
 #include "FollowerRefManager.h"
 #include "Utilities/EventProcessor.h"
 #include "MotionMaster.h"
+#include "State.h"
 #include "DBCStructure.h"
 #include "Path.h"
 #include "WorldPacket.h"
@@ -4017,6 +4018,20 @@ class Unit : public WorldObject
         void AddPetAura(PetAura const* petSpell);
         void RemovePetAura(PetAura const* petSpell);
 
+        /// The movement kernel's state of this unit (design v2 §6): desired and
+        /// confirmed kinematics and the pending changes. Client-driven for a player,
+        /// server-driven for everything else in P2-C; P2-D moves it with control.
+        Motion::State&       MotionState()       { return m_motion; }
+        Motion::State const& MotionState() const { return m_motion; }
+        /// Sends what the kernel emitted: the mover form to the owning session, the
+        /// spline form to everyone in range, the observer form to everyone but the
+        /// owner, built from this unit's stored status. Nothing is sent while the unit
+        /// is out of the world; the desired state has already advanced.
+        void SendEmissions(std::vector<Motion::Emission> const& emissions);
+        /// Emissions no packet could be built for, or a mover form on a unit without a
+        /// session (a controlled creature before P2-D).
+        uint32 GetMotionDropped() const { return m_motionDropped; }
+
         // Movement info
         MovementInfo m_movementInfo;
         Movement::MoveSpline* movespline;
@@ -4037,13 +4052,7 @@ class Unit : public WorldObject
         bool HasWorgenForm() const;
 
         // Packet builders
-        void BuildForceMoveRootPacket(WorldPacket* data, bool apply, uint32 value);
-        void BuildMoveWaterWalkPacket(WorldPacket* data, bool apply, uint32 value);
         void BuildSendPlayVisualPacket(WorldPacket* data, uint32 value, bool impact);
-        void BuildMoveSetCanFlyPacket(WorldPacket* data, bool apply, uint32 value);
-        void BuildMoveFeatherFallPacket(WorldPacket* data, bool apply, uint32 value);
-        void BuildMoveHoverPacket(WorldPacket* data, bool apply, uint32 value);
-        void BuildMoveLevitatePacket(WorldPacket* data, bool apply, uint32 value);
 
         // Take possession of an unit (pet, creature, ...)
         bool TakePossessOf(Unit* possessed);
@@ -4145,6 +4154,17 @@ class Unit : public WorldObject
         // Manage all Units that are threatened by us
         HostileRefManager m_HostileRefManager;
 
+    protected:
+        // The movement kernel's state (design v2 §6): declared right after
+        // m_HostileRefManager so the constructor's initialiser list -- which
+        // follows it there too -- matches the members' declaration order.
+        // Protected, not private: Player::Player() sets its own mode directly.
+        Motion::State m_motion;
+        uint32        m_motionDropped;
+        static Motion::TimeoutPolicy MotionPolicy();
+        Motion::Kinematics InitialKinematics() const;
+
+    private:
         FollowerRefManager m_FollowingRefManager;
 
         ComboPointHolderSet m_ComboPointHolders;

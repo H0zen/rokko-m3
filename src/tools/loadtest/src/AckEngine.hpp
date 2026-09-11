@@ -47,6 +47,12 @@ namespace loadtest
     /// The 4.3.4 pairs, by name from Opcodes.h. Data, not policy.
     const std::vector<ChangePair>& KnownChangePairs();
 
+    /// True for the nine acknowledgeable rate changes (the seven SMSG_MOVE_SET_*_SPEED
+    /// opcodes, SMSG_MOVE_SET_TURN_RATE and SMSG_MOVE_SET_PITCH_RATE): login and
+    /// worldport re-send exactly these seven speeds, so the resend/resync verdicts
+    /// count them.
+    bool IsSpeedChange(uint16 opcode);
+
     /**
      * @brief Answers server-initiated movement changes under a scripted policy.
      *
@@ -88,6 +94,9 @@ namespace loadtest
             uint32 PendingCount() const { return uint32(m_pending.size()); }
             const std::map<uint16, uint32>& Unregistered() const { return m_unregistered; }
             const std::map<uint16, uint32>& DecodeFailures() const { return m_decodeFailures; }
+            /// Decoded changes, by opcode, whether answered, altered or dropped: a
+            /// resend shows as a second entry for the same opcode.
+            std::map<uint16, uint32> const& ChangesSeen() const { return m_changesSeen; }
 
         private:
             struct Pending
@@ -109,6 +118,7 @@ namespace loadtest
             std::vector<Pending>    m_pending;
             std::map<uint16, uint32> m_unregistered;
             std::map<uint16, uint32> m_decodeFailures;
+            std::map<uint16, uint32> m_changesSeen;
             uint32                  m_sent = 0;
             uint32                  m_dropped = 0;
     };

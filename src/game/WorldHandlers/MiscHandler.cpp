@@ -1300,44 +1300,6 @@ void WorldSession::HandleMoveTimeSkippedOpcode(WorldPacket& recv_data)
 }
 
 /**
- * @brief Consumes a feather-fall movement acknowledgement.
- *
- * @param recv_data The received opcode packet.
- */
-void WorldSession::HandleFeatherFallAck(WorldPacket& recv_data)
-{
-    DEBUG_LOG("WORLD: Received opcode CMSG_MOVE_FEATHER_FALL_ACK");
-
-    // not used
-    MovementInfo movementInfo;
-    recv_data >> movementInfo;
-}
-
-/**
- * @brief Consumes a movement unroot acknowledgement.
- *
- * @param recv_data The received opcode packet.
- */
-void WorldSession::HandleMoveUnRootAck(WorldPacket& recv_data)
-{
-    // not used
-    MovementInfo movementInfo;
-    recv_data >> movementInfo;
-}
-
-/**
- * @brief Consumes a movement root acknowledgement.
- *
- * @param recv_data The received opcode packet.
- */
-void WorldSession::HandleMoveRootAck(WorldPacket& recv_data)
-{
-    // not used
-    MovementInfo movementInfo;
-    recv_data >> movementInfo;
-}
-
-/**
  * @brief Updates the player's action-bar toggle byte.
  *
  * @param recv_data The received opcode packet.
@@ -1736,24 +1698,6 @@ void WorldSession::HandleCancelMountAuraOpcode(WorldPacket& /*recv_data*/)
 
     _player->Unmount(_player->HasAuraType(SPELL_AURA_MOUNTED));
     _player->RemoveSpellsCausingAura(SPELL_AURA_MOUNTED);
-}
-
-void WorldSession::HandleMoveSetCanFlyAckOpcode(WorldPacket& recv_data)
-{
-    // fly mode on/off
-    DEBUG_LOG("WORLD: Received opcode CMSG_MOVE_SET_CAN_FLY_ACK");
-
-    MovementInfo movementInfo;
-    recv_data >> movementInfo;
-
-    if (_player->GetMover()->GetObjectGuid() != movementInfo.GetGuid())
-    {
-        DEBUG_LOG("WorldSession::HandleMoveSetCanFlyAckOpcode: player %s, mover %s, received %s, ignored",
-                  _player->GetGuidStr().c_str(), _player->GetMover()->GetGuidStr().c_str(), movementInfo.GetGuid().GetString().c_str());
-        return;
-    }
-
-    _player->GetMover()->m_movementInfo.SetMovementFlags(movementInfo.GetMovementFlags());
 }
 
 /**

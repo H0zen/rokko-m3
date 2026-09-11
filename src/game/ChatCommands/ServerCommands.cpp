@@ -46,9 +46,9 @@
 #include "MapPersistentStateMgr.h"
 #include "CorpseManager.h"
 #include "movement/WireParity.h"
-#include "movement/WriterShadowHooks.h"
 #include "WorldSession.h"
 #include "GameTime.h"
+#include "Player.h"
 
 /**
  * @brief Handler for HandleServerInfoCommand command.
@@ -100,9 +100,10 @@ bool ChatHandler::HandleServerInfoCommand(char* /*args*/)
 /**
  * @brief Handler for HandleServerMovementCommand command.
  *
- * Prints the wire codec's shadow counters (Movement.WireParity): what the legacy
- * movement reader and the registry's layouts disagree on, per opcode. The writer
- * shadow's counts follow (P2-A).
+ * Prints the wire codec's parity shadow counters (Movement.WireParity): what the
+ * legacy movement reader and the registry's layouts disagree on, per opcode. The
+ * movement kernel's state, summed over every in-world player, and every session's
+ * acks follow.
  *
  * @param args Command arguments.
  * @returns True if the command executed successfully, false otherwise.
@@ -110,7 +111,6 @@ bool ChatHandler::HandleServerInfoCommand(char* /*args*/)
 bool ChatHandler::HandleServerMovementCommand(char* /*args*/)
 {
     WireParity::Report([this](std::string const& line) { SendSysMessage(line.c_str()); });
-    WriterShadow::Report([this](std::string const& line) { SendSysMessage(line.c_str()); });
 
     // The session clock, aggregated over every session (design v2 6.3): how many
     // have a usable delta right now, and the running counts behind it.
@@ -142,6 +142,60 @@ bool ChatHandler::HandleServerMovementCommand(char* /*args*/)
     PSendSysMessage("time base: %u sessions, %u acquired, samples %u, slewed %u, jumped %u, too old %u, unknown %u, fallbacks %u",
                     sessionCount, acquiredCount, counters.samples, counters.slewed, counters.jumped,
                     counters.tooOld, counters.unknownCounter, counters.fallbacks);
+
+    // The kernel: every in-world player's state summed, and every session's acks.
+    Motion::StateCounters state;
+    uint32 players = 0, withPending = 0, pending = 0, tombstones = 0, droppedEmissions = 0;
+    WorldSession::AckCounters acks;
+    for (auto const& entry : sWorld.GetAllSessions())
+    {
+        WorldSession* session = entry.second;
+        if (!session)
+        {
+            continue;
+        }
+        WorldSession::AckCounters const& a = session->GetAckCounters();
+        acks.seen += a.seen;
+        acks.matched += a.matched;
+        acks.mismatched += a.mismatched;
+        acks.resent += a.resent;
+        acks.tombstone += a.tombstone;
+        acks.stale += a.stale;
+        acks.future += a.future;
+        acks.wrongGuid += a.wrongGuid;
+        acks.unverified += a.unverified;
+        acks.teleporting += a.teleporting;
+        Player* player = session->GetPlayer();
+        if (!player || !player->IsInWorld())
+        {
+            continue;
+        }
+        ++players;
+        Motion::State const& s = player->MotionState();
+        if (s.Pending().Size() > 0)
+        {
+            ++withPending;
+        }
+        pending += uint32(s.Pending().Size());
+        tombstones += uint32(s.Pending().Tombstones());
+        droppedEmissions += player->GetMotionDropped();
+        Motion::StateCounters const& c = s.Counters();
+        state.applied += c.applied;
+        state.refused += c.refused;
+        state.emitted += c.emitted;
+        state.acked += c.acked;
+        state.confirmed += c.confirmed;
+        state.mismatched += c.mismatched;
+        state.resent += c.resent;
+        state.resyncs += c.resyncs;
+        state.epochs += c.epochs;
+        state.kicks += c.kicks;
+    }
+    PSendSysMessage("motion: %u players, %u with pending, %u pending, %u tombstones; applied %u, refused %u, emitted %u, acked %u, confirmed %u, mismatched %u, resent %u, resyncs %u, epochs %u, kicks %u, dropped emissions %u",
+                    players, withPending, pending, tombstones, state.applied, state.refused, state.emitted, state.acked,
+                    state.confirmed, state.mismatched, state.resent, state.resyncs, state.epochs, state.kicks, droppedEmissions);
+    PSendSysMessage("acks: seen %u, matched %u, mismatched %u, resent %u, tombstone %u, stale %u, future %u, wrong guid %u, unverified %u, teleporting %u",
+                    acks.seen, acks.matched, acks.mismatched, acks.resent, acks.tombstone, acks.stale, acks.future, acks.wrongGuid, acks.unverified, acks.teleporting);
     return true;
 }
 

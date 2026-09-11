@@ -131,14 +131,12 @@ TEST(MotionMatrix_flag_value_and_event_rows_follow_the_writers_and_handlers)
     // not read from PacketMatrix.cpp: a swapped cell there would pass the test above (it
     // only asks Wire::IsKnown) and would pass this one too if it copied the same table.
     //
-    // mover: this tree's writers -- Unit.cpp BuildForceMoveRootPacket/BuildMoveSetCanFlyPacket/
-    //   BuildMoveWaterWalkPacket/BuildMoveFeatherFallPacket/BuildMoveHoverPacket (:7294-7408),
-    //   Unit::SendCollisionHeightUpdate (:7433), WorldSession::SendKnockBack
-    //   (MovementHandler.cpp:681), Player::SendTeleportPacket (Player.cpp:1625); and, for the
-    //   two rows this tree has no writer for, CPP MovementPacketSender.cpp:196 (gravity: apply
-    //   -> SMSG_MOVE_GRAVITY_DISABLE, unapply -> SMSG_MOVE_GRAVITY_ENABLE -- the tree's own
-    //   BuildMoveLevitatePacket sends the opposite pair, which is WriterShadow's KnownDifferent
-    //   case) and :223 (can-transition).
+    // mover: transcribed from the legacy writers P2-C deleted (Unit::Build*Packet,
+    //   SendCollisionHeightUpdate, SendKnockBack, SendTeleportPacket of master d4bfd9a64);
+    //   and, for the two rows this tree has no writer for, CPP MovementPacketSender.cpp:196 (gravity: apply
+    //   -> SMSG_MOVE_GRAVITY_DISABLE, unapply -> SMSG_MOVE_GRAVITY_ENABLE -- the legacy writer
+    //   P2-C deleted sent the opposite pair, a known-different case) and
+    //   :223 (can-transition).
     // ack: the registry's ack rows, wire/MovementLayouts.inc (MAP(CMSG_..._ACK, ...)).
     // observer: root rebroadcasts as itself (CPP Unit.cpp:11210); the other six flag families
     //   answer with the generic SMSG_MOVE_UPDATE, SMSG_PLAYER_MOVE (CPP
@@ -174,8 +172,8 @@ TEST(MotionMatrix_flag_value_and_event_rows_follow_the_writers_and_handlers)
         { ChangeType::Hover,           true,  SMSG_MOVE_SET_HOVER,      CMSG_MOVE_HOVER_ACK,          SMSG_PLAYER_MOVE,         SMSG_SPLINE_MOVE_SET_HOVER },
         { ChangeType::Hover,           false, SMSG_MOVE_UNSET_HOVER,    CMSG_MOVE_HOVER_ACK,          SMSG_PLAYER_MOVE,         SMSG_SPLINE_MOVE_UNSET_HOVER },
 
-        // The mover cells here are CPP's, not this tree's BuildMoveLevitatePacket, which
-        // sends the opposite pair (WriterShadow_known_different_rows_count_apart).
+        // The mover cells here are CPP's, not the legacy writer P2-C deleted, which sent
+        // the opposite pair (a row count apart).
         { ChangeType::GravityDisabled, true,  SMSG_MOVE_GRAVITY_DISABLE, CMSG_MOVE_GRAVITY_DISABLE_ACK, SMSG_PLAYER_MOVE,       SMSG_SPLINE_MOVE_GRAVITY_DISABLE },
         { ChangeType::GravityDisabled, false, SMSG_MOVE_GRAVITY_ENABLE,  CMSG_MOVE_GRAVITY_ENABLE_ACK,  SMSG_PLAYER_MOVE,       SMSG_SPLINE_MOVE_GRAVITY_ENABLE },
 
@@ -230,4 +228,28 @@ TEST(MotionMatrix_mover_and_spline_opcodes_are_unique_and_found_back)
     // Rows without an apply pair answer either apply.
     CHECK(RowFor(ChangeType::RunSpeed, false) == RowFor(ChangeType::RunSpeed, true));
     CHECK(RowFor(ChangeType::Root, false) != RowFor(ChangeType::Root, true));
+}
+
+TEST(MotionMatrix_every_ack_opcode_finds_its_row_and_nothing_else_does)
+{
+    size_t withAck = 0;
+    for (size_t i = 0; i < MatrixSize(); ++i)
+    {
+        MatrixRow const& row = MatrixRowAt(i);
+        if (!row.ack) { continue; }
+        ++withAck;
+        MatrixRow const* found = RowForAck(row.ack);
+        REQUIRE(found != NULL);
+        CHECK(found->type == row.type);
+    }
+    // Seven speeds (nine less turn rate and pitch rate), seven flag pairs (root, can-fly,
+    // water-walk, feather-fall, hover, gravity, can-transition = 14 rows), collision
+    // height, knock-back, teleport: 7 + 14 + 3.
+    CHECK_EQ(withAck, size_t(24));
+    CHECK(RowForAck(0) == NULL);
+    CHECK(RowForAck(uint16(SMSG_MOVE_SET_RUN_SPEED)) == NULL);
+    CHECK(RowForAck(uint16(CMSG_FORCE_TURN_RATE_CHANGE_ACK)) == NULL);
+    // Pair rows share the type whichever of the pair answers.
+    CHECK(RowForAck(uint16(CMSG_FORCE_MOVE_UNROOT_ACK))->type == ChangeType::Root);
+    CHECK(RowForAck(uint16(CMSG_MOVE_SET_CAN_FLY_ACK))->type == ChangeType::CanFly);
 }

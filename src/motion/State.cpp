@@ -62,7 +62,8 @@ namespace Motion
     }
 
     State::State(Mode mode, TimeoutPolicy const& policy, Kinematics const& initial)
-        : m_mode(mode), m_desired(initial), m_confirmed(initial), m_pending(policy), m_lastAck(AckResult::NoPending), m_kick(false)
+        : m_mode(mode), m_desired(initial), m_confirmed(initial), m_pending(policy), m_lastAck(AckResult::NoPending),
+          m_kick(false), m_resync(false)
     {
     }
 
@@ -106,8 +107,23 @@ namespace Motion
         }
         if (row->mover)
         {
-            const uint32 counter = m_pending.Open(change, now);
-            out.push_back(Emit(EmissionKind::Mover, row->mover, counter, change));
+            if (row->ack)
+            {
+                const uint32 counter = m_pending.Open(change, now);
+                out.push_back(Emit(EmissionKind::Mover, row->mover, counter, change));
+            }
+            else
+            {
+                // A mover form the client cannot answer (turn rate, pitch rate: no ack
+                // layout). Confirmed at emission and the observer form goes out with it;
+                // no entry is opened that no ack could ever close. The counter is still
+                // issued, so it is never handed out twice.
+                const uint32 counter = m_pending.Issue();
+                m_confirmed.Apply(change);
+                ++m_counters.confirmed;
+                out.push_back(Emit(EmissionKind::Mover, row->mover, counter, change));
+                if (row->observer) { out.push_back(Emit(EmissionKind::Observer, row->observer, counter, change)); }
+            }
         }
         else
         {
@@ -129,8 +145,24 @@ namespace Motion
         }
         AckOutcome const outcome = m_pending.Ack(type, counter, payload, now);
         m_lastAck = outcome.result;
-        // A PayloadMismatch (or any other non-Matched result) leaves desired diverged from
-        // confirmed with nothing pending; P2-C decides the recovery (resend or resync).
+        if (outcome.result == AckResult::PayloadMismatch)
+        {
+            // Design v2 §6.2 as decided for P2-C: count, resend once with a fresh counter,
+            // then leave the rest to the timeout policy. The entry the mismatch dropped goes
+            // back as it was with one more resend on its record; while that stays within
+            // the policy's resends the mover form goes out again, beyond it the entry sits
+            // spent for Tick to resync (enforcement on) or the next change of its type to
+            // supersede (enforcement off).
+            ++m_counters.mismatched;
+            const uint32 fresh = m_pending.Reopen(outcome.change, now);
+            if (outcome.change.resends < m_pending.Policy().maxResends)
+            {
+                ++m_counters.resent;
+                MatrixRow const* row = RowFor(outcome.change.change.type, outcome.change.change.apply);
+                if (row && row->mover) { out.push_back(Emit(EmissionKind::Mover, row->mover, fresh, outcome.change.change)); }
+            }
+            return out;
+        }
         if (outcome.result != AckResult::Matched) { return out; }
         Change const& change = outcome.change.change;
         m_confirmed.Apply(change);
@@ -154,6 +186,11 @@ namespace Motion
                 MatrixRow const* row = RowFor(entry->change.type, entry->change.apply);
                 if (row && row->mover) { out.push_back(Emit(EmissionKind::Mover, row->mover, e.newCounter, entry->change)); }
             }
+            else if (e.action == TimeoutAction::Resync)
+            {
+                m_resync = true;
+                ++m_counters.resyncs;
+            }
             else if (e.action == TimeoutAction::Kick)
             {
                 m_kick = true;
@@ -167,6 +204,26 @@ namespace Motion
     {
         m_pending.NewEpoch(now);
         m_kick = false;
+        m_resync = false;
         ++m_counters.epochs;
+    }
+
+    std::vector<Change> State::Snapshot() const
+    {
+        std::vector<Change> out;
+        for (uint8 moveType = 0; moveType < 9; ++moveType)
+        {
+            MatrixRow const* row = RowFor(SpeedChangeType(moveType), true);
+            if (row && row->mover && row->ack) { out.push_back(SpeedChange(moveType, m_desired.speed[moveType])); }
+        }
+        if (m_desired.root)                 { out.push_back(FlagChange(ChangeType::Root, true)); }
+        if (m_desired.canFly)               { out.push_back(FlagChange(ChangeType::CanFly, true)); }
+        if (m_desired.waterWalk)            { out.push_back(FlagChange(ChangeType::WaterWalk, true)); }
+        if (m_desired.featherFall)          { out.push_back(FlagChange(ChangeType::FeatherFall, true)); }
+        if (m_desired.hover)                { out.push_back(FlagChange(ChangeType::Hover, true)); }
+        if (m_desired.gravityDisabled)      { out.push_back(FlagChange(ChangeType::GravityDisabled, true)); }
+        if (m_desired.canTransitionSwimFly) { out.push_back(FlagChange(ChangeType::CanTransitionSwimFly, true)); }
+        if (m_desired.collisionHeight > 0.0f) { out.push_back(HeightChange(m_desired.collisionHeight, 2)); }
+        return out;
     }
 }

@@ -81,6 +81,8 @@ namespace Motion
         AckOutcome() : result(AckResult::NoPending) {}
     };
 
+    char const* AckResultName(AckResult result);
+
     struct TimeoutPolicy
     {
         uint32 timeoutMs;       ///< 0 = enforcement off (the default; CPP's too)
@@ -114,6 +116,14 @@ namespace Motion
         explicit PendingChanges(TimeoutPolicy const& policy);
 
         uint32 Open(Change const& change, uint32 now);
+        /// The next counter, taken without opening an entry: for a mover form the client
+        /// cannot answer (a row with no ack layout), which is confirmed at emission and must
+        /// still carry a counter the machine never re-issues.
+        uint32 Issue();
+        /// Puts an entry `Ack` dropped for a payload mismatch back as it was, under a fresh
+        /// counter, sent now, with one more resend on its record; returns the fresh counter.
+        /// The old counter is gone (no tombstone): a late duplicate is stale, not consumed.
+        uint32 Reopen(PendingChange const& dropped, uint32 now);
         /// Matches design v2 6.2's (type, counter, epoch) by type and counter alone: counters
         /// never reset and NewEpoch() tombstones every pending entry, so a counter already
         /// implies its epoch. P2-C may stamp tombstones with their epoch if it ever needs to

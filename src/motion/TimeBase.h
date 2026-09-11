@@ -37,6 +37,12 @@
  * at a different moment, and the difference of two wrapped counters is the
  * right difference either way. Time is an argument; nothing here reads a
  * clock. Replaces the legacy `clientTime + GetLatency()` guess.
+ *
+ * Thread-safety is the world tick's, not this class's: a session's clock is
+ * touched from the session phase (World::UpdateSessions, the world thread)
+ * and the map phase (Map::Update on a worker, behind MapUpdater::wait) and
+ * never from both at once, and no handler runs on the network thread. A
+ * change to that ordering is what would break this, not a change here.
  */
 namespace Motion
 {

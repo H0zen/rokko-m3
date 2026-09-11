@@ -894,9 +894,57 @@ namespace loadtest
                 return true;
             }
 
+            case SMSG_MOVE_UPDATE_WALK_SPEED:
+            case SMSG_MOVE_UPDATE_RUN_SPEED:
+            case SMSG_MOVE_UPDATE_RUN_BACK_SPEED:
+            case SMSG_MOVE_UPDATE_SWIM_SPEED:
+            case SMSG_MOVE_UPDATE_SWIM_BACK_SPEED:
+            case SMSG_MOVE_UPDATE_TURN_RATE:
+            case SMSG_MOVE_UPDATE_FLIGHT_SPEED:
+            case SMSG_MOVE_UPDATE_FLIGHT_BACK_SPEED:
+            case SMSG_MOVE_UPDATE_COLLISION_HEIGHT:
+            case SMSG_MOVE_UPDATE_KNOCK_BACK:
+            case SMSG_MOVE_UPDATE_TELEPORT:
+            {
+                // What the server tells everyone but the mover once the mover acked
+                // (design v2 §7's observer column): counted for the observed mover.
+                Wire::MovementStatus status;
+                Wire::DecodeResult const decoded = Wire::Decode(packet, Wire::SequenceFor(opcode), status);
+                if (!decoded.ok() || decoded.consumed != packet.size())
+                {
+                    ++report.decodeFailures[opcode];
+                    return true;
+                }
+                if (m_config.script.observeGuid != 0 && status.guid == m_config.script.observeGuid)
+                {
+                    ++report.observerForms[opcode];
+                }
+                else
+                {
+                    ++report.observedOthers;
+                }
+                return true;
+            }
+
             default:
                 if (acks.IsChange(opcode))
                 {
+                    // Root and unroot reach observers under the mover's opcode: peek at the guid
+                    // before handing the packet to the ack engine, which would answer for
+                    // someone else's change.
+                    if (m_config.script.observeGuid != 0 && (opcode == SMSG_FORCE_MOVE_ROOT || opcode == SMSG_FORCE_MOVE_UNROOT))
+                    {
+                        WorldPacket peek(packet);
+                        peek.rpos(0);
+                        peek.ResetBitReader();
+                        Wire::MovementStatus status;
+                        Wire::DecodeResult const decoded = Wire::Decode(peek, Wire::SequenceFor(opcode), status);
+                        if (decoded.ok() && status.guid == m_config.script.observeGuid)
+                        {
+                            ++report.observerForms[opcode];
+                            return true;
+                        }
+                    }
                     acks.Plan(packet, nowTicks);
                     return true;
                 }
@@ -924,10 +972,65 @@ namespace loadtest
         Walker walker(m_config.script.walk, m_config.characterGuid, m_result.worldPos);
         AckEngine acks(m_config.script.ack, [](uint16 opcode) { return Wire::SequenceFor(opcode); });
 
+        // Walker and AckEngine tally into their own locals as Serve runs; nothing
+        // copies those tallies into m_result.peer until this runs. A kick (the
+        // server closing the socket mid-hold, under Movement.AckTimeout's last
+        // rung) exits through one of the early `return false`s below, not the
+        // loop's normal fall-through -- so every return, not just that one, must
+        // call this, or a kicked run reports acksSent=0/changesSeen={} even
+        // though the engine watched the whole resend/resync ladder happen.
+        const auto finish = [this, &walker, &acks]()
+        {
+            PeerReport& report = m_result.peer;
+            report.walkStarts = walker.Starts();
+            report.walkHeartbeats = walker.Heartbeats();
+            report.walkStops = walker.Stops();
+            report.relocations = walker.Relocations();
+            report.walkFinal = walker.Position();
+            report.walkLastTime = walker.LastStampedTime();
+            report.acksSent = acks.Sent();
+            report.acksDropped = acks.Dropped();
+            report.acksPending = acks.PendingCount();
+            report.unregisteredChanges = acks.Unregistered();
+            report.changesSeen = acks.ChangesSeen();
+            for (std::map<uint16, uint32>::const_iterator it = acks.DecodeFailures().begin();
+                 it != acks.DecodeFailures().end(); ++it)
+            {
+                report.decodeFailures[it->first] += it->second;
+            }
+
+            Trace("held for %u s: %u time syncs, walk %u/%u/%u, saw target %u times",
+                  m_config.holdSeconds, report.timeSyncsAnswered, report.walkStarts,
+                  report.walkHeartbeats, report.walkStops, report.observedTarget);
+
+            // Diagnostic, not gated on --verbose: Task 8's launcher drives the walker
+            // and the observer as separate processes and reads this stdout, the same
+            // way it reads the PEER VERDICT lines.
+            std::printf("observer forms: ");
+            for (std::map<uint16, uint32>::const_iterator it = report.observerForms.begin();
+                 it != report.observerForms.end(); ++it)
+            {
+                std::printf("0x%.4X=%u ", uint32(it->first), it->second);
+            }
+            std::printf("\n");
+            std::printf("changes seen: ");
+            for (std::map<uint16, uint32>::const_iterator it = report.changesSeen.begin();
+                 it != report.changesSeen.end(); ++it)
+            {
+                std::printf("0x%.4X=%u ", uint32(it->first), it->second);
+            }
+            std::printf("\n");
+        };
+
         while (std::chrono::steady_clock::now() < until)
         {
             if (!Pump(POLL_MS, error))
             {
+                if (m_stream0.socket.PeerClosed() || m_stream1.socket.PeerClosed())
+                {
+                    m_result.peer.kicked = true;
+                }
+                finish();
                 return false;
             }
             const uint32 now = clock.Ticks();
@@ -939,6 +1042,7 @@ namespace loadtest
                 {
                     if (!Dispatch(packet, acks, walker, now, error))
                     {
+                        finish();
                         return false;
                     }
                 }
@@ -949,6 +1053,7 @@ namespace loadtest
             {
                 if (!Send(StreamFor(packet.GetOpcode()), packet, error))
                 {
+                    finish();
                     return false;
                 }
             }
@@ -958,6 +1063,7 @@ namespace loadtest
             {
                 if (!Send(StreamFor(packet.GetOpcode()), packet, error))
                 {
+                    finish();
                     return false;
                 }
             }
@@ -969,6 +1075,7 @@ namespace loadtest
                 ping << uint32(50);                          // reported latency
                 if (!Send(StreamFor(CMSG_PING), ping, error))
                 {
+                    finish();
                     return false;
                 }
                 nextPing = std::chrono::steady_clock::now() + std::chrono::seconds(30);
@@ -976,26 +1083,7 @@ namespace loadtest
             }
         }
 
-        PeerReport& report = m_result.peer;
-        report.walkStarts = walker.Starts();
-        report.walkHeartbeats = walker.Heartbeats();
-        report.walkStops = walker.Stops();
-        report.relocations = walker.Relocations();
-        report.walkFinal = walker.Position();
-        report.walkLastTime = walker.LastStampedTime();
-        report.acksSent = acks.Sent();
-        report.acksDropped = acks.Dropped();
-        report.acksPending = acks.PendingCount();
-        report.unregisteredChanges = acks.Unregistered();
-        for (std::map<uint16, uint32>::const_iterator it = acks.DecodeFailures().begin();
-             it != acks.DecodeFailures().end(); ++it)
-        {
-            report.decodeFailures[it->first] += it->second;
-        }
-
-        Trace("held for %u s: %u time syncs, walk %u/%u/%u, saw target %u times",
-              m_config.holdSeconds, report.timeSyncsAnswered, report.walkStarts,
-              report.walkHeartbeats, report.walkStops, report.observedTarget);
+        finish();
         return true;
     }
 }

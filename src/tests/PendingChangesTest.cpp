@@ -28,6 +28,7 @@
 #include "PendingChanges.h"
 
 #include <limits>
+#include <string>
 
 using namespace Motion;
 
@@ -246,4 +247,64 @@ TEST(PendingChanges_an_ack_sweeps_expired_tombstones_first)
     CHECK_EQ(pending.Tombstones(), size_t(1));
     CHECK(pending.Ack(ChangeType::RunSpeed, c0, Speed(7.0f), 10001).result == AckResult::Stale);   // swept before the lookup
     CHECK_EQ(pending.Tombstones(), size_t(0));
+}
+
+TEST(PendingChanges_issue_hands_out_the_next_counter_without_opening)
+{
+    PendingChanges p{TimeoutPolicy()};
+    const uint32 a = p.Open(SpeedChange(1, 7.0f), 0);
+    const uint32 issued = p.Issue();
+    CHECK_EQ(issued, a + 1);
+    CHECK_EQ(p.NextCounter(), a + 2);
+    CHECK_EQ(p.Size(), size_t(1));
+    // An ack with the issued counter finds nothing pending and no tombstone.
+    AckOutcome const o = p.Ack(ChangeType::RunSpeed, issued, AckPayload(), 1);
+    CHECK(o.result == AckResult::Stale);
+}
+
+TEST(PendingChanges_ack_result_name_is_non_empty_and_distinct_per_enumerator)
+{
+    static const AckResult kResults[] =
+    {
+        AckResult::Matched, AckResult::PayloadMismatch, AckResult::Tombstone,
+        AckResult::NoPending, AckResult::Stale, AckResult::Future,
+    };
+    for (size_t i = 0; i < sizeof(kResults) / sizeof(kResults[0]); ++i)
+    {
+        char const* name = AckResultName(kResults[i]);
+        REQUIRE(name != NULL);
+        CHECK(name[0] != '\0');
+        for (size_t j = 0; j < i; ++j)
+        {
+            CHECK(std::string(name) != std::string(AckResultName(kResults[j])));
+        }
+    }
+}
+
+TEST(PendingChanges_reopen_puts_a_dropped_entry_back_with_a_fresh_counter_and_one_more_resend)
+{
+    PendingChanges p{TimeoutPolicy()};
+    const uint32 a = p.Open(SpeedChange(1, 7.0f), 0);
+    AckPayload wrong;
+    wrong.hasValue = true;
+    wrong.value = 8.0f;
+    AckOutcome const o = p.Ack(ChangeType::RunSpeed, a, wrong, 1);
+    REQUIRE(o.result == AckResult::PayloadMismatch);
+    CHECK_EQ(p.Size(), size_t(0));
+    const uint32 fresh = p.Reopen(o.change, 2);
+    CHECK_EQ(fresh, a + 1);
+    CHECK_EQ(p.Size(), size_t(1));
+    REQUIRE(p.Get(ChangeType::RunSpeed) != NULL);
+    CHECK_EQ(p.Get(ChangeType::RunSpeed)->counter, fresh);
+    CHECK_EQ(p.Get(ChangeType::RunSpeed)->resends, uint8(1));
+    CHECK_EQ(p.Get(ChangeType::RunSpeed)->sentAt, 2u);
+    CHECK_EQ(p.Get(ChangeType::RunSpeed)->change.value, 7.0f);
+    CHECK_EQ(p.Counters().resent, 1u);
+    // The old counter is neither pending nor a tombstone: stale.
+    CHECK(p.Ack(ChangeType::RunSpeed, a, AckPayload(), 3).result == AckResult::Stale);
+    // The fresh one matches with the right value.
+    AckPayload right;
+    right.hasValue = true;
+    right.value = 7.0f;
+    CHECK(p.Ack(ChangeType::RunSpeed, fresh, right, 4).result == AckResult::Matched);
 }
