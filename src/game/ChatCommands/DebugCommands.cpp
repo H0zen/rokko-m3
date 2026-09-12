@@ -61,6 +61,7 @@
 #include "MapManager.h"
 #include "TransportMap.h"
 #include "Transports.h"
+#include "Harness.h"
 
 /**
  * @brief Handler for HandleDebugSendSpellFailCommand command.
@@ -2092,5 +2093,31 @@ bool ChatHandler::HandleDebugMovementSpeedCommand(char* args)
     Unit* mover = target->GetMover();
     mover->SetSpeedRate(MOVE_RUN, rate, true);
     PSendSysMessage("run speed of %s set to rate %.2f", mover->GetGuidStr().c_str(), rate);
+    return true;
+}
+
+/**
+ * @brief .debug movement scenario <name|all|status>: runs the GM harness's movement
+ *        scenarios headless (movement P0-C) and prints their MVTEST lines to the log.
+ */
+bool ChatHandler::HandleDebugMovementScenarioCommand(char* args)
+{
+    char* what = ExtractArg(&args);
+    if (!what)
+    {
+        return false;
+    }
+    if (strcmp(what, "status") == 0)
+    {
+        PSendSysMessage("harness: %s", sHarness.Status().c_str());
+        return true;
+    }
+    if (!sHarness.Start(what))
+    {
+        PSendSysMessage("harness: could not start %s (%s)", what, sHarness.Status().c_str());
+        SetSentErrorMessage(true);
+        return false;
+    }
+    PSendSysMessage("harness: started %s", what);
     return true;
 }

@@ -315,6 +315,10 @@ class Map : public GridRefManager<NGridType>
         void AddToActive(WorldObject* obj);
         // must called with RemoveFromWorld
         void RemoveFromActive(WorldObject* obj);
+        /// Membership in the active-non-player list itself, not the object's active
+        /// flag: a far-sighted creature is registered here by Camera::SetView
+        /// directly, without the flag ever being set on it.
+        bool IsActive(WorldObject const* obj) const { return m_activeNonPlayers.find(const_cast<WorldObject*>(obj)) != m_activeNonPlayers.end(); }
 
         Player* GetPlayer(ObjectGuid guid);
         Creature* GetCreature(ObjectGuid guid);

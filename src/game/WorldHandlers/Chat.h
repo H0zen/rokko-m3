@@ -267,6 +267,7 @@ class ChatHandler
         bool HandleDebugMovementPossessCommand(char* args);
         bool HandleDebugMovementReleaseCommand(char* args);
         bool HandleDebugMovementSpeedCommand(char* args);
+        bool HandleDebugMovementScenarioCommand(char* args);
         bool HandleDebugSetAuraStateCommand(char* args);
         bool HandleDebugSetItemValueCommand(char* args);
         bool HandleDebugSetValueCommand(char* args);

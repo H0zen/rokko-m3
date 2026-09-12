@@ -113,6 +113,8 @@ class WaypointMovementGenerator final : public IntentMovementGenerator
 
         MovementGeneratorType GetMovementGeneratorType() const override { return WAYPOINT_MOTION_TYPE; }
 
+        uint32 GetCurrentNode() const { return m_currentNode; } ///< The node the patrol is at or walking to; the GM harness samples it.
+
         bool GetResetPosition(Unit& owner, float& x, float& y, float& z, float& o) const override;
 
         /// Load a path and start walking it after `initialDelay` ms.

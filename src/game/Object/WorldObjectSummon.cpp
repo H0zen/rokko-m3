@@ -784,7 +784,7 @@ void WorldObject::SetActiveObjectState(bool active)
         {
             GetMap()->RemoveFromActive(this);
         }
-        else if (IsActiveObject() && active)
+        else if (!IsActiveObject() && active)
         {
             GetMap()->AddToActive(this);
         }

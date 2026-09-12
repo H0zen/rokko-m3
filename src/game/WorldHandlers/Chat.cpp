@@ -277,6 +277,7 @@ ChatCommand* ChatHandler::getCommandTable()
         { "knockback",      SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleDebugMovementKnockBackCommand,   "", NULL },
         { "possess",        SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleDebugMovementPossessCommand,     "", NULL },
         { "release",        SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleDebugMovementReleaseCommand,     "", NULL },
+        { "scenario",       SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleDebugMovementScenarioCommand,    "", NULL },
         { "speed",          SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleDebugMovementSpeedCommand,       "", NULL },
         { NULL,             0,                  false, NULL,                                                "", NULL }
     };

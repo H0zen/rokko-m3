@@ -78,6 +78,7 @@
 #include "LootMgr.h"
 #include "ItemEnchantmentMgr.h"
 #include "MapManager.h"
+#include "Harness.h"
 #include "ScriptMgr.h"
 #include "CreatureAIRegistry.h"
 #include "Policies/Singleton.h"
@@ -1059,6 +1060,10 @@ void World::Update(uint32 diff)
     /// <li> Handle all other objects
     ///- Update objects (maps, transport, creatures,...)
     sMapMgr.Update(diff);
+    // The GM harness (movement P0-C): scenario steps and samples run here, after
+    // every map's tick and before anything else touches units, where console
+    // commands run too -- outside the map phase the ownership guard watches.
+    sHarness.Update(diff);
     sBattleGroundMgr.Update(diff);
     sOutdoorPvPMgr.Update(diff);
 

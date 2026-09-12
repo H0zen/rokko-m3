@@ -2133,7 +2133,10 @@ bool Map::ActiveObjectsNearGrid(uint32 x, uint32 y) const
  */
 void Map::AddToActive(WorldObject* obj)
 {
-    m_activeNonPlayers.insert(obj);
+    if (!m_activeNonPlayers.insert(obj).second)
+    {
+        return;   // already on the active list: its grid lock is already held
+    }
     Cell cell = Cell(MaNGOS::ComputeCellPair(obj->Where().X(), obj->Where().Y()));
     EnsureGridLoadedAtEnter(cell); // player==null → envelope when CellEnvelopeLoad is on
     MaybePromoteEnvelopeGridForPlayer(cell.GridX(), cell.GridY());
