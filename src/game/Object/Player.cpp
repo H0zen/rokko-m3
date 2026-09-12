@@ -81,6 +81,7 @@
 #include "Vehicle.h"
 #include "Calendar.h"
 #include "DisableMgr.h"
+#include "wire/MoverCodec.h"
 
 #include <cmath>
 
@@ -313,7 +314,7 @@ UpdateMask Player::updateVisualBits;
 // `this` and nothing else, so the previous order was harmless -- but a member
 // added here that reads another would have been constructed against whichever
 // one the declaration order happened to put first.
-Player::Player(WorldSession* session): Unit(), m_currencyMgr(this), m_honorMgr(this), m_spellCooldownMgr(this), m_glyphMgr(this), m_runeMgr(this), m_mover(this), m_camera(this), m_petMgr(this), m_achievementMgr(this), m_reputationMgr(this)
+Player::Player(WorldSession* session): Unit(), m_currencyMgr(this), m_honorMgr(this), m_spellCooldownMgr(this), m_glyphMgr(this), m_runeMgr(this), m_camera(this), m_petMgr(this), m_achievementMgr(this), m_reputationMgr(this)
 {
     // Design v2 §3.1: a player's own movement is client-driven; changes are negotiated
     // with counters and acks. (Unit's constructor cannot know the type.)
@@ -4473,6 +4474,12 @@ void Player::InitPrimaryProfessions()
 
 void Player::SendInitialPacketsBeforeAddToMap()
 {
+    // Login and every worldport open with the grant of the player to its own client:
+    // SMSG_CLIENT_CONTROL_UPDATE(self, 1) and SMSG_MOVE_SET_ACTIVE_MOVER(self) before
+    // the create block, as the reference core sends them (spec §5). Idempotent on a
+    // worldport: the membership is kept across the transfer.
+    SetClientControl(this, 1);
+
     GetSocial()->SendSocialList();
 
     // Homebind
@@ -4544,8 +4551,6 @@ void Player::SendInitialPacketsBeforeAddToMap()
     }
 
     SendCurrencies();
-
-    SetMover(this);
 }
 
 /**
@@ -5161,18 +5166,101 @@ void Player::ResurectUsingRequestData()
     SpawnCorpseBones();
 }
 
-/**
- * @brief Sends a client-control state update for a unit.
- *
- * @param target The unit whose control state is being updated.
- * @param allowMove Nonzero to allow movement; zero to disable it.
- */
 void Player::SetClientControl(Unit* target, uint8 allowMove)
 {
-    WorldPacket data(SMSG_CLIENT_CONTROL_UPDATE, target->GetPackGUID().size() + 1);
-    data << target->GetPackGUID();
-    data << uint8(allowMove);
+    MANGOS_ASSERT(target);
+
+    // The session is ending: no packet, no grant (spec §4) -- the teardown that
+    // follows must not re-grant a client that is leaving.
+    if (GetSession()->PlayerLogout())
+    {
+        return;
+    }
+
+    // A unit charmed by someone else is not this client's to control; a player's own
+    // session always may take or return its own (a player possessed by a creature).
+    if (target != this && target->GetCharmerGuid() && target->GetCharmerGuid() != GetObjectGuid())
+    {
+        sLog.outError("Player::SetClientControl: %s asked to control %s, charmed by %s",
+                      GetGuidStr().c_str(), target->GetGuidStr().c_str(), target->GetCharmerGuid().GetString().c_str());
+        return;
+    }
+    // A grant while still fleeing or confused is refused outright, not turned into
+    // a second, invisible revoke: the take already happened when the fear or
+    // confuse applied, and control returns with the last such aura's own removal
+    // (CPP's rule), not with an interleaved release.
+    if (allowMove && target->hasUnitState(UNIT_STAT_FLEEING | UNIT_STAT_CONFUSED))
+    {
+        sLog.outError("Player::SetClientControl: %s: the grant of %s waits, it is still fleeing or confused (control returns with the last such aura)",
+                      GetGuidStr().c_str(), target->GetGuidStr().c_str());
+        return;
+    }
+
+    const uint32 now = GameTime::GetGameTimeMS();
+    WorldPacket data(SMSG_CLIENT_CONTROL_UPDATE, 10);
+    Wire::ControlUpdate cu;
+    cu.guid = target->GetObjectGuid().GetRawValue();
+    cu.allowMove = allowMove;
+    Wire::EncodeControlUpdate(data, cu);
+
+    if (!allowMove)
+    {
+        // Control taken (design v2 §8): the packet, then the revoke -- a new epoch
+        // retires every pending change to a tombstone -- then the caller's behaviour.
+        GetSession()->SendPacket(&data);
+        GetSession()->RevokeMover(target, now);
+        return;
+    }
+
+    // Control returned or gained: the caller has reconciled (server movement ended);
+    // the grant, the control update, the active-mover set, and for this player's own
+    // handback in the world a fresh time epoch (design v2 §6.3).
+    GetSession()->GrantMover(target, now);
     GetSession()->SendPacket(&data);
+
+    // The reference core sends the active-mover set always; but a re-grant of
+    // the body while a controlled unit is still selected (Add takes the
+    // selection from the body only) would have the client's answer to it
+    // re-select the body through Select while the charm stands. Send it only
+    // when the grant actually took the selection.
+    if (GetSession()->Movers().Selected() == target->GetObjectGuid().GetRawValue())
+    {
+        WorldPacket active(SMSG_MOVE_SET_ACTIVE_MOVER, 9);
+        Wire::ActiveMover mover;
+        mover.guid = target->GetObjectGuid().GetRawValue();
+        Wire::EncodeActiveMover(active, SMSG_MOVE_SET_ACTIVE_MOVER, mover);
+        GetSession()->SendPacket(&active);
+    }
+
+    if (target == this && IsInWorld())
+    {
+        GetSession()->TimeBase().Reset();
+        SendTimeSync();
+    }
+}
+
+Unit* Player::GetMover() const
+{
+    Unit* selected = GetSession() ? GetSession()->SelectedMover() : NULL;
+    return selected ? selected : const_cast<Player*>(this);
+}
+
+bool Player::IsSelfMover() const
+{
+    if (!GetSession())
+    {
+        return true;
+    }
+    std::vector<uint64> const& members = GetSession()->Movers().Members();
+    const uint64 self = GetObjectGuid().GetRawValue();
+    for (size_t i = 0; i < members.size(); ++i)
+    {
+        if (members[i] != self)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 void Player::Uncharm()
@@ -5182,9 +5270,11 @@ void Player::Uncharm()
         charm->RemoveSpellsCausingAura(SPELL_AURA_MOD_CHARM);
         charm->RemoveSpellsCausingAura(SPELL_AURA_MOD_POSSESS);
         charm->RemoveSpellsCausingAura(SPELL_AURA_MOD_POSSESS_PET);
-        if (charm == GetMover())
+        // Still a member: no control aura ran ResetControlState (a summoned possession
+        // despawning). Take the control back in the design's order, then this player's.
+        if (GetSession()->Movers().IsMember(charm->GetObjectGuid().GetRawValue()))
         {
-            SetMover(NULL);
+            SetClientControl(charm, 0);
             GetCamera().ResetView();
             RemoveSpellsCausingAura(SPELL_AURA_MOD_INVISIBILITY);
             SetCharm(NULL);

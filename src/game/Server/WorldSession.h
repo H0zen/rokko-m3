@@ -48,6 +48,7 @@
 #include "SessionProtocolPolicy.h"
 #include "IWorldGateway.h"
 #include "TimeBase.h"
+#include "Authority.h"
 
 #include <atomic>
 #include <chrono>
@@ -673,6 +674,37 @@ class WorldSession
         };
         static AckTotalsCounters const& AckTotals();
 
+        /// The units this client may move and the one it has selected (design v2 §7,
+        /// F1): fed by control transitions through Player::SetClientControl, read by
+        /// every inbound movement handler. Map-phase state like the packets it judges.
+        Motion::Authority&       Movers()       { return m_movers; }
+        Motion::Authority const& Movers() const { return m_movers; }
+        /// The selected unit, resolved through MemberUnit; NULL when nothing is
+        /// selected or the member is gone (the caller counts it unresolved). The
+        /// player's own guid resolves whether or not the player is in the world.
+        Unit* SelectedMover();
+        /// Any guid the session may name -- the player itself whether or not it is in
+        /// the world (a far transfer keeps its membership, and its in-flight packets
+        /// take the teleporting path), another member only while the player is in the
+        /// world; callers check membership first.
+        Unit* MemberUnit(ObjectGuid guid);
+        /// A control transition's membership half (spec §4): the unit's kernel mode, its
+        /// mover session and the set change together; the packets are SetClientControl's.
+        void GrantMover(Unit* unit, uint32 now);
+        void RevokeMover(Unit* unit, uint32 now);
+        /// Logout: every member revoked, the set cleared.
+        void RevokeAllMovers(uint32 now);
+
+        /// The authority counters of every session that has ended, summed process-wide
+        /// (the destructor folds them in); a live report adds the sessions still here.
+        struct AuthorityTotalsCounters
+        {
+            std::atomic<uint32> added, removed, selected, deselected, badSelect, badDeselect, notActive, notMember, unresolved;
+            AuthorityTotalsCounters() : added(0), removed(0), selected(0), deselected(0), badSelect(0), badDeselect(0),
+                                        notActive(0), notMember(0), unresolved(0) {}
+        };
+        static AuthorityTotalsCounters const& AuthorityTotals();
+
         uint32 getDialogStatus(Player* pPlayer, Object* questgiver, uint32 defstatus);
 
         /// The session's clock model (design v2 §6.3): the delta between the
@@ -1198,9 +1230,8 @@ class WorldSession
     private:
         // private trade methods
         void moveItems(Item* myItems[], Item* hisItems[]);
-        bool VerifyMovementInfo(MovementInfo const& movementInfo, ObjectGuid const& guid) const;
         bool VerifyMovementInfo(MovementInfo const& movementInfo) const;
-        void HandleMoverRelocation(MovementInfo& movementInfo);
+        void HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo);
         /// The caller passes the matching pair of members for one outcome; this bumps
         /// the session's plain counter and the process-wide atomic one together. The
         /// total is bumped through an atomic: several maps run on worker threads at
@@ -1270,6 +1301,7 @@ class WorldSession
         uint32 m_badPackets;   ///< bad packets received on this session (design v2 §10.1)
         AckCounters m_ackCounters;
         Motion::TimeBase m_timeBase;
+        Motion::Authority m_movers;
         SessionPingTracker m_pingTracker;
         AccountData m_accountData[NUM_ACCOUNT_DATA_TYPES];
         uint32 m_Tutorials[8];

@@ -295,6 +295,13 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
         GetMotionMaster()->MovementExpired(false);
         CastStop(GetObjectGuid() == casterGuid ? spellID : 0);
 
+        // Control is taken before the flee spline is laid (design v2 §8): the packet,
+        // the revoke, then the behaviour.
+        if (GetTypeId() == TYPEID_PLAYER)
+        {
+            ((Player*)this)->SetClientControl(this, 0);
+        }
+
         Unit* caster = IsInWorld() ?  GetMap()->GetUnit(casterGuid) : NULL;
 
         GetMotionMaster()->MoveFleeing(caster, time);       // caster==NULL processed in MoveFleeing
@@ -324,11 +331,13 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
                 c->AttackedBy(caster);
             }
         }
-    }
 
-    if (GetTypeId() == TYPEID_PLAYER)
-    {
-        ((Player*)this)->SetClientControl(this, !apply);
+        // Control returns once the server movement has ended: the reconcile is the
+        // MovementExpired above.
+        if (GetTypeId() == TYPEID_PLAYER)
+        {
+            ((Player*)this)->SetClientControl(this, 1);
+        }
     }
 }
 
@@ -346,6 +355,13 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID)
         SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
 
         CastStop(GetObjectGuid() == casterGuid ? spellID : 0);
+
+        // Control is taken before the confusion spline is laid (design v2 §8): the
+        // packet, the revoke, then the behaviour.
+        if (GetTypeId() == TYPEID_PLAYER)
+        {
+            ((Player*)this)->SetClientControl(this, 0);
+        }
 
          if (GetTypeId() == TYPEID_UNIT)
          {
@@ -371,11 +387,13 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID)
                 GetMotionMaster()->Initialize();
             }
         }
-    }
 
-    if (GetTypeId() == TYPEID_PLAYER)
-    {
-        ((Player*)this)->SetClientControl(this, !apply);
+        // Control returns once the server movement has ended: the reconcile is the
+        // MovementExpired above.
+        if (GetTypeId() == TYPEID_PLAYER)
+        {
+            ((Player*)this)->SetClientControl(this, 1);
+        }
     }
 }
 

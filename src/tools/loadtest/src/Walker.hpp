@@ -57,6 +57,12 @@ namespace loadtest
             bool Done() const { return m_done; }
             const Wire::Vec4& Position() const { return m_pos; }
 
+            /// the unit this walker moves: switched when a control update grants
+            /// another (the leg geometry is kept; the summoned unit stands beside
+            /// the player)
+            uint64 Guid() const { return m_guid; }
+            void SetGuid(uint64 guid) { m_guid = guid; }
+
             /**
              * @brief The mover is now here -- a teleport the server ordered and the
              *        peer acked; the next packet starts from this position.

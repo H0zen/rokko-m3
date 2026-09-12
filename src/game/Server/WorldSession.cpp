@@ -67,6 +67,8 @@
 #include "WorldSession.h"
 #include "Player.h"
 #include "ObjectMgr.h"
+#include "ObjectLookup.h"
+#include "GameTime.h"
 #include "Group.h"
 #include "LFGMgr.h"
 #include "CinematicFlyover.h"
@@ -95,11 +97,91 @@ namespace
     const uint32 MAX_SECOND_STREAM_ATTEMPTS = 3;
 
     WorldSession::AckTotalsCounters s_ackTotals;
+    WorldSession::AuthorityTotalsCounters s_authorityTotals;
 }
 
 WorldSession::AckTotalsCounters const& WorldSession::AckTotals()
 {
     return s_ackTotals;
+}
+
+WorldSession::AuthorityTotalsCounters const& WorldSession::AuthorityTotals()
+{
+    return s_authorityTotals;
+}
+
+Unit* WorldSession::MemberUnit(ObjectGuid guid)
+{
+    if (!_player)
+    {
+        return NULL;
+    }
+    // The player resolves to itself whether or not it is in the world: a far
+    // transfer keeps its membership, and its in-flight packets (processed
+    // PROCESS_THREADSAFE even while !IsInWorld()) take this path instead of
+    // counting as a wrong guid or an unresolved member. Only another member's
+    // lookup needs the map.
+    if (guid == _player->GetObjectGuid())
+    {
+        return _player;
+    }
+    if (!_player->IsInWorld())
+    {
+        return NULL;
+    }
+    return ObjectLookup::GetUnit(*_player, guid);
+}
+
+Unit* WorldSession::SelectedMover()
+{
+    const uint64 selected = m_movers.Selected();
+    if (!selected)
+    {
+        return NULL;
+    }
+    return MemberUnit(ObjectGuid(selected));
+}
+
+void WorldSession::GrantMover(Unit* unit, uint32 now)
+{
+    unit->MotionState().SetMode(Motion::Mode::ClientDriven, now);
+    unit->SetMoverSession(this);
+    if (unit == _player)
+    {
+        m_movers.SetBase(unit->GetObjectGuid().GetRawValue());
+    }
+    m_movers.Add(unit->GetObjectGuid().GetRawValue());
+}
+
+void WorldSession::RevokeMover(Unit* unit, uint32 now)
+{
+    m_movers.Remove(unit->GetObjectGuid().GetRawValue());
+    // The mode flip is guarded like the session clear: a unit already handed to
+    // another session (or none) is not this session's mode to touch.
+    if (unit->MoverSession() == this)
+    {
+        unit->SetMoverSession(NULL);
+        unit->MotionState().SetMode(Motion::Mode::ServerDriven, now);
+    }
+}
+
+void WorldSession::RevokeAllMovers(uint32 now)
+{
+    // The player first and directly: it may be out of the world (a logout during a
+    // transfer), when MemberUnit resolves nothing.
+    if (_player)
+    {
+        RevokeMover(_player, now);
+    }
+    std::vector<uint64> const members = m_movers.Members();
+    for (size_t i = 0; i < members.size(); ++i)
+    {
+        if (Unit* unit = MemberUnit(ObjectGuid(members[i])))
+        {
+            RevokeMover(unit, now);
+        }
+    }
+    m_movers.Clear();
 }
 
 /**
@@ -214,6 +296,21 @@ WorldSession::~WorldSession()
     if (_player)
     {
         LogoutPlayer(true);
+    }
+
+    // The authority counters outlive the session in the process-wide total (the
+    // report's "retired" part); a live report sums the sessions still here.
+    {
+        Motion::AuthorityCounters const& c = m_movers.Counters();
+        s_authorityTotals.added += c.added;
+        s_authorityTotals.removed += c.removed;
+        s_authorityTotals.selected += c.selected;
+        s_authorityTotals.deselected += c.deselected;
+        s_authorityTotals.badSelect += c.badSelect;
+        s_authorityTotals.badDeselect += c.badDeselect;
+        s_authorityTotals.notActive += c.notActive;
+        s_authorityTotals.notMember += c.notMember;
+        s_authorityTotals.unresolved += c.unresolved;
     }
 
     // A ticket left in the registry would keep the next client behind the same
@@ -703,6 +800,10 @@ void WorldSession::LogoutPlayer(bool Save)
         ///- Broadcast a logout message to the player's friends
         sSocialMgr.SendFriendStatus(_player, FRIEND_OFFLINE, _player->GetObjectGuid(), true);
         sSocialMgr.RemovePlayerSocial(_player->GetGUIDLow());
+
+        ///- Every unit this client moved is the server's again (spec §4); no packet,
+        ///  the session is ending.
+        RevokeAllMovers(GameTime::GetGameTimeMS());
 
         ///- Remove the player from the world
         // the player may not be in the world when logging out

@@ -197,6 +197,10 @@ namespace loadtest
             /// send router (OpcodeSlots.inc, send_slot).
             Stream& StreamFor(uint16 opcode);
 
+            /// Sends CMSG_SET_ACTIVE_MOVER for `guid` and counts it: the real
+            /// client's answer to a grant, and --select's pinned choice.
+            bool SendSelect(uint64 guid, std::string& error);
+
             /**
              * @brief Pump until `wanted` shows up on `stream`, or the deadline passes.
              *

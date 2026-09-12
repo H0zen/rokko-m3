@@ -795,10 +795,8 @@ void VehicleInfo::ApplySeatMods(Unit* passenger, uint32 seatFlags)
             pVehicle->addUnitState(UNIT_STAT_CONTROLLED);
             pVehicle->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
 
-            pPlayer->SetClientControl(pVehicle, 1);
-            pPlayer->SetMover(pVehicle);
-
-            // Unconfirmed - default speed handling
+            // Unconfirmed - default speed handling. Before the grant: a gait change is
+            // server-only and the kernel refuses it on a client-driven unit.
             if (pVehicle->GetTypeId() == TYPEID_UNIT)
             {
                 if (!pPlayer->IsWalking() && pVehicle->IsWalking())
@@ -809,7 +807,12 @@ void VehicleInfo::ApplySeatMods(Unit* passenger, uint32 seatFlags)
                 {
                     ((Creature*)pVehicle)->SetWalk(true, true);
                 }
+            }
 
+            pPlayer->SetClientControl(pVehicle, 1);
+
+            if (pVehicle->GetTypeId() == TYPEID_UNIT)
+            {
                 // set vehicle faction as per the controller faction
                 ((Creature*)pVehicle)->SetFactionTemporary(pPlayer->getFaction(), TEMPFACTION_NONE);
             }
@@ -865,13 +868,15 @@ void VehicleInfo::RemoveSeatMods(Unit* passenger, uint32 seatFlags)
             pVehicle->SetCharmerGuid(ObjectGuid());
 
             pPlayer->SetClientControl(pVehicle, 0);
-            pPlayer->SetMover(NULL);
 
             pVehicle->clearUnitState(UNIT_STAT_CONTROLLED);
             pVehicle->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
 
             // must be called after movement control unapplying
             pPlayer->GetCamera().ResetView();
+
+            // The player's own grant after the vehicle's revoke (spec §5).
+            pPlayer->SetClientControl(pPlayer, 1);
 
             // reset vehicle faction
             if (pVehicle->GetTypeId() == TYPEID_UNIT)

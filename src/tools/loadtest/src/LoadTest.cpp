@@ -88,6 +88,7 @@ namespace
             "  --return             walk the same time back, so the character ends where it began\n"
             "  --ack MODE           answer movement changes: immediate | delay:MS | mismatch | stale | wrongvalue | drop\n"
             "  --observe GUID       count relayed movement of this mover\n"
+            "  --select GUID        select and walk as this guid regardless of grants (the authority-violation scenario)\n"
             "  --expect a,b,c       require the run to have seen these: teleport | knockback | splines |\n"
             "                       resend | resync | kick | updates:N | noupdates\n"
             "                       (updates:N and noupdates read --pair's observer, or this run's own\n"
@@ -265,6 +266,11 @@ int main(int argc, char** argv)
         {
             if (!WantsValue(argc, i, "--observe")) { return 2; }
             config.script.observeGuid = std::strtoull(argv[++i], NULL, 10);
+        }
+        else if (arg == "--select")
+        {
+            if (!WantsValue(argc, i, "--select")) { return 2; }
+            config.script.selectGuid = std::strtoull(argv[++i], NULL, 10);
         }
         else if (arg == "--pair")
         {
@@ -480,8 +486,8 @@ int main(int argc, char** argv)
                 static_cast<unsigned long long>(result.sentBytesOnStream1));
 
     const loadtest::PeerReport& peer = result.peer;
-    std::printf("PEER timesync answered=%u controlUpdates=%u other=%u\n",
-                peer.timeSyncsAnswered, peer.controlUpdates, peer.otherPackets);
+    std::printf("PEER timesync answered=%u control granted=%u revoked=%u selects=%u notactive=%u mover=" UI64FMTD " other=%u\n",
+                peer.timeSyncsAnswered, peer.controlGranted, peer.controlRevoked, peer.selectsSent, peer.notActiveSent, peer.moverGuid, peer.otherPackets);
     std::printf("PEER walk start=%u heartbeats=%u stop=%u relocations=%u final=%.1f %.1f %.1f lastTime=%u\n",
                 peer.walkStarts, peer.walkHeartbeats, peer.walkStops, peer.relocations,
                 peer.walkFinal.x, peer.walkFinal.y, peer.walkFinal.z, peer.walkLastTime);
@@ -493,9 +499,6 @@ int main(int argc, char** argv)
         std::printf("0x%.4X:%u ", uint32(it->first), it->second);
     }
     std::printf("\n");
-    // activeMover can only be 0 on this tree: nothing here writes
-    // SMSG_MOVE_SET_ACTIVE_MOVER yet, so a zero is the expected reading and not a
-    // pass -- it says nothing about whether the codec would judge one correctly.
     std::printf("PEER teleports=%u/%u knockbacks=%u/%u activeMover=%u splines=%u\n",
                 peer.teleports, peer.teleportAcks, peer.knockBacks, peer.knockBackAcks,
                 peer.activeMoverSets, peer.monsterMoves);
@@ -659,6 +662,38 @@ int main(int argc, char** argv)
                 const std::map<uint16, uint32>& forms = pairAccount.empty() ? peer.observerForms : pairResult.peer.observerForms;
                 ok = forms.empty();
                 std::printf("PEER VERDICT noupdates %s (the observer saw %u observer forms for the walker)\n", ok ? "OK" : "BUG", uint32(forms.size()));
+            }
+        }
+        else if (what.compare(0, 8, "control:") == 0)
+        {
+            const uint32 want = uint32(std::strtoul(what.c_str() + 8, NULL, 10));
+            ok = peer.controlGranted == want;
+            std::printf("PEER VERDICT control %s (%u grants seen, wanted %u; %u revoked, %u selects sent)\n", ok ? "OK" : "BUG",
+                        peer.controlGranted, want, peer.controlRevoked, peer.selectsSent);
+        }
+        else if (what.compare(0, 12, "activemover:") == 0)
+        {
+            const uint32 want = uint32(std::strtoul(what.c_str() + 12, NULL, 10));
+            ok = peer.activeMoverSets == want;
+            std::printf("PEER VERDICT activemover %s (%u SMSG_MOVE_SET_ACTIVE_MOVER decoded, wanted %u)\n", ok ? "OK" : "BUG", peer.activeMoverSets, want);
+        }
+        else if (what.compare(0, 6, "mover:") == 0)
+        {
+            const uint64 want = std::strtoull(what.c_str() + 6, NULL, 10);
+            ok = peer.moverGuid == want;
+            std::printf("PEER VERDICT mover %s (the walker ended as " UI64FMTD ", wanted " UI64FMTD ")\n", ok ? "OK" : "BUG", peer.moverGuid, want);
+        }
+        else if (what == "relayed" || what == "norelay")
+        {
+            if (pairAccount.empty() && config.script.observeGuid == 0)
+            {
+                std::printf("PEER VERDICT %s SETUP (no --pair and not observing)\n", what.c_str());
+            }
+            else
+            {
+                const uint32 seen = pairAccount.empty() ? peer.observedTarget : pairResult.peer.observedTarget;
+                ok = what == "relayed" ? seen >= 1 : seen == 0;
+                std::printf("PEER VERDICT %s %s (the observer saw %u relayed statuses of the target)\n", what.c_str(), ok ? "OK" : "BUG", seen);
             }
         }
         else

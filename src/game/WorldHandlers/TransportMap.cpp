@@ -38,6 +38,7 @@
 #include "Pet.h"
 #include "Player.h"
 #include "MapManager.h"
+#include "MapPhase.h"
 #include "DBCStores.h"
 #include "MotionGenerators/MotionMaster.h"
 #include "WorldPacket.h"
@@ -865,6 +866,11 @@ void TransportMap::GatherObservers()
 
 void TransportMap::Update(const uint32& t_diff)
 {
+    // The deck owns the movement kernel for its whole tick, prologue included: a
+    // minion drawn across the deck edge in GatherObservers/UpdateMinions is this
+    // map's business, not whatever the nested Map::Update below would open on its own.
+    MapPhase::Scope phase(this);
+
     // Phase one, on the thread of the map the vessel sails and with her pose already advanced
     // for this tick: who ashore is watching, and who aboard should not be.
     GatherObservers();

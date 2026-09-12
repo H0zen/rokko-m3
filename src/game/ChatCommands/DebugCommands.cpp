@@ -34,6 +34,7 @@
  * - AI and path debugging
  */
 
+#include <cmath>
 #include <cstdlib>
 #include "Platform/Define.h"
 #include <cstring>
@@ -51,6 +52,7 @@
 #include "Language.h"
 #include "BattleGround/BattleGroundMgr.h"
 #include <fstream>
+#include "ObjectLookup.h"
 #include "ObjectMgr.h"
 #include "ObjectGuid.h"
 #include "SpellMgr.h"
@@ -1961,5 +1963,134 @@ bool ChatHandler::HandleDebugMovementKnockBackCommand(char* args)
 
     target->KnockBackWithAngle(target->Where().Facing() + M_PI_F, horizontal, vertical);
     PSendSysMessage("Knocked %s back: horizontal %.1f, vertical %.1f", target->GetName(), horizontal, vertical);
+    return true;
+}
+
+/**
+ * @brief .debug movement possess <player> [entry]: summon a creature three yards ahead of the
+ * named player and give the player control of it, the aura-less way (TakePossessOf),
+ * for two minutes. Entry 65 (Peasant Woman: level 1, humanoid, no flags, no script)
+ * unless another is given. The peer's possession scenarios drive this from the console.
+ */
+bool ChatHandler::HandleDebugMovementPossessCommand(char* args)
+{
+    char* nameStr = ExtractOptNotLastArg(&args);
+    uint32 entry = 65;
+    if (!ExtractOptUInt32(&args, entry, 65))
+    {
+        if (nameStr)
+        {
+            return false;
+        }
+        nameStr = ExtractArg(&args);
+        if (!nameStr)
+        {
+            return false;
+        }
+    }
+    Player* target = NULL;
+    ObjectGuid targetGuid;
+    std::string targetName;
+    if (!ExtractPlayerTarget(&nameStr, &target, &targetGuid, &targetName))
+    {
+        return false;
+    }
+    if (!target)
+    {
+        SendSysMessage(LANG_PLAYER_NOT_FOUND);
+        SetSentErrorMessage(true);
+        return false;
+    }
+    if (Unit* charm = target->GetCharm())
+    {
+        PSendSysMessage("%s already controls %s", target->GetName(), charm->GetGuidStr().c_str());
+        SetSentErrorMessage(true);
+        return false;
+    }
+    const float facing = target->Where().Facing();
+    const float x = target->Where().X() + 3.0f * cosf(facing);
+    const float y = target->Where().Y() + 3.0f * sinf(facing);
+    const float z = target->Where().Z();
+    Creature* creature = target->SummonCreature(entry, x, y, z, facing, TEMPSPAWN_TIMED_OR_DEAD_DESPAWN, 120000);
+    if (!creature)
+    {
+        PSendSysMessage("creature %u could not be summoned", entry);
+        SetSentErrorMessage(true);
+        return false;
+    }
+    target->TakePossessOf(creature);
+    PSendSysMessage("possessed: %s controls %s guid %u (" UI64FMTD ")", target->GetName(), creature->GetName(),
+                    creature->GetGUIDLow(), creature->GetObjectGuid().GetRawValue());
+    return true;
+}
+
+/**
+ * @brief .debug movement release <player>: the possession ends (ResetControlState, the creature
+ * does not turn on the player); prints the creature's pending changes before and its
+ * tombstones after, which is where a takeover with an outstanding change is read.
+ */
+bool ChatHandler::HandleDebugMovementReleaseCommand(char* args)
+{
+    Player* target = NULL;
+    ObjectGuid targetGuid;
+    std::string targetName;
+    if (!ExtractPlayerTarget(&args, &target, &targetGuid, &targetName))
+    {
+        return false;
+    }
+    if (!target)
+    {
+        SendSysMessage(LANG_PLAYER_NOT_FOUND);
+        SetSentErrorMessage(true);
+        return false;
+    }
+    Unit* charm = target->GetCharm();
+    if (!charm)
+    {
+        PSendSysMessage("%s controls nothing", target->GetName());
+        SetSentErrorMessage(true);
+        return false;
+    }
+    const ObjectGuid charmGuid = charm->GetObjectGuid();
+    const uint32 pendingBefore = uint32(charm->MotionState().Pending().Size());
+    target->ResetControlState(false);
+    uint32 tombstones = 0;
+    if (Unit* unit = ObjectLookup::GetUnit(*target, charmGuid))
+    {
+        tombstones = uint32(unit->MotionState().Pending().Tombstones());
+    }
+    PSendSysMessage("released: %s; creature guid %u; pending before %u, tombstones after %u",
+                    target->GetName(), charmGuid.GetCounter(), pendingBefore, tombstones);
+    return true;
+}
+
+/**
+ * @brief .debug movement speed <player> <rate>: the run speed of the unit the player's client
+ * moves (the player itself, or the creature it controls), through the kernel.
+ */
+bool ChatHandler::HandleDebugMovementSpeedCommand(char* args)
+{
+    char* nameStr = ExtractArg(&args);
+    float rate = 1.0f;
+    if (!nameStr || !ExtractFloat(&args, rate) || rate <= 0.0f || rate > 50.0f)
+    {
+        return false;
+    }
+    Player* target = NULL;
+    ObjectGuid targetGuid;
+    std::string targetName;
+    if (!ExtractPlayerTarget(&nameStr, &target, &targetGuid, &targetName))
+    {
+        return false;
+    }
+    if (!target)
+    {
+        SendSysMessage(LANG_PLAYER_NOT_FOUND);
+        SetSentErrorMessage(true);
+        return false;
+    }
+    Unit* mover = target->GetMover();
+    mover->SetSpeedRate(MOVE_RUN, rate, true);
+    PSendSysMessage("run speed of %s set to rate %.2f", mover->GetGuidStr().c_str(), rate);
     return true;
 }

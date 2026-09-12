@@ -76,6 +76,7 @@ namespace loadtest
         WalkScript walk;
         AckPolicy  ack;
         uint64     observeGuid = 0;  ///< count SMSG_MOVE_UPDATE relays for this mover
+        uint64     selectGuid = 0;   ///< --select: select and walk as this guid regardless of grants
         /// What the run must have seen for it to have proved anything: each name
         /// gets its own verdict line. "teleport", "knockback", "splines".
         std::vector<std::string> expect;
@@ -103,7 +104,11 @@ namespace loadtest
     struct PeerReport
     {
         uint32 timeSyncsAnswered = 0;
-        uint32 controlUpdates = 0;
+        uint32 controlGranted = 0;   ///< SMSG_CLIENT_CONTROL_UPDATE with allow 1
+        uint32 controlRevoked = 0;   ///< ... with allow 0
+        uint32 selectsSent = 0;      ///< CMSG_SET_ACTIVE_MOVER sent
+        uint32 notActiveSent = 0;    ///< CMSG_MOVE_NOT_ACTIVE_MOVER sent, for the unit left behind
+        uint64 moverGuid = 0;        ///< the walker's mover when the run ended
 
         uint32     walkStarts = 0;
         uint32     walkHeartbeats = 0;

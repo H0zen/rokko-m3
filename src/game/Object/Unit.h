@@ -388,6 +388,7 @@ class Pet;
 class PetAura;
 class Totem;
 class VehicleInfo;
+class WorldSession;
 
 struct SpellImmune
 {
@@ -4019,17 +4020,25 @@ class Unit : public WorldObject
         void RemovePetAura(PetAura const* petSpell);
 
         /// The movement kernel's state of this unit (design v2 §6): desired and
-        /// confirmed kinematics and the pending changes. Client-driven for a player,
-        /// server-driven for everything else in P2-C; P2-D moves it with control.
-        Motion::State&       MotionState()       { return m_motion; }
+        /// confirmed kinematics and the pending changes. Client-driven while a session
+        /// moves it (MoverSession()), server-driven otherwise; the mode and the session
+        /// flip together through WorldSession::GrantMover / RevokeMover.
+        Motion::State&       MotionState()       { AssertMotionOwner(); return m_motion; }
         Motion::State const& MotionState() const { return m_motion; }
-        /// Sends what the kernel emitted: the mover form to the owning session, the
+        /// Design v2 §10.4: a unit's kernel is touched only outside the map phase or
+        /// by the worker updating its map. Counts a violation (asserts under MANGOS_DEBUG).
+        void AssertMotionOwner() const;
+        /// The session whose client moves this unit: a player's own from its login
+        /// grant, a possessor's for a possessed creature, NULL for a server-driven unit.
+        WorldSession* MoverSession() const { return m_moverSession; }
+        void SetMoverSession(WorldSession* session) { m_moverSession = session; }
+        /// Sends what the kernel emitted: the mover form to the mover session, the
         /// spline form to everyone in range, the observer form to everyone but the
-        /// owner, built from this unit's stored status. Nothing is sent while the unit
-        /// is out of the world; the desired state has already advanced.
+        /// mover session's player, built from this unit's stored status. Nothing is
+        /// sent while the unit is out of the world; the desired state has already advanced.
         void SendEmissions(std::vector<Motion::Emission> const& emissions);
         /// Emissions no packet could be built for, or a mover form on a unit without a
-        /// session (a controlled creature before P2-D).
+        /// mover session.
         uint32 GetMotionDropped() const { return m_motionDropped; }
 
         // Movement info
@@ -4161,6 +4170,7 @@ class Unit : public WorldObject
         // Protected, not private: Player::Player() sets its own mode directly.
         Motion::State m_motion;
         uint32        m_motionDropped;
+        WorldSession* m_moverSession;
         static Motion::TimeoutPolicy MotionPolicy();
         Motion::Kinematics InitialKinematics() const;
 

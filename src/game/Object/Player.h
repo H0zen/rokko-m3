@@ -3527,18 +3527,19 @@ class Player : public Unit
         bool IsFreeFlying() const { return HasAuraType(SPELL_AURA_MOD_FLIGHT_SPEED_MOUNTED) || HasAuraType(SPELL_AURA_FLY); }
         bool CanStartFlyInArea(uint32 mapid, uint32 zone, uint32 area) const;
 
-        // Set client control for a target
+        /// The one entry point of every control transition (spec §5): the control
+        /// update packet, the session's grant or revoke (membership, mover session,
+        /// kernel mode), SMSG_MOVE_SET_ACTIVE_MOVER on a grant, and the handback time
+        /// epoch when this player regains itself in the world.
         void SetClientControl(Unit* target, uint8 allowMove);
-        void SetMover(Unit* target) { m_mover = target ? target : this; }
-        Unit* GetMover() const { return m_mover; }
-        bool IsSelfMover() const { return m_mover == this; }// normal case for player not controlling other unit
+        /// The unit this client has selected to move, resolved through the session;
+        /// this player when nothing is selected.
+        Unit* GetMover() const;
+        /// True when no unit but this player is this client's to move (membership,
+        /// not the client's selection: a possessing player cannot deselect its way
+        /// past this by clearing CMSG_MOVE_NOT_ACTIVE_MOVER).
+        bool IsSelfMover() const;
         void Uncharm() override;
-
-        // Set the mover for the player
-
-        // Get the mover for the player
-
-        // Check if the player is the self mover
 
         // Get the far sight GUID
         ObjectGuid const& GetFarSightGuid() const { return GetGuidValue(PLAYER_FARSIGHT); }
@@ -4180,8 +4181,6 @@ class Player : public Unit
         }
 
         void _fillGearScoreData(Item* item, GearScoreVec* gearScore, uint32& twoHandScore);
-
-        Unit* m_mover;
 
         // The player's camera
         Camera m_camera;

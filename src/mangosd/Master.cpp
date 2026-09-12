@@ -36,6 +36,7 @@
 #include "Database/DatabaseEnv.h"
 #include "Log.h"
 #include "MapManager.h"
+#include "MapPhase.h"
 #include "Server/WorldNetwork.h"
 #include "BuildInfo.h"
 #include "Timer.h"
@@ -359,6 +360,17 @@ void Master::ShutdownWorld()
             sLog.outString("acks: seen %u, matched %u, mismatched %u, resent %u, tombstone %u, stale %u, future %u, wrong guid %u, unverified %u, teleporting %u",
                            acks.seen.load(), acks.matched.load(), acks.mismatched.load(), acks.resent.load(),
                            acks.tombstone.load(), acks.stale.load(), acks.future.load(), acks.wrongGuid.load(), acks.unverified.load(), acks.teleporting.load());
+        }
+    }
+
+    // The allowed-mover counters of every session, folded at each session's end.
+    {
+        WorldSession::AuthorityTotalsCounters const& m = WorldSession::AuthorityTotals();
+        if (m.added.load())
+        {
+            sLog.outString("movers: added %u, removed %u, selected %u, deselected %u, bad select %u, bad deselect %u, not active %u, not member %u, unresolved %u; ownership violations %u",
+                           m.added.load(), m.removed.load(), m.selected.load(), m.deselected.load(), m.badSelect.load(),
+                           m.badDeselect.load(), m.notActive.load(), m.notMember.load(), m.unresolved.load(), MapPhase::Violations());
         }
     }
 

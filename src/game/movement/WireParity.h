@@ -70,15 +70,8 @@ class WorldPacket;
  * gone with Relay, and the packet is the registry's own encoding, so nothing
  * exempts it any more.
  *
- * HandleSetActiveMoverOpcode calls recv_data's WriteGuidMask/WriteGuidBytes
- * templates rather than the ReadGuidMask/ReadGuidBytes ones its neighbours
- * use -- the only such call site in the tree. Those write: handed the empty
- * guid the handler declares, they append a zero mask byte to the received
- * packet and fill nothing, so the guid is never read, the handler always
- * reports an incorrect mover and always returns having set none. P2-D's to
- * fix; nothing here instruments it, since the comparison it would take (the
- * client's guid against the session's mover) belonged to the inbound entry
- * points this task removed.
+ * HandleSetActiveMoverOpcode reads its guid through Wire::DecodeActiveMover since
+ * P2-D; a packet that fails it is counted here as rejected like any inbound layout.
  */
 namespace WireParity
 {

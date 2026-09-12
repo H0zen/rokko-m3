@@ -57,6 +57,7 @@
 #include "InstanceData.h"
 #include "OutdoorPvP/OutdoorPvP.h"
 #include "MapPersistentStateMgr.h"
+#include "MapPhase.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
 #include "MovementGenerator.h"
@@ -189,7 +190,7 @@ Unit::Unit() :
     m_vehicleInfo(NULL),
     m_ThreatManager(this),
     m_HostileRefManager(this),
-    m_motion(Motion::Mode::ServerDriven, MotionPolicy(), Motion::Kinematics()), m_motionDropped(0)
+    m_motion(Motion::Mode::ServerDriven, MotionPolicy(), Motion::Kinematics()), m_motionDropped(0), m_moverSession(NULL)
 {
     m_objectType |= TYPEMASK_UNIT;
     m_objectTypeId = TYPEID_UNIT;
@@ -305,8 +306,21 @@ Motion::Kinematics Unit::InitialKinematics() const
     return k;
 }
 
+void Unit::AssertMotionOwner() const
+{
+    if (!IsInWorld() || MapPhase::Owns(GetMap()))
+    {
+        return;
+    }
+    MapPhase::Violation(GetGuidStr().c_str());
+#ifdef MANGOS_DEBUG
+    MANGOS_ASSERT(false && "movement kernel touched from outside its map's update");
+#endif
+}
+
 void Unit::SendEmissions(std::vector<Motion::Emission> const& emissions)
 {
+    AssertMotionOwner();
     if (!IsInWorld())
     {
         return;
@@ -319,14 +333,14 @@ void Unit::SendEmissions(std::vector<Motion::Emission> const& emissions)
         switch (e.kind)
         {
             case Motion::EmissionKind::Mover:
-                // To the session that owns this unit's movement: the unit itself when it
-                // is a player. A controlled creature's owner arrives with P2-D.
-                if (GetTypeId() != TYPEID_PLAYER || !Motion::BuildMover(data, guid, e.counter, e.change))
+                // To the session whose client moves this unit: a player's own, a
+                // possessed creature's possessor. None: dropped and counted.
+                if (!m_moverSession || !Motion::BuildMover(data, guid, e.counter, e.change))
                 {
                     ++m_motionDropped;
                     continue;
                 }
-                ((Player*)this)->GetSession()->SendPacket(&data);
+                m_moverSession->SendPacket(&data);
                 break;
             case Motion::EmissionKind::Spline:
                 if (!Motion::BuildSpline(data, guid, e.change))
@@ -342,9 +356,11 @@ void Unit::SendEmissions(std::vector<Motion::Emission> const& emissions)
                     ++m_motionDropped;
                     continue;
                 }
-                if (GetTypeId() == TYPEID_PLAYER)
+                // Everyone but the client that acked it (CPP's SendSpeedChangeToObservers
+                // skips the controller the same way).
+                if (m_moverSession && m_moverSession->GetPlayer())
                 {
-                    SendMessageToSetExcept(&data, (Player const*)this);
+                    SendMessageToSetExcept(&data, m_moverSession->GetPlayer());
                 }
                 else
                 {
@@ -357,6 +373,13 @@ void Unit::SendEmissions(std::vector<Motion::Emission> const& emissions)
 
 Unit::~Unit()
 {
+    // A session that still names this unit as one it moves would dangle; every path
+    // that removes a unit revokes it first (Creature::RemoveFromWorld, LogoutPlayer).
+    if (m_moverSession)
+    {
+        sLog.outError("Unit::~Unit: %s still had a mover session", GetGuidStr().c_str());
+    }
+
     // set current spells as deletable
     for (uint32 i = 0; i < CURRENT_MAX_SPELL; ++i)
     {
@@ -406,25 +429,41 @@ void Unit::Update(uint32 update_diff, uint32 p_time)
 
     CleanupDeletedAuras();
 
-    // Design v2 §6.2: the pending-change machine's timeouts, in the map phase. Only a
-    // client-driven unit has pending entries; a creature's Tick is a no-op and skipped.
-    if (GetTypeId() == TYPEID_PLAYER && m_motion.Pending().Size() > 0)
+    // Design v2 §6.2: the pending-change machine's timeouts, in the map phase, for any
+    // unit a client moves (a player, a possessed creature). A server-driven unit has
+    // nothing pending.
+    if (m_motion.GetMode() == Motion::Mode::ClientDriven && m_motion.Pending().Size() > 0)
     {
         const uint32 now = GameTime::GetGameTimeMS();
         SendEmissions(m_motion.Tick(now));
-        Player* player = (Player*)this;
+        Player* owner = m_moverSession ? m_moverSession->GetPlayer() : NULL;
         if (m_motion.ResyncRequested())
         {
             m_motion.ClearResync();
-            sLog.outError("Movement: player %s (account %u) did not acknowledge a movement change in time; resynced",
-                          player->GetName(), player->GetSession()->GetAccountId());
-            player->ResyncMovement();
+            if (GetTypeId() == TYPEID_PLAYER)
+            {
+                Player* player = (Player*)this;
+                sLog.outError("Movement: player %s (account %u) did not acknowledge a movement change in time; resynced",
+                              player->GetName(), player->GetSession()->GetAccountId());
+                player->ResyncMovement();
+            }
+            else
+            {
+                // A creature has no near teleport with an ack to snap the client with:
+                // the tick's reissue is the whole resync.
+                sLog.outError("Movement: %s moved by %s did not acknowledge a movement change in time; reissued",
+                              GetGuidStr().c_str(), owner ? owner->GetName() : "no session");
+            }
         }
         if (m_motion.KickRequested())
         {
-            BASIC_LOG("Player %s from account id %u kicked for not acknowledging movement changes", player->GetName(), player->GetSession()->GetAccountId());
-            player->GetSession()->KickPlayer();
             m_motion.ClearKick();
+            if (m_moverSession)
+            {
+                BASIC_LOG("Player %s from account id %u kicked for not acknowledging movement changes of %s",
+                          owner ? owner->GetName() : "?", m_moverSession->GetAccountId(), GetGuidStr().c_str());
+                m_moverSession->KickPlayer();
+            }
         }
     }
 
@@ -4908,6 +4947,19 @@ void Unit::RemoveFromWorld()
     // cleanup
     if (IsInWorld())
     {
+        // A unit a client was moving leaves that client's set, with no packet: the
+        // charm code sends its own when it runs, and this is the net under it for any
+        // creature, pet or summon. A player keeps its membership across a far teleport
+        // (the worldport's grant is idempotent) and is revoked by LogoutPlayer. A unit
+        // changing map goes through here too (a minion drawn onto or off a vessel's
+        // deck crosses by Map::Remove the same as any other map change), so it is
+        // revoked the same way, without a packet; nothing today possesses a minion
+        // across a deck edge, so that gap is named here rather than closed.
+        if (m_moverSession && GetTypeId() != TYPEID_PLAYER)
+        {
+            m_moverSession->RevokeMover(this, GameTime::GetGameTimeMS());
+        }
+
         Uncharm();
         RemoveNotOwnTrackedTargetAuras();
         RemoveGuardians();
@@ -7027,7 +7079,6 @@ Unit* Unit::TakePossessOf(SpellEntry const* spellEntry, SummonPropertiesEntry co
     {
         player->GetCamera().SetView(pCreature);                         // modify camera view to the creature view
         player->SetClientControl(pCreature, 1);                         // transfer client control to the creature
-        player->SetMover(pCreature);                                    // set mover so now we know that creature is "moved" by this unit
         player->SendForcedObjectUpdate();                               // we have to update client data here to avoid problem with the "release spirit" windows reappear.
     }
 
@@ -7087,7 +7138,6 @@ bool Unit::TakePossessOf(Unit* possessed)
     {
         player->GetCamera().SetView(possessed);
         player->SetClientControl(possessed, 1);
-        player->SetMover(possessed);
         player->SendForcedObjectUpdate();
 
         if (possessedCreature && possessedCreature->IsPet() && possessedCreature->GetObjectGuid() == GetPetGuid())
@@ -7137,7 +7187,6 @@ void Unit::ResetControlState(bool attackCharmer /*= true*/)
         {
             player->GetCamera().ResetView();
             player->SetClientControl(player, 1);
-            player->SetMover(NULL);
         }
         return;
     }
@@ -7151,9 +7200,11 @@ void Unit::ResetControlState(bool attackCharmer /*= true*/)
 
     if (player)
     {
+        // The unit's revoke, the camera, then the player's own grant: today's release
+        // sent only the first and left the client to recover on its own.
         player->SetClientControl(possessed, 0);
-        player->SetMover(NULL);
         player->GetCamera().ResetView();
+        player->SetClientControl(player, 1);
 
         if (possessedCreature->IsPet() && possessedCreature->GetObjectGuid() == GetPetGuid())
         {

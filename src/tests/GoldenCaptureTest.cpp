@@ -572,3 +572,71 @@ TEST(GoldenCapture_pipeline_server_built_lines_replay_clean)
         }
     }
 }
+
+// The mover authority's live gate (P2-D amendment): a real 15595 client granted
+// a summoned Peasant Woman twice (the console command, then Mind Control) and
+// revoked twice, a forced speed change acked as a member while the creature
+// stayed selected, and a fear on the player with its handback. The first
+// capture of CMSG_MOVE_NOT_ACTIVE_MOVER: the client's answer for the unit it
+// stops moving, on a grant of another and on a revoke of itself.
+TEST(GoldenCapture_mover_client_built_lines_replay_clean)
+{
+    loadtest::ReplayReport report;
+    ReplayGoldenByDirection("client-15595-mover.log", 'C', report);
+    CHECK(report.lines >= 100);
+    CHECK_EQ(report.malformed, uint32(0));
+    CHECK_EQ(report.failed, uint32(0));
+    CHECK_EQ(report.unregistered, uint32(0));
+    CHECK_EQ(report.exact, report.decoded);
+    CHECK(report.Clean());
+    // The seven CMSG_SET_ACTIVE_MOVER (the client's answer to every grant) and the
+    // three CMSG_MOVE_NOT_ACTIVE_MOVER (the unit it stops moving, first captured here).
+    CHECK(report.byOpcode.count(CMSG_SET_ACTIVE_MOVER) == 1);
+    if (report.byOpcode.count(CMSG_SET_ACTIVE_MOVER) == 1)
+    {
+        CHECK_EQ(report.byOpcode.at(CMSG_SET_ACTIVE_MOVER).lines, uint32(7));
+        CHECK_EQ(report.byOpcode.at(CMSG_SET_ACTIVE_MOVER).exact, uint32(7));
+    }
+    CHECK(report.byOpcode.count(CMSG_MOVE_NOT_ACTIVE_MOVER) == 1);
+    if (report.byOpcode.count(CMSG_MOVE_NOT_ACTIVE_MOVER) == 1)
+    {
+        CHECK_EQ(report.byOpcode.at(CMSG_MOVE_NOT_ACTIVE_MOVER).lines, uint32(3));
+        CHECK_EQ(report.byOpcode.at(CMSG_MOVE_NOT_ACTIVE_MOVER).exact, uint32(3));
+    }
+    // The forced speed change on the player, acked as a member that was not the
+    // selected unit (the creature was).
+    CHECK(report.byOpcode.count(CMSG_FORCE_RUN_SPEED_CHANGE_ACK) == 1);
+    if (report.byOpcode.count(CMSG_FORCE_RUN_SPEED_CHANGE_ACK) == 1)
+    {
+        CHECK(report.byOpcode.at(CMSG_FORCE_RUN_SPEED_CHANGE_ACK).exact >= 1);
+    }
+}
+
+TEST(GoldenCapture_mover_server_built_lines_replay_clean)
+{
+    loadtest::ReplayReport report;
+    ReplayGoldenByDirection("client-15595-mover.log", 'S', report);
+    // Almost every server-built line in this session is SMSG_MONSTER_MOVE, capped
+    // like the other goldens' chatty opcodes; the control family is the small,
+    // exactly-counted remainder this test exists to pin.
+    CHECK(report.lines >= 80);
+    CHECK_EQ(report.malformed, uint32(0));
+    CHECK_EQ(report.failed, uint32(0));
+    CHECK_EQ(report.unregistered, uint32(0));
+    CHECK_EQ(report.exact, report.decoded);
+    // The nine SMSG_CLIENT_CONTROL_UPDATE (the login grant, both possessions and
+    // both releases, the fear and its handback) and the six
+    // SMSG_MOVE_SET_ACTIVE_MOVER (one per grant the server actually sent).
+    CHECK(report.byOpcode.count(SMSG_CLIENT_CONTROL_UPDATE) == 1);
+    if (report.byOpcode.count(SMSG_CLIENT_CONTROL_UPDATE) == 1)
+    {
+        CHECK_EQ(report.byOpcode.at(SMSG_CLIENT_CONTROL_UPDATE).lines, uint32(9));
+        CHECK_EQ(report.byOpcode.at(SMSG_CLIENT_CONTROL_UPDATE).exact, uint32(9));
+    }
+    CHECK(report.byOpcode.count(SMSG_MOVE_SET_ACTIVE_MOVER) == 1);
+    if (report.byOpcode.count(SMSG_MOVE_SET_ACTIVE_MOVER) == 1)
+    {
+        CHECK_EQ(report.byOpcode.at(SMSG_MOVE_SET_ACTIVE_MOVER).lines, uint32(6));
+        CHECK_EQ(report.byOpcode.at(SMSG_MOVE_SET_ACTIVE_MOVER).exact, uint32(6));
+    }
+}

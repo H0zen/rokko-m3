@@ -171,6 +171,21 @@ bool ChatHandler::HandlePInfoCommand(char* args)
         PSendSysMessage("Acks: seen %u, matched %u, mismatched %u, resent %u, tombstone %u, stale %u, future %u, wrong guid %u, unverified %u, teleporting %u; pending: %s; last %s; dropped emissions %u",
                         acks.seen, acks.matched, acks.mismatched, acks.resent, acks.tombstone, acks.stale, acks.future, acks.wrongGuid, acks.unverified, acks.teleporting,
                         pending.empty() ? "none" : pending.c_str(), Motion::AckResultName(target->MotionState().LastAck()), target->GetMotionDropped());
+
+        Motion::Authority const& movers = target->GetSession()->Movers();
+        Motion::AuthorityCounters const& m = movers.Counters();
+        std::string selected = "none";
+        if (movers.Selected() == target->GetObjectGuid().GetRawValue())
+        {
+            selected = "self";
+        }
+        else if (movers.Selected() != 0)
+        {
+            selected = ObjectGuid(movers.Selected()).GetString();
+        }
+        PSendSysMessage("Mover: selected %s, members %u; added %u, removed %u, selected %u, deselected %u, bad select %u, bad deselect %u, not active %u, not member %u, unresolved %u",
+                        selected.c_str(), uint32(movers.Members().size()), m.added, m.removed, m.selected, m.deselected,
+                        m.badSelect, m.badDeselect, m.notActive, m.notMember, m.unresolved);
     }
 
     std::string timeStr = secsToTimeString(total_player_time, TimeFormat::ShortText, true);

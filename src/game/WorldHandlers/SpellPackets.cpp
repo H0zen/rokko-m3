@@ -784,8 +784,8 @@ void Spell::SendChannelUpdate(uint32 time)
             {
                 player->SetClientControl(possessed, 0);
             }
-            player->SetMover(NULL);
             player->GetCamera().ResetView();
+            player->SetClientControl(player, 1);
             player->RemovePetActionBar();
 
             if (possessed)

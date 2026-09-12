@@ -79,6 +79,7 @@
 #include "wire/MovementFamilies.h"
 #include "wire/MovementSequences.h"
 #include "wire/TeleportCodec.h"
+#include "wire/MoverCodec.h"
 #include "Change.h"
 #include "PacketMatrix.h"
 
@@ -375,20 +376,28 @@ void WorldSession::HandleMoveTeleportAckOpcode(WorldPacket& recv_data)
     DEBUG_LOG("Guid: %s", guid.GetString().c_str());
     DEBUG_LOG("Counter %u, time %u", counter, time / IN_MILLISECONDS);
 
-    Unit* mover = _player->GetMover();
-    Player* plMover = mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL;
-
+    // The near teleport is a player's (a creature is never issued one); the ack must
+    // name a member, and the landing runs for a player being teleported near.
+    const bool isMember = Movers().MayAck(guid.GetRawValue());
+    Unit* member = isMember ? MemberUnit(guid) : NULL;
+    if (!member)
+    {
+        CountAck(&AckCounters::seen, &AckTotalsCounters::seen);
+        // A member the map lost (out of the world, gone) is not a wrong guid.
+        if (isMember)
+        {
+            Movers().Unresolved();
+        }
+        CountAck(&AckCounters::wrongGuid, &AckTotalsCounters::wrongGuid);
+        return;
+    }
+    Player* plMover = member->GetTypeId() == TYPEID_PLAYER ? (Player*)member : NULL;
     if (!plMover || !plMover->IsBeingTeleportedNear())
     {
         return;
     }
 
     CountAck(&AckCounters::seen, &AckTotalsCounters::seen);
-    if (guid != plMover->GetObjectGuid())
-    {
-        CountAck(&AckCounters::wrongGuid, &AckTotalsCounters::wrongGuid);
-        return;
-    }
 
     // The kernel's pending teleport closes on this counter; the landing below runs
     // whatever it says -- a teleport the server issued must land, or the player stays
@@ -459,20 +468,30 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recv_data)
         Wire::MovementCapture::Record('C', opcode, recv_data.contents(), recv_data.size());
     }
 
-    Unit* mover = _player->GetMover();
+    /* extract packet */
+    MovementInfo movementInfo;
+    recv_data >> movementInfo;
+    /*----------------*/
+
+    // Design v2 §7 (F1), the authority rung: the client moves the unit it selected and
+    // only that one; anything else is dropped and counted before it is validated.
+    if (!Movers().MovesAs(movementInfo.GetGuid().GetRawValue()))
+    {
+        return;
+    }
+    Unit* mover = SelectedMover();
+    if (!mover)
+    {
+        Movers().Unresolved();
+        return;
+    }
     Player* plMover = mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL;
 
     // ignore, waiting processing in WorldSession::HandleMoveWorldportAckOpcode and WorldSession::HandleMoveTeleportAck
     if (plMover && plMover->IsBeingTeleported())
     {
-        recv_data.rpos(recv_data.wpos());                   // prevent warnings spam
         return;
     }
-
-    /* extract packet */
-    MovementInfo movementInfo;
-    recv_data >> movementInfo;
-    /*----------------*/
 
     if (!VerifyMovementInfo(movementInfo))
     {
@@ -486,7 +505,7 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recv_data)
     }
 
     /* process position-change */
-    HandleMoverRelocation(movementInfo);
+    HandleMoverRelocation(mover, movementInfo);
 
     if (plMover)
     {
@@ -508,7 +527,8 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recv_data)
  * @brief One handler for every movement ack the registry has a layout for.
  *
  * The ack is a movement status with a counter (and, for a speed or a height, the
- * value): decoded through the registry, checked against the session's mover, matched
+ * value): decoded through the registry, checked for membership in the session's
+ * allowed movers (a possessed creature's acks land in the creature's state), matched
  * by the kernel against the pending change of its type. A match relocates the mover
  * with the ack's status -- the client's position and flags at the moment it applied
  * the change -- and sends the observer packet the matrix names, built from that
@@ -520,21 +540,30 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recv_data)
 void WorldSession::HandleMovementAck(WorldPacket& recv_data)
 {
     const uint16 opcode = recv_data.GetOpcode();
-    Unit* mover = _player->GetMover();
-    Player* plMover = mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL;
 
     MovementInfo movementInfo;
     recv_data >> movementInfo;
     CountAck(&AckCounters::seen, &AckTotalsCounters::seen);
 
-    if (movementInfo.GetGuid() != mover->GetObjectGuid())
+    // Membership, not selection (design v2 §7): a change sent to the player is acked
+    // as the player while the vehicle is the selected unit. The ack lands in the
+    // kernel of the unit it names.
+    const ObjectGuid guid = movementInfo.GetGuid();
+    const bool isMember = Movers().MayAck(guid.GetRawValue());
+    Unit* mover = isMember ? MemberUnit(guid) : NULL;
+    if (!mover)
     {
+        // A member the map lost (out of the world, gone) is not a wrong guid.
+        if (isMember)
+        {
+            Movers().Unresolved();
+        }
         CountAck(&AckCounters::wrongGuid, &AckTotalsCounters::wrongGuid);
-        DEBUG_LOG("WorldSession::HandleMovementAck: %s acked %s for %s, the mover is %s",
-                  _player->GetGuidStr().c_str(), LookupOpcodeName(opcode),
-                  movementInfo.GetGuid().GetString().c_str(), mover->GetGuidStr().c_str());
+        DEBUG_LOG("WorldSession::HandleMovementAck: %s acked %s for %s, not a unit it moves",
+                  _player->GetGuidStr().c_str(), LookupOpcodeName(opcode), guid.GetString().c_str());
         return;
     }
+    Player* plMover = mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL;
 
     Motion::MatrixRow const* row = Motion::RowForAck(opcode);
     if (!row)
@@ -607,64 +636,58 @@ void WorldSession::HandleMovementAck(WorldPacket& recv_data)
     {
         // The ack's status is the mover's status now; the observer form is built from
         // it once it is stored.
-        HandleMoverRelocation(movementInfo);
+        HandleMoverRelocation(mover, movementInfo);
     }
     mover->SendEmissions(emissions);
 }
 
 /**
- * @brief Validates the active mover guid reported by the client.
+ * @brief The client selects which of its allowed movers it moves (design v2 §7).
+ *
+ * Read through the codec (the previous body called the guid write templates on the
+ * received packet and never read it); a stranger is refused and counted.
  *
  * @param recv_data The received opcode packet.
  */
 void WorldSession::HandleSetActiveMoverOpcode(WorldPacket& recv_data)
 {
     DEBUG_LOG("WORLD: Received opcode CMSG_SET_ACTIVE_MOVER");
-    recv_data.hexlike();
 
-    ObjectGuid guid;
-
-    recv_data.WriteGuidMask<7, 2, 1, 0, 4, 5, 6, 3>(guid);
-    recv_data.WriteGuidBytes<3, 2, 4, 0, 5, 1, 6, 7>(guid);
-
-    if (_player->GetMover()->GetObjectGuid() != guid)
+    Wire::ActiveMover mover;
+    Wire::DecodeResult const r = Wire::DecodeActiveMover(recv_data, CMSG_SET_ACTIVE_MOVER, mover);
+    if (!r.ok())
     {
-        sLog.outError("HandleSetActiveMoverOpcode: incorrect mover guid: mover is %s and should be %s",
-                      _player->GetMover()->GetGuidStr().c_str(), guid.GetString().c_str());
-        return;
+        WireParity::Rejected(CMSG_SET_ACTIVE_MOVER, r.error);
+        throw ByteBufferException(false, recv_data.rpos(), 0, recv_data.size());
     }
-    else
+
+    if (!Movers().Select(mover.guid))
     {
-        if (Unit* mover = ObjectLookup::GetUnit(*GetPlayer(), guid))
-        {
-            _player->SetMover(mover);
-        }
+        DEBUG_LOG("HandleSetActiveMoverOpcode: %s selected %s, which it may not move",
+                  _player->GetGuidStr().c_str(), ObjectGuid(mover.guid).GetString().c_str());
     }
 }
 
 /**
- * @brief Stores movement info sent for a non-active mover.
+ * @brief The client stops moving the unit it had selected (design v2 §7).
+ *
+ * The status the packet carries is not stored: the unit's last accepted movement
+ * stands, and the next packet for the next selected unit is what moves anything.
  *
  * @param recv_data The received opcode packet.
  */
 void WorldSession::HandleMoveNotActiveMoverOpcode(WorldPacket& recv_data)
 {
     DEBUG_LOG("WORLD: Received opcode CMSG_MOVE_NOT_ACTIVE_MOVER");
-    recv_data.hexlike();
 
     MovementInfo mi;
     recv_data >> mi;
 
-    if (_player->GetMover()->GetObjectGuid() == mi.GetGuid())
+    if (!Movers().Deselect(mi.GetGuid().GetRawValue()))
     {
-        sLog.outError("HandleMoveNotActiveMover: incorrect mover guid: mover is %s and should be %s instead of %s",
-                      _player->GetMover()->GetGuidStr().c_str(),
-                      _player->GetGuidStr().c_str(),
-                      mi.GetGuid().GetString().c_str());
-        return;
+        DEBUG_LOG("HandleMoveNotActiveMoverOpcode: %s deselected %s, not the selected unit",
+                  _player->GetGuidStr().c_str(), mi.GetGuid().GetString().c_str());
     }
-
-    _player->m_movementInfo = mi;
 }
 
 /**
@@ -718,24 +741,6 @@ void WorldSession::HandleSummonResponseOpcode(WorldPacket& recv_data)
     recv_data >> agree;
 
     _player->SummonIfPossible(agree);
-}
-
-/**
- * @brief Verifies movement data for a specific mover guid.
- *
- * @param movementInfo The movement state to validate.
- * @param guid The expected mover guid.
- * @return true if the movement data is valid; otherwise false.
- */
-bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo, ObjectGuid const& guid) const
-{
-    // ignore wrong guid (player attempt cheating own session for not own guid possible...)
-    if (guid != _player->GetMover()->GetObjectGuid())
-    {
-        return false;
-    }
-
-    return VerifyMovementInfo(movementInfo);
 }
 
 /**
@@ -806,16 +811,15 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo) const
 /**
  * @brief Applies validated movement info to the current mover.
  *
+ * @param mover The unit the movement info applies to.
  * @param movementInfo The movement state to apply.
  */
-void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
+void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo)
 {
     // Design v2 6.3: the client's timestamp is rebased to server time through the
     // session clock before it is stored or relayed. Until the first time-sync
     // pair lands the clock falls back to server-now and counts it.
     movementInfo.UpdateTime(m_timeBase.Rebase(movementInfo.GetTime(), GameTime::GetGameTimeMS()));
-
-    Unit* mover = _player->GetMover();
 
     if (Player* plMover = mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL)
     {
@@ -958,6 +962,11 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
     }
     else                                                    // creature charmed
     {
+        // The stored status is what the observer form and the create block read;
+        // a possessed creature's observer packets carried its pre-possession
+        // flags, time and position before.
+        mover->m_movementInfo = movementInfo;
+
         if (mover->IsInWorld() && mover->GetTypeId() == TYPEID_UNIT)
         {
             mover->GetMap()->CreatureRelocation((Creature*)mover, movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);

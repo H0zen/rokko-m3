@@ -70,6 +70,7 @@
 #include "MapRefManager.h"
 #include "DBCEnums.h"
 #include "MapPersistentStateMgr.h"
+#include "MapPhase.h"
 #include "MoveMap.h"
 #include "BattleGround/BattleGroundMgr.h"
 #include "Calendar.h"
@@ -894,6 +895,12 @@ bool Map::loaded(const GridPair& p) const
  */
 void Map::Update(const uint32& t_diff)
 {
+    // This map owns the movement kernel of everything on it for the rest of this
+    // call, restored to whatever the thread owned before on return -- a transport
+    // deck's Update runs nested inside its world map's own tick, on the same
+    // thread, and this Scope is the whole of what makes that nesting correct.
+    MapPhase::Scope phase(this);
+
     /// update worldsessions for existing players
     for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
     {

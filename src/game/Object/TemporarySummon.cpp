@@ -289,7 +289,9 @@ void TemporarySummon::UnSummon()
     }
     else if (GetSummonerGuid().IsPlayer()) // if player that summoned this creature was MCing it, uncharm
         if (Player* player = GetMap()->GetPlayer(GetSummonerGuid()))
-            if (player->GetMover() == this)
+            // Membership, not the client's selection: a possessed summon despawning
+            // must uncharm even if the client deselected it first.
+            if (player->GetSession()->Movers().IsMember(GetObjectGuid().GetRawValue()))
             {
                 player->Uncharm();
             }

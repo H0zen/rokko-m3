@@ -49,6 +49,8 @@ add_executable(mangos-loadtest
     src/TimeSync.hpp
     src/Walker.cpp
     src/Walker.hpp
+    src/Control.cpp
+    src/Control.hpp
     src/AckEngine.cpp
     src/AckEngine.hpp
     src/Replay.hpp

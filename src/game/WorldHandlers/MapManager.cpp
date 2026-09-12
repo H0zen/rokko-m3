@@ -51,6 +51,7 @@
 #include <mutex>
 #include "MapManager.h"
 #include "MapPersistentStateMgr.h"
+#include "MapPhase.h"
 #include "Policies/Singleton.h"
 #include "Database/DatabaseEnv.h"
 #include "Log.h"
@@ -311,6 +312,7 @@ void MapManager::Update(uint32 diff)
     // among them: it belongs to the vessel, which runs it nested inside the tick of the
     // map it sails, once that map has finished with its own containers. There is no second
     // pass and no barrier between them, because there are no longer two of anything.
+    MapPhase::Begin();
     for (MapMapType::iterator iter = i_maps.begin(); iter != i_maps.end(); ++iter)
     {
         if (iter->second->AsTransport())
@@ -324,6 +326,8 @@ void MapManager::Update(uint32 diff)
         }
         else
         {
+            // Map::Update sets its own ownership scope now; no worker pool, so the
+            // world thread updates maps in turn, one Scope at a time.
             iter->second->Update((uint32)i_timer.GetCurrent());
         }
     }
@@ -332,6 +336,7 @@ void MapManager::Update(uint32 diff)
     {
         m_updater.wait();
     }
+    MapPhase::End();
 
     // PAST THE BARRIER, WHERE NO MAP IS RUNNING. A vessel that reached the end of one world
     // map decided so on that map's thread, and could go no further there: arriving writes

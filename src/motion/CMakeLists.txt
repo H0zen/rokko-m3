@@ -25,6 +25,8 @@
 set(SRC_GRP_MOTION
     Change.h
     Change.cpp
+    Authority.h
+    Authority.cpp
     PacketMatrix.h
     PacketMatrix.cpp
     PendingChanges.h

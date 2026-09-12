@@ -26,6 +26,7 @@
 #include "SyntheticClient.hpp"
 
 #include "AckEngine.hpp"
+#include "Control.hpp"
 #include "TimeSync.hpp"
 #include "Walker.hpp"
 #include "wire/KnockBackCodec.h"
@@ -264,6 +265,14 @@ namespace loadtest
     SyntheticClient::Stream& SyntheticClient::StreamFor(uint16 opcode)
     {
         return proto::SendSlotOf(opcode) == proto::LinkSlot::One ? m_stream1 : m_stream0;
+    }
+
+    bool SyntheticClient::SendSelect(uint64 guid, std::string& error)
+    {
+        const WorldPacket select = MakeSelectActiveMover(guid);
+        if (!Send(StreamFor(select.GetOpcode()), select, error)) { return false; }
+        ++m_result.peer.selectsSent;
+        return true;
     }
 
     bool SyntheticClient::Drain(Stream& stream, int timeoutMs, std::string& error)
@@ -807,8 +816,58 @@ namespace loadtest
             }
 
             case SMSG_CLIENT_CONTROL_UPDATE:
-                ++report.controlUpdates;
+            {
+                uint64 guid = 0;
+                uint8 allow = 0;
+                if (!ReadControlUpdate(packet, guid, allow))
+                {
+                    ++report.decodeFailures[opcode];
+                    return true;
+                }
+                if (allow)
+                {
+                    ++report.controlGranted;
+                    // The real client selects what it was granted; --select pins the
+                    // walker to its own choice and only counts the grant.
+                    if (m_config.script.selectGuid == 0)
+                    {
+                        // A grant of another unit is answered first with a not-active-
+                        // mover for the one the client is about to stop moving, stamped
+                        // like the walker's own packets.
+                        if (walker.Guid() != guid)
+                        {
+                            Wire::MovementStatus status = walker.Status();
+                            status.has.timestamp = true;
+                            status.time = nowTicks;
+                            const WorldPacket notActive = MakeNotActiveMover(status);
+                            if (!Send(StreamFor(notActive.GetOpcode()), notActive, error)) { return false; }
+                            ++report.notActiveSent;
+                        }
+                        walker.SetGuid(guid);
+                        if (!SendSelect(guid, error)) { return false; }
+                    }
+                    Trace("control granted for " UI64FMTD, guid);
+                }
+                else
+                {
+                    ++report.controlRevoked;
+                    if (m_config.script.selectGuid == 0 && walker.Guid() == guid && guid != m_config.characterGuid)
+                    {
+                        // A revoke of the unit the client itself is moving is answered
+                        // with a not-active-mover for it before the walker falls back.
+                        Wire::MovementStatus status = walker.Status();
+                        status.has.timestamp = true;
+                        status.time = nowTicks;
+                        const WorldPacket notActive = MakeNotActiveMover(status);
+                        if (!Send(StreamFor(notActive.GetOpcode()), notActive, error)) { return false; }
+                        ++report.notActiveSent;
+                        walker.SetGuid(m_config.characterGuid);
+                    }
+                    Trace("control revoked for " UI64FMTD, guid);
+                }
+                acks.SetMover(walker.Status());
                 return true;
+            }
 
             case SMSG_MOVE_TELEPORT:
             {
@@ -970,6 +1029,13 @@ namespace loadtest
 
         ClientClock clock;
         Walker walker(m_config.script.walk, m_config.characterGuid, m_result.worldPos);
+        if (m_config.script.selectGuid != 0)
+        {
+            // --select: the run selects a guid of its own and walks as it, whatever the
+            // server grants; the server's refusal is what the scenario reads.
+            walker.SetGuid(m_config.script.selectGuid);
+            if (!SendSelect(m_config.script.selectGuid, error)) { return false; }
+        }
         AckEngine acks(m_config.script.ack, [](uint16 opcode) { return Wire::SequenceFor(opcode); });
 
         // Walker and AckEngine tally into their own locals as Serve runs; nothing
@@ -988,6 +1054,7 @@ namespace loadtest
             report.relocations = walker.Relocations();
             report.walkFinal = walker.Position();
             report.walkLastTime = walker.LastStampedTime();
+            report.moverGuid = walker.Guid();
             report.acksSent = acks.Sent();
             report.acksDropped = acks.Dropped();
             report.acksPending = acks.PendingCount();

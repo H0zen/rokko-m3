@@ -46,6 +46,8 @@
 #include "MapPersistentStateMgr.h"
 #include "CorpseManager.h"
 #include "movement/WireParity.h"
+#include "MapPhase.h"
+#include "Authority.h"
 #include "WorldSession.h"
 #include "GameTime.h"
 #include "Player.h"
@@ -144,9 +146,11 @@ bool ChatHandler::HandleServerMovementCommand(char* /*args*/)
                     counters.tooOld, counters.unknownCounter, counters.fallbacks);
 
     // The kernel: every in-world player's state summed, and every session's acks.
-    Motion::StateCounters state;
-    uint32 players = 0, withPending = 0, pending = 0, tombstones = 0, droppedEmissions = 0;
+    uint32 movers = 0, withPending = 0, pending = 0, tombstones = 0, droppedEmissions = 0;
+    uint32 sessions = 0, members = 0, selected = 0;
     WorldSession::AckCounters acks;
+    Motion::AuthorityCounters authority;
+    Motion::StateCounters state;
     for (auto const& entry : sWorld.GetAllSessions())
     {
         WorldSession* session = entry.second;
@@ -165,37 +169,72 @@ bool ChatHandler::HandleServerMovementCommand(char* /*args*/)
         acks.wrongGuid += a.wrongGuid;
         acks.unverified += a.unverified;
         acks.teleporting += a.teleporting;
+        Motion::AuthorityCounters const& m = session->Movers().Counters();
+        authority.added += m.added;
+        authority.removed += m.removed;
+        authority.selected += m.selected;
+        authority.deselected += m.deselected;
+        authority.badSelect += m.badSelect;
+        authority.badDeselect += m.badDeselect;
+        authority.notActive += m.notActive;
+        authority.notMember += m.notMember;
+        authority.unresolved += m.unresolved;
         Player* player = session->GetPlayer();
         if (!player || !player->IsInWorld())
         {
             continue;
         }
-        ++players;
-        Motion::State const& s = player->MotionState();
-        if (s.Pending().Size() > 0)
+        ++sessions;
+        members += uint32(session->Movers().Members().size());
+        if (session->Movers().Selected() != 0)
         {
-            ++withPending;
+            ++selected;
         }
-        pending += uint32(s.Pending().Size());
-        tombstones += uint32(s.Pending().Tombstones());
-        droppedEmissions += player->GetMotionDropped();
-        Motion::StateCounters const& c = s.Counters();
-        state.applied += c.applied;
-        state.refused += c.refused;
-        state.emitted += c.emitted;
-        state.acked += c.acked;
-        state.confirmed += c.confirmed;
-        state.mismatched += c.mismatched;
-        state.resent += c.resent;
-        state.resyncs += c.resyncs;
-        state.epochs += c.epochs;
-        state.kicks += c.kicks;
+        // Every unit this session moves: the player and any possessed member.
+        std::vector<uint64> const guids = session->Movers().Members();
+        for (size_t i = 0; i < guids.size(); ++i)
+        {
+            Unit* unit = session->MemberUnit(ObjectGuid(guids[i]));
+            if (!unit)
+            {
+                continue;
+            }
+            ++movers;
+            Motion::State const& s = unit->MotionState();
+            if (s.Pending().Size() > 0)
+            {
+                ++withPending;
+            }
+            pending += uint32(s.Pending().Size());
+            tombstones += uint32(s.Pending().Tombstones());
+            droppedEmissions += unit->GetMotionDropped();
+            Motion::StateCounters const& c = s.Counters();
+            state.applied += c.applied;
+            state.refused += c.refused;
+            state.emitted += c.emitted;
+            state.acked += c.acked;
+            state.confirmed += c.confirmed;
+            state.mismatched += c.mismatched;
+            state.resent += c.resent;
+            state.resyncs += c.resyncs;
+            state.epochs += c.epochs;
+            state.modeChanges += c.modeChanges;
+            state.kicks += c.kicks;
+        }
     }
-    PSendSysMessage("motion: %u players, %u with pending, %u pending, %u tombstones; applied %u, refused %u, emitted %u, acked %u, confirmed %u, mismatched %u, resent %u, resyncs %u, epochs %u, kicks %u, dropped emissions %u",
-                    players, withPending, pending, tombstones, state.applied, state.refused, state.emitted, state.acked,
-                    state.confirmed, state.mismatched, state.resent, state.resyncs, state.epochs, state.kicks, droppedEmissions);
+    WorldSession::AuthorityTotalsCounters const& retired = WorldSession::AuthorityTotals();
+    PSendSysMessage("motion: %u movers, %u with pending, %u pending, %u tombstones; applied %u, refused %u, emitted %u, acked %u, confirmed %u, mismatched %u, resent %u, resyncs %u, epochs %u, mode changes %u, kicks %u, dropped emissions %u, ownership violations %u",
+                    movers, withPending, pending, tombstones, state.applied, state.refused, state.emitted, state.acked,
+                    state.confirmed, state.mismatched, state.resent, state.resyncs, state.epochs, state.modeChanges, state.kicks, droppedEmissions, MapPhase::Violations());
     PSendSysMessage("acks: seen %u, matched %u, mismatched %u, resent %u, tombstone %u, stale %u, future %u, wrong guid %u, unverified %u, teleporting %u",
                     acks.seen, acks.matched, acks.mismatched, acks.resent, acks.tombstone, acks.stale, acks.future, acks.wrongGuid, acks.unverified, acks.teleporting);
+    PSendSysMessage("movers: %u sessions, %u members, %u selected; added %u, removed %u, selected %u, deselected %u, bad select %u, bad deselect %u, not active %u, not member %u, unresolved %u",
+                    sessions, members, selected,
+                    authority.added + retired.added.load(), authority.removed + retired.removed.load(),
+                    authority.selected + retired.selected.load(), authority.deselected + retired.deselected.load(),
+                    authority.badSelect + retired.badSelect.load(), authority.badDeselect + retired.badDeselect.load(),
+                    authority.notActive + retired.notActive.load(), authority.notMember + retired.notMember.load(),
+                    authority.unresolved + retired.unresolved.load());
     return true;
 }
 

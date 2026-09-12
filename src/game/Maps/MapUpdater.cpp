@@ -167,6 +167,7 @@ void MapUpdater::workerLoop()
             m_tasks.pop();
         }
 
+        // Map::Update sets its own ownership scope now; the worker names no map.
         task.first->Update(task.second);
 
         {
