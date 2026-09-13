@@ -1137,9 +1137,12 @@ bool ScriptAction::HandleScriptStep()
                 if (m_script->textId[0] && !LogIfNotCreature(pSource))
                 {
                     Creature* cSource = static_cast<Creature*>(pSource);
-                    if (cSource->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
+                    if (WaypointMovementGenerator* waypoint = cSource->GetMotionMaster()->HeldWaypoint())
                     {
-                        (static_cast<WaypointMovementGenerator* >(cSource->GetMotionMaster()->top()))->AddToWaypointPauseTime(m_script->textId[0]);
+                        if (cSource->GetMotionMaster()->IsSelected(waypoint))
+                        {
+                            waypoint->AddToWaypointPauseTime(m_script->textId[0]);
+                        }
                     }
                 }
 

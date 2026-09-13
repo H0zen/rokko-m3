@@ -274,6 +274,7 @@ ChatCommand* ChatHandler::getCommandTable()
 
     static ChatCommand debugMovementCommandTable[] =
     {
+        { "dump",           SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleDebugMovementDumpCommand,        "", NULL },
         { "knockback",      SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleDebugMovementKnockBackCommand,   "", NULL },
         { "possess",        SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleDebugMovementPossessCommand,     "", NULL },
         { "release",        SEC_ADMINISTRATOR,  true,  &ChatHandler::HandleDebugMovementReleaseCommand,     "", NULL },

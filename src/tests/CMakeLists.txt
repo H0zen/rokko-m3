@@ -93,7 +93,6 @@ set(SRC_GRP_TESTS
     DynamicCollisionTest.cpp
     PlacementTest.cpp
     ArbiterModelTest.cpp
-    ShadowClassifierTest.cpp
     # Compiled in, not linked from `game`: game.lib pulls the whole server, down to the
     # database globals that only mangosd defines. These three know nothing of it.
     ${CMAKE_SOURCE_DIR}/src/game/WorldHandlers/DynamicCollision.cpp
@@ -102,7 +101,6 @@ set(SRC_GRP_TESTS
     # The movement arbiter's pure core: no Unit, no driver, no map.
     ${CMAKE_SOURCE_DIR}/src/game/MotionGenerators/Arbiter/MoveContract.cpp
     ${CMAKE_SOURCE_DIR}/src/game/MotionGenerators/Arbiter/ArbiterModel.cpp
-    ${CMAKE_SOURCE_DIR}/src/game/MotionGenerators/Arbiter/ShadowClassifier.cpp
     ${CMAKE_SOURCE_DIR}/src/game/Harness/Timeline.cpp
     ByteBufferStressTest.cpp
     CodecStressTest.cpp

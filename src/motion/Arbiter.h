@@ -28,6 +28,7 @@
 
 #include "Platform/Define.h"
 #include <array>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -110,6 +111,7 @@ namespace Motion
         uint32       id;
         FinishReason reason;   ///< Finished/DefaultSwapped: why; Suspended: Cut; Resumed: Arrived
         uint64       claim;    ///< Control entries only, else 0
+        uint32       seq;      ///< the entry's sequence
     };
 
     /// One line of the decision ring: what was asked, what was selected before and after.
@@ -130,6 +132,8 @@ namespace Motion
         Held         after;
         uint32       generation;
     };
+
+    char const* OpName(Decision::Op op);
 
     class Arbiter;
 
@@ -212,6 +216,12 @@ namespace Motion
             std::optional<Held> const& Default() const { return m_default; }
             /// The Combat-layer entry, if any.
             std::optional<Held> const& Combat() const { return m_combat; }
+            /// The newest sequence handed out; an entry created by the last request has a greater one than any before it.
+            uint32 LastSeq() const { return m_seq; }
+            /// The factory default parked beneath a pushed one, if any (not part of Contents()).
+            std::optional<Held> const& Fallback() const { return m_fallbackDefault; }
+            /// True while events are queued.
+            bool HasEvents() const { return !m_events.empty(); }
             /// The entry held on a command layer: for Control, the selected claim.
             /// Empty for Default and Combat, which have their own accessors.
             std::optional<Held> Command(Layer layer) const;
@@ -220,11 +230,18 @@ namespace Motion
             /// Every held entry, ascending layer order (Default, Combat, then the commands,
             /// the claims in precedence order on the Control layer).
             std::vector<Held> Contents() const;
+            /// True when this sequence is still held: an entry Contents() would list, or the
+            /// parked fallback. The allocation-free answer to the question Contents() is
+            /// otherwise built to ask, for the shell's per-binding, per-tick sweeps.
+            bool Holds(uint32 seq) const;
             /// Take and clear the accumulated events.
             std::vector<Event> DrainEvents();
 
             /// Ring capacity: at most this many decisions kept for Decisions().
             static constexpr size_t kRingSize = 32;
+            /// Allocate the decision ring; off by default (a resident 3 KB per unit buys nothing outside a GM session). Idempotent.
+            void EnableRing();
+            bool RingEnabled() const { return m_ring != nullptr; }
             /// The decision ring, oldest first: every public mutation with the selection before and after.
             std::vector<Decision> Decisions() const;
 
@@ -275,7 +292,7 @@ namespace Motion
             uint32 m_generation;                   ///< advanced by each outermost transaction
             uint32 m_depth;                        ///< open transactions
             TransactionKind m_outerKind;           ///< the outermost open one's kind
-            std::array<Decision, kRingSize> m_ring; ///< the decision ring, next write at m_ringNext
+            std::unique_ptr<std::array<Decision, kRingSize>> m_ring; ///< the decision ring, allocated on demand, next write at m_ringNext
             size_t m_ringNext;                     ///< the next slot to overwrite, wraps at kRingSize
             size_t m_ringCount;                    ///< entries recorded so far, capped at kRingSize
     };

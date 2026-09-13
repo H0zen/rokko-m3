@@ -267,9 +267,11 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
     MotionMaster* mm = unit->GetMotionMaster();
     float x, y, z;
     mm->GetDestination(x, y, z);
-    for (MotionMaster::const_iterator itr = mm->begin(); itr != mm->end(); ++itr)
+    std::vector<MotionMaster::HeldView> held = mm->Held();
+    for (size_t i = 0; i < held.size(); ++i)
     {
-        switch ((*itr)->GetMovementGeneratorType())
+        MovementGenerator const* gen = held[i].generator;
+        switch (gen->GetMovementGeneratorType())
         {
             case IDLE_MOTION_TYPE:          SendSysMessage(LANG_MOVEGENS_IDLE);          break;
             case RANDOM_MOTION_TYPE:        SendSysMessage(LANG_MOVEGENS_RANDOM);        break;
@@ -281,11 +283,11 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
                 Unit* target;
                 if (unit->GetTypeId() == TYPEID_PLAYER)
                 {
-                    target = static_cast<ChaseMovementGenerator const*>(*itr)->GetTarget();
+                    target = static_cast<ChaseMovementGenerator const*>(gen)->GetTarget();
                 }
                 else
                 {
-                    target = static_cast<ChaseMovementGenerator const*>(*itr)->GetTarget();
+                    target = static_cast<ChaseMovementGenerator const*>(gen)->GetTarget();
                 }
 
                 if (!target)
@@ -307,11 +309,11 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
                 Unit* target;
                 if (unit->GetTypeId() == TYPEID_PLAYER)
                 {
-                    target = static_cast<FollowMovementGenerator const*>(*itr)->GetTarget();
+                    target = static_cast<FollowMovementGenerator const*>(gen)->GetTarget();
                 }
                 else
                 {
-                    target = static_cast<FollowMovementGenerator const*>(*itr)->GetTarget();
+                    target = static_cast<FollowMovementGenerator const*>(gen)->GetTarget();
                 }
 
                 if (!target)
@@ -348,8 +350,13 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
             case DISTRACT_MOTION_TYPE: SendSysMessage(LANG_MOVEGENS_DISTRACT);  break;
             case EFFECT_MOTION_TYPE: SendSysMessage(LANG_MOVEGENS_EFFECT);  break;
             default:
-                PSendSysMessage(LANG_MOVEGENS_UNKNOWN, (*itr)->GetMovementGeneratorType());
+                PSendSysMessage(LANG_MOVEGENS_UNKNOWN, gen->GetMovementGeneratorType());
                 break;
+        }
+
+        if (held[i].selected)
+        {
+            SendSysMessage("   (selected)");
         }
     }
     return true;

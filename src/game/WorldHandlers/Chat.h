@@ -263,6 +263,7 @@ class ChatHandler
         bool HandleDebugMinionCommand(char* args);
         bool HandleDebugModItemValueCommand(char* args);
         bool HandleDebugModValueCommand(char* args);
+        bool HandleDebugMovementDumpCommand(char* args);
         bool HandleDebugMovementKnockBackCommand(char* args);
         bool HandleDebugMovementPossessCommand(char* args);
         bool HandleDebugMovementReleaseCommand(char* args);

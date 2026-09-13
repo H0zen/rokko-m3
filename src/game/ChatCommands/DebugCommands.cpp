@@ -2097,6 +2097,63 @@ bool ChatHandler::HandleDebugMovementSpeedCommand(char* args)
 }
 
 /**
+ * @brief .debug movement dump [player]: the arbiter's held behaviours by layer, the
+ *        selected one marked, the parked factory default if any, and, when
+ *        Movement.DecisionRing is on, its last thirty-two decisions.
+ */
+bool ChatHandler::HandleDebugMovementDumpCommand(char* args)
+{
+    Unit* unit = getSelectedUnit();
+    if (args && *args)
+    {
+        Player* player = NULL;
+        if (!ExtractPlayerTarget(&args, &player))
+        {
+            return false;
+        }
+        unit = player;
+    }
+    if (!unit)
+    {
+        SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
+        SetSentErrorMessage(true);
+        return false;
+    }
+    MotionMaster* mm = unit->GetMotionMaster();
+    Motion::Arbiter const& arbiter = mm->Arbiter();
+    std::vector<Motion::Held> contents = arbiter.Contents();
+    std::optional<Motion::Held> selected = arbiter.Selected();
+    PSendSysMessage("movement of %s: %u held, selected %s, generation %u",
+                    unit->GetGuidStr().c_str(), uint32(contents.size()),
+                    selected ? Motion::KindName(selected->kind) : "none", arbiter.Generation());
+    if (std::optional<Motion::Held> const& fallback = arbiter.Fallback())
+    {
+        PSendSysMessage("  fallback %s seq %u", Motion::KindName(fallback->kind), fallback->seq);
+    }
+    for (size_t i = 0; i < contents.size(); ++i)
+    {
+        Motion::Held const& h = contents[i];
+        PSendSysMessage("  [%s] %s id %u seq %u%s%s%s", Motion::LayerName(Motion::LayerOf(h.kind)), Motion::KindName(h.kind),
+                        h.id, h.seq, h.claim ? " claim" : "", mm->IsActivated(h.seq) ? " activated" : "",
+                        (selected && selected->seq == h.seq) ? " (selected)" : "");
+    }
+    if (!arbiter.RingEnabled())
+    {
+        SendSysMessage("  ring: off (Movement.DecisionRing = 0)");
+        return true;
+    }
+    std::vector<Motion::Decision> decisions = arbiter.Decisions();
+    PSendSysMessage("  ring: %u decisions", uint32(decisions.size()));
+    for (size_t i = 0; i < decisions.size(); ++i)
+    {
+        Motion::Decision const& d = decisions[i];
+        PSendSysMessage("  #%u g%u %s %s id %u: %s -> %s", uint32(i), d.generation, Motion::OpName(d.op), Motion::KindName(d.kind), d.id,
+                        d.hadBefore ? Motion::KindName(d.before.kind) : "-", d.hadAfter ? Motion::KindName(d.after.kind) : "-");
+    }
+    return true;
+}
+
+/**
  * @brief .debug movement scenario <name|all|status>: runs the GM harness's movement
  *        scenarios headless (movement P0-C) and prints their MVTEST lines to the log.
  */

@@ -298,7 +298,11 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
         if (GetPlayer()->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE)
         {
             // short preparations to continue flight
-            FlightPathMovementGenerator* flight = (FlightPathMovementGenerator*)(GetPlayer()->GetMotionMaster()->top());
+            FlightPathMovementGenerator* flight = GetPlayer()->GetMotionMaster()->HeldFlight();
+            if (!flight)
+            {
+                return;
+            }
 
             flight->Interrupt(*GetPlayer());                // will reset at map landing
 

@@ -1,0 +1,209 @@
+/**
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * MaNGOS is a full featured server for World of Warcraft, supporting
+ * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
+ *
+ * Copyright (C) 2005-2026 MaNGOS <https://www.getmangos.eu>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * World of Warcraft, and all World of Warcraft or Warcraft art, images,
+ * and lore are copyrighted by Blizzard Entertainment, Inc.
+ */
+
+#include "LegacyBehaviour.h"
+#include "IntentMovementGenerator.h"
+#include "MovementGenerator.h"
+#include "Creature.h"
+#include "Unit.h"
+#include "movement/MoveSpline.h"
+#include "movement/MoveSplineInit.h"
+
+LegacyBehaviour::LegacyBehaviour(Motion::Kind kind, MovementGenerator* generator, bool owned, EffectLaunch const& launch)
+    : m_kind(kind), m_generator(generator), m_owned(owned), m_launch(launch)
+{
+}
+
+LegacyBehaviour::~LegacyBehaviour()
+{
+    if (m_owned)
+    {
+        delete m_generator;   // no hook: the stack deleted without Finalize on destruction too
+    }
+}
+
+MovementGeneratorType LegacyBehaviour::LegacyType() const
+{
+    return m_generator->GetMovementGeneratorType();
+}
+
+void LegacyBehaviour::Activate(Unit& owner)
+{
+    m_generator->Initialize(owner);
+    if (m_kind == Motion::Kind::Effect)
+    {
+        Launch(owner);
+    }
+}
+
+void LegacyBehaviour::Suspend(Unit& owner)
+{
+    switch (m_kind)
+    {
+        case Motion::Kind::Idle:
+        case Motion::Kind::Distract:
+        case Motion::Kind::AssistDistract:
+        case Motion::Kind::Effect:
+            return;   // inert, a timer, or a spline nothing beneath may touch
+        default:
+            m_generator->Interrupt(owner);
+            return;
+    }
+}
+
+void LegacyBehaviour::Resume(Unit& owner, bool reset)
+{
+    if (reset)
+    {
+        m_generator->Reset(owner);
+    }
+}
+
+void LegacyBehaviour::Finish(Unit& owner, Motion::FinishReason why)
+{
+    switch (why)
+    {
+        case Motion::FinishReason::Superseded:
+        case Motion::FinishReason::Overridden:
+        case Motion::FinishReason::Cancelled:
+            switch (m_kind)
+            {
+                case Motion::Kind::Idle:
+                    return;
+                case Motion::Kind::Distract:
+                case Motion::Kind::AssistDistract:
+                    m_generator->Finalize(owner);   // the only cleanup that clears DISTRACTED; the stack expired these before pushing
+                    return;
+                case Motion::Kind::Effect:
+                    if (Landed(owner))
+                    {
+                        m_generator->Finalize(owner);   // a landing not yet consumed by a tick is the effect having happened
+                    }
+                    return;
+                default:
+                    m_generator->Interrupt(owner);
+                    CleanupAfterInterrupt(owner);
+                    return;
+            }
+        default:
+            m_generator->Finalize(owner);
+            return;
+    }
+}
+
+void LegacyBehaviour::CleanupAfterInterrupt(Unit& owner)
+{
+    switch (m_kind)
+    {
+        case Motion::Kind::Fear:
+            owner.clearUnitState(UNIT_STAT_FLEEING);
+            if (owner.GetTypeId() == TYPEID_UNIT)
+            {
+                static_cast<Creature&>(owner).SetWalk(!owner.hasUnitState(UNIT_STAT_RUNNING_STATE), false);
+            }
+            return;
+        case Motion::Kind::Confused:
+            owner.clearUnitState(UNIT_STAT_CONFUSED);
+            return;
+        default:
+            return;
+    }
+}
+
+bool LegacyBehaviour::Tick(Unit& owner, uint32 diff)
+{
+    return m_generator->Update(owner, diff);
+}
+
+Motion::FinishReason LegacyBehaviour::EndReason(Unit& owner) const
+{
+    switch (m_kind)
+    {
+        case Motion::Kind::Point:
+        case Motion::Kind::FlyLand:
+        case Motion::Kind::AssistRun:
+        {
+            if (IntentMovementGenerator const* intent = dynamic_cast<IntentMovementGenerator const*>(m_generator))
+            {
+                Motion::MoveStatus const& status = intent->LastStatus();
+                if (status.blocked)
+                {
+                    return Motion::FinishReason::Blocked;
+                }
+                if (status.cut)
+                {
+                    return Motion::FinishReason::Cut;
+                }
+            }
+            return Motion::FinishReason::Arrived;
+        }
+        case Motion::Kind::Effect:
+            return Landed(owner) ? Motion::FinishReason::Arrived : Motion::FinishReason::Cut;
+        case Motion::Kind::Chase:
+        case Motion::Kind::Follow:
+            return Motion::FinishReason::TargetLost;
+        case Motion::Kind::Home:
+        case Motion::Kind::Taxi:
+            return Motion::FinishReason::Arrived;
+        default:
+            return Motion::FinishReason::Expired;   // Distract, AssistDistract, a timed fear
+    }
+}
+
+bool LegacyBehaviour::Landed(Unit const& owner) const
+{
+    return owner.movespline->Finalized() && !owner.movespline->Cut();
+}
+
+void LegacyBehaviour::Launch(Unit& owner)
+{
+    if (m_launch.kind == EffectLaunch::None)
+    {
+        return;
+    }
+    Movement::MoveSplineInit init(owner);
+    init.MoveTo(m_launch.x, m_launch.y, m_launch.z);
+    if (m_launch.kind == EffectLaunch::Jump)
+    {
+        init.SetParabolic(m_launch.height, 0);
+        init.SetVelocity(m_launch.speed);
+    }
+    else
+    {
+        init.SetFall();
+    }
+    init.Launch();
+    m_launch.kind = EffectLaunch::None;   // once
+}
+
+void LegacyBehaviour::SpeedChanged()
+{
+    m_generator->unitSpeedChanged();
+}
+
+bool LegacyBehaviour::GetResetPosition(Unit& owner, float& x, float& y, float& z, float& o) const
+{
+    return m_generator->GetResetPosition(owner, x, y, z, o);
+}

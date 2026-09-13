@@ -373,7 +373,10 @@ bool Unit::SelectHostileTarget()
 
             // check if currently selected target is reachable
             // NOTE: path alrteady generated from AttackStart()
-            if (!GetMotionMaster()->GetCurrent()->IsReachable())
+            // A unit with no selected behaviour at all has nothing that could report a
+            // failed path, so it counts as reachable: taunts stay where they are.
+            MovementGenerator const* moving = GetMotionMaster()->GetCurrent();
+            if (moving && !moving->IsReachable())
             {
                 // remove all taunts
                 RemoveSpellsCausingAura(SPELL_AURA_MOD_TAUNT);

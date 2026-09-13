@@ -130,17 +130,6 @@ class MovementGenerator
          * @return True if reachable, false otherwise
          */
         virtual bool IsReachable() const { return true; }
-
-        /**
-         * @brief Check if movement generator is still active
-         *
-         * Checks if this is the top movement generator after calls
-         * that may not be safe for this generator.
-         *
-         * @param u Reference to the unit
-         * @return True if still active, false otherwise
-         */
-        bool IsActive(Unit& u);
 };
 
 /**

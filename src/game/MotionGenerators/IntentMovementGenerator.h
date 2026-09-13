@@ -54,11 +54,12 @@ class IntentMovementGenerator : public MovementGenerator
         bool Update(Unit& owner, const uint32& diff) final
         {
             const Motion::MoveStatus status = m_driver.BeginTick(owner);
+            m_last = status;
             const Motion::MoveIntent intent = Intent(owner, status, diff);
 
             // A hook fired from inside Intent (a waypoint inform, a script) may have pushed
             // or popped generators: a leg laid now would belong to one no longer on top.
-            if (!IsActive(owner))
+            if (!owner.GetMotionMaster()->IsSelected(this))
             {
                 return true;
             }
@@ -69,6 +70,10 @@ class IntentMovementGenerator : public MovementGenerator
         void unitSpeedChanged() final { m_driver.OnSpeedChanged(); }
 
         bool IsReachable() const final { return m_driver.Reachable(); }
+
+        /// What the driver knew about the leg before the last tick (the shell classifies
+        /// a false Update by it).
+        Motion::MoveStatus const& LastStatus() const { return m_last; }
 
     protected:
         /**
@@ -86,6 +91,7 @@ class IntentMovementGenerator : public MovementGenerator
 
     private:
         MotionDriver m_driver;
+        Motion::MoveStatus m_last;
 };
 
 #endif // MANGOS_INTENTMOVEMENTGENERATOR_H

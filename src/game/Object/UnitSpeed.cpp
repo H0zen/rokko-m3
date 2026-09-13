@@ -292,7 +292,7 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
 
         SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
 
-        GetMotionMaster()->MovementExpired(false);
+        GetMotionMaster()->CancelControl(Motion::Kind::Fear);
         CastStop(GetObjectGuid() == casterGuid ? spellID : 0);
 
         // Control is taken before the flee spline is laid (design v2 §8): the packet,
@@ -310,7 +310,7 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
     {
         RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
 
-        GetMotionMaster()->MovementExpired(false);
+        GetMotionMaster()->CancelControl(Motion::Kind::Fear);
 
         if (GetTypeId() != TYPEID_PLAYER && IsAlive())
         {
@@ -333,7 +333,7 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
         }
 
         // Control returns once the server movement has ended: the reconcile is the
-        // MovementExpired above.
+        // CancelControl above.
         if (GetTypeId() == TYPEID_PLAYER)
         {
             ((Player*)this)->SetClientControl(this, 1);
@@ -373,7 +373,7 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID)
     {
         RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
 
-        GetMotionMaster()->MovementExpired(false);
+        GetMotionMaster()->CancelControl(Motion::Kind::Confused);
 
         if (GetTypeId() != TYPEID_PLAYER && IsAlive())
         {
@@ -389,7 +389,7 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID)
         }
 
         // Control returns once the server movement has ended: the reconcile is the
-        // MovementExpired above.
+        // CancelControl above.
         if (GetTypeId() == TYPEID_PLAYER)
         {
             ((Player*)this)->SetClientControl(this, 1);

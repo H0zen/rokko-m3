@@ -696,7 +696,7 @@ void World::LoadConfigSettings(bool reload)
         Wire::MovementCapture::Close();
     }
 
-    setConfig(CONFIG_BOOL_MOVEMENT_ARBITER_SHADOW, "Movement.ArbiterShadow", false);
+    setConfig(CONFIG_BOOL_MOVEMENT_DECISION_RING, "Movement.DecisionRing", false);
 
     setConfig(CONFIG_BOOL_MOVEMENT_WIRE_PARITY, "Movement.WireParity", false);
     WireParity::Enable(getConfig(CONFIG_BOOL_MOVEMENT_WIRE_PARITY));

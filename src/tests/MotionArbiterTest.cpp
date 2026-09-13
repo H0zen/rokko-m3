@@ -849,6 +849,7 @@ TEST(MotionArbiter_Death_NestedInNormalStillDiscards)
 TEST(MotionArbiter_Ring_RecordsBeforeAndAfter)
 {
     Arbiter m;
+    m.EnableRing();
     CHECK_EQ(static_cast<int>(m.Decisions().size()), 0);
     m.InstallDefault(Kind::Wander);
     m.Request(Req(Kind::Point, 4));
@@ -874,6 +875,7 @@ TEST(MotionArbiter_Ring_RecordsBeforeAndAfter)
 TEST(MotionArbiter_Ring_WrapsAt32)
 {
     Arbiter m;
+    m.EnableRing();
     m.InstallDefault(Kind::Wander);
     for (uint32 i = 1; i <= 40; ++i)
     {
@@ -1005,6 +1007,7 @@ TEST(MotionArbiter_InstallDefault_DropsFallback)
 TEST(MotionArbiter_Ring_CommitRecordsOnlyWhenItSwept)
 {
     Arbiter m;
+    m.EnableRing();
     m.InstallDefault(Kind::Idle);
     {
         Transaction tx(m, TransactionKind::ClearAll);
@@ -1022,6 +1025,7 @@ TEST(MotionArbiter_Ring_CommitRecordsOnlyWhenItSwept)
 TEST(MotionArbiter_Ring_RefusedClaimStillRecorded)
 {
     Arbiter m;
+    m.EnableRing();
     m.InstallDefault(Kind::Idle);
     m.Request(Req(Kind::Fear));                       // no identity: refused
     std::vector<Decision> d = m.Decisions();
@@ -1034,6 +1038,7 @@ TEST(MotionArbiter_Ring_RefusedClaimStillRecorded)
 TEST(MotionArbiter_Ring_ExpireSelectedKeepsItsLabel)
 {
     Arbiter m;
+    m.EnableRing();
     m.InstallDefault(Kind::Wander);
     m.Request(Req(Kind::Chase));
     m.ExpireSelected();                               // delegates to the finisher, records as itself
@@ -1046,6 +1051,7 @@ TEST(MotionArbiter_Ring_ExpireSelectedKeepsItsLabel)
 TEST(MotionArbiter_Ring_NotifyRecordsTheEvent)
 {
     Arbiter m;
+    m.EnableRing();
     m.InstallDefault(Kind::Wander);
     m.Notify(ExternalEvent::CombatStarted);
     std::vector<Decision> d = m.Decisions();
@@ -1086,4 +1092,89 @@ TEST(MotionArbiter_Reselect_NeverRunEntryIsNotResumed)
     m.ExpireSelected();
     CHECK_EQ(SelectedKind(m), K(Kind::Chase));
     CHECK_EQ(CountEvents(m.DrainEvents(), Event::Kind::Resumed, Kind::Chase), 1);   // it had run: resumed
+}
+
+TEST(MotionArbiter_Event_CarriesTheEntrySeq)
+{
+    Arbiter m;
+    m.InstallDefault(Kind::Wander);
+    m.Request(Req(Kind::Point, 4));
+    const uint32 pointSeq = m.Command(Layer::Scripted)->seq;
+    const uint32 wanderSeq = m.Default()->seq;
+    m.DrainEvents();
+    m.ExpireSelected();
+    std::vector<Event> ev = m.DrainEvents();
+    bool finished = false;
+    bool resumed = false;
+    for (Event const& e : ev)
+    {
+        if (e.kind == Event::Kind::Finished && e.who == Kind::Point)
+        {
+            finished = e.seq == pointSeq;
+        }
+        if (e.kind == Event::Kind::Resumed && e.who == Kind::Wander)
+        {
+            resumed = e.seq == wanderSeq;
+        }
+    }
+    CHECK(finished);
+    CHECK(resumed);
+    CHECK_EQ(static_cast<int>(m.LastSeq()), static_cast<int>(pointSeq));
+}
+
+TEST(MotionArbiter_Fallback_IsVisible)
+{
+    Arbiter m;
+    m.InstallDefault(Kind::Idle);
+    CHECK(!m.Fallback());
+    m.Request(Req(Kind::Patrol));
+    REQUIRE(m.Fallback().has_value());
+    CHECK_EQ(K(m.Fallback()->kind), K(Kind::Idle));
+    CHECK(!m.HasEvents() == false);                   // the swap queued an event
+    m.DrainEvents();
+    CHECK(!m.HasEvents());
+    m.Clear(false);
+    CHECK(!m.Fallback());
+}
+
+TEST(MotionArbiter_Holds_AnswersWithoutContents)
+{
+    Arbiter m;
+    m.InstallDefault(Kind::Idle);
+    const uint32 idleSeq = m.Default()->seq;
+    CHECK(m.Holds(idleSeq));
+    CHECK(!m.Holds(idleSeq + 100));                   // never handed out
+    CHECK(!m.Holds(0));
+    m.Request(Req(Kind::Patrol));
+    const uint32 patrolSeq = m.Default()->seq;
+    REQUIRE(m.Fallback().has_value());
+    CHECK(m.Holds(idleSeq));                          // the parked fallback, as Contents() never lists it
+    CHECK(m.Holds(patrolSeq));
+    m.Request(Req(Kind::Point, 7));
+    const uint32 pointSeq = m.Command(Layer::Scripted)->seq;
+    CHECK(m.Holds(pointSeq));
+    m.Request(Claim(Kind::Fear, 11));
+    const uint32 fearSeq = m.Claims()[0].seq;
+    CHECK(m.Holds(fearSeq));
+    m.FinishSelected(FinishReason::Expired);
+    CHECK(!m.Holds(fearSeq));                         // finished: gone from the claim set
+    CHECK(m.Holds(pointSeq));
+}
+
+TEST(MotionArbiter_Ring_OffByDefault_OnWhenEnabled)
+{
+    Arbiter m;
+    CHECK(!m.RingEnabled());
+    m.InstallDefault(Kind::Wander);
+    m.Request(Req(Kind::Point, 1));
+    CHECK_EQ(static_cast<int>(m.Decisions().size()), 0);
+    m.EnableRing();
+    CHECK(m.RingEnabled());
+    m.Request(Req(Kind::Point, 2));
+    std::vector<Decision> d = m.Decisions();
+    REQUIRE(static_cast<int>(d.size()) == 1);
+    CHECK_EQ(static_cast<int>(d[0].id), 2);
+    CHECK_STR(OpName(d[0].op), "Request");
+    m.EnableRing();                                   // idempotent: keeps what it has
+    CHECK_EQ(static_cast<int>(m.Decisions().size()), 1);
 }

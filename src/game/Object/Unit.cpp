@@ -4488,8 +4488,7 @@ void Unit::SetDeathState(DeathState s)
         UnsummonAllTotems();
 
         StopMoving();
-        i_motionMaster.Clear(false, true);
-        i_motionMaster.MoveIdle();
+        i_motionMaster.Die();
 
         // Unsummon vehicle accessories
         if (IsVehicle())
@@ -6457,25 +6456,10 @@ void Unit::NearTeleportTo(float x, float y, float z, float orientation, bool cas
     }
     else
     {
+        // Creature relocation acts like instant movement: the selected behaviour expects the
+        // interrupt/reset pair around it to react properly.
         Creature* c = (Creature*)this;
-        // Creature relocation acts like instant movement generator, so current generator expects interrupt/reset calls to react properly
-        if (!c->GetMotionMaster()->empty())
-            if (MovementGenerator* movgen = c->GetMotionMaster()->top())
-            {
-                movgen->Interrupt(*c);
-            }
-
-        GetMap()->CreatureRelocation((Creature*)this, x, y, z, orientation);
-
-        SendHeartBeat();
-
-        // finished relocation, movegen can different from top before creature relocation,
-        // but apply Reset expected to be safe in any case
-        if (!c->GetMotionMaster()->empty())
-            if (MovementGenerator* movgen = c->GetMotionMaster()->top())
-            {
-                movgen->Reset(*c);
-            }
+        c->GetMotionMaster()->RelocateSelected(x, y, z, orientation);
     }
 }
 

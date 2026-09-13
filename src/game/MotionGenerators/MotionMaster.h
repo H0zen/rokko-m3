@@ -27,17 +27,20 @@
 #define MANGOS_MOTIONMASTER_H
 
 #include "Platform/Define.h"
+#include "Arbiter.h"
 #include <memory>
+#include <optional>
 #include <sstream>
-
-struct Position;
-#include <stack>
 #include <vector>
 
-class MovementGenerator;
+struct Position;
+
 class Unit;
-class ArbiterShadow;
-namespace Arbiter { enum class MoveKind : uint8; }
+class MovementGenerator;
+class MotionBehaviour;
+class WaypointMovementGenerator;
+class FlightPathMovementGenerator;
+struct EffectLaunch;
 
 // Creature Entry ID used for waypoints show, visible only for GMs
 #define VISUAL_WAYPOINT 1
@@ -74,310 +77,134 @@ enum MovementGeneratorType
 };
 
 /**
- * @brief Motion master clean flags
+ * The movement facade and, since P3-B, the kernel's Controller shell (design
+ * 2026-09-13-movement-p3b-controller-design.md): one Motion::Arbiter decides which
+ * held behaviour runs, one adapted legacy generator behaves per held entry, and
+ * every public call is an arbiter transaction whose events reach the behaviours
+ * through the hook matrix when the outermost call ends. Only the selected
+ * behaviour ticks. The entry points the vendored scripts call are the ones the
+ * shim gate pins; the rest is the core's.
  */
-enum MMCleanFlag
+class MotionMaster
 {
-    MMCF_NONE = 0,   ///< No clean flag
-    MMCF_UPDATE = 1, ///< Clear or Expire called from update
-    MMCF_RESET = 2   ///< Flag if need top()->Reset()
-};
-
-/**
- * @brief MotionMaster is responsible for managing the movement generators for a unit.
- */
-class MotionMaster : private std::stack<MovementGenerator*>
-{
-    private:
-        typedef std::stack<MovementGenerator*> Impl;
-        typedef std::vector<MovementGenerator*> ExpireList;
-
     public:
-        /**
-         * @brief Constructor for MotionMaster.
-         * @param unit Pointer to the unit.
-         */
-        explicit MotionMaster(Unit* unit);   // Out of line: m_shadow holds an incomplete type
-
-        /**
-         * @brief Destructor for MotionMaster.
-         */
+        explicit MotionMaster(Unit* unit);
         ~MotionMaster();
 
-        /**
-         * @brief Initializes the MotionMaster.
-         */
+        /// The factory default: clear everything, install the creature's default movement (idle for players).
         void Initialize();
-
-        /**
-         * @brief Gets the current movement generator.
-         * @return Pointer to the current movement generator.
-         */
-        MovementGenerator const* GetCurrent() const { return top(); }
-
-        MovementGenerator* operator->(void) { return top(); }
-
-        using Impl::top;
-        using Impl::empty;
-
-        typedef Impl::container_type::const_iterator const_iterator;
-        const_iterator begin() const { return Impl::c.begin(); }
-        const_iterator end() const { return Impl::c.end(); }
-
-        /**
-         * @brief Updates the motion of the unit.
-         * @param diff Time difference.
-         */
+        /// The selected behaviour's generator; NULL before Initialize.
+        MovementGenerator const* GetCurrent() const;
+        /// One tick of the selected behaviour; nothing under UNIT_STAT_CAN_NOT_MOVE.
         void UpdateMotion(uint32 diff);
+        /// Every command, claim and combat finish; the pushed default too when `all`; the survivor resets when `reset && !all`.
+        void Clear(bool reset = true, bool all = false);
+        /// The selected behaviour finishes; the exposed one resets when `reset` and nothing was pushed over it.
+        void MovementExpired(bool reset = true);
 
-        /**
-         * @brief Clears the movement generators.
-         * @param reset Whether to reset the movement generators.
-         * @param all Whether to clear all movement generators.
-         */
-        void Clear(bool reset = true, bool all = false)
-        {
-            if (m_cleanFlag & MMCF_UPDATE)
-            {
-                DelayedClean(reset, all);
-            }
-            else
-            {
-                DirectClean(reset, all);
-            }
-        }
-
-        /**
-         * @brief Expires the current movement generator.
-         * @param reset Whether to reset the movement generator.
-         */
-        void MovementExpired(bool reset = true)
-        {
-            if (m_cleanFlag & MMCF_UPDATE)
-            {
-                DelayedExpire(reset);
-            }
-            else
-            {
-                DirectExpire(reset);
-            }
-        }
-
-        /**
-         * @brief Moves the unit to idle state.
-         */
         void MoveIdle();
-
-        /**
-         * @brief Moves the unit randomly around a point.
-         * @param x X-coordinate of the center point.
-         * @param y Y-coordinate of the center point.
-         * @param z Z-coordinate of the center point.
-         * @param radius Radius of the random movement.
-         * @param verticalZ Vertical offset for the movement.
-         */
         void MoveRandomAroundPoint(float x, float y, float z, float radius, float verticalZ = 0.0f);
-
-        /**
-         * @brief Moves the unit to its home position.
-         */
         void MoveTargetedHome();
-
-        /**
-         * @brief Makes the unit follow a target.
-         * @param target Pointer to the target unit.
-         * @param dist Distance to maintain from the target.
-         * @param angle Angle to maintain from the target.
-         */
         void MoveFollow(Unit* target, float dist, float angle);
-
-        /**
-         * @brief Makes the unit chase a target.
-         * @param target Pointer to the target unit.
-         * @param dist Distance to maintain from the target.
-         * @param angle Angle to maintain from the target.
-         */
         void MoveChase(Unit* target, float dist = 0.0f, float angle = 0.0f);
-
-        /**
-         * @brief Makes the unit move in a confused manner.
-         */
         void MoveConfused();
-
-        /**
-         * @brief Makes the unit flee from an enemy.
-         * @param enemy Pointer to the enemy unit.
-         * @param timeLimit Time limit for the fleeing movement.
-         */
         void MoveFleeing(Unit* enemy, uint32 timeLimit = 0);
-
-        /**
-         * @brief Moves the unit to a specific point.
-         * @param id ID of the movement.
-         * @param x X-coordinate of the destination.
-         * @param y Y-coordinate of the destination.
-         * @param z Z-coordinate of the destination.
-         * @param generatePath Whether to generate a path to the destination.
-         */
         void MovePoint(uint32 id, float x, float y, float z, bool generatePath = true);
-
-        /**
-         * @brief Makes the unit seek assistance at a specific point.
-         * @param x X-coordinate of the assistance point.
-         * @param y Y-coordinate of the assistance point.
-         * @param z Z-coordinate of the assistance point.
-         */
         void MoveSeekAssistance(float x, float y, float z);
-
-        /**
-         * @brief Makes the unit seek assistance and then distract.
-         * @param timer Time for the distraction.
-         */
         void MoveSeekAssistanceDistract(uint32 timer);
-
-        /**
-         * @brief Moves the unit along a waypoint path.
-         * @param id ID of the waypoint path.
-         * @param source Source of the waypoint path.
-         * @param initialDelay Initial delay before starting the movement.
-         * @param overwriteEntry Entry to overwrite.
-         */
         void MoveWaypoint(int32 id = 0, uint32 source = 0, uint32 initialDelay = 0, uint32 overwriteEntry = 0);
-
-        /**
-         * @brief Holds a waypoint patrol where it stands, for a player to talk to it.
-         * @param ms How long to hold before the patrol goes on; a longer wait already running is kept.
-         * @return True when a waypoint generator was on top and took the pause.
-         */
+        /// Holds a waypoint patrol where it stands; true when the selected behaviour was a patrol and took the pause.
         bool PauseWaypoints(int32 ms);
-
-        /**
-         * @brief Moves the unit along a taxi flight path.
-         * @param path ID of the flight path.
-         * @param pathnode Node of the flight path.
-         */
         void MoveTaxiFlight(uint32 path, uint32 pathnode);
-
-        /**
-         * @brief Makes the unit distract for a specified time.
-         * @param timeLimit Time limit for the distraction.
-         */
         void MoveDistract(uint32 timeLimit);
         void MoveJump(float x, float y, float z, float horizontalSpeed, float max_height, uint32 id = 0);
         void MoveJump(Position& pos, float horizontalSpeed, float max_height, uint32 id = 0);
-
-        /// A jump that ends facing a target, or a given orientation. Cataclysm's
-        /// EffectJump uses it where mangos_two still teleports.
-        void MoveDestination(float x, float y, float z, float o, float horizontalSpeed,
-                             float max_height, Unit* target = NULL);
-
-        /**
-         * @brief Makes the unit fall.
-         */
+        /// A jump that ends facing a target, or a given orientation: a raw spline, no behaviour (P5).
+        void MoveDestination(float x, float y, float z, float o, float horizontalSpeed, float max_height, Unit* target = NULL);
         void MoveFall();
-
-        /**
-         * @brief Makes the unit fly or land.
-         * @param id ID of the movement.
-         * @param x X-coordinate of the destination.
-         * @param y Y-coordinate of the destination.
-         * @param z Z-coordinate of the destination.
-         * @param liftOff Whether the unit should lift off or land.
-         */
         void MoveFlyOrLand(uint32 id, float x, float y, float z, bool liftOff);
 
-        /**
-         * @brief Gets the type of the current movement generator.
-         * @return The type of the current movement generator.
-         */
         MovementGeneratorType GetCurrentMovementGeneratorType() const;
-
-        /**
-         * @brief Propagates the speed change to the movement generators.
-         */
         void PropagateSpeedChange();
-
-        /**
-         * @brief Sets the next waypoint for the unit.
-         * @param pointId ID of the next waypoint.
-         * @return True if the next waypoint was successfully set, false otherwise.
-         */
         bool SetNextWaypoint(uint32 pointId);
-
-        /**
-         * @brief Gets the last reached waypoint.
-         * @return The ID of the last reached waypoint.
-         */
         uint32 getLastReachedWaypoint() const;
-
-        /**
-         * @brief Gets the waypoint path information.
-         * @param oss Output stream to store the waypoint path information.
-         */
         void GetWaypointPathInformation(std::ostringstream& oss) const;
-
-        /**
-         * @brief Gets the destination coordinates.
-         * @param x Reference to the X-coordinate.
-         * @param y Reference to the Y-coordinate.
-         * @param z Reference to the Z-coordinate.
-         * @return True if the destination coordinates were successfully obtained, false otherwise.
-         */
         bool GetDestination(float& x, float& y, float& z);
 
+        /// Death: every behaviour finishes Died while the unit still reads alive, then the idle default.
+        void Die();
+        /// Release the control claims of this kind (the aura handlers' form until P4).
+        void CancelControl(Motion::Kind kind);
+        /// A near teleport: suspend the selection, relocate, resume it with a reset.
+        void RelocateSelected(float x, float y, float z, float o);
+        /// True iff this generator belongs to the selected behaviour (replaces MovementGenerator::IsActive).
+        bool IsSelected(MovementGenerator const* generator) const;
+        /// A chase (the Combat entry) or a follow (a Default-layer kind), selected or masked --
+        /// what an effect's finalizer asks before starting a fresh chase; P3-C's typed queries replace it.
+        bool HoldsChaseOrFollow() const;
+        /// True when this sequence has a binding and that binding has been activated.
+        bool IsActivated(uint32 seq) const;
+        /// The held patrol generator wherever it sits (default slot, masked or not), else NULL.
+        WaypointMovementGenerator* HeldWaypoint();
+        WaypointMovementGenerator const* HeldWaypoint() const;
+        /// The held taxi flight, else NULL.
+        FlightPathMovementGenerator* HeldFlight();
+
+        /// One held entry for a listing.
+        struct HeldView
+        {
+            MovementGenerator const* generator;
+            bool selected;
+        };
+        /// Every held behaviour in arrival order, the selected one marked.
+        std::vector<HeldView> Held() const;
+        /// Allocate the arbiter's decision ring (Movement.DecisionRing).
+        void EnableDecisionRing();
+        /// The model, for the GM dump.
+        Motion::Arbiter const& Arbiter() const { return m_arbiter; }
+
     private:
-        /**
-         * @brief Mutates the movement generator.
-         * @param m Pointer to the movement generator.
-         */
-        void Mutate(MovementGenerator* m);                  // Use Move* functions instead
+        /// One held entry's behaviour, keyed by the arbiter's sequence.
+        struct Bound
+        {
+            uint32 seq;
+            std::unique_ptr<MotionBehaviour> behaviour;
+            bool activated;
+            Bound(uint32 s, std::unique_ptr<MotionBehaviour> b);
+            Bound(Bound&& other) noexcept;
+            Bound& operator=(Bound&& other) noexcept;
+            ~Bound();
+        };
+        /// The stack's reset latch: consumed once at the outermost commit.
+        enum class PendingReset : uint8 { None, WhenExposed, Always };
 
-        /**
-         * @brief Directly clears the movement generators.
-         * @param reset Whether to reset the movement generators.
-         * @param all Whether to clear all movement generators.
-         */
-        void DirectClean(bool reset, bool all);
+        class Scope;   ///< the transaction guard (MotionMaster.cpp)
 
-        /**
-         * @brief Delays the clearing of the movement generators.
-         * @param reset Whether to reset the movement generators.
-         * @param all Whether to clear all movement generators.
-         */
-        void DelayedClean(bool reset, bool all);
+        void Request(Motion::MoveRequest const& request, MovementGenerator* generator, bool owned, EffectLaunch const& launch);
+        void Request(Motion::MoveRequest const& request, MovementGenerator* generator, bool owned);
+        void InstallFactory(Motion::Kind kind, MovementGenerator* generator, bool owned);
+        bool Bind(Motion::Kind kind, uint32 seqBefore, MovementGenerator* generator, bool owned, EffectLaunch const& launch);
+        void SweepStale(Motion::Kind kind);
+        void Commit(std::optional<Motion::Transaction>& transaction);
+        void DeliverEvents();
+        void Deliver(Motion::Event const& event);
+        void Reconcile();
+        bool IsHeld(uint32 seq) const;
+        size_t IndexOf(uint32 seq) const;
+        Bound* Find(uint32 seq);
+        Bound const* Find(uint32 seq) const;
+        Bound* SelectedBound();
+        Bound const* SelectedBound() const;
+        void Retire(size_t index, Motion::FinishReason reason);
 
-        /**
-         * @brief Directly expires the current movement generator.
-         * @param reset Whether to reset the movement generator.
-         */
-        void DirectExpire(bool reset);
-
-        /**
-         * @brief Delays the expiration of the current movement generator.
-         * @param reset Whether to reset the movement generator.
-         */
-        void DelayedExpire(bool reset);
-
-        /// Mirrors the default generator Initialize() just pushed into the shadow model.
-        void ShadowFactoryDefault();
-
-        /// Mirrors one facade request into the shadow model.
-        void ShadowRequest(Arbiter::MoveKind kind, uint32 id = 0);
-
-        /// Mirrors Clear(reset, all) into the shadow model.
-        void ShadowClear(bool all);
-
-        /// Mirrors MovementExpired on the generator about to be popped into the shadow model.
-        void ShadowExpired(MovementGeneratorType type);
-
-        /// Hands the current stack to the shadow model, which logs any divergence.
-        void ShadowCompare();
-
-        Unit*       m_owner; ///< Pointer to the owner unit.
-        ExpireList* m_expList; ///< List of expired movement generators.
-        uint8       m_cleanFlag; ///< Flag for cleaning the movement generators.
-        uint8       m_shadowMute; ///< >0 while Mutate applies an expiry the model already applied at request time
-        std::unique_ptr<ArbiterShadow> m_shadow; ///< PR1 shadow mode; null unless Movement.ArbiterShadow
+        Unit*              m_owner;
+        Motion::Arbiter    m_arbiter;
+        std::vector<Bound> m_bound;
+        std::vector<std::unique_ptr<MotionBehaviour> > m_retired; ///< finished behaviours, destroyed at the end of the outermost commit (a generator ticking when its hook finished it must outlive its own Update)
+        uint32             m_depth;          ///< open scopes
+        Motion::TransactionKind m_scopeKind; ///< the kind the outermost commit runs under; a nested death raises it to Death
+        PendingReset       m_pendingReset;
+        uint32             m_exposedSeq;     ///< WhenExposed: the entry an expiry exposed
 };
 
 #endif // MANGOS_MOTIONMASTER_H

@@ -1023,15 +1023,14 @@ bool ChatHandler::HandleNpcUnFollowCommand(char* /*args*/)
     }
 
     MotionMaster* creatureMotion = creature->GetMotionMaster();
-    if (creatureMotion->empty() ||
-        creatureMotion->GetCurrentMovementGeneratorType() != FOLLOW_MOTION_TYPE)
+    if (creatureMotion->GetCurrentMovementGeneratorType() != FOLLOW_MOTION_TYPE)
     {
         PSendSysMessage(LANG_CREATURE_NOT_FOLLOW_YOU, creature->GetName());
         SetSentErrorMessage(true);
         return false;
     }
 
-    FollowMovementGenerator const* mgen = static_cast<FollowMovementGenerator const*>(creatureMotion->top());
+    FollowMovementGenerator const* mgen = static_cast<FollowMovementGenerator const*>(creatureMotion->GetCurrent());
 
     if (mgen->GetTarget() != player)
     {

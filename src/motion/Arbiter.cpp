@@ -129,6 +129,18 @@ namespace Motion
         return index < sizeof(names) / sizeof(names[0]) ? names[index] : "?";
     }
 
+    char const* OpName(Decision::Op op)
+    {
+        static char const* const names[] =
+        {
+            "InstallDefault", "Request", "Clear", "ClearAll", "ExpireSelected", "Expire", "FinishSelected",
+            "CancelControl", "Release", "Notify", "Die", "Commit"
+        };
+        static_assert(sizeof(names) / sizeof(names[0]) == 12, "OpName out of sync with Decision::Op");
+        const size_t index = static_cast<size_t>(op);
+        return index < sizeof(names) / sizeof(names[0]) ? names[index] : "?";
+    }
+
     namespace
     {
         const uint8 FIRST_COMMAND_LAYER = static_cast<uint8>(Layer::Scripted);
@@ -150,7 +162,7 @@ namespace Motion
     }
 
     Arbiter::Arbiter() : m_seq(0), m_generation(0), m_depth(0), m_outerKind(TransactionKind::Normal),
-        m_ring(), m_ringNext(0), m_ringCount(0)
+        m_ringNext(0), m_ringCount(0)
     {
     }
 
@@ -324,7 +336,7 @@ namespace Motion
         const std::optional<Held> before = Selected();
         if (m_default)
         {
-            m_events.push_back({Event::Kind::DefaultSwapped, m_default->kind, m_default->id, FinishReason::Superseded, 0});
+            m_events.push_back({Event::Kind::DefaultSwapped, m_default->kind, m_default->id, FinishReason::Superseded, 0, m_default->seq});
         }
         m_default = Stamp(kind, 0, 0);
         m_default->doomed = false;
@@ -398,7 +410,7 @@ namespace Motion
         }
         if (m_default)
         {
-            m_events.push_back({Event::Kind::DefaultSwapped, m_default->kind, m_default->id, FinishReason::Superseded, 0});
+            m_events.push_back({Event::Kind::DefaultSwapped, m_default->kind, m_default->id, FinishReason::Superseded, 0, m_default->seq});
         }
         m_default = held;
         if (policy == Policy::Override)
@@ -743,6 +755,11 @@ namespace Motion
         return out;
     }
 
+    bool Arbiter::Holds(uint32 seq) const
+    {
+        return StillHeld(seq) || (m_fallbackDefault && m_fallbackDefault->seq == seq);
+    }
+
     std::vector<Event> Arbiter::DrainEvents()
     {
         std::vector<Event> out;
@@ -763,14 +780,14 @@ namespace Motion
         {
             return;
         }
-        m_events.push_back({Event::Kind::Finished, slot->kind, slot->id, reason, slot->claim});
+        m_events.push_back({Event::Kind::Finished, slot->kind, slot->id, reason, slot->claim, slot->seq});
         slot.reset();
     }
 
     void Arbiter::FinishClaim(size_t index, FinishReason reason)
     {
         Held const& c = m_claims[index];
-        m_events.push_back({Event::Kind::Finished, c.kind, c.id, reason, c.claim});
+        m_events.push_back({Event::Kind::Finished, c.kind, c.id, reason, c.claim, c.seq});
         m_claims.erase(m_claims.begin() + static_cast<std::vector<Held>::difference_type>(index));
     }
 
@@ -863,14 +880,14 @@ namespace Motion
         {
             if (before && StillHeld(before->seq))
             {
-                m_events.push_back({Event::Kind::Suspended, before->kind, before->id, FinishReason::Cut, before->claim});
+                m_events.push_back({Event::Kind::Suspended, before->kind, before->id, FinishReason::Cut, before->claim, before->seq});
             }
             // A resume is for an entry that has run before and is being exposed again, not
             // for a masked entry starting for the first time, and not for the entry just
             // requested (the newest arrival, which includes an in-place update).
             if (after->started && after->seq != m_seq)
             {
-                m_events.push_back({Event::Kind::Resumed, after->kind, after->id, FinishReason::Arrived, after->claim});
+                m_events.push_back({Event::Kind::Resumed, after->kind, after->id, FinishReason::Arrived, after->claim, after->seq});
             }
         }
         if (after)
@@ -882,24 +899,37 @@ namespace Motion
         }
     }
 
+    void Arbiter::EnableRing()
+    {
+        if (!m_ring)
+        {
+            m_ring.reset(new std::array<Decision, kRingSize>());
+            m_ringNext = 0;
+            m_ringCount = 0;
+        }
+    }
+
     void Arbiter::Record(Decision::Op op, Kind kind, uint32 id, uint64 claim, std::optional<Held> const& before)
     {
-        Decision d;
-        d.op = op;
-        d.kind = kind;
-        d.id = id;
-        d.claim = claim;
-        d.hadBefore = before.has_value();
-        d.before = before ? *before : Held();
-        const std::optional<Held> after = Selected();
-        d.hadAfter = after.has_value();
-        d.after = after ? *after : Held();
-        d.generation = m_generation;
-        m_ring[m_ringNext] = d;
-        m_ringNext = (m_ringNext + 1) % kRingSize;
-        if (m_ringCount < kRingSize)
+        if (m_ring)
         {
-            ++m_ringCount;
+            Decision d;
+            d.op = op;
+            d.kind = kind;
+            d.id = id;
+            d.claim = claim;
+            d.hadBefore = before.has_value();
+            d.before = before ? *before : Held();
+            const std::optional<Held> after = Selected();
+            d.hadAfter = after.has_value();
+            d.after = after ? *after : Held();
+            d.generation = m_generation;
+            (*m_ring)[m_ringNext] = d;
+            m_ringNext = (m_ringNext + 1) % kRingSize;
+            if (m_ringCount < kRingSize)
+            {
+                ++m_ringCount;
+            }
         }
 #ifndef NDEBUG
         MOTION_ASSERT(!m_fallbackDefault || m_default);          // a fallback never exists without a default
@@ -916,11 +946,15 @@ namespace Motion
     std::vector<Decision> Arbiter::Decisions() const
     {
         std::vector<Decision> out;
+        if (!m_ring)
+        {
+            return out;
+        }
         out.reserve(m_ringCount);
         const size_t first = m_ringCount < kRingSize ? 0 : m_ringNext;
         for (size_t i = 0; i < m_ringCount; ++i)
         {
-            out.push_back(m_ring[(first + i) % kRingSize]);
+            out.push_back((*m_ring)[(first + i) % kRingSize]);
         }
         return out;
     }

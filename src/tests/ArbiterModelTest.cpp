@@ -25,7 +25,7 @@
 
 // The movement arbiter's pure core: the kind/layer/policy tables, the selection
 // model and the shadow classifier. Nothing here touches Unit, the driver or a map;
-// the game-side ArbiterShadow is proven by the headless scenario suite instead.
+// the game-side shell is proven by the headless scenario suite instead.
 
 #include "TestHarness.h"
 

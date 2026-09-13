@@ -515,7 +515,7 @@ Motion::MoveIntent WaypointMovementGenerator::PrepareMove(Creature& creature)
 
             // That hook may have despawned the creature, swapped its path, or put another
             // generator on top of this one.
-            if (creature.IsDead() || !creature.IsInWorld() || !IsActive(creature))
+            if (creature.IsDead() || !creature.IsInWorld() || !creature.GetMotionMaster()->IsSelected(this))
             {
                 return Motion::MoveIntent::Hold();
             }
