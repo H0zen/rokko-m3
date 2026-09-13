@@ -37,6 +37,8 @@ set(SRC_GRP_MOTION
     Writers.cpp
     State.h
     State.cpp
+    Arbiter.h
+    Arbiter.cpp
 )
 source_group("motion" FILES ${SRC_GRP_MOTION})
 
