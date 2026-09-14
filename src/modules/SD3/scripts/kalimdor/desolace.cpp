@@ -184,7 +184,7 @@ struct spell_npc_aged_dying_ancient_kodo : public SpellScript
                 pCreatureTarget->UpdateEntry(NPC_TAMED_KODO);
                 pCreatureTarget->CastSpell(pCreatureTarget, SPELL_KODO_KOMBO_DESPAWN_BUFF, false);
 
-                if (pCreatureTarget->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
+                if (pCreatureTarget->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
                 {
                     pCreatureTarget->GetMotionMaster()->MoveIdle();
                 }
@@ -531,7 +531,7 @@ struct npc_cork_gizelton : public CreatureScript
             uiQuestStatus = 0;
         }
 
-        void ReceiveAIEvent(AIEventType eventType, Creature* /*pSender*/, Unit* pInvoker, uint32 uiMiscValue) override
+        void ReceiveAIEvent(AIEventType eventType, Creature* /*pSender*/, Unit* pInvoker, uint32 /*uiMiscValue*/) override
         {
             if (eventType == AI_EVENT_START_ESCORT && pInvoker->GetTypeId() == TYPEID_PLAYER)
             {

@@ -139,9 +139,24 @@ class MotionMaster
         void RelocateSelected(float x, float y, float z, float o);
         /// True iff this generator belongs to the selected behaviour (replaces MovementGenerator::IsActive).
         bool IsSelected(MovementGenerator const* generator) const;
-        /// A chase (the Combat entry) or a follow (a Default-layer kind), selected or masked --
-        /// what an effect's finalizer asks before starting a fresh chase; P3-C's typed queries replace it.
-        bool HoldsChaseOrFollow() const;
+        // ---- typed queries (P3-C) -------------------------------------------------------
+        /// The selected entry's kind: what runs now (the stack's "current type"); Idle when nothing is held.
+        Motion::Kind ActiveKind() const;
+        /// A chase is held (the Combat entry), selected or masked.
+        bool IsChasing() const;
+        /// The current default is a follow (the parked fallback does not count), selected or masked.
+        bool IsFollowing() const;
+        /// The held follow's target, or NULL.
+        Unit* FollowTarget() const;
+        /// The current default is a patrol, selected or masked.
+        bool IsPatrolling() const;
+        /// A taxi flight is held.
+        bool IsOnTaxi() const;
+        /// The selected behaviour's generator can reach its goal; true when nothing is selected
+        /// (nothing could have reported a failed path: taunts stay where they are).
+        bool IsReachable() const;
+        /// The combat-started event row (design v2 §4.2): a new combat cancels the Distract layer; ignored from inside a movement operation.
+        void CombatStarted();
         /// True when this sequence has a binding and that binding has been activated.
         bool IsActivated(uint32 seq) const;
         /// The held patrol generator wherever it sits (default slot, masked or not), else NULL.

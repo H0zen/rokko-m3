@@ -2,6 +2,8 @@
 # the entry points src/modules/SD3 calls today. P3 replaces the facade's internals
 # and P5 deletes the rest of the old stack; both keep exactly these. A script that
 # starts calling anything else widens the promise, and this gate says so.
+# P3-C moved the scripts' type checks to the typed queries (ActiveKind, IsChasing,
+# IsPatrolling); GetCurrentMovementGeneratorType left the promise with them.
 #
 # Usage: cmake -DSOURCE_ROOT=<repo root> -P CheckMotionMasterShim.cmake
 # Limitation: the regex below sees only literal "GetMotionMaster()->X" call sites;
@@ -9,8 +11,8 @@
 # would escape it. None does today.
 set(ALLOWED
     MovePoint Clear MoveIdle MoveChase MoveFollow MoveTargetedHome MoveWaypoint
-    GetCurrentMovementGeneratorType MoveRandomAroundPoint MovementExpired MoveJump
-    MoveFlyOrLand Initialize MoveRandom MoveFleeing)
+    MoveRandomAroundPoint MovementExpired MoveJump MoveFlyOrLand Initialize
+    MoveRandom MoveFleeing ActiveKind IsChasing IsPatrolling)
 list(LENGTH ALLOWED ALLOWED_COUNT)
 file(GLOB_RECURSE SD3_SOURCES "${SOURCE_ROOT}/src/modules/SD3/*.cpp" "${SOURCE_ROOT}/src/modules/SD3/*.h")
 list(LENGTH SD3_SOURCES SD3_COUNT)

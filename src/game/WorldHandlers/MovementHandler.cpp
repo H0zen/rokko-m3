@@ -234,7 +234,7 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     GetPlayer()->SendInitialPacketsAfterAddToMap();
 
     // flight fast teleport case
-    if (GetPlayer()->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE)
+    if (GetPlayer()->GetMotionMaster()->IsOnTaxi())
     {
         if (!_player->InBattleGround())
         {

@@ -95,7 +95,7 @@ struct npc_kyle_the_frenzied : public CreatureScript
                     m_playerGuid = pCaster->GetObjectGuid();
                 }
 
-                if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
+                if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
                 {
                     m_creature->GetMotionMaster()->MovementExpired();
                     m_creature->GetMotionMaster()->MoveIdle();

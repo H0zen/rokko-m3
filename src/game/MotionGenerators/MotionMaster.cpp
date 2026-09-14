@@ -656,8 +656,13 @@ void MotionMaster::UpdateMotion(uint32 diff)
 void MotionMaster::Clear(bool reset, bool all)
 {
     Scope scope(*this, all ? Motion::TransactionKind::ClearAll : Motion::TransactionKind::Clear);
+    m_pendingReset = (reset && !all) ? PendingReset::Always : PendingReset::None;   // before the hooks: a later call in the same scope wins, as the stack's flag did
     m_arbiter.Clear(all);
-    m_pendingReset = (reset && !all) ? PendingReset::Always : PendingReset::None;
+    // The cleared entries' hooks run here, inside this scope's transaction: nested in another
+    // operation, the clear discards for its own extent (a finalizer's request during it is
+    // doomed, as the stack's clean loop popped what a finalizer pushed); outermost, the scope's
+    // commit finishes the doomed entries at its end.
+    DeliverEvents();
 }
 
 /**
@@ -1219,24 +1224,91 @@ bool MotionMaster::IsSelected(MovementGenerator const* generator) const
 }
 
 /**
- * @brief Whether a chase or a follow is held, selected or masked.
- * @return True when the Combat entry exists, or the Default entry is a follow.
- *
- * The question a one-shot's finalizer asks: is there movement toward someone to fall back
- * to, or must it be re-engaged? The selection cannot answer it from inside a transaction --
- * the finalizer runs before the model has settled -- but the layers can, because a finished
- * slot is already reset by the time the hook sees it. A chase lives on Combat and a follow
- * on Default (Motion::LayerOf), and only the current default counts: the stack read the one
- * generator directly beneath the popped effect, not the factory default parked under it.
+ * @brief The selected entry's kind: what runs now.
+ * @return The kind, Idle when nothing is held.
  */
-bool MotionMaster::HoldsChaseOrFollow() const
+Motion::Kind MotionMaster::ActiveKind() const
 {
-    if (m_arbiter.Combat())
-    {
-        return true;
-    }
+    std::optional<Motion::Held> selected = m_arbiter.Selected();
+    return selected ? selected->kind : Motion::Kind::Idle;
+}
+
+/**
+ * @brief Whether a chase is held, selected or masked.
+ * @return True when the Combat entry exists.
+ */
+bool MotionMaster::IsChasing() const
+{
+    return m_arbiter.Combat().has_value();
+}
+
+/**
+ * @brief Whether the current default is a follow, selected or masked.
+ * @return True for a Follow default; the parked fallback does not count.
+ */
+bool MotionMaster::IsFollowing() const
+{
     std::optional<Motion::Held> const& current = m_arbiter.Default();
     return current && current->kind == Motion::Kind::Follow;
+}
+
+/**
+ * @brief The held follow's target.
+ * @return The target unit, or NULL without a follow.
+ */
+Unit* MotionMaster::FollowTarget() const
+{
+    std::optional<Motion::Held> const& current = m_arbiter.Default();
+    Bound const* bound = (current && current->kind == Motion::Kind::Follow) ? Find(current->seq) : NULL;
+    if (!bound || bound->behaviour->LegacyType() != FOLLOW_MOTION_TYPE)
+    {
+        return NULL;
+    }
+    return static_cast<FollowMovementGenerator const*>(bound->behaviour->Legacy())->GetTarget();
+}
+
+/**
+ * @brief Whether the current default is a patrol, selected or masked.
+ * @return True for a Patrol default.
+ */
+bool MotionMaster::IsPatrolling() const
+{
+    std::optional<Motion::Held> const& current = m_arbiter.Default();
+    return current && current->kind == Motion::Kind::Patrol;
+}
+
+/**
+ * @brief Whether a taxi flight is held.
+ * @return True when the Taxi entry exists.
+ */
+bool MotionMaster::IsOnTaxi() const
+{
+    return m_arbiter.Command(Motion::Layer::Taxi).has_value();
+}
+
+/**
+ * @brief Whether the selected behaviour can reach its goal.
+ * @return The selected generator's answer; true when nothing is selected.
+ */
+bool MotionMaster::IsReachable() const
+{
+    MovementGenerator const* current = GetCurrent();
+    return !current || current->IsReachable();
+}
+
+/**
+ * @brief The combat-started event row: a new combat cancels the Distract layer.
+ */
+void MotionMaster::CombatStarted()
+{
+    // A combat start from inside a movement operation (a finalizer's AttackStop/AttackStart re-engaging) is that operation's own doing, not a new combat: the row fires for combat that begins outside a commit.
+    if (m_depth > 0)
+    {
+        return;
+    }
+
+    Scope scope(*this, Motion::TransactionKind::Normal);
+    m_arbiter.Notify(Motion::ExternalEvent::CombatStarted);
 }
 
 /**

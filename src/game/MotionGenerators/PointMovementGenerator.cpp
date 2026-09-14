@@ -203,7 +203,7 @@ void EffectMovementGenerator::Finalize(Unit& owner)
     // victim with neither left to resume gets a fresh chase, and that is a question about
     // the model, not about the selection: this hook runs inside the request that displaced
     // us, before the selection has settled.
-    if (owner.GetMotionMaster()->HoldsChaseOrFollow())
+    if (owner.GetMotionMaster()->IsChasing() || owner.GetMotionMaster()->IsFollowing())
     {
         return;
     }

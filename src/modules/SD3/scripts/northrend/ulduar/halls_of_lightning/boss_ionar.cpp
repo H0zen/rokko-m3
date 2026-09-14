@@ -284,7 +284,7 @@ struct boss_ionar : public CreatureScript
                         m_bIsSplitPhase = true;
                         m_bIsDesperseCasting = false;
 
-                        if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() != CHASE_MOTION_TYPE)
+                        if (m_creature->GetMotionMaster()->ActiveKind() != Motion::Kind::Chase)
                         {
                             if (m_creature->getVictim())
                             {
@@ -375,7 +375,7 @@ struct spell_ionar_disperse : public SpellScript
             pCreatureTarget->AttackStop();
             pCreatureTarget->SetVisibility(VISIBILITY_OFF);
 
-            if (pCreatureTarget->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
+            if (pCreatureTarget->GetMotionMaster()->ActiveKind() == Motion::Kind::Chase)
             {
                 pCreatureTarget->GetMotionMaster()->MovementExpired();
             }

@@ -129,7 +129,7 @@ struct mob_mature_netherwing_drake : public CreatureScript
                 {
                     if (GameObject* pGo = GetClosestGameObjectWithEntry(m_creature, GO_FLAYER_CARCASS, 80.0f))
                     {
-                        if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
+                        if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
                         {
                             m_creature->GetMotionMaster()->MovementExpired();
                         }
@@ -377,8 +377,9 @@ struct npc_dragonmaw_peon : public CreatureScript
             }
         }
 
-        bool SetPlayerTarget(ObjectGuid playerGuid)
+        bool SetPlayerTarget(ObjectGuid /*playerGuid*/)
         {
+            // TODO upstream: a stub -- the player guid is never recorded and the function falls off its end without a return.
             // Check if event already started
         }
 
@@ -596,7 +597,7 @@ struct npc_wilda : public CreatureScript
         }
 
 #if defined (WOTLK) || defined (CATA) || defined(MISTS)
-        void Aggro(Unit* pWho) override
+        void Aggro(Unit* /*pWho*/) override
         {
             if (roll_chance_i(30))
             {
@@ -2336,7 +2337,7 @@ struct npc_veneratus_spawn_node : public CreatureScript
         }
 
 #if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
-        void UpdateAI(const uint32 uiDiff) override {}
+        void UpdateAI(const uint32 /*uiDiff*/) override {}
 #endif
     };
 

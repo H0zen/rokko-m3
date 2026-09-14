@@ -908,6 +908,95 @@ TEST(MotionArbiter_Generations_LaterDiscardingGuardSweepsOnlyItsOwn)
     CHECK_EQ(CountEvents(ev, Event::Kind::Finished, Kind::Idle), 0);
 }
 
+TEST(MotionArbiter_Generations_NestedClearDoomsWhileOpen)
+{
+    Arbiter m;
+    m.InstallDefault(Kind::Wander);
+    m.Request(Req(Kind::Chase));
+    m.DrainEvents();
+    {
+        Transaction outer(m, TransactionKind::Normal);   // a hook's facade call inside a normal completion
+        {
+            Transaction clear(m, TransactionKind::Clear); // the shell's Clear(false) scope
+            m.Clear(false);
+            CHECK(m.InDiscardingTransaction());
+            m.Request(Req(Kind::Chase, 7));               // a finalizer re-engaging while the clear is open
+            CHECK(m.Combat());
+        }
+        CHECK(!m.InDiscardingTransaction());              // the nested clear closed: the outer kind is Normal again
+    }
+    CHECK(!m.Combat());                                    // swept at the outermost commit
+    std::vector<Event> ev = m.DrainEvents();
+    CHECK(HasFinished(ev, Kind::Chase, 0, FinishReason::Cleared));
+    CHECK(HasFinished(ev, Kind::Chase, 7, FinishReason::Cleared));
+    CHECK(m.Default() && m.Default()->kind == Kind::Wander);
+}
+
+TEST(MotionArbiter_Generations_RequestAfterNestedClearSurvives)
+{
+    Arbiter m;
+    m.InstallDefault(Kind::Wander);
+    m.Request(Req(Kind::Chase));
+    m.DrainEvents();
+    {
+        Transaction outer(m, TransactionKind::Normal);   // MoveTargetedHome's own scope
+        {
+            Transaction clear(m, TransactionKind::Clear);
+            m.Clear(false);
+        }
+        m.Request(Req(Kind::Home));                       // the home requested after the clear closed
+        CHECK(!m.InDiscardingTransaction());
+    }
+    CHECK(m.Selected() && m.Selected()->kind == Kind::Home);
+    std::vector<Event> ev = m.DrainEvents();
+    CHECK(HasFinished(ev, Kind::Chase, 0, FinishReason::Cleared));
+    CHECK(!HasFinished(ev, Kind::Home, 0, FinishReason::Cleared));
+}
+
+TEST(MotionArbiter_Generations_DeathInsideNestedClearStaysDeath)
+{
+    Arbiter m;
+    m.InstallDefault(Kind::Wander);
+    m.DrainEvents();
+    {
+        Transaction outer(m, TransactionKind::Normal);
+        {
+            Transaction clear(m, TransactionKind::Clear);
+            m.Die();                                       // a finalizer killed the unit during the clear
+        }
+        CHECK(m.InDiscardingTransaction());                // Death is sticky past the clear's end
+        m.Request(Req(Kind::Chase));                       // requested after the clear closed, still dead
+    }
+    CHECK(m.Empty());
+    std::vector<Event> ev = m.DrainEvents();
+    CHECK(HasFinished(ev, Kind::Wander, 0, FinishReason::Died));
+    CHECK(HasFinished(ev, Kind::Chase, 0, FinishReason::Died));
+}
+
+TEST(MotionArbiter_Generations_NestedClearAllInsideClearRevertsToClear)
+{
+    Arbiter m;
+    m.InstallDefault(Kind::Wander);
+    m.DrainEvents();
+    {
+        Transaction outer(m, TransactionKind::Normal);
+        {
+            Transaction clear(m, TransactionKind::Clear);
+            {
+                Transaction all(m, TransactionKind::ClearAll);
+                m.Clear(true);                             // the default goes too
+                CHECK(m.Empty());
+            }
+            CHECK(m.InDiscardingTransaction());            // back to the enclosing clear, still discarding
+            m.Request(Req(Kind::Point, 3));                // doomed by the clear that is still open
+        }
+        CHECK(!m.InDiscardingTransaction());
+    }
+    std::vector<Event> ev = m.DrainEvents();
+    CHECK(HasFinished(ev, Kind::Wander, 0, FinishReason::Cleared));
+    CHECK(HasFinished(ev, Kind::Point, 3, FinishReason::Cleared));
+}
+
 TEST(MotionArbiter_Death_InstallDefaultInsideDeathGuardSurvives)
 {
     Arbiter m;

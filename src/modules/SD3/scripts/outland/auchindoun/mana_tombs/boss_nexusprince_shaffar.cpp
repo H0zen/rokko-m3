@@ -174,7 +174,7 @@ struct boss_nexusprince_shaffar : public CreatureScript
                 {
                     // expire movement, will prevent from running right back to victim after cast
                     //(but should MoveChase be used again at a certain time or should he not move?)
-                    if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
+                    if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Chase)
                     {
                         m_creature->GetMotionMaster()->MovementExpired();
                     }

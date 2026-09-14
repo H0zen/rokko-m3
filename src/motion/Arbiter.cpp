@@ -159,10 +159,16 @@ namespace Motion
             return ClaimRank(a.kind) > ClaimRank(b.kind) ||
                    (ClaimRank(a.kind) == ClaimRank(b.kind) && a.seq > b.seq);
         }
+
+        /// Normal < Clear < ClearAll < Death: the enum's order.
+        bool Stronger(TransactionKind a, TransactionKind b)
+        {
+            return static_cast<uint8>(a) > static_cast<uint8>(b);
+        }
     }
 
     Arbiter::Arbiter() : m_seq(0), m_generation(0), m_depth(0), m_outerKind(TransactionKind::Normal),
-        m_ringNext(0), m_ringCount(0)
+        m_doomedInGeneration(false), m_ringNext(0), m_ringCount(0)
     {
     }
 
@@ -175,20 +181,32 @@ namespace Motion
         h.claim = claim;
         h.generation = m_generation;
         h.doomed = InDiscardingTransaction();
+        if (h.doomed)
+        {
+            m_doomedInGeneration = true;
+        }
         h.started = false;
         return h;
     }
 
-    Transaction::Transaction(Arbiter& arbiter, TransactionKind kind) : m_arbiter(arbiter), m_outermost(arbiter.m_depth == 0)
+    Transaction::Transaction(Arbiter& arbiter, TransactionKind kind)
+        : m_arbiter(arbiter), m_outermost(arbiter.m_depth == 0), m_raised(false), m_restore(TransactionKind::Normal)
     {
         if (m_outermost)
         {
             m_arbiter.m_outerKind = kind;
             ++m_arbiter.m_generation;
+            m_arbiter.m_doomedInGeneration = false;
         }
         else if (kind == TransactionKind::Death)
         {
-            m_arbiter.m_outerKind = TransactionKind::Death;   // absolute: a nested death escalates the outer one
+            m_arbiter.m_outerKind = TransactionKind::Death;   // absolute: a nested death escalates the outer one for good
+        }
+        else if (Stronger(kind, m_arbiter.m_outerKind))
+        {
+            m_restore = m_arbiter.m_outerKind;                 // a nested clear discards for its own extent only
+            m_arbiter.m_outerKind = kind;
+            m_raised = true;
         }
         ++m_arbiter.m_depth;
     }
@@ -201,6 +219,10 @@ namespace Motion
             m_arbiter.Commit();
             m_arbiter.m_outerKind = TransactionKind::Normal;
         }
+        else if (m_raised && m_arbiter.m_outerKind != TransactionKind::Death)
+        {
+            m_arbiter.m_outerKind = m_restore;
+        }
     }
 
     bool Arbiter::InDiscardingTransaction() const
@@ -210,9 +232,9 @@ namespace Motion
 
     void Arbiter::Commit()
     {
-        if (m_outerKind == TransactionKind::Normal)
+        if (!m_doomedInGeneration)
         {
-            return;
+            return;   // nothing was doomed since the outermost guard opened: a plain completion
         }
         const std::optional<Held> before = Selected();
         const FinishReason reason = m_outerKind == TransactionKind::Death ? FinishReason::Died : FinishReason::Cleared;

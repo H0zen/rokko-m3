@@ -871,7 +871,7 @@ struct npc_solenor_the_slayer : public CreatureScript
                     m_creature->SetRespawnDelay(35 * MINUTE);
                     m_creature->SetRespawnTime(35 * MINUTE);
                     m_creature->NearTeleportTo(-7724.21f, 1676.43f, 7.0571f, 4.80044f);
-                    if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() != WAYPOINT_MOTION_TYPE)
+                    if (!m_creature->GetMotionMaster()->IsPatrolling())
                     {
                         m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
                         m_creature->GetMotionMaster()->Initialize();

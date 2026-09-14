@@ -135,8 +135,8 @@ void GuardAI::EnterEvadeMode()
     m_creature->CombatStop(true);
     i_state = STATE_NORMAL;
 
-    // Remove ChaseMovementGenerator from MotionMaster stack list, and add HomeMovementGenerator instead
-    if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
+    // A held chase, masked or not, is dropped for the run home
+    if (m_creature->GetMotionMaster()->IsChasing())
     {
         m_creature->GetMotionMaster()->MoveTargetedHome();
     }

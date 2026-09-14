@@ -244,7 +244,7 @@ struct boss_vazruden_herald : public CreatureScript
             fZ = m_creature->CombatAnchor().z;
 
             // Remove Idle MMGen
-            if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == IDLE_MOTION_TYPE)
+            if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Idle)
             {
                 m_creature->GetMotionMaster()->MovementExpired(false);
             }
@@ -266,8 +266,9 @@ struct boss_vazruden_herald : public CreatureScript
             DoScriptText(EMOTE_DESCEND, m_creature);
         }
 
-        void ReceiveAIEvent(AIEventType eventType, Creature *pSender, Unit* /*pInvoker*/, uint32 /*data*/) override
+        void ReceiveAIEvent(AIEventType /*eventType*/, Creature *pSender, Unit* /*pInvoker*/, uint32 /*data*/) override
         {
+            // TODO upstream: a stub -- the event type is never checked, so any AI event from Vazruden sends Nazan to the combat position.
             if (pSender->GetEntry() == NPC_VAZRUDEN)
             {
                 DoMoveToCombat();

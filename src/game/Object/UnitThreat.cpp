@@ -373,10 +373,7 @@ bool Unit::SelectHostileTarget()
 
             // check if currently selected target is reachable
             // NOTE: path alrteady generated from AttackStart()
-            // A unit with no selected behaviour at all has nothing that could report a
-            // failed path, so it counts as reachable: taunts stay where they are.
-            MovementGenerator const* moving = GetMotionMaster()->GetCurrent();
-            if (moving && !moving->IsReachable())
+            if (!GetMotionMaster()->IsReachable())
             {
                 // remove all taunts
                 RemoveSpellsCausingAura(SPELL_AURA_MOD_TAUNT);
@@ -418,7 +415,9 @@ bool Unit::SelectHostileTarget()
     // it in combat but attacker not make any damage and not enter to aggro radius to have record in threat list
     // for example at owner command to pet attack some far away creature
     // Note: creature not have targeted movement generator but have attacker in this case
-    if (GetMotionMaster()->GetCurrentMovementGeneratorType() != CHASE_MOTION_TYPE)
+    // (what runs now: a chase masked by a fear or an effect still scans its attackers, as the
+    // stack's top-based check did, instead of evading out from under the mask)
+    if (GetMotionMaster()->ActiveKind() != Motion::Kind::Chase)
     {
         for (AttackerSet::const_iterator itr = m_attackers.begin(); itr != m_attackers.end(); ++itr)
         {

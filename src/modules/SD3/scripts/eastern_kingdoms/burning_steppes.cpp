@@ -584,7 +584,7 @@ struct npc_klinfran_the_crazed : public CreatureScript
                     m_creature->SetRespawnDelay(35 * MINUTE);
                     m_creature->SetRespawnTime(35 * MINUTE);
                     m_creature->NearTeleportTo(-8318.19f, -993.662f, 176.956f, 5.65024f);
-                    if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() != WAYPOINT_MOTION_TYPE)
+                    if (!m_creature->GetMotionMaster()->IsPatrolling())
                     {
                         m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
                         m_creature->GetMotionMaster()->Initialize();

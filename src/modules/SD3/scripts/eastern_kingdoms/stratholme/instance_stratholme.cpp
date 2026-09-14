@@ -354,7 +354,7 @@ struct is_stratholme : public InstanceScript
                             for (GuidSet::const_iterator itr = m_sAbomnationGUID.begin(); itr != m_sAbomnationGUID.end(); ++itr)
                             {
                                 Creature* pAbom = instance->GetCreature(*itr);
-                                if (pAbom && pAbom->GetMotionMaster()->GetCurrentMovementGeneratorType() == POINT_MOTION_TYPE)
+                                if (pAbom && pAbom->GetMotionMaster()->ActiveKind() == Motion::Kind::Point)
                                 {
                                     pAbom->GetMotionMaster()->MovementExpired();
                                 }
@@ -855,7 +855,7 @@ struct is_stratholme : public InstanceScript
                         {
                             Creature* pAbom = instance->GetCreature(*itr);
                             // Skip killed and already walking Abominations
-                            if (!pAbom || !pAbom->IsAlive() || pAbom->GetMotionMaster()->GetCurrentMovementGeneratorType() == POINT_MOTION_TYPE)
+                            if (!pAbom || !pAbom->IsAlive() || pAbom->GetMotionMaster()->ActiveKind() == Motion::Kind::Point)
                             {
                                 continue;
                             }

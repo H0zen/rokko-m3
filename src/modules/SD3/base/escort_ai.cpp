@@ -103,7 +103,7 @@ void npc_escortAI::AttackStart(Unit* pWho)
         m_creature->SetInCombatWith(pWho);
         pWho->SetInCombatWith(m_creature);
 
-        if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == POINT_MOTION_TYPE)
+        if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Point)
         {
             m_creature->GetMotionMaster()->MovementExpired();
         }
@@ -279,7 +279,7 @@ void npc_escortAI::EnterEvadeMode()
     if (HasEscortState(STATE_ESCORT_ESCORTING))
     {
         // We have left our path
-        if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() != POINT_MOTION_TYPE)
+        if (m_creature->GetMotionMaster()->ActiveKind() != Motion::Kind::Point)
         {
             debug_log("SD3: EscortAI has left combat and is now returning to CombatStartPosition.");
 
@@ -626,7 +626,7 @@ void npc_escortAI::Start(bool bRun, const Player* pPlayer, const Quest* pQuest, 
         debug_log("SD3: EscortAI is set to return home after waypoint end and instant respawn at waypoint end. Creature will never despawn.");
     }
 
-    if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
+    if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
     {
         m_creature->GetMotionMaster()->MovementExpired();
         m_creature->GetMotionMaster()->MoveIdle();

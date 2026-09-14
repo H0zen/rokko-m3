@@ -40,7 +40,6 @@
 #include "World.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
-#include "TargetedMovementGenerator.h"                      // for HandleNpcUnFollowCommand
 #include "TemporarySummon.h"
 #include "WaypointManager.h"
 #include "PathFinder.h"                                     // for mmap commands
@@ -1023,16 +1022,7 @@ bool ChatHandler::HandleNpcUnFollowCommand(char* /*args*/)
     }
 
     MotionMaster* creatureMotion = creature->GetMotionMaster();
-    if (creatureMotion->GetCurrentMovementGeneratorType() != FOLLOW_MOTION_TYPE)
-    {
-        PSendSysMessage(LANG_CREATURE_NOT_FOLLOW_YOU, creature->GetName());
-        SetSentErrorMessage(true);
-        return false;
-    }
-
-    FollowMovementGenerator const* mgen = static_cast<FollowMovementGenerator const*>(creatureMotion->GetCurrent());
-
-    if (mgen->GetTarget() != player)
+    if (creatureMotion->ActiveKind() != Motion::Kind::Follow || creatureMotion->FollowTarget() != player)   // MovementExpired ends the selection, so the follow must be what runs now
     {
         PSendSysMessage(LANG_CREATURE_NOT_FOLLOW_YOU, creature->GetName());
         SetSentErrorMessage(true);

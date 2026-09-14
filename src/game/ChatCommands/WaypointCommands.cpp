@@ -226,12 +226,9 @@ bool ChatHandler::HandleWpAddCommand(char* args)
 
         if (wpDestination == PATH_NO_PATH)                  // No overwrite params. Do best estimate
         {
-            if (wpOwner->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
+            if (WaypointMovementGenerator const* wpMMGen = wpOwner->GetMotionMaster()->HeldWaypoint())   // the creature's patrol, masked or not
             {
-                if (WaypointMovementGenerator const* wpMMGen = dynamic_cast<WaypointMovementGenerator const*>(wpOwner->GetMotionMaster()->GetCurrent()))
-                {
-                    wpMMGen->GetPathInformation(wpPathId, wpDestination);
-                }
+                wpMMGen->GetPathInformation(wpPathId, wpDestination);
             }
             // Get information about default path if no current path. If no default path, prepare data dependendy on uniqueness
             if (wpDestination == PATH_NO_PATH && !sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), &wpDestination))
@@ -425,12 +422,9 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
 
     if (wpSource == PATH_NO_PATH)                           // No waypoint selected
     {
-        if (wpOwner->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
+        if (WaypointMovementGenerator const* wpMMGen = wpOwner->GetMotionMaster()->HeldWaypoint())   // the creature's patrol, masked or not
         {
-            if (WaypointMovementGenerator const* wpMMGen = dynamic_cast<WaypointMovementGenerator const*>(wpOwner->GetMotionMaster()->GetCurrent()))
-            {
-                wpMMGen->GetPathInformation(wpPathId, wpSource);
-            }
+            wpMMGen->GetPathInformation(wpPathId, wpSource);
         }
         if (wpSource == PATH_NO_PATH)
         {
@@ -680,13 +674,10 @@ bool ChatHandler::HandleWpShowCommand(char* args)
     }
     else
     {
-        if (wpOwner->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
+        if (WaypointMovementGenerator const* wpMMGen = wpOwner->GetMotionMaster()->HeldWaypoint())   // the creature's patrol, masked or not
         {
-            if (WaypointMovementGenerator const* wpMMGen = dynamic_cast<WaypointMovementGenerator const*>(wpOwner->GetMotionMaster()->GetCurrent()))
-            {
-                wpMMGen->GetPathInformation(wpPathId, wpOrigin);
-                wpPath = sWaypointMgr.GetPathFromOrigin(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpPathId, wpOrigin);
-            }
+            wpMMGen->GetPathInformation(wpPathId, wpOrigin);
+            wpPath = sWaypointMgr.GetPathFromOrigin(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpPathId, wpOrigin);
         }
         if (wpOrigin == PATH_NO_PATH)
         {
@@ -898,11 +889,10 @@ bool ChatHandler::HandleWpExportCommand(char* args)
 
         if (wpOrigin == PATH_NO_PATH)
         {
-            if (wpOwner->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
-                if (WaypointMovementGenerator const* wpMMGen = dynamic_cast<WaypointMovementGenerator const*>(wpOwner->GetMotionMaster()->GetCurrent()))
-                {
-                    wpMMGen->GetPathInformation(wpPathId, wpOrigin);
-                }
+            if (WaypointMovementGenerator const* wpMMGen = wpOwner->GetMotionMaster()->HeldWaypoint())   // the creature's patrol, masked or not
+            {
+                wpMMGen->GetPathInformation(wpPathId, wpOrigin);
+            }
             if (wpOrigin == PATH_NO_PATH)
             {
                 sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), &wpOrigin);

@@ -72,6 +72,10 @@ namespace Harness
     void HarnessAI::MovementInform(uint32 type, uint32 id)
     {
         Record(m_scenario, m_creature, type, id);
+        if (m_scenario)
+        {
+            m_scenario->OnInform(m_creature, type, id);
+        }
         if (m_wrapped)
         {
             m_wrapped->MovementInform(type, id);

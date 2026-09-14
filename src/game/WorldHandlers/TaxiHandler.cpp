@@ -162,7 +162,7 @@ void WorldSession::SendDoFlight(uint32 mountDisplayId, uint32 path, uint32 pathN
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
 
-    while (GetPlayer()->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE)
+    while (GetPlayer()->GetMotionMaster()->IsOnTaxi())
         GetPlayer()->GetMotionMaster()->MovementExpired(false);
 
     if (mountDisplayId)
@@ -295,7 +295,7 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
     // far teleport case
     if (curDestNode && curDestNode->ContinentID != GetPlayer()->GetMapId())
     {
-        if (GetPlayer()->GetMotionMaster()->GetCurrentMovementGeneratorType() == FLIGHT_MOTION_TYPE)
+        if (GetPlayer()->GetMotionMaster()->IsOnTaxi())
         {
             // short preparations to continue flight
             FlightPathMovementGenerator* flight = GetPlayer()->GetMotionMaster()->HeldFlight();

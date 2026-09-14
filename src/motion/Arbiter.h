@@ -144,8 +144,11 @@ namespace Motion
      * are finished: this is how a request a finalizer issues during a clear or
      * a death is visible while the hook runs and gone when the operation ends.
      * A nested Death guard escalates the outer one to Death too: nothing a
-     * hook requests after it survives. The guard is stack-only and must not
-     * outlive the arbiter it references.
+     * hook requests after it survives. A nested Clear or ClearAll discards for
+     * its own extent only — what a hook requests while it is open is doomed,
+     * what the enclosing operation requests after it closes survives
+     * (MoveTargetedHome clears, then asks for Home). The guard is stack-only
+     * and must not outlive the arbiter it references.
      */
     class Transaction
     {
@@ -156,8 +159,10 @@ namespace Motion
             Transaction& operator=(Transaction const&) = delete;
 
         private:
-            Arbiter& m_arbiter;
-            bool m_outermost;
+            Arbiter&        m_arbiter;
+            bool            m_outermost;
+            bool            m_raised;    ///< a nested Clear/ClearAll raised the kind for this guard's extent
+            TransactionKind m_restore;   ///< the kind a raised nested guard puts back when it ends
     };
 
     /**
@@ -292,6 +297,7 @@ namespace Motion
             uint32 m_generation;                   ///< advanced by each outermost transaction
             uint32 m_depth;                        ///< open transactions
             TransactionKind m_outerKind;           ///< the outermost open one's kind
+            bool m_doomedInGeneration;             ///< Stamp doomed an entry since the outermost guard opened; Commit sweeps only then
             std::unique_ptr<std::array<Decision, kRingSize>> m_ring; ///< the decision ring, allocated on demand, next write at m_ringNext
             size_t m_ringNext;                     ///< the next slot to overwrite, wraps at kRingSize
             size_t m_ringCount;                    ///< entries recorded so far, capped at kRingSize

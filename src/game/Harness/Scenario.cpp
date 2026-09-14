@@ -160,12 +160,13 @@ namespace Harness
 
     uint32 Scenario::Node(Creature* c) const
     {
-        MovementGenerator const* gen = c ? c->GetMotionMaster()->GetCurrent() : NULL;
-        if (!gen || gen->GetMovementGeneratorType() != WAYPOINT_MOTION_TYPE)
+        if (!c)
         {
             return 0;
         }
-        return static_cast<WaypointMovementGenerator const*>(gen)->GetCurrentNode();
+        MotionMaster const* mm = c->GetMotionMaster();
+        WaypointMovementGenerator const* patrol = mm->HeldWaypoint();
+        return (patrol && mm->IsSelected(patrol)) ? patrol->GetCurrentNode() : 0;
     }
 
     void Scenario::Log(char const* fmt, ...) const

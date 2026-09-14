@@ -230,7 +230,7 @@ void CreatureAI::SetCombatMovement(bool enable, bool stopOrStartMovement /*=fals
         {
             m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), m_attackDistance, m_attackAngle);
         }
-        else if (!enable && m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
+        else if (!enable && m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Chase)
         {
             m_creature->StopMoving();
         }
@@ -245,12 +245,13 @@ void CreatureAI::SetCombatMovement(bool enable, bool stopOrStartMovement /*=fals
 void CreatureAI::HandleMovementOnAttackStart(Unit* victim)
 {
     MotionMaster* creatureMotion = m_creature->GetMotionMaster();
+    const Motion::Kind kind = creatureMotion->ActiveKind();
     if (m_isCombatMovement)
     {
         creatureMotion->MoveChase(victim, m_attackDistance, m_attackAngle);
     }
     // TODO - adapt this to only stop OOC-MMGens when MotionMaster rewrite is finished
-    else if (creatureMotion->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE || creatureMotion->GetCurrentMovementGeneratorType() == RANDOM_MOTION_TYPE)
+    else if (kind == Motion::Kind::Patrol || kind == Motion::Kind::Wander)
     {
         creatureMotion->MoveIdle();
         m_creature->StopMoving();

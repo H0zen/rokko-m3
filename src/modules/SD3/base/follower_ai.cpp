@@ -216,7 +216,7 @@ void FollowerAI::EnterEvadeMode()
     {
         debug_log("SD3: FollowerAI left combat, returning to CombatStartPosition.");
 
-        if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
+        if (m_creature->GetMotionMaster()->IsChasing())
         {
             float fPosX, fPosY, fPosZ;
             fPosX = m_creature->CombatAnchor().x;
@@ -227,7 +227,7 @@ void FollowerAI::EnterEvadeMode()
     }
     else
     {
-        if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
+        if (m_creature->GetMotionMaster()->IsChasing())
         {
             m_creature->GetMotionMaster()->MoveTargetedHome();
         }
@@ -359,7 +359,7 @@ void FollowerAI::StartFollow(Player* pLeader, uint32 uiFactionForFollower, const
 
     m_pQuestForFollow = pQuest;
 
-    if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
+    if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
     {
         m_creature->GetMotionMaster()->Clear();
         m_creature->GetMotionMaster()->MoveIdle();
@@ -408,7 +408,7 @@ Player* FollowerAI::GetLeaderForFollower()
 
 void FollowerAI::SetFollowComplete(bool bWithEndEvent)
 {
-    if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == FOLLOW_MOTION_TYPE)
+    if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Follow)
     {
         m_creature->StopMoving();
         m_creature->GetMotionMaster()->Clear();
@@ -441,7 +441,7 @@ void FollowerAI::SetFollowPaused(bool bPaused)
     {
         AddFollowState(STATE_FOLLOW_PAUSED);
 
-        if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == FOLLOW_MOTION_TYPE)
+        if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Follow)
         {
             m_creature->StopMoving();
             m_creature->GetMotionMaster()->Clear();

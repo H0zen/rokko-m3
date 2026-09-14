@@ -166,7 +166,7 @@ struct boss_gruul : public CreatureScript
                     m_bPerformingGroundSlam = false;
 
                     // and correct movement, if not already
-                    if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() != CHASE_MOTION_TYPE)
+                    if (m_creature->GetMotionMaster()->ActiveKind() != Motion::Kind::Chase)
                     {
                         if (m_creature->getVictim())
                         {

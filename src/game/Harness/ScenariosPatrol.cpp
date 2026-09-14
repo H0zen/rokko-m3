@@ -297,6 +297,86 @@ namespace Harness
                 });
             }
         };
+
+        /// P3-C: a node hook that despawns its walker from inside the inform, while the
+        /// waypoint generator's Update is still on the stack. P3-B defers a finished
+        /// behaviour's destruction to the end of the outermost commit for exactly this;
+        /// no scenario drove it until now. An external path informs with
+        /// EXTERNAL_WAYPOINT_MOVE plus its id, so the hook listens for that as well as
+        /// the plain waypoint type.
+        class DespawnAtNode : public Scenario
+        {
+        public:
+            DespawnAtNode() : Scenario("despawn-at-node", 18) {}
+
+            void OnInform(Creature* creature, uint32 type, uint32 id) override
+            {
+                if (creature && creature->GetObjectGuid() == m_walker &&
+                    (type == WAYPOINT_MOTION_TYPE || type == EXTERNAL_WAYPOINT_MOVE + kExternalPath) && id == 2 && creature->IsAlive())
+                {
+                    Log("node %u inform: ForcedDespawn from inside the hook, mt=%s", id, TypeName(creature));
+                    creature->ForcedDespawn();
+                }
+            }
+
+            void Prepare() override
+            {
+                Creature* a = Spawn(CHICKEN, P0.x, P0.y, P0.z, 0.0f);
+                if (!a) { Verdict("despawnAtNode=INVALID(spawn failed)"); return; }
+                Load(P0_FAR.x, P0_FAR.y);
+                const ObjectGuid g = a->GetObjectGuid();
+                m_walker = g;   // OnInform fires for every recording actor: only this scenario's walker despawns
+                auto informedAt = std::make_shared<uint32>(0);
+                At(500, [this, g]()
+                {
+                    Creature* a = Get(g); if (!a) { return; }
+                    a->GetMotionMaster()->MoveWaypoint(kExternalPath, PATH_FROM_EXTERNAL);
+                    Log("MoveWaypoint on the template square, mt=%s", TypeName(a));
+                });
+                for (uint32 i = 1; i <= 40; ++i)
+                {
+                    At(500 + i * 500, [this, g, informedAt, i]()
+                    {
+                        if (*informedAt) { return; }
+                        for (size_t k = 0; k < Informs().size(); ++k)
+                        {
+                            if ((Informs()[k].type == WAYPOINT_MOTION_TYPE || Informs()[k].type == EXTERNAL_WAYPOINT_MOVE + kExternalPath) && Informs()[k].id == 2)
+                            {
+                                *informedAt = 500 + i * 500;
+                                Creature* a = Get(g);
+                                Log("+%ums node 2 informed; the walker is %s", *informedAt,
+                                    a ? (a->IsAlive() ? "still alive" : "dead, still on the map") : "gone");
+                                return;
+                            }
+                        }
+                    });
+                }
+                At(21000, [this, g, informedAt]()
+                {
+                    Creature* a = Get(g);
+                    std::string body;
+                    if (!*informedAt)
+                    {
+                        body = "despawnAtNode=BROKEN(node 2 never informed in 20 s)";
+                    }
+                    else if (a && a->IsAlive())
+                    {
+                        body = "despawnAtNode=BUG(still alive after the despawn from the node hook)";
+                    }
+                    else
+                    {
+                        // A manual-despawn summon stays on the map, dead, until the runner's sweep:
+                        // the despawn from inside the hook is proven by the death, not by removal.
+                        body = a ? "despawnAtNode=OK(despawned from inside the node 2 hook: dead, kept by the map until the sweep)"
+                                 : "despawnAtNode=OK(despawned from inside the node 2 hook, walker gone)";
+                    }
+                    Verdict(body);
+                });
+            }
+
+        private:
+            ObjectGuid m_walker;   ///< the walker this run spawned; the despawn hook acts on it alone
+        };
     }
 
     void RegisterPatrolScenarios(Runner& r)
@@ -304,5 +384,6 @@ namespace Harness
         r.Register(new PatrolSquare());
         r.Register(new PatrolLifted());
         r.Register(new StunMidPatrol());
+        r.Register(new DespawnAtNode());
     }
 }

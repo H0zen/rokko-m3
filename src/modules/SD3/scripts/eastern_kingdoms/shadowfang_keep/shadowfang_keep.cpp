@@ -830,7 +830,7 @@ struct boss_arugal : public CreatureScript
                 m_creature->SendMeleeAttackStop(victim);
             }
 
-            if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == CHASE_MOTION_TYPE)
+            if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Chase)
             {
                 m_creature->GetMotionMaster()->Clear(false);
                 m_creature->GetMotionMaster()->MoveIdle();
@@ -845,7 +845,7 @@ struct boss_arugal : public CreatureScript
                 m_creature->SendMeleeAttackStart(victim);
             }
 
-            if (m_creature->GetMotionMaster()->GetCurrentMovementGeneratorType() == IDLE_MOTION_TYPE)
+            if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Idle)
             {
                 m_creature->GetMotionMaster()->Clear(false);
                 m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), 0.0f, 0.0f);
