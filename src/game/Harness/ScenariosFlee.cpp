@@ -384,6 +384,397 @@ namespace Harness
                 });
             }
         };
+
+        /// P4-A: two fears from two casters on an aggroed, chasing wolf. Each holds its own claim: the
+        /// first aura's removal changes nothing while the second runs (the state and the
+        /// flag stay, the flee continues); the second's removal ends the episode and the
+        /// chase resumes (reference §3.6, §3.1.4).
+        class FearTwice : public Scenario
+        {
+        public:
+            FearTwice() : Scenario("fear-twice", 20) {}
+
+            void Prepare() override
+            {
+                struct Sample { uint32 t; MovementGeneratorType mt; bool state; bool move; bool flag; float dVictim; };
+                Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+                Creature* b = Spawn(KOBOLD, SE.x + 20.0f, SE.y, Ground(SE.x + 20.0f, SE.y, SE.z), 3.1f);
+                Creature* c = Spawn(KOBOLD, SE.x + 25.0f, SE.y + 15.0f, Ground(SE.x + 25.0f, SE.y + 15.0f, SE.z), 3.1f);
+                Creature* d = Spawn(KOBOLD, SE.x - 25.0f, SE.y - 15.0f, Ground(SE.x - 25.0f, SE.y - 15.0f, SE.z), 0.0f);
+                if (!a || !b || !c || !d) { Verdict("secondFearKeepsFleeing=INVALID(spawn failed)"); return; }
+                Creature* actors[4] = { a, b, c, d };
+                for (int i = 0; i < 4; ++i) { actors[i]->SetMaxHealth(500000); actors[i]->SetHealth(500000); }
+                b->setFaction(14); c->setFaction(14); d->setFaction(14);
+                const ObjectGuid g = a->GetObjectGuid(), h = b->GetObjectGuid(), gc = c->GetObjectGuid(), gd = d->GetObjectGuid();
+                auto afterFirst = std::make_shared<std::vector<Sample> >();
+                auto afterLast = std::make_shared<std::vector<Sample> >();
+                auto sample = [this, g, h](std::vector<Sample>& into, uint32 t)
+                {
+                    Creature* a = Get(g); Creature* b = Get(h);
+                    if (!a || !b) { return; }
+                    Sample s;
+                    s.t = t;
+                    s.mt = Type(a);
+                    s.state = a->hasUnitState(UNIT_STAT_FLEEING);
+                    s.move = a->hasUnitState(UNIT_STAT_FLEEING_MOVE);
+                    s.flag = a->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
+                    Unit* v = a->getVictim() ? a->getVictim() : b;
+                    s.dVictim = Dist2(a->Where().X(), a->Where().Y(), v->Where().X(), v->Where().Y());
+                    into.push_back(s);
+                    Log("+%5ums mt=%s state=%d move=%d flag=%d dVictim=%.1f", t, Harness::TypeName(s.mt), s.state ? 1 : 0, s.move ? 1 : 0, s.flag ? 1 : 0, s.dVictim);
+                };
+                At(500, [this, g, h]()
+                {
+                    Creature* a = Get(g); Creature* b = Get(h); if (!a || !b) { return; }
+                    a->Attack(b, true);
+                    a->AddThreat(b, 1000.0f);   // aggroed: the end-of-control rule resumes a chase only for a wolf with threat
+                    a->GetMotionMaster()->MoveChase(b, 0.0f, 0.0f);
+                    Log("Attack + MoveChase, mt=%s", TypeName(a));
+                });
+                At(1500, [this, g, gc]()
+                {
+                    Creature* a = Get(g); if (!a) { return; }
+                    a->SetFeared(true, gc, 5782, 0, 0);
+                    Log("fear A (5782) applied, mt=%s", TypeName(a));
+                });
+                At(3500, [this, g, gd]()
+                {
+                    Creature* a = Get(g); if (!a) { return; }
+                    a->SetFeared(true, gd, 8122, 0, 0);
+                    Log("fear B (8122) applied over it, mt=%s", TypeName(a));
+                });
+                At(5500, [this, g, gc]()
+                {
+                    Creature* a = Get(g); if (!a) { return; }
+                    a->SetFeared(false, gc, 5782, 0, 0);
+                    Log("fear A removed, mt=%s", TypeName(a));
+                });
+                for (uint32 i = 1; i <= 6; ++i)
+                {
+                    At(5500 + i * 400, [sample, afterFirst, i]() { sample(*afterFirst, 5500 + i * 400); });
+                }
+                At(8500, [this, g, gd]()
+                {
+                    Creature* a = Get(g); if (!a) { return; }
+                    a->SetFeared(false, gd, 8122, 0, 0);
+                    Log("fear B removed, mt=%s", TypeName(a));
+                });
+                for (uint32 i = 1; i <= 8; ++i)
+                {
+                    At(8500 + i * 300, [sample, afterLast, i]() { sample(*afterLast, 8500 + i * 300); });
+                }
+                At(11200, [this, afterFirst, afterLast]()
+                {
+                    std::string first, last;
+                    if (afterFirst->empty() || afterLast->empty())
+                    {
+                        Verdict("secondFearKeepsFleeing=INVALID(no samples) | lastFearResumesChase=INVALID(no samples)");
+                        return;
+                    }
+                    bool keptFleeing = true;
+                    for (size_t k = 0; k < afterFirst->size(); ++k)
+                    {
+                        Sample const& s = (*afterFirst)[k];
+                        if (s.mt != FLEEING_MOTION_TYPE || !s.state || !s.flag) { keptFleeing = false; }
+                    }
+                    char text[160];
+                    if (keptFleeing)
+                    {
+                        first = "OK(fear B kept the wolf fleeing after fear A's removal, state and flag held)";
+                    }
+                    else
+                    {
+                        Sample const& s = (*afterFirst)[0];
+                        snprintf(text, sizeof(text), "BUG(after fear A's removal: mt=%s state=%d flag=%d)", Harness::TypeName(s.mt), s.state ? 1 : 0, s.flag ? 1 : 0);
+                        first = text;
+                    }
+                    Sample const& soon = (*afterLast)[std::min<size_t>(2, afterLast->size() - 1)];   // +900 ms
+                    Sample const& end = afterLast->back();
+                    const bool closed = end.dVictim < (*afterLast)[0].dVictim + 1.0f || end.dVictim <= 4.0f;   // closes on the victim, or already within melee reach
+                    if (soon.mt == CHASE_MOTION_TYPE && !end.state && !end.move && !end.flag && closed)
+                    {
+                        snprintf(text, sizeof(text), "OK(chase back within a second of fear B's removal, state and flag clear, %.1f -> %.1f yd)", (*afterLast)[0].dVictim, end.dVictim);
+                    }
+                    else
+                    {
+                        snprintf(text, sizeof(text), "BUG(after fear B's removal: mt=%s at +%ums, state=%d move=%d flag=%d, %.1f -> %.1f yd)",
+                                 Harness::TypeName(soon.mt), soon.t - 8500, end.state ? 1 : 0, end.move ? 1 : 0, end.flag ? 1 : 0, (*afterLast)[0].dVictim, end.dVictim);
+                    }
+                    last = text;
+                    Verdict("secondFearKeepsFleeing=" + first + " | lastFearResumesChase=" + last);
+                });
+            }
+        };
+
+        /// P4-A: a wandering wolf with no victim, feared by a hostile caster; when the fear ends
+        /// it runs home instead of resuming its wander where the fear left it (reference
+        /// §3.1.6, §13.3; the caster is killed first so the wolf has nothing to attack). The
+        /// wolf reaches its spawn and its wander default resumes there, so the verdict looks
+        /// at the closest sample over the window rather than the last one. A wolf feared only a
+        /// few yards from home can be home before the first sample; the verdict reads HOME at
+        /// the removal itself as well as in the samples.
+        class FearThenHome : public Scenario
+        {
+        public:
+            FearThenHome() : Scenario("fear-then-home", 21) {}
+
+            void Prepare() override
+            {
+                struct Sample { uint32 t; MovementGeneratorType mt; float dHome; };
+                Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+                Creature* k = Spawn(KOBOLD, SE.x + 20.0f, SE.y, Ground(SE.x + 20.0f, SE.y, SE.z), 3.1f);
+                if (!a || !k) { Verdict("fearEndGoesHome=INVALID(spawn failed)"); return; }
+                a->SetMaxHealth(500000); a->SetHealth(500000);
+                k->setFaction(14);
+                const ObjectGuid g = a->GetObjectGuid(), gk = k->GetObjectGuid();
+                const float hx = SE.x, hy = SE.y;
+                auto samples = std::make_shared<std::vector<Sample> >();
+                auto homeAtRemoval = std::make_shared<bool>(false);
+                At(500, [this, g]()
+                {
+                    Creature* a = Get(g); if (!a) { return; }
+                    a->GetMotionMaster()->MoveRandomAroundPoint(a->Where().X(), a->Where().Y(), a->Where().Z(), 8.0f);
+                    Log("MoveRandomAroundPoint(8), mt=%s", TypeName(a));
+                });
+                At(1500, [this, g, gk]()
+                {
+                    Creature* a = Get(g); if (!a) { return; }
+                    a->SetFeared(true, gk, 5782, 0, 0);
+                    Log("feared by the kobold, mt=%s", TypeName(a));
+                });
+                At(5500, [this, g, gk, hx, hy, homeAtRemoval]()
+                {
+                    Creature* a = Get(g); Creature* k = Get(gk); if (!a || !k) { return; }
+                    k->DealDamage(k, k->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);   // nothing to attack afterwards
+                    a->SetFeared(false, gk, 5782, 0, 0);
+                    *homeAtRemoval = Type(a) == HOME_MOTION_TYPE;   // a wolf feared a few yards from home is back before the first sample
+                    Log("fear removed %.1f yd from home, mt=%s", Dist2(a->Where().X(), a->Where().Y(), hx, hy), TypeName(a));
+                });
+                for (uint32 i = 1; i <= 12; ++i)
+                {
+                    At(5500 + i * 400, [this, g, hx, hy, samples, i]()
+                    {
+                        Creature* a = Get(g); if (!a) { return; }
+                        Sample s;
+                        s.t = i * 400;
+                        s.mt = Type(a);
+                        s.dHome = Dist2(a->Where().X(), a->Where().Y(), hx, hy);
+                        samples->push_back(s);
+                        Log("+%4ums mt=%s dHome=%.1f", s.t, Harness::TypeName(s.mt), s.dHome);
+                    });
+                }
+                At(10700, [this, samples, homeAtRemoval]()
+                {
+                    if (samples->size() < 3) { Verdict("fearEndGoesHome=INVALID(no samples)"); return; }
+                    bool sawHome = *homeAtRemoval;
+                    for (size_t k = 0; k < samples->size() && (*samples)[k].t <= 2000; ++k)
+                    {
+                        if ((*samples)[k].mt == HOME_MOTION_TYPE) { sawHome = true; }
+                    }
+                    Sample const& first = samples->front();
+                    Sample const& last = samples->back();
+                    float closest = first.dHome;
+                    for (size_t k = 1; k < samples->size(); ++k)
+                    {
+                        if ((*samples)[k].dHome < closest) { closest = (*samples)[k].dHome; }
+                    }
+                    const float bar = first.dHome - 2.0f > 1.0f ? first.dHome - 2.0f : 1.0f;   // arrival counts even when the fear left it near home
+                    char text[192];
+                    if (sawHome && closest < bar)
+                    {
+                        snprintf(text, sizeof(text), "fearEndGoesHome=OK(HOME within two seconds, %.1f -> closest %.1f yd from home, last mt=%s)", first.dHome, closest, Harness::TypeName(last.mt));
+                    }
+                    else
+                    {
+                        snprintf(text, sizeof(text), "fearEndGoesHome=BUG(home %s, %.1f -> closest %.1f yd from home, last mt=%s)",
+                                 sawHome ? "seen" : "never seen", first.dHome, closest, Harness::TypeName(last.mt));
+                    }
+                    Verdict(text);
+                });
+            }
+        };
+
+        /// P4-A: a confuse over a fear on an aggroed, chasing wolf. The confuse drives while both are
+        /// held (Confused outranks Fear, reference §13.2); its removal resumes the fear; the
+        /// fear's removal resumes the chase.
+        class ConfuseOverFear : public Scenario
+        {
+        public:
+            ConfuseOverFear() : Scenario("confuse-over-fear", 22) {}
+
+            void Prepare() override
+            {
+                Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+                Creature* b = Spawn(KOBOLD, SE.x + 20.0f, SE.y, Ground(SE.x + 20.0f, SE.y, SE.z), 3.1f);
+                Creature* c = Spawn(KOBOLD, SE.x + 25.0f, SE.y + 15.0f, Ground(SE.x + 25.0f, SE.y + 15.0f, SE.z), 3.1f);
+                if (!a || !b || !c) { Verdict("confuseOutranksFear=INVALID(spawn failed)"); return; }
+                a->SetMaxHealth(500000); a->SetHealth(500000);
+                b->SetMaxHealth(500000); b->SetHealth(500000);
+                b->setFaction(14); c->setFaction(14);
+                const ObjectGuid g = a->GetObjectGuid(), h = b->GetObjectGuid(), gc = c->GetObjectGuid();
+                auto both = std::make_shared<std::vector<MovementGeneratorType> >();
+                auto afterConfuse = std::make_shared<std::vector<MovementGeneratorType> >();
+                auto afterFear = std::make_shared<std::vector<MovementGeneratorType> >();
+                auto sample = [this, g](std::vector<MovementGeneratorType>& into, char const* phase, uint32 t)
+                {
+                    Creature* a = Get(g); if (!a) { return; }
+                    into.push_back(Type(a));
+                    Log("%s +%4ums mt=%s", phase, t, TypeName(a));
+                };
+                At(500, [this, g, h]()
+                {
+                    Creature* a = Get(g); Creature* b = Get(h); if (!a || !b) { return; }
+                    a->Attack(b, true);
+                    a->AddThreat(b, 1000.0f);   // aggroed: the end-of-control rule resumes a chase only for a wolf with threat
+                    a->GetMotionMaster()->MoveChase(b, 0.0f, 0.0f);
+                });
+                At(1500, [this, g, gc]() { Creature* a = Get(g); if (a) { a->SetFeared(true, gc, 5782, 0, 0); Log("fear applied, mt=%s", TypeName(a)); } });
+                At(3500, [this, g, gc]() { Creature* a = Get(g); if (a) { a->SetConfused(true, gc, 118, 0); Log("confuse applied over it, mt=%s", TypeName(a)); } });
+                for (uint32 i = 1; i <= 5; ++i) { At(3500 + i * 400, [sample, both, i]() { sample(*both, "both", i * 400); }); }
+                At(6500, [this, g, gc]() { Creature* a = Get(g); if (a) { a->SetConfused(false, gc, 118, 0); Log("confuse removed, mt=%s", TypeName(a)); } });
+                for (uint32 i = 1; i <= 5; ++i) { At(6500 + i * 400, [sample, afterConfuse, i]() { sample(*afterConfuse, "fear-only", i * 400); }); }
+                At(9500, [this, g, gc]() { Creature* a = Get(g); if (a) { a->SetFeared(false, gc, 5782, 0, 0); Log("fear removed, mt=%s", TypeName(a)); } });
+                for (uint32 i = 1; i <= 5; ++i) { At(9500 + i * 300, [sample, afterFear, i]() { sample(*afterFear, "none", i * 300); }); }
+                At(11300, [this, both, afterConfuse, afterFear]()
+                {
+                    auto all = [](std::vector<MovementGeneratorType> const& v, MovementGeneratorType t)
+                    {
+                        if (v.empty()) { return false; }
+                        for (size_t k = 0; k < v.size(); ++k) { if (v[k] != t) { return false; } }
+                        return true;
+                    };
+                    std::string body;
+                    body += std::string("confuseOutranksFear=") + (all(*both, CONFUSED_MOTION_TYPE) ? "OK(CONFUSED while both held)" : (both->empty() ? "INVALID(no samples)" : std::string("BUG(") + Harness::TypeName(both->front()) + " while both held)"));
+                    body += std::string(" | fearResumesAfterConfuse=") + (all(*afterConfuse, FLEEING_MOTION_TYPE) ? "OK(FLEEING after the confuse's removal)" : (afterConfuse->empty() ? "INVALID(no samples)" : std::string("BUG(") + Harness::TypeName(afterConfuse->front()) + " after the confuse's removal)"));
+                    const bool chase = afterFear->size() >= 3 && (*afterFear)[2] == CHASE_MOTION_TYPE;   // +900 ms
+                    body += std::string(" | chaseResumesLast=") + (chase ? "OK(CHASE within a second of the fear's removal)" : (afterFear->empty() ? "INVALID(no samples)" : std::string("BUG(") + Harness::TypeName(afterFear->size() >= 3 ? (*afterFear)[2] : afterFear->back()) + " after the fear's removal)"));
+                    Verdict(body);
+                });
+            }
+        };
+
+        /// P4-A: the low-health flee (a timed fear from the victim, spell 0) ends on its own
+        /// and must leave no fleeing flag behind; today nothing cleared UNIT_FLAG_FLEEING after
+        /// it. The chase resumes through the timed generator's own re-engagement.
+        class TimedFleeCleans : public Scenario
+        {
+        public:
+            TimedFleeCleans() : Scenario("timed-flee-cleans", 23) {}
+
+            void Prepare() override
+            {
+                struct Sample { uint32 t; MovementGeneratorType mt; bool flag; bool state; };
+                Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+                Creature* b = Spawn(KOBOLD, SE.x + 20.0f, SE.y, Ground(SE.x + 20.0f, SE.y, SE.z), 3.1f);
+                if (!a || !b) { Verdict("timedFleeCleans=INVALID(spawn failed)"); return; }
+                a->SetMaxHealth(500000); a->SetHealth(500000);
+                b->SetMaxHealth(500000); b->SetHealth(500000);
+                b->setFaction(14);
+                const ObjectGuid g = a->GetObjectGuid(), h = b->GetObjectGuid();
+                auto samples = std::make_shared<std::vector<Sample> >();
+                At(500, [this, g, h]()
+                {
+                    Creature* a = Get(g); Creature* b = Get(h); if (!a || !b) { return; }
+                    a->Attack(b, true);
+                    a->AddThreat(b, 1000.0f);   // aggroed: the end-of-control rule resumes a chase only for a wolf with threat
+                    a->GetMotionMaster()->MoveChase(b, 0.0f, 0.0f);
+                });
+                At(1500, [this, g, h]()
+                {
+                    Creature* a = Get(g); if (!a) { return; }
+                    a->SetFeared(true, h, 0, 3000);   // the low-health flee's shape: the victim as the source, three seconds
+                    Log("timed flee from the victim, mt=%s flag=%d", TypeName(a), a->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING) ? 1 : 0);
+                });
+                for (uint32 i = 1; i <= 14; ++i)
+                {
+                    At(1500 + i * 400, [this, g, samples, i]()
+                    {
+                        Creature* a = Get(g); if (!a) { return; }
+                        Sample s;
+                        s.t = i * 400;
+                        s.mt = Type(a);
+                        s.flag = a->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
+                        s.state = a->hasUnitState(UNIT_STAT_FLEEING | UNIT_STAT_FLEEING_MOVE);
+                        samples->push_back(s);
+                        Log("+%4ums mt=%s flag=%d state=%d", s.t, Harness::TypeName(s.mt), s.flag ? 1 : 0, s.state ? 1 : 0);
+                    });
+                }
+                At(7400, [this, samples]()
+                {
+                    if (samples->empty()) { Verdict("timedFleeCleans=INVALID(no samples)"); return; }
+                    bool fled = false;
+                    for (size_t k = 0; k < samples->size(); ++k) { if ((*samples)[k].mt == TIMED_FLEEING_MOTION_TYPE) { fled = true; } }
+                    Sample const& end = samples->back();
+                    char text[160];
+                    if (fled && end.mt == CHASE_MOTION_TYPE && !end.flag && !end.state)
+                    {
+                        snprintf(text, sizeof(text), "timedFleeCleans=OK(fled, then chased with the flag and state clear)");
+                    }
+                    else
+                    {
+                        snprintf(text, sizeof(text), "timedFleeCleans=BUG(fled=%d, end mt=%s flag=%d state=%d)", fled ? 1 : 0, Harness::TypeName(end.mt), end.flag ? 1 : 0, end.state ? 1 : 0);
+                    }
+                    Verdict(text);
+                });
+            }
+        };
+
+        /// P4-A: a script's "stop whatever is moving" under a fear. The clear leaves the fear
+        /// (a claim is its aura's) and cuts the chase beneath; the script's point waits under
+        /// the fear and runs when the fear ends; the re-issued chase waits under the point.
+        class ClearUnderFear : public Scenario
+        {
+        public:
+            ClearUnderFear() : Scenario("clear-under-fear", 24) {}
+
+            void Prepare() override
+            {
+                Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+                Creature* b = Spawn(KOBOLD, SE.x + 20.0f, SE.y, Ground(SE.x + 20.0f, SE.y, SE.z), 3.1f);
+                Creature* c = Spawn(KOBOLD, SE.x + 25.0f, SE.y + 15.0f, Ground(SE.x + 25.0f, SE.y + 15.0f, SE.z), 3.1f);
+                if (!a || !b || !c) { Verdict("clearKeepsFear=INVALID(spawn failed)"); return; }
+                a->SetMaxHealth(500000); a->SetHealth(500000);
+                b->SetMaxHealth(500000); b->SetHealth(500000);
+                b->setFaction(14); c->setFaction(14);
+                const ObjectGuid g = a->GetObjectGuid(), h = b->GetObjectGuid(), gc = c->GetObjectGuid();
+                const float px = SE.x - 15.0f, py = SE.y + 10.0f;
+                auto afterClear = std::make_shared<std::vector<MovementGeneratorType> >();
+                auto afterFear = std::make_shared<std::vector<MovementGeneratorType> >();
+                At(500, [this, g, h]()
+                {
+                    Creature* a = Get(g); Creature* b = Get(h); if (!a || !b) { return; }
+                    a->Attack(b, true);
+                    a->AddThreat(b, 1000.0f);   // aggroed: the end-of-control rule resumes a chase only for a wolf with threat
+                    a->GetMotionMaster()->MoveChase(b, 0.0f, 0.0f);
+                });
+                At(1500, [this, g, gc]() { Creature* a = Get(g); if (a) { a->SetFeared(true, gc, 5782, 0, 0); Log("fear applied, mt=%s", TypeName(a)); } });
+                At(3500, [this, g, px, py]()
+                {
+                    Creature* a = Get(g); if (!a) { return; }
+                    a->GetMotionMaster()->Clear(false);                                        // a script's stop
+                    a->GetMotionMaster()->MovePoint(1, px, py, Ground(px, py, a->Where().Z()), true);   // and its point (ScenariosPoint.cpp's call shape)
+                    Log("script Clear(false) + MovePoint under the fear, mt=%s", TypeName(a));
+                });
+                for (uint32 i = 1; i <= 6; ++i)
+                {
+                    At(3500 + i * 400, [this, g, afterClear, i]() { Creature* a = Get(g); if (a) { afterClear->push_back(Type(a)); Log("after-clear +%4ums mt=%s", i * 400, TypeName(a)); } });
+                }
+                At(6500, [this, g, gc]() { Creature* a = Get(g); if (a) { a->SetFeared(false, gc, 5782, 0, 0); Log("fear removed, mt=%s", TypeName(a)); } });
+                for (uint32 i = 1; i <= 6; ++i)
+                {
+                    At(6500 + i * 300, [this, g, afterFear, i]() { Creature* a = Get(g); if (a) { afterFear->push_back(Type(a)); Log("after-fear +%4ums mt=%s", i * 300, TypeName(a)); } });
+                }
+                At(8600, [this, afterClear, afterFear]()
+                {
+                    bool keptFear = !afterClear->empty();
+                    for (size_t k = 0; k < afterClear->size(); ++k) { if ((*afterClear)[k] != FLEEING_MOTION_TYPE) { keptFear = false; } }
+                    const bool point = afterFear->size() >= 3 && (*afterFear)[2] == POINT_MOTION_TYPE;   // +900 ms
+                    std::string body = std::string("clearKeepsFear=") + (keptFear ? "OK(still FLEEING after a script's Clear(false))" : (afterClear->empty() ? "INVALID(no samples)" : std::string("BUG(") + Harness::TypeName(afterClear->front()) + " after the clear)"));
+                    body += std::string(" | pointRunsAfterFear=") + (point ? "OK(the script's point runs within a second of the fear's end)" : (afterFear->empty() ? "INVALID(no samples)" : std::string("BUG(") + Harness::TypeName(afterFear->size() >= 3 ? (*afterFear)[2] : afterFear->back()) + " after the fear's end)"));
+                    Verdict(body);
+                });
+            }
+        };
     }
 
     void RegisterFleeScenarios(Runner& r)
@@ -391,5 +782,10 @@ namespace Harness
         r.Register(new FleeDriftsBack());
         r.Register(new DistractOverAssist());
         r.Register(new DistractThenAttack());
+        r.Register(new FearTwice());
+        r.Register(new FearThenHome());
+        r.Register(new ConfuseOverFear());
+        r.Register(new TimedFleeCleans());
+        r.Register(new ClearUnderFear());
     }
 }

@@ -76,6 +76,21 @@ enum MovementGeneratorType
     EXTERNAL_WAYPOINT_FINISHED_LAST = 1024 ///< External waypoint finished last (used in CreatureAI::MovementInform when last waypoint wait time finished)
 };
 
+namespace Motion
+{
+    /**
+     * @brief The identity of a Control claim: the aura that holds it.
+     * @param spellId The aura's spell (0 for the low-health flee and for a script's fear).
+     * @param effIndex The aura's effect index (0 or 1 for the two spell-less cases).
+     * @param casterCounter The caster's guid counter (the victim's for the low-health flee).
+     * @return A non-zero identity; two applications of one aura share it and update the claim in place.
+     */
+    inline uint64 ControlClaim(uint32 spellId, uint8 effIndex, uint32 casterCounter)
+    {
+        return (uint64(spellId) << 40) | (uint64(effIndex) << 32) | uint64(casterCounter);
+    }
+}
+
 /**
  * The movement facade and, since P3-B, the kernel's Controller shell (design
  * 2026-09-13-movement-p3b-controller-design.md): one Motion::Arbiter decides which
@@ -97,9 +112,9 @@ class MotionMaster
         MovementGenerator const* GetCurrent() const;
         /// One tick of the selected behaviour; nothing under UNIT_STAT_CAN_NOT_MOVE.
         void UpdateMotion(uint32 diff);
-        /// Every command, claim and combat finish; the pushed default too when `all`; the survivor resets when `reset && !all`.
+        /// Every command and combat finish; the pushed default too when `all`; the survivor resets when `reset && !all`. A Control claim is left alone: it ends with its aura.
         void Clear(bool reset = true, bool all = false);
-        /// The selected behaviour finishes; the exposed one resets when `reset` and nothing was pushed over it.
+        /// The selected behaviour finishes; the exposed one resets when `reset` and nothing was pushed over it. A Control claim is left alone: it ends with its aura.
         void MovementExpired(bool reset = true);
 
         void MoveIdle();
@@ -107,8 +122,8 @@ class MotionMaster
         void MoveTargetedHome();
         void MoveFollow(Unit* target, float dist, float angle);
         void MoveChase(Unit* target, float dist = 0.0f, float angle = 0.0f);
-        void MoveConfused();
-        void MoveFleeing(Unit* enemy, uint32 timeLimit = 0);
+        void MoveConfused(uint64 claim = 0);                                     ///< a Confused claim; 0 derives the script identity
+        void MoveFleeing(Unit* enemy, uint32 timeLimit = 0, uint64 claim = 0);   ///< a Fear claim; 0 derives a script identity from the enemy
         void MovePoint(uint32 id, float x, float y, float z, bool generatePath = true);
         void MoveSeekAssistance(float x, float y, float z);
         void MoveSeekAssistanceDistract(uint32 timer);
@@ -133,8 +148,13 @@ class MotionMaster
 
         /// Death: every behaviour finishes Died while the unit still reads alive, then the idle default.
         void Die();
-        /// Release the control claims of this kind (the aura handlers' form until P4).
+        /// Release the control claims of this kind (a take that ends the episode without its aura: the pet possession take).
         void CancelControl(Motion::Kind kind);
+        /// End one Control claim by identity; the newest remaining claim of the layer drives.
+        /// @return True when the claim was held.
+        bool ReleaseControl(uint64 claim);
+        /// Whether any Control claim of this kind is held (the aura handlers' "last claim" test).
+        bool HoldsControl(Motion::Kind kind) const;
         /// A near teleport: suspend the selection, relocate, resume it with a reset.
         void RelocateSelected(float x, float y, float z, float o);
         /// True iff this generator belongs to the selected behaviour (replaces MovementGenerator::IsActive).
@@ -144,6 +164,8 @@ class MotionMaster
         Motion::Kind ActiveKind() const;
         /// A chase is held (the Combat entry), selected or masked.
         bool IsChasing() const;
+        /// The held chase's target, or NULL.
+        Unit* ChaseTarget() const;
         /// The current default is a follow (the parked fallback does not count), selected or masked.
         bool IsFollowing() const;
         /// The held follow's target, or NULL.
@@ -211,6 +233,7 @@ class MotionMaster
         Bound* SelectedBound();
         Bound const* SelectedBound() const;
         void Retire(size_t index, Motion::FinishReason reason);
+        void ReassertControlState(Motion::Kind kind);   ///< another claim of the kind may still hold the unit state a finishing hook just cleared
 
         Unit*              m_owner;
         Motion::Arbiter    m_arbiter;

@@ -363,7 +363,7 @@ void Aura::HandleModConfuse(bool apply, bool Real)
         return;
     }
 
-    GetTarget()->SetConfused(apply, GetCasterGuid(), GetId());
+    GetTarget()->SetConfused(apply, GetCasterGuid(), GetId(), uint8(GetEffIndex()));
 }
 
 /**
@@ -379,7 +379,7 @@ void Aura::HandleModFear(bool apply, bool Real)
         return;
     }
 
-    GetTarget()->SetFeared(apply, GetCasterGuid(), GetId());
+    GetTarget()->SetFeared(apply, GetCasterGuid(), GetId(), 0, uint8(GetEffIndex()));
 }
 
 /**

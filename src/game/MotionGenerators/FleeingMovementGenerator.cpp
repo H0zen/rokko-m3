@@ -212,6 +212,13 @@ void TimedFleeingMovementGenerator::Finalize(Unit& owner)
 {
     owner.clearUnitState(UNIT_STAT_FLEEING | UNIT_STAT_FLEEING_MOVE);
 
+    // The low-health flee has no aura to clear the client-visible flag: the shell finished this
+    // claim before calling here, so when no fear claim remains the flag goes with it.
+    if (!owner.GetMotionMaster()->HoldsControl(Motion::Kind::Fear))
+    {
+        owner.RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
+    }
+
     // The panic is over: go back to whatever it was that frightened us.
     if (Unit* victim = owner.getVictim())
     {

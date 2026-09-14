@@ -65,6 +65,7 @@ class LegacyBehaviour : public MotionBehaviour
         MovementGenerator* m_generator;
         bool               m_owned;
         EffectLaunch       m_launch;
+        bool               m_suspended;   ///< Suspend ran since the last Activate/Resume: the mover belongs to another behaviour
 };
 
 #endif

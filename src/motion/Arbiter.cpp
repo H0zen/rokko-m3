@@ -485,10 +485,10 @@ namespace Motion
         {
             Finish(m_commands[i], FinishReason::Cleared);
         }
-        FinishClaimsOfKind(Kind::Count, FinishReason::Cleared);
         Finish(m_combat, FinishReason::Cleared);
         if (all)
         {
+            FinishClaimsOfKind(Kind::Count, FinishReason::Cleared);   // a full reset takes the claims; a partial clear is a script's, and the claims are the auras'
             Finish(m_default, FinishReason::Cleared);
             Finish(m_fallbackDefault, FinishReason::Cleared);
         }
@@ -527,6 +527,9 @@ namespace Motion
             case Layer::Combat:
                 FinishSelectedNoRecord(FinishReason::TargetLost);
                 Record(Decision::Op::ExpireSelected, before->kind, 0, 0, before);
+                return;
+            case Layer::Control:
+                Record(Decision::Op::ExpireSelected, before->kind, 0, 0, before);   // a claim ends only through its aura (Release, CancelControl), a full clear or death
                 return;
             default:
                 FinishSelectedNoRecord(FinishReason::Expired);
@@ -630,7 +633,7 @@ namespace Motion
         Record(Decision::Op::CancelControl, kind, 0, 0, before);
     }
 
-    void Arbiter::Release(uint64 claim)
+    bool Arbiter::Release(uint64 claim)
     {
         Transaction tx(*this, TransactionKind::Normal);
         const std::optional<Held> before = Selected();
@@ -641,10 +644,11 @@ namespace Motion
                 FinishClaim(i, FinishReason::Cancelled);
                 Reselect(before);
                 Record(Decision::Op::Release, Kind::Idle, 0, claim, before);
-                return;
+                return true;
             }
         }
         Record(Decision::Op::Release, Kind::Idle, 0, claim, before);
+        return false;
     }
 
     bool Arbiter::Empty() const
@@ -748,6 +752,18 @@ namespace Motion
             out[j] = key;
         }
         return out;
+    }
+
+    bool Arbiter::HasClaim(Kind kind) const
+    {
+        for (size_t i = 0; i < m_claims.size(); ++i)
+        {
+            if (m_claims[i].kind == kind)
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     std::vector<Held> Arbiter::Contents() const

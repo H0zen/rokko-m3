@@ -324,13 +324,14 @@ TEST(MotionArbiter_ClearProjections)
     m.Request(Req(Kind::Chase));
     m.Request(Req(Kind::Point, 8));
     m.Request(Claim(Kind::Fear, 1));
-    m.Clear(false);                                                   // everything but the bottom
-    CHECK_EQ(SelectedKind(m), K(Kind::Patrol));
-    CHECK_EQ(Size(m), 1);
-    m.Clear(true);                                                    // the bottom too
+    m.Clear(false);                                                   // everything but the bottom and the claims
+    CHECK_EQ(SelectedKind(m), K(Kind::Fear));
+    CHECK_EQ(Size(m), 2);
+    m.Clear(true);                                                    // the bottom and the claims too
     CHECK(m.Empty());
     std::vector<Event> ev = m.DrainEvents();
     CHECK_EQ(CountEvents(ev, Event::Kind::Finished, Kind::Patrol), 1);
+    CHECK_EQ(CountEvents(ev, Event::Kind::Finished, Kind::Fear), 1);
 }
 
 TEST(MotionArbiter_ExpireAtDepthOneIsNoOp)
@@ -590,7 +591,7 @@ TEST(MotionArbiter_Claims_ExpireKindFinishesNewestClaimOfKindOnly)
     CHECK_EQ(CountEvents(m.DrainEvents(), Event::Kind::Finished, Kind::Fear), 1);
 }
 
-TEST(MotionArbiter_Claims_ExpireSelectedFinishesSelectedClaim_OtherResumes)
+TEST(MotionArbiter_Claims_ExpireSelectedLeavesASelectedClaim)
 {
     Arbiter m;
     m.InstallDefault(Kind::Idle);
@@ -598,12 +599,17 @@ TEST(MotionArbiter_Claims_ExpireSelectedFinishesSelectedClaim_OtherResumes)
     m.Request(Claim(Kind::Fear, 11));
     m.Request(Claim(Kind::Confused, 22));
     m.DrainEvents();
-    m.ExpireSelected();                                               // the confuse's own end
-    CHECK_EQ(SelectedKind(m), K(Kind::Fear));
+    m.ExpireSelected();                                               // a generic expiry: not the confuse's own end
+    CHECK_EQ(SelectedKind(m), K(Kind::Confused));
     std::vector<Event> ev = m.DrainEvents();
-    CHECK(HasFinished(ev, Kind::Confused, 0, FinishReason::Expired));
+    CHECK_EQ(CountEvents(ev, Event::Kind::Finished, Kind::Confused), 0);
+    CHECK_EQ(static_cast<int>(m.Claims().size()), 2);
+    m.Release(22);                                                    // the confuse's aura ends it
+    CHECK_EQ(SelectedKind(m), K(Kind::Fear));
+    ev = m.DrainEvents();
+    CHECK(HasFinished(ev, Kind::Confused, 0, FinishReason::Cancelled));
     CHECK_EQ(CountEvents(ev, Event::Kind::Resumed, Kind::Fear), 1);
-    m.FinishSelected(FinishReason::Cut);                              // the fear's leg cut
+    m.FinishSelected(FinishReason::Cut);                              // the fear's own leg cut (the timed flee's end)
     CHECK_EQ(SelectedKind(m), K(Kind::Point));
     ev = m.DrainEvents();
     CHECK(HasFinished(ev, Kind::Fear, 0, FinishReason::Cut));
@@ -1057,7 +1063,7 @@ TEST(MotionArbiter_Death_EventsInAscendingLayerOrder)
     CHECK_EQ(K(order[4]), K(Kind::Effect));
 }
 
-TEST(MotionArbiter_Claims_ClearFinishesInPrecedenceOrder)
+TEST(MotionArbiter_Claims_ClearLeavesClaims_ClearAllFinishesThemInPrecedenceOrder)
 {
     Arbiter m;
     m.InstallDefault(Kind::Idle);
@@ -1065,8 +1071,20 @@ TEST(MotionArbiter_Claims_ClearFinishesInPrecedenceOrder)
     m.Request(Claim(Kind::Confused, 22));
     m.Request(Claim(Kind::Fear, 13));
     m.DrainEvents();
-    m.Clear(false);
+    m.Clear(false);                                                   // a script's clear: the claims are the auras', not its
+    CHECK_EQ(static_cast<int>(m.Claims().size()), 3);
+    CHECK_EQ(SelectedKind(m), K(Kind::Confused));
     std::vector<Event> ev = m.DrainEvents();
+    for (Event const& e : ev)
+    {
+        CHECK(!(e.kind == Event::Kind::Finished && e.claim != 0));
+    }
+    CHECK(m.HasClaim(Kind::Fear));
+    CHECK(m.HasClaim(Kind::Confused));
+    m.Clear(true);                                                    // the full reset takes them, Confused first, then the newer fear
+    CHECK(!m.HasClaim(Kind::Fear));
+    CHECK(!m.HasClaim(Kind::Confused));
+    ev = m.DrainEvents();
     std::vector<uint64> order;
     for (Event const& e : ev)
     {
@@ -1076,9 +1094,32 @@ TEST(MotionArbiter_Claims_ClearFinishesInPrecedenceOrder)
         }
     }
     REQUIRE(static_cast<int>(order.size()) == 3);
-    CHECK_EQ(static_cast<int>(order[0]), 22);         // Confused first
-    CHECK_EQ(static_cast<int>(order[1]), 13);         // then the newer fear
+    CHECK_EQ(static_cast<int>(order[0]), 22);
+    CHECK_EQ(static_cast<int>(order[1]), 13);
     CHECK_EQ(static_cast<int>(order[2]), 11);
+}
+
+TEST(MotionArbiter_Claims_ClearUnderAClaimKeepsItSelected_ReleaseResumesTheDefault)
+{
+    Arbiter m;
+    m.InstallDefault(Kind::Patrol);
+    m.Request(Req(Kind::Chase));
+    m.Request(Claim(Kind::Fear, 11));
+    m.DrainEvents();
+    m.Clear(false);                                                   // a script's clear under the fear
+    CHECK_EQ(SelectedKind(m), K(Kind::Fear));
+    std::vector<Event> ev = m.DrainEvents();
+    CHECK(HasFinished(ev, Kind::Chase, 0, FinishReason::Cleared));
+    CHECK_EQ(CountEvents(ev, Event::Kind::Finished, Kind::Fear), 0);
+    m.Request(Req(Kind::Point, 5));                                   // the script's point waits beneath the fear
+    CHECK_EQ(SelectedKind(m), K(Kind::Fear));
+    m.DrainEvents();
+    CHECK(!m.Release(12345));                                         // unknown identity: no claim went, selection unchanged
+    CHECK_EQ(SelectedKind(m), K(Kind::Fear));
+    CHECK(m.Release(11));                                             // the fear's aura ends: the point runs
+    CHECK_EQ(SelectedKind(m), K(Kind::Point));
+    ev = m.DrainEvents();
+    CHECK(HasFinished(ev, Kind::Fear, 0, FinishReason::Cancelled));
 }
 
 TEST(MotionArbiter_InstallDefault_DropsFallback)

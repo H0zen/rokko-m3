@@ -90,17 +90,21 @@ void Aura::HandlePreventFleeing(bool apply, bool Real)
         return;
     }
 
+    // Every fear aura holds its own control claim (P4-A): suspend each while this aura
+    // lasts and restore each when it ends. The last release returns control and runs the
+    // end-of-control rule; the newest restore takes control again. The walk is over a
+    // snapshot: SetFeared re-enters AI code that may remove auras from the live list.
+    struct FearId { ObjectGuid caster; uint32 spell; uint8 eff; };
+    std::vector<FearId> fears;
     Unit::AuraList const& fearAuras = GetTarget()->GetAurasByType(SPELL_AURA_MOD_FEAR);
-    if (!fearAuras.empty())
+    for (Unit::AuraList::const_iterator it = fearAuras.begin(); it != fearAuras.end(); ++it)
     {
-        if (apply)
-        {
-            GetTarget()->SetFeared(false, fearAuras.front()->GetCasterGuid());
-        }
-        else
-        {
-            GetTarget()->SetFeared(true);
-        }
+        FearId id = { (*it)->GetCasterGuid(), (*it)->GetId(), uint8((*it)->GetEffIndex()) };
+        fears.push_back(id);
+    }
+    for (size_t i = 0; i < fears.size(); ++i)
+    {
+        GetTarget()->SetFeared(!apply, fears[i].caster, fears[i].spell, 0, fears[i].eff);
     }
 }
 

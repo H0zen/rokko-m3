@@ -32,7 +32,7 @@
 #include "movement/MoveSplineInit.h"
 
 LegacyBehaviour::LegacyBehaviour(Motion::Kind kind, MovementGenerator* generator, bool owned, EffectLaunch const& launch)
-    : m_kind(kind), m_generator(generator), m_owned(owned), m_launch(launch)
+    : m_kind(kind), m_generator(generator), m_owned(owned), m_launch(launch), m_suspended(false)
 {
 }
 
@@ -51,6 +51,7 @@ MovementGeneratorType LegacyBehaviour::LegacyType() const
 
 void LegacyBehaviour::Activate(Unit& owner)
 {
+    m_suspended = false;
     m_generator->Initialize(owner);
     if (m_kind == Motion::Kind::Effect)
     {
@@ -60,6 +61,7 @@ void LegacyBehaviour::Activate(Unit& owner)
 
 void LegacyBehaviour::Suspend(Unit& owner)
 {
+    m_suspended = true;
     switch (m_kind)
     {
         case Motion::Kind::Idle:
@@ -75,6 +77,7 @@ void LegacyBehaviour::Suspend(Unit& owner)
 
 void LegacyBehaviour::Resume(Unit& owner, bool reset)
 {
+    m_suspended = false;
     if (reset)
     {
         m_generator->Reset(owner);
@@ -103,7 +106,10 @@ void LegacyBehaviour::Finish(Unit& owner, Motion::FinishReason why)
                     }
                     return;
                 default:
-                    m_generator->Interrupt(owner);
+                    if (!m_suspended)
+                    {
+                        m_generator->Interrupt(owner);   // a suspended behaviour was interrupted at its Suspend: the mover is another behaviour's now
+                    }
                     CleanupAfterInterrupt(owner);
                     return;
             }

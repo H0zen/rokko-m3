@@ -62,7 +62,7 @@ class MotionBehaviour
         virtual MovementGeneratorType LegacyType() const = 0;       ///< the projection the facade reports
         virtual void Activate(Unit& owner) = 0;                     ///< first selection
         virtual void Suspend(Unit& owner) = 0;                      ///< masked by a higher layer
-        virtual void Resume(Unit& owner, bool reset) = 0;           ///< selected again; reset = the stack's Reset
+        virtual void Resume(Unit& owner, bool reset) = 0;           ///< the selection, at every commit; reset = the stack's Reset (a suspended behaviour clears its flag here)
         virtual void Finish(Unit& owner, Motion::FinishReason why) = 0;
         virtual bool Tick(Unit& owner, uint32 diff) = 0;            ///< false: the behaviour ended itself
         virtual Motion::FinishReason EndReason(Unit& owner) const = 0; ///< why, after a false Tick

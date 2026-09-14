@@ -7125,11 +7125,20 @@ bool Unit::TakePossessOf(Unit* possessed)
 
     if (player)
     {
+        const bool ownPet = possessedCreature && possessedCreature->IsPet() && possessedCreature->GetObjectGuid() == GetPetGuid();
+        if (ownPet)
+        {
+            // The take ends the server's control episodes (spec §7): the pet answers its
+            // master now, and the grant below needs the flee and confuse states gone.
+            possessed->GetMotionMaster()->CancelControl(Motion::Kind::Fear);
+            possessed->GetMotionMaster()->CancelControl(Motion::Kind::Confused);
+        }
+
         player->GetCamera().SetView(possessed);
         player->SetClientControl(possessed, 1);
         player->SendForcedObjectUpdate();
 
-        if (possessedCreature && possessedCreature->IsPet() && possessedCreature->GetObjectGuid() == GetPetGuid())
+        if (ownPet)
         {
             possessed->StopMoving();
             possessed->GetMotionMaster()->Clear(false);

@@ -1148,7 +1148,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     }
                     return;
                 case 47178:                                 // Plague Effect Self
-                    target->SetFeared(apply, GetCasterGuid(), GetId());
+                    target->SetFeared(apply, GetCasterGuid(), GetId(), 0, uint8(GetEffIndex()));
                     return;
                 case 56422:                                 // Nerubian Submerge
                 case 70733:                                 // Stoneform

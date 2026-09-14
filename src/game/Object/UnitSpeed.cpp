@@ -280,9 +280,11 @@ void Unit::SetSpeedRate(UnitMoveType mtype, float rate, bool forced, bool ignore
  * @param casterGuid The caster responsible for the effect.
  * @param spellID The spell that caused the effect.
  * @param time The remaining flee duration.
+ * @param effIndex The aura's effect index (its claim's identity with the spell and the caster).
  */
-void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 time)
+void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 time, uint8 effIndex)
 {
+    const uint64 claim = Motion::ControlClaim(spellID, effIndex, casterGuid.GetCounter());
     if (apply)
     {
         if (HasAuraType(SPELL_AURA_PREVENTS_FLEEING))
@@ -291,50 +293,63 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
         }
 
         SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
-
-        GetMotionMaster()->CancelControl(Motion::Kind::Fear);
         CastStop(GetObjectGuid() == casterGuid ? spellID : 0);
 
-        // Control is taken before the flee spline is laid (design v2 §8): the packet,
-        // the revoke, then the behaviour.
-        if (GetTypeId() == TYPEID_PLAYER)
+        // Control is taken once per episode (design v2 §8), before the flee spline is laid:
+        // a second fear or confuse on an already controlled player sends no second revoke.
+        if (GetTypeId() == TYPEID_PLAYER &&
+            !GetMotionMaster()->HoldsControl(Motion::Kind::Fear) && !GetMotionMaster()->HoldsControl(Motion::Kind::Confused))
         {
             ((Player*)this)->SetClientControl(this, 0);
         }
 
-        Unit* caster = IsInWorld() ?  GetMap()->GetUnit(casterGuid) : NULL;
+        Unit* caster = IsInWorld() ? GetMap()->GetUnit(casterGuid) : NULL;
 
-        GetMotionMaster()->MoveFleeing(caster, time);       // caster==NULL processed in MoveFleeing
+        GetMotionMaster()->MoveFleeing(caster, time, claim);   // caster==NULL processed in MoveFleeing
     }
     else
     {
+        const bool released = GetMotionMaster()->ReleaseControl(claim);
+        if (GetMotionMaster()->HoldsControl(Motion::Kind::Fear))
+        {
+            return;   // another fear drives (reference §3.6): the flag stays, control stays taken
+        }
+
         RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
 
-        GetMotionMaster()->CancelControl(Motion::Kind::Fear);
-
-        if (GetTypeId() != TYPEID_PLAYER && IsAlive())
+        // The end of control runs for the claim that just went: a removal that released
+        // nothing (a fear refused at apply, a second prevent-fleeing aura's loop) changes no
+        // target and moves nothing.
+        if (released && GetTypeId() != TYPEID_PLAYER && IsAlive())
         {
             Creature* c = ((Creature*)this);
-            // restore appropriate movement generator
-            if (getVictim())
-            {
-                GetMotionMaster()->MoveChase(getVictim());
-            }
-            else
-            {
-                GetMotionMaster()->Initialize();
-            }
 
-            // attack caster if can
+            // attack caster if can: the caster becomes the victim before the end rule reads one
             if (Unit* caster = IsInWorld() ? GetMap()->GetUnit(casterGuid) : NULL)
             {
                 c->AttackedBy(caster);
             }
+
+            // The end of control (reference §3.1.4, §3.1.6): a victim means the chase resumes
+            // (the masked chase through the arbiter while it still aims at the victim, a fresh
+            // one otherwise); none means the run home.
+            if (Unit* victim = getVictim())
+            {
+                if (!GetMotionMaster()->IsChasing() || GetMotionMaster()->ChaseTarget() != victim)
+                {
+                    GetMotionMaster()->MoveChase(victim);
+                }
+            }
+            else
+            {
+                GetMotionMaster()->MoveTargetedHome();
+            }
         }
 
-        // Control returns once the server movement has ended: the reconcile is the
-        // CancelControl above.
-        if (GetTypeId() == TYPEID_PLAYER)
+        // Control returns with the last control aura (P2-D's rule): the last claim's finish
+        // cleared UNIT_STAT_FLEEING inside ReleaseControl, so the grant passes; a remaining
+        // confuse keeps control until its own removal.
+        if (GetTypeId() == TYPEID_PLAYER && !GetMotionMaster()->HoldsControl(Motion::Kind::Confused))
         {
             ((Player*)this)->SetClientControl(this, 1);
         }
@@ -347,50 +362,60 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
  * @param apply True to apply confusion; false to remove it.
  * @param casterGuid The caster responsible for the effect.
  * @param spellID The spell that caused the effect.
+ * @param effIndex The aura's effect index (its claim's identity with the spell and the caster).
  */
-void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID)
+void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 effIndex)
 {
+    const uint64 claim = Motion::ControlClaim(spellID, effIndex, casterGuid.GetCounter());
     if (apply)
     {
         SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
 
         CastStop(GetObjectGuid() == casterGuid ? spellID : 0);
 
-        // Control is taken before the confusion spline is laid (design v2 §8): the
-        // packet, the revoke, then the behaviour.
-        if (GetTypeId() == TYPEID_PLAYER)
+        // Control is taken once per episode (design v2 §8), before the wander is laid.
+        if (GetTypeId() == TYPEID_PLAYER &&
+            !GetMotionMaster()->HoldsControl(Motion::Kind::Fear) && !GetMotionMaster()->HoldsControl(Motion::Kind::Confused))
         {
             ((Player*)this)->SetClientControl(this, 0);
         }
 
-         if (GetTypeId() == TYPEID_UNIT)
-         {
-             SetTargetGuid(ObjectGuid());
-             GetMotionMaster()->MoveConfused();
-         }
+        if (GetTypeId() == TYPEID_UNIT)
+        {
+            SetTargetGuid(ObjectGuid());
+        }
+        GetMotionMaster()->MoveConfused(claim);   // players too (reference §3.3.1): server-driven wandering around the spot
     }
     else
     {
+        const bool released = GetMotionMaster()->ReleaseControl(claim);
+        if (GetMotionMaster()->HoldsControl(Motion::Kind::Confused))
+        {
+            return;   // another confuse drives: the flag stays, control stays taken
+        }
+
         RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
 
-        GetMotionMaster()->CancelControl(Motion::Kind::Confused);
-
-        if (GetTypeId() != TYPEID_PLAYER && IsAlive())
+        // The end of control runs for the claim that just went: a removal that released
+        // nothing changes no target and moves nothing.
+        if (released && GetTypeId() != TYPEID_PLAYER && IsAlive())
         {
-            // restore appropriate movement generator
-            if (getVictim())
+            // The end of control (reference §3.3.4): a victim means the chase resumes (the masked
+            // one while it still aims at the victim, a fresh one otherwise), none the run home.
+            if (Unit* victim = getVictim())
             {
-                GetMotionMaster()->MoveChase(getVictim());
+                if (!GetMotionMaster()->IsChasing() || GetMotionMaster()->ChaseTarget() != victim)
+                {
+                    GetMotionMaster()->MoveChase(victim);
+                }
             }
             else
             {
-                GetMotionMaster()->Initialize();
+                GetMotionMaster()->MoveTargetedHome();
             }
         }
 
-        // Control returns once the server movement has ended: the reconcile is the
-        // CancelControl above.
-        if (GetTypeId() == TYPEID_PLAYER)
+        if (GetTypeId() == TYPEID_PLAYER && !GetMotionMaster()->HoldsControl(Motion::Kind::Fear))
         {
             ((Player*)this)->SetClientControl(this, 1);
         }

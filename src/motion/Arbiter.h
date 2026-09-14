@@ -184,12 +184,12 @@ namespace Motion
             /// self-expiry (Home/Distract/Effect) and the policy's cancellation effects.
             /// A Control kind adds or updates the claim of `request.claim` (never 0).
             void Request(MoveRequest const& request);
-            /// The Clear(reset, all) projection: drop every command, every claim and
-            /// combat, a pushed default with them (the factory default beneath resumes),
-            /// and that bottom default too when `all`, with the factory default parked
-            /// beneath a pushed one.
+            /// The Clear(reset, all) projection: drop every command and the combat entry,
+            /// pop a pushed default; `all` takes the default and the Control claims too —
+            /// a partial clear leaves the claims, which end only through their identity.
             void Clear(bool all);
-            /// MovementExpired / Update()==false on whatever is currently selected.
+            /// MovementExpired / Update()==false on whatever is currently selected; a
+            /// selected Control claim is left alone.
             void ExpireSelected();
             /// Finish the highest entry of this kind, as the stack expiring that generator
             /// would: a command Expired, combat TargetLost, a Follow default TargetLost with
@@ -197,10 +197,11 @@ namespace Motion
             void Expire(Kind kind);
             /// Finish whatever is currently selected, for the given reason.
             void FinishSelected(FinishReason reason);
-            /// Release every Control claim of this kind (the aura handlers' form until P4).
+            /// Release every Control claim of this kind (a take that ends the episode without its aura: the pet possession take).
             void CancelControl(Kind kind);
             /// Release one Control claim by identity.
-            void Release(uint64 claim);
+            /// @return True when a claim of that identity was held and is now finished.
+            bool Release(uint64 claim);
 
             /// Apply an event row (§4.2): CombatStarted cancels the Distract layer.
             void Notify(ExternalEvent event);
@@ -232,6 +233,8 @@ namespace Motion
             std::optional<Held> Command(Layer layer) const;
             /// Every Control claim, in precedence order (the selected one first).
             std::vector<Held> Claims() const;
+            /// Whether any Control claim of this kind is held.
+            bool HasClaim(Kind kind) const;
             /// Every held entry, ascending layer order (Default, Combat, then the commands,
             /// the claims in precedence order on the Control layer).
             std::vector<Held> Contents() const;

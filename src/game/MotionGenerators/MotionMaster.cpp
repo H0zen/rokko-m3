@@ -78,8 +78,7 @@ namespace
         }
     }
 
-    const uint64 kFearClaim = 1;       ///< one live fear per unit until P4 hands the aura handlers identities
-    const uint64 kConfusedClaim = 2;
+    const uint64 kScriptConfuse = Motion::ControlClaim(0, 2, 1);   ///< MoveConfused() with no identity (no script calls it today)
     const uint32 kMaxCommitRounds = 8; ///< finalizers re-entering the facade during a commit
 
     /**
@@ -342,10 +341,14 @@ void MotionMaster::Reconcile()
             bound->activated = true;
             bound->behaviour->Activate(*m_owner);   // never a reset: the stack never Reset a freshly pushed generator
         }
-        else if (m_pendingReset == PendingReset::Always ||
-                 (m_pendingReset == PendingReset::WhenExposed && selected->seq == m_exposedSeq))
+        else
         {
-            bound->behaviour->Resume(*m_owner, true);
+            // The selection hears Resume at every commit, reset or not: a behaviour suspended
+            // beneath a claim and exposed again learns it here (its suspended flag clears);
+            // the reset latch says whether it restarts.
+            const bool reset = m_pendingReset == PendingReset::Always ||
+                               (m_pendingReset == PendingReset::WhenExposed && selected->seq == m_exposedSeq);
+            bound->behaviour->Resume(*m_owner, reset);
         }
     }
     m_pendingReset = PendingReset::None;
@@ -455,12 +458,34 @@ void MotionMaster::Retire(size_t index, Motion::FinishReason reason)
 {
     std::unique_ptr<MotionBehaviour> gone = std::move(m_bound[index].behaviour);
     const bool activated = m_bound[index].activated;
+    const Motion::Kind kind = gone->Kind();
     m_bound.erase(m_bound.begin() + static_cast<std::vector<Bound>::difference_type>(index));
     if (activated)
     {
         gone->Finish(*m_owner, reason);
+        ReassertControlState(kind);
     }
     m_retired.push_back(std::move(gone));   // a generator whose own Update fired this hook must outlive it
+}
+
+/**
+ * @brief Re-asserts a kind's shared unit state after one of its behaviours finished.
+ * @param kind The finished behaviour's kind; only Fear and Confused carry shared state.
+ */
+void MotionMaster::ReassertControlState(Motion::Kind kind)
+{
+    if (kind == Motion::Kind::Fear && HoldsControl(Motion::Kind::Fear))
+    {
+        m_owner->addUnitState(UNIT_STAT_FLEEING);   // the hook cleared it; another fear still holds the unit
+        if (m_owner->GetTypeId() == TYPEID_UNIT)
+        {
+            static_cast<Creature*>(m_owner)->SetWalk(false, false);   // and the flee runs
+        }
+    }
+    else if (kind == Motion::Kind::Confused && HoldsControl(Motion::Kind::Confused))
+    {
+        m_owner->addUnitState(UNIT_STAT_CONFUSED);
+    }
 }
 
 /**
@@ -658,6 +683,16 @@ void MotionMaster::Clear(bool reset, bool all)
     Scope scope(*this, all ? Motion::TransactionKind::ClearAll : Motion::TransactionKind::Clear);
     m_pendingReset = (reset && !all) ? PendingReset::Always : PendingReset::None;   // before the hooks: a later call in the same scope wins, as the stack's flag did
     m_arbiter.Clear(all);
+    // A partial clear leaves a selected Control claim alone, its reset included: what lies
+    // beneath resumes through the arbiter when the claim ends.
+    if (!all)
+    {
+        std::optional<Motion::Held> selected = m_arbiter.Selected();
+        if (selected && selected->claim != 0)   // Held::claim is non-zero for Control entries only
+        {
+            m_pendingReset = PendingReset::None;
+        }
+    }
     // The cleared entries' hooks run here, inside this scope's transaction: nested in another
     // operation, the clear discards for its own extent (a finalizer's request during it is
     // doomed, as the stack's clean loop popped what a finalizer pushed); outermost, the scope's
@@ -765,11 +800,12 @@ void MotionMaster::MoveTargetedHome()
 
 /**
  * @brief Makes the unit move in a confused manner.
+ * @param claim The claim's identity (Motion::ControlClaim); 0 derives the script identity.
  */
-void MotionMaster::MoveConfused()
+void MotionMaster::MoveConfused(uint64 claim)
 {
     DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s move confused", m_owner->GetGuidStr().c_str());
-    Request(R(Motion::Kind::Confused, 0, false, kConfusedClaim), new ConfusedMovementGenerator(), true);
+    Request(R(Motion::Kind::Confused, 0, false, claim ? claim : kScriptConfuse), new ConfusedMovementGenerator(), true);
 }
 
 /**
@@ -859,8 +895,9 @@ void MotionMaster::MoveSeekAssistanceDistract(uint32 time)
  * @brief Makes the unit flee from an enemy.
  * @param enemy Pointer to the enemy unit.
  * @param time Time limit for the fleeing movement.
+ * @param claim The claim's identity (Motion::ControlClaim); 0 derives a script identity from the enemy.
  */
-void MotionMaster::MoveFleeing(Unit* enemy, uint32 time)
+void MotionMaster::MoveFleeing(Unit* enemy, uint32 time, uint64 claim)
 {
     if (!enemy)
     {
@@ -870,7 +907,8 @@ void MotionMaster::MoveFleeing(Unit* enemy, uint32 time)
     MovementGenerator* generator = (m_owner->GetTypeId() != TYPEID_PLAYER && time)
         ? static_cast<MovementGenerator*>(new TimedFleeingMovementGenerator(enemy->GetObjectGuid(), time))
         : static_cast<MovementGenerator*>(new FleeingMovementGenerator(enemy->GetObjectGuid()));
-    Request(R(Motion::Kind::Fear, 0, false, kFearClaim), generator, true);
+    const uint64 identity = claim ? claim : Motion::ControlClaim(0, 1, enemy->GetObjectGuid().GetCounter());
+    Request(R(Motion::Kind::Fear, 0, false, identity), generator, true);
 }
 
 /**
@@ -1188,6 +1226,26 @@ void MotionMaster::CancelControl(Motion::Kind kind)
 }
 
 /**
+ * @brief Ends one Control claim by identity; the newest remaining claim of the layer drives.
+ * @param claim The claim's identity (Motion::ControlClaim).
+ */
+bool MotionMaster::ReleaseControl(uint64 claim)
+{
+    Scope scope(*this, Motion::TransactionKind::Normal);
+    return m_arbiter.Release(claim);
+}
+
+/**
+ * @brief Whether any Control claim of this kind is held.
+ * @param kind Fear or Confused.
+ * @return True when at least one claim of the kind is in the model.
+ */
+bool MotionMaster::HoldsControl(Motion::Kind kind) const
+{
+    return m_arbiter.HasClaim(kind);
+}
+
+/**
  * @brief A near teleport: suspend the selection, relocate, resume it with a reset.
  * @param x The destination X coordinate.
  * @param y The destination Y coordinate.
@@ -1240,6 +1298,21 @@ Motion::Kind MotionMaster::ActiveKind() const
 bool MotionMaster::IsChasing() const
 {
     return m_arbiter.Combat().has_value();
+}
+
+/**
+ * @brief The held chase's target.
+ * @return The Combat entry's chase target, or NULL when no chase is held.
+ */
+Unit* MotionMaster::ChaseTarget() const
+{
+    std::optional<Motion::Held> const& combat = m_arbiter.Combat();
+    Bound const* bound = combat ? Find(combat->seq) : NULL;
+    if (!bound || bound->behaviour->LegacyType() != CHASE_MOTION_TYPE)
+    {
+        return NULL;
+    }
+    return static_cast<ChaseMovementGenerator const*>(bound->behaviour->Legacy())->GetTarget();
 }
 
 /**
