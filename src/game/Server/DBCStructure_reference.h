@@ -13,339 +13,339 @@ using DBCString = char const*;
  * DBC MAP -- 328 client DBC tables (build 4.3.4.15595)
  * ACTIVE is derived only from uncommented literal LoadDBC calls; DOC is inert.
  *
- *   Achievement                      ACTIVE on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Achievement.dbc.extract.json.
- *   Achievement_Category             DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Achievement_Category.dbc.extract.json.
- *   Achievement_Criteria             ACTIVE on-disk fields 23, record size 96 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/Achievement_Criteria.dbc.extract.json.
- *   AnimationData                    DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimationData.dbc.extract.json.
- *   AnimKit                          DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimKit.dbc.extract.json.
- *   AnimKitBoneSet                   DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimKitBoneSet.dbc.extract.json.
- *   AnimKitBoneSetAlias              DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimKitBoneSetAlias.dbc.extract.json.
- *   AnimKitConfig                    DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimKitConfig.dbc.extract.json.
- *   AnimKitConfigBoneSet             DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimKitConfigBoneSet.dbc.extract.json.
- *   AnimKitPriority                  DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimKitPriority.dbc.extract.json.
- *   AnimKitSegment                   DOC    on-disk fields 16, record size 64 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/AnimKitSegment.dbc.extract.json.
- *   AnimReplacement                  DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimReplacement.dbc.extract.json.
- *   AnimReplacementSet               DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimReplacementSet.dbc.extract.json.
- *   AreaAssignment                   DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AreaAssignment.dbc.extract.json.
- *   AreaGroup                        ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AreaGroup.dbc.extract.json.
- *   AreaPOI                          DOC    on-disk fields 22, record size 88 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/AreaPOI.dbc.extract.json.
- *   AreaPOISortedWorldState          DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AreaPOISortedWorldState.dbc.extract.json.
- *   AreaTable                        ACTIVE on-disk fields 26, record size 104 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AreaTable.dbc.extract.json.
- *   AreaTrigger                      ACTIVE on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AreaTrigger.dbc.extract.json.
- *   ArmorLocation                    ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ArmorLocation.dbc.extract.json.
- *   AttackAnimKits                   DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AttackAnimKits.dbc.extract.json.
- *   AttackAnimTypes                  DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AttackAnimTypes.dbc.extract.json.
- *   AuctionHouse                     ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AuctionHouse.dbc.extract.json.
- *   BankBagSlotPrices                ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/BankBagSlotPrices.dbc.extract.json.
- *   BannedAddOns                     DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/BannedAddOns.dbc.extract.json.
- *   BarberShopStyle                  ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/BarberShopStyle.dbc.extract.json.
- *   BattlemasterList                 ACTIVE on-disk fields 20, record size 80 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/BattlemasterList.dbc.extract.json.
- *   CameraMode                       DOC    on-disk fields 17, record size 68 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/CameraMode.dbc.extract.json.
- *   CameraShakes                     DOC    on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CameraShakes.dbc.extract.json.
- *   CastableRaidBuffs                DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CastableRaidBuffs.dbc.extract.json.
- *   Cfg_Categories                   DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Cfg_Categories.dbc.extract.json.
- *   Cfg_Configs                      DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Cfg_Configs.dbc.extract.json.
- *   CharacterFacialHairStyles        DOC    on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CharacterFacialHairStyles.dbc.extract.json.
- *   CharBaseInfo                     DOC    on-disk fields 3, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CharBaseInfo.dbc.extract.json.
- *   CharHairGeosets                  DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CharHairGeosets.dbc.extract.json.
- *   CharSections                     DOC    on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/CharSections.dbc.extract.json.
- *   CharStartOutfit                  ACTIVE on-disk fields 79, record size 304 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/CharStartOutfit.dbc.extract.json.
- *   CharTitles                       ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CharTitles.dbc.extract.json.
- *   ChatChannels                     ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ChatChannels.dbc.extract.json.
- *   ChatProfanity                    DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ChatProfanity.dbc.extract.json.
- *   ChrClasses                       ACTIVE on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ChrClasses.dbc.extract.json.
- *   ChrClassesXPowerTypes            ACTIVE on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ChrClassesXPowerTypes.dbc.extract.json.
- *   ChrRaces                         ACTIVE on-disk fields 24, record size 96 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ChrRaces.dbc.extract.json.
- *   CinematicCamera                  DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/CinematicCamera.dbc.extract.json.
- *   CinematicSequences               ACTIVE on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CinematicSequences.dbc.extract.json.
- *   CreatureDisplayInfo              ACTIVE on-disk fields 17, record size 68 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CreatureDisplayInfo.dbc.extract.json.
- *   CreatureDisplayInfoExtra         ACTIVE on-disk fields 21, record size 84 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CreatureDisplayInfoExtra.dbc.extract.json.
- *   CreatureFamily                   ACTIVE on-disk fields 12, record size 48 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CreatureFamily.dbc.extract.json.
- *   CreatureImmunities               DOC    on-disk fields 26, record size 104 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/CreatureImmunities.dbc.extract.json.
- *   CreatureModelData                ACTIVE on-disk fields 31, record size 124 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/CreatureModelData.dbc.extract.json.
- *   CreatureMovementInfo             DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CreatureMovementInfo.dbc.extract.json.
- *   CreatureSoundData                DOC    on-disk fields 40, record size 160 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/CreatureSoundData.dbc.extract.json.
- *   CreatureSpellData                ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CreatureSpellData.dbc.extract.json.
- *   CreatureType                     ACTIVE on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CreatureType.dbc.extract.json.
- *   CurrencyCategory                 DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CurrencyCategory.dbc.extract.json.
- *   CurrencyTypes                    ACTIVE on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CurrencyTypes.dbc.extract.json.
- *   DanceMoves                       DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DanceMoves.dbc.extract.json.
- *   DeathThudLookups                 DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DeathThudLookups.dbc.extract.json.
- *   DeclinedWord                     DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DeclinedWord.dbc.extract.json.
- *   DeclinedWordCases                DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DeclinedWordCases.dbc.extract.json.
- *   DestructibleModelData            ACTIVE on-disk fields 24, record size 96 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DestructibleModelData.dbc.extract.json.
- *   DungeonEncounter                 ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/DungeonEncounter.dbc.extract.json.
- *   DungeonMap                       DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DungeonMap.dbc.extract.json.
- *   DungeonMapChunk                  DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DungeonMapChunk.dbc.extract.json.
- *   DurabilityCosts                  ACTIVE on-disk fields 30, record size 120 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DurabilityCosts.dbc.extract.json.
- *   DurabilityQuality                ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DurabilityQuality.dbc.extract.json.
- *   Emotes                           ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Emotes.dbc.extract.json.
- *   EmotesText                       ACTIVE on-disk fields 19, record size 76 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/EmotesText.dbc.extract.json.
- *   EmotesTextData                   DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/EmotesTextData.dbc.extract.json.
- *   EmotesTextSound                  DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/EmotesTextSound.dbc.extract.json.
- *   EnvironmentalDamage              DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/EnvironmentalDamage.dbc.extract.json.
- *   Exhaustion                       DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Exhaustion.dbc.extract.json.
- *   Faction                          ACTIVE on-disk fields 26, record size 104 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Faction.dbc.extract.json.
- *   FactionGroup                     DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/FactionGroup.dbc.extract.json.
- *   FactionTemplate                  ACTIVE on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/FactionTemplate.dbc.extract.json.
- *   FileData                         DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/FileData.dbc.extract.json.
- *   FootprintTextures                DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/FootprintTextures.dbc.extract.json.
- *   FootstepTerrainLookup            DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/FootstepTerrainLookup.dbc.extract.json.
- *   GameObjectArtKit                 DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GameObjectArtKit.dbc.extract.json.
- *   GameObjectDisplayInfo            ACTIVE on-disk fields 21, record size 84 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/GameObjectDisplayInfo.dbc.extract.json.
- *   GameTables                       DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GameTables.dbc.extract.json.
- *   GameTips                         DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GameTips.dbc.extract.json.
- *   GemProperties                    ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GemProperties.dbc.extract.json.
- *   GlueScreenEmote                  DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GlueScreenEmote.dbc.extract.json.
- *   GlyphProperties                  ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GlyphProperties.dbc.extract.json.
- *   GlyphSlot                        ACTIVE on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GlyphSlot.dbc.extract.json.
- *   GMSurveyAnswers                  DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GMSurveyAnswers.dbc.extract.json.
- *   GMSurveyCurrentSurvey            DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GMSurveyCurrentSurvey.dbc.extract.json.
- *   GMSurveyQuestions                DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GMSurveyQuestions.dbc.extract.json.
- *   GMSurveySurveys                  DOC    on-disk fields 16, record size 64 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/GMSurveySurveys.dbc.extract.json.
- *   GMTicketCategory                 DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GMTicketCategory.dbc.extract.json.
- *   GroundEffectDoodad               DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GroundEffectDoodad.dbc.extract.json.
- *   GroundEffectTexture              DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GroundEffectTexture.dbc.extract.json.
- *   gtBarberShopCostBase             ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtBarberShopCostBase.dbc.extract.json.
- *   gtChanceToMeleeCrit              ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtChanceToMeleeCrit.dbc.extract.json.
- *   gtChanceToMeleeCritBase          ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtChanceToMeleeCritBase.dbc.extract.json.
- *   gtChanceToSpellCrit              ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtChanceToSpellCrit.dbc.extract.json.
- *   gtChanceToSpellCritBase          ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtChanceToSpellCritBase.dbc.extract.json.
- *   gtCombatRatings                  ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtCombatRatings.dbc.extract.json.
- *   gtNPCManaCostScaler              DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtNPCManaCostScaler.dbc.extract.json.
- *   gtOCTBaseHPByClass               ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtOCTBaseHPByClass.dbc.extract.json.
- *   gtOCTBaseMPByClass               ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtOCTBaseMPByClass.dbc.extract.json.
- *   gtOCTClassCombatRatingScalar     ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtOCTClassCombatRatingScalar.dbc.extract.json.
- *   gtOCTHpPerStamina                ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtOCTHpPerStamina.dbc.extract.json.
- *   gtOCTRegenMP                     DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtOCTRegenMP.dbc.extract.json.
- *   gtRegenMPPerSpt                  ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtRegenMPPerSpt.dbc.extract.json.
- *   gtSpellScaling                   ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtSpellScaling.dbc.extract.json.
- *   GuildColorBackground             DOC    on-disk fields 4, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GuildColorBackground.dbc.extract.json.
- *   GuildColorBorder                 DOC    on-disk fields 4, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GuildColorBorder.dbc.extract.json.
- *   GuildColorEmblem                 DOC    on-disk fields 4, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GuildColorEmblem.dbc.extract.json.
- *   GuildPerkSpells                  DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GuildPerkSpells.dbc.extract.json.
- *   HelmetGeosetVisData              DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/HelmetGeosetVisData.dbc.extract.json.
- *   HolidayDescriptions              DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/HolidayDescriptions.dbc.extract.json.
- *   HolidayNames                     DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/HolidayNames.dbc.extract.json.
- *   Holidays                         ACTIVE on-disk fields 55, record size 220 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/Holidays.dbc.extract.json.
- *   ImportPriceArmor                 DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ImportPriceArmor.dbc.extract.json.
- *   ImportPriceQuality               DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ImportPriceQuality.dbc.extract.json.
- *   ImportPriceShield                DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ImportPriceShield.dbc.extract.json.
- *   ImportPriceWeapon                DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ImportPriceWeapon.dbc.extract.json.
- *   ItemArmorQuality                 ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemArmorQuality.dbc.extract.json.
- *   ItemArmorShield                  ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemArmorShield.dbc.extract.json.
- *   ItemArmorTotal                   ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemArmorTotal.dbc.extract.json.
- *   ItemBagFamily                    ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemBagFamily.dbc.extract.json.
- *   ItemClass                        ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemClass.dbc.extract.json.
- *   ItemDamageAmmo                   ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemDamageAmmo.dbc.extract.json.
- *   ItemDamageOneHand                ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemDamageOneHand.dbc.extract.json.
- *   ItemDamageOneHandCaster          ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemDamageOneHandCaster.dbc.extract.json.
- *   ItemDamageRanged                 ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemDamageRanged.dbc.extract.json.
- *   ItemDamageThrown                 ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemDamageThrown.dbc.extract.json.
- *   ItemDamageTwoHand                ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemDamageTwoHand.dbc.extract.json.
- *   ItemDamageTwoHandCaster          ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemDamageTwoHandCaster.dbc.extract.json.
- *   ItemDamageWand                   ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemDamageWand.dbc.extract.json.
- *   ItemDisenchantLoot               DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemDisenchantLoot.dbc.extract.json.
- *   ItemDisplayInfo                  DOC    on-disk fields 25, record size 100 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/ItemDisplayInfo.dbc.extract.json.
- *   ItemGroupSounds                  DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/ItemGroupSounds.dbc.extract.json.
- *   ItemLimitCategory                ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemLimitCategory.dbc.extract.json.
- *   ItemNameDescription              DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemNameDescription.dbc.extract.json.
- *   ItemPetFood                      DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemPetFood.dbc.extract.json.
- *   ItemPriceBase                    DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemPriceBase.dbc.extract.json.
- *   ItemPurchaseGroup                DOC    on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemPurchaseGroup.dbc.extract.json.
- *   ItemRandomProperties             ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemRandomProperties.dbc.extract.json.
- *   ItemRandomSuffix                 ACTIVE on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemRandomSuffix.dbc.extract.json.
- *   ItemReforge                      ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemReforge.dbc.extract.json.
- *   ItemSet                          ACTIVE on-disk fields 37, record size 148 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemSet.dbc.extract.json.
- *   ItemSubClass                     DOC    on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemSubClass.dbc.extract.json.
- *   ItemSubClassMask                 DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemSubClassMask.dbc.extract.json.
- *   ItemVisualEffects                DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemVisualEffects.dbc.extract.json.
- *   ItemVisuals                      DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemVisuals.dbc.extract.json.
- *   JournalEncounter                 DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/JournalEncounter.dbc.extract.json.
- *   JournalEncounterCreature         DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/JournalEncounterCreature.dbc.extract.json.
- *   JournalEncounterItem             DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/JournalEncounterItem.dbc.extract.json.
- *   JournalEncounterSection          DOC    on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/JournalEncounterSection.dbc.extract.json.
- *   JournalInstance                  DOC    on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/JournalInstance.dbc.extract.json.
- *   Languages                        DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Languages.dbc.extract.json.
- *   LanguageWords                    DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LanguageWords.dbc.extract.json.
- *   LFGDungeonExpansion              DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LFGDungeonExpansion.dbc.extract.json.
- *   LFGDungeonGroup                  DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LFGDungeonGroup.dbc.extract.json.
- *   LFGDungeons                      ACTIVE on-disk fields 21, record size 84 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LFGDungeons.dbc.extract.json.
- *   LFGDungeonsGroupingmap           DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LFGDungeonsGroupingmap.dbc.extract.json.
- *   Light                            DOC    on-disk fields 15, record size 60 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/Light.dbc.extract.json.
- *   LightFloatBand                   DOC    on-disk fields 34, record size 136 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/LightFloatBand.dbc.extract.json.
- *   LightIntBand                     DOC    on-disk fields 34, record size 136 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/LightIntBand.dbc.extract.json.
- *   LightParams                      DOC    on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/LightParams.dbc.extract.json.
- *   LightSkybox                      DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/LightSkybox.dbc.extract.json.
- *   LiquidMaterial                   DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LiquidMaterial.dbc.extract.json.
- *   LiquidObject                     DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LiquidObject.dbc.extract.json.
- *   LiquidType                       ACTIVE on-disk fields 45, record size 180 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/LiquidType.dbc.extract.json.
- *   LoadingScreens                   DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LoadingScreens.dbc.extract.json.
- *   LoadingScreenTaxiSplines         DOC    on-disk fields 19, record size 76 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/LoadingScreenTaxiSplines.dbc.extract.json.
- *   Lock                             ACTIVE on-disk fields 33, record size 132 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Lock.dbc.extract.json.
- *   LockType                         DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LockType.dbc.extract.json.
- *   MailTemplate                     ACTIVE on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/MailTemplate.dbc.extract.json.
- *   Map                              ACTIVE on-disk fields 20, record size 80 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Map.dbc.extract.json.
- *   MapDifficulty                    ACTIVE on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/MapDifficulty.dbc.extract.json.
- *   Material                         DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Material.dbc.extract.json.
- *   MountCapability                  ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/MountCapability.dbc.extract.json.
- *   MountType                        ACTIVE on-disk fields 25, record size 100 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/MountType.dbc.extract.json.
- *   Movie                            ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Movie.dbc.extract.json.
- *   MovieFileData                    DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/MovieFileData.dbc.extract.json.
- *   MovieVariation                   DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/MovieVariation.dbc.extract.json.
- *   NameGen                          DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/NameGen.dbc.extract.json.
- *   NamesProfanity                   DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/NamesProfanity.dbc.extract.json.
- *   NamesReserved                    DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/NamesReserved.dbc.extract.json.
- *   NPCSounds                        DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/NPCSounds.dbc.extract.json.
- *   NumTalentsAtLevel                ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/NumTalentsAtLevel.dbc.extract.json.
- *   ObjectEffect                     DOC    on-disk fields 12, record size 48 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ObjectEffect.dbc.extract.json.
- *   ObjectEffectGroup                DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ObjectEffectGroup.dbc.extract.json.
- *   ObjectEffectModifier             DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ObjectEffectModifier.dbc.extract.json.
- *   ObjectEffectPackage              DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ObjectEffectPackage.dbc.extract.json.
- *   ObjectEffectPackageElem          DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ObjectEffectPackageElem.dbc.extract.json.
- *   OverrideSpellData                ACTIVE on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/OverrideSpellData.dbc.extract.json.
- *   Package                          DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Package.dbc.extract.json.
- *   PageTextMaterial                 DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/PageTextMaterial.dbc.extract.json.
- *   PaperDollItemFrame               DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/PaperDollItemFrame.dbc.extract.json.
- *   ParticleColor                    DOC    on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ParticleColor.dbc.extract.json.
- *   PetitionType                     DOC    on-disk fields 3, record size 12 bytes; extract unseeded_no_exact_dbd, tier easy; provenance Claude/registry/extract_results/PetitionType.dbc.extract.json.
- *   Phase                            ACTIVE on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Phase.dbc.extract.json.
- *   PhaseShiftZoneSounds             DOC    on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/PhaseShiftZoneSounds.dbc.extract.json.
- *   PhaseXPhaseGroup                 DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/PhaseXPhaseGroup.dbc.extract.json.
- *   PlayerCondition                  DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/PlayerCondition.dbc.extract.json.
- *   PowerDisplay                     ACTIVE on-disk fields 6, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/PowerDisplay.dbc.extract.json.
- *   PvpDifficulty                    ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/PvpDifficulty.dbc.extract.json.
- *   QuestFactionReward               ACTIVE on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/QuestFactionReward.dbc.extract.json.
- *   QuestInfo                        DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/QuestInfo.dbc.extract.json.
- *   QuestPOIBlob                     DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/QuestPOIBlob.dbc.extract.json.
- *   QuestPOIPoint                    DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/QuestPOIPoint.dbc.extract.json.
- *   QuestSort                        ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/QuestSort.dbc.extract.json.
- *   QuestXP                          ACTIVE on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/QuestXP.dbc.extract.json.
- *   RandPropPoints                   ACTIVE on-disk fields 16, record size 64 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/RandPropPoints.dbc.extract.json.
- *   ResearchBranch                   DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ResearchBranch.dbc.extract.json.
- *   ResearchField                    DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ResearchField.dbc.extract.json.
- *   ResearchProject                  DOC    on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ResearchProject.dbc.extract.json.
- *   ResearchSite                     DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ResearchSite.dbc.extract.json.
- *   Resistances                      DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Resistances.dbc.extract.json.
- *   ScalingStatDistribution          ACTIVE on-disk fields 23, record size 92 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/ScalingStatDistribution.dbc.extract.json.
- *   ScalingStatValues                ACTIVE on-disk fields 47, record size 188 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/ScalingStatValues.dbc.extract.json.
- *   ScreenEffect                     DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ScreenEffect.dbc.extract.json.
- *   ScreenLocation                   DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ScreenLocation.dbc.extract.json.
- *   ServerMessages                   DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ServerMessages.dbc.extract.json.
- *   SkillLine                        ACTIVE on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SkillLine.dbc.extract.json.
- *   SkillLineAbility                 ACTIVE on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SkillLineAbility.dbc.extract.json.
- *   SkillLineAbilitySortedSpell      DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SkillLineAbilitySortedSpell.dbc.extract.json.
- *   SkillLineCategory                DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SkillLineCategory.dbc.extract.json.
- *   SkillRaceClassInfo               ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SkillRaceClassInfo.dbc.extract.json.
- *   SkillTiers                       DOC    on-disk fields 33, record size 132 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SkillTiers.dbc.extract.json.
- *   SoundAmbience                    DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundAmbience.dbc.extract.json.
- *   SoundAmbienceFlavor              DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundAmbienceFlavor.dbc.extract.json.
- *   SoundEmitterPillPoints           DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundEmitterPillPoints.dbc.extract.json.
- *   SoundEmitters                    DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundEmitters.dbc.extract.json.
- *   SoundEntries                     ACTIVE on-disk fields 35, record size 140 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SoundEntries.dbc.extract.json.
- *   SoundEntriesAdvanced             DOC    on-disk fields 26, record size 104 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundEntriesAdvanced.dbc.extract.json.
- *   SoundEntriesFallbacks            DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundEntriesFallbacks.dbc.extract.json.
- *   SoundFilter                      DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundFilter.dbc.extract.json.
- *   SoundFilterElem                  DOC    on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundFilterElem.dbc.extract.json.
- *   SoundProviderPreferences         DOC    on-disk fields 24, record size 96 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundProviderPreferences.dbc.extract.json.
- *   SpamMessages                     DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpamMessages.dbc.extract.json.
- *   Spell                            ACTIVE on-disk fields 48, record size 192 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/Spell.dbc.extract.json.
- *   SpellActivationOverlay           DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellActivationOverlay.dbc.extract.json.
- *   SpellAuraOptions                 ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellAuraOptions.dbc.extract.json.
- *   SpellAuraRestrictions            ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellAuraRestrictions.dbc.extract.json.
- *   SpellAuraVisibility              DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellAuraVisibility.dbc.extract.json.
- *   SpellAuraVisXTalentTab           DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellAuraVisXTalentTab.dbc.extract.json.
- *   SpellCastingRequirements         ACTIVE on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellCastingRequirements.dbc.extract.json.
- *   SpellCastTimes                   ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellCastTimes.dbc.extract.json.
- *   SpellCategories                  ACTIVE on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellCategories.dbc.extract.json.
- *   SpellCategory                    DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellCategory.dbc.extract.json.
- *   SpellChainEffects                DOC    on-disk fields 48, record size 180 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SpellChainEffects.dbc.extract.json.
- *   SpellClassOptions                ACTIVE on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellClassOptions.dbc.extract.json.
- *   SpellCooldowns                   ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellCooldowns.dbc.extract.json.
- *   SpellDescriptionVariables        DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellDescriptionVariables.dbc.extract.json.
- *   SpellDifficulty                  ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellDifficulty.dbc.extract.json.
- *   SpellDispelType                  DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellDispelType.dbc.extract.json.
- *   SpellDuration                    ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellDuration.dbc.extract.json.
- *   SpellEffect                      ACTIVE on-disk fields 27, record size 108 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellEffect.dbc.extract.json.
- *   SpellEffectCameraShakes          DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellEffectCameraShakes.dbc.extract.json.
- *   SpellEquippedItems               ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellEquippedItems.dbc.extract.json.
- *   SpellFlyout                      DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellFlyout.dbc.extract.json.
- *   SpellFlyoutItem                  DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellFlyoutItem.dbc.extract.json.
- *   SpellFocusObject                 ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellFocusObject.dbc.extract.json.
- *   SpellIcon                        DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellIcon.dbc.extract.json.
- *   SpellInterrupts                  ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellInterrupts.dbc.extract.json.
- *   SpellItemEnchantment             ACTIVE on-disk fields 23, record size 92 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellItemEnchantment.dbc.extract.json.
- *   SpellItemEnchantmentCondition    ACTIVE on-disk fields 31, record size 72 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellItemEnchantmentCondition.dbc.extract.json.
- *   SpellLevels                      ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellLevels.dbc.extract.json.
- *   SpellMechanic                    DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellMechanic.dbc.extract.json.
- *   SpellMissile                     DOC    on-disk fields 15, record size 60 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SpellMissile.dbc.extract.json.
- *   SpellMissileMotion               DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellMissileMotion.dbc.extract.json.
- *   SpellPower                       ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellPower.dbc.extract.json.
- *   SpellRadius                      ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellRadius.dbc.extract.json.
- *   SpellRange                       ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellRange.dbc.extract.json.
- *   SpellReagents                    ACTIVE on-disk fields 17, record size 68 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellReagents.dbc.extract.json.
- *   SpellRuneCost                    ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellRuneCost.dbc.extract.json.
- *   SpellScaling                     ACTIVE on-disk fields 16, record size 64 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellScaling.dbc.extract.json.
- *   SpellShapeshift                  ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellShapeshift.dbc.extract.json.
- *   SpellShapeshiftForm              ACTIVE on-disk fields 21, record size 84 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellShapeshiftForm.dbc.extract.json.
- *   SpellSpecialUnitEffect           DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellSpecialUnitEffect.dbc.extract.json.
- *   SpellTargetRestrictions          ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellTargetRestrictions.dbc.extract.json.
- *   SpellTotems                      ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellTotems.dbc.extract.json.
- *   SpellVisual                      DOC    on-disk fields 33, record size 132 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SpellVisual.dbc.extract.json.
- *   SpellVisualEffectName            DOC    on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellVisualEffectName.dbc.extract.json.
- *   SpellVisualKit                   DOC    on-disk fields 39, record size 156 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SpellVisualKit.dbc.extract.json.
- *   SpellVisualKitAreaModel          DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellVisualKitAreaModel.dbc.extract.json.
- *   SpellVisualKitModelAttach        DOC    on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellVisualKitModelAttach.dbc.extract.json.
- *   SpellVisualPrecastTransitions    DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellVisualPrecastTransitions.dbc.extract.json.
- *   Startup_Strings                  DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Startup_Strings.dbc.extract.json.
- *   Stationery                       DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Stationery.dbc.extract.json.
- *   StringLookups                    DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/StringLookups.dbc.extract.json.
- *   SummonProperties                 ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SummonProperties.dbc.extract.json.
- *   Talent                           ACTIVE on-disk fields 19, record size 76 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Talent.dbc.extract.json.
- *   TalentTab                        ACTIVE on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TalentTab.dbc.extract.json.
- *   TalentTreePrimarySpells          ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TalentTreePrimarySpells.dbc.extract.json.
- *   TaxiNodes                        ACTIVE on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TaxiNodes.dbc.extract.json.
- *   TaxiPath                         ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TaxiPath.dbc.extract.json.
- *   TaxiPathNode                     ACTIVE on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TaxiPathNode.dbc.extract.json.
- *   TerrainMaterial                  DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TerrainMaterial.dbc.extract.json.
- *   TerrainType                      DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TerrainType.dbc.extract.json.
- *   TerrainTypeSounds                DOC    on-disk fields 1, record size 4 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/TerrainTypeSounds.dbc.extract.json.
- *   TotemCategory                    ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TotemCategory.dbc.extract.json.
- *   TransportAnimation               ACTIVE on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TransportAnimation.dbc.extract.json.
- *   TransportPhysics                 DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TransportPhysics.dbc.extract.json.
- *   TransportRotation                DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TransportRotation.dbc.extract.json.
- *   UnitBlood                        DOC    on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/UnitBlood.dbc.extract.json.
- *   UnitBloodLevels                  DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/UnitBloodLevels.dbc.extract.json.
- *   UnitPowerBar                     DOC    on-disk fields 27, record size 108 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/UnitPowerBar.dbc.extract.json.
- *   Vehicle                          ACTIVE on-disk fields 40, record size 160 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/Vehicle.dbc.extract.json.
- *   VehicleSeat                      ACTIVE on-disk fields 66, record size 264 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/VehicleSeat.dbc.extract.json.
- *   VehicleUIIndicator               DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/VehicleUIIndicator.dbc.extract.json.
- *   VehicleUIIndSeat                 DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/VehicleUIIndSeat.dbc.extract.json.
- *   VideoHardware                    DOC    on-disk fields 23, record size 92 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/VideoHardware.dbc.extract.json.
- *   VocalUISounds                    DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/VocalUISounds.dbc.extract.json.
- *   WeaponImpactSounds               DOC    on-disk fields 23, record size 92 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/WeaponImpactSounds.dbc.extract.json.
- *   WeaponSwingSounds2               DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/WeaponSwingSounds2.dbc.extract.json.
- *   Weather                          DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Weather.dbc.extract.json.
- *   WMOAreaTable                     ACTIVE on-disk fields 15, record size 60 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/WMOAreaTable.dbc.extract.json.
- *   world_PVP_Area                   DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/world_PVP_Area.dbc.extract.json.
- *   WorldChunkSounds                 DOC    on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/WorldChunkSounds.dbc.extract.json.
- *   WorldMapArea                     ACTIVE on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/WorldMapArea.dbc.extract.json.
- *   WorldMapContinent                DOC    on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/WorldMapContinent.dbc.extract.json.
- *   WorldMapOverlay                  ACTIVE on-disk fields 15, record size 60 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/WorldMapOverlay.dbc.extract.json.
- *   WorldMapTransforms               DOC    on-disk fields 12, record size 48 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/WorldMapTransforms.dbc.extract.json.
- *   WorldSafeLocs                    ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/WorldSafeLocs.dbc.extract.json.
- *   WorldStateUI                     DOC    on-disk fields 17, record size 68 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/WorldStateUI.dbc.extract.json.
- *   WorldStateZoneSounds             DOC    on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/WorldStateZoneSounds.dbc.extract.json.
- *   WowError_Strings                 DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/WowError_Strings.dbc.extract.json.
- *   ZoneIntroMusicTable              DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ZoneIntroMusicTable.dbc.extract.json.
- *   ZoneLight                        DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ZoneLight.dbc.extract.json.
- *   ZoneLightPoint                   DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ZoneLightPoint.dbc.extract.json.
- *   ZoneMusic                        DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ZoneMusic.dbc.extract.json.
+ *   Achievement                      ACTIVE on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Achievement.dbc.extract.json.
+ *   Achievement_Category             DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Achievement_Category.dbc.extract.json.
+ *   Achievement_Criteria             ACTIVE on-disk fields 23, record size 96 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/Achievement_Criteria.dbc.extract.json.
+ *   AnimationData                    DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimationData.dbc.extract.json.
+ *   AnimKit                          DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimKit.dbc.extract.json.
+ *   AnimKitBoneSet                   DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimKitBoneSet.dbc.extract.json.
+ *   AnimKitBoneSetAlias              DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimKitBoneSetAlias.dbc.extract.json.
+ *   AnimKitConfig                    DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimKitConfig.dbc.extract.json.
+ *   AnimKitConfigBoneSet             DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimKitConfigBoneSet.dbc.extract.json.
+ *   AnimKitPriority                  DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimKitPriority.dbc.extract.json.
+ *   AnimKitSegment                   DOC    on-disk fields 16, record size 64 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/AnimKitSegment.dbc.extract.json.
+ *   AnimReplacement                  DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimReplacement.dbc.extract.json.
+ *   AnimReplacementSet               DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimReplacementSet.dbc.extract.json.
+ *   AreaAssignment                   DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AreaAssignment.dbc.extract.json.
+ *   AreaGroup                        ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AreaGroup.dbc.extract.json.
+ *   AreaPOI                          DOC    on-disk fields 22, record size 88 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/AreaPOI.dbc.extract.json.
+ *   AreaPOISortedWorldState          DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AreaPOISortedWorldState.dbc.extract.json.
+ *   AreaTable                        ACTIVE on-disk fields 26, record size 104 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AreaTable.dbc.extract.json.
+ *   AreaTrigger                      ACTIVE on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AreaTrigger.dbc.extract.json.
+ *   ArmorLocation                    ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ArmorLocation.dbc.extract.json.
+ *   AttackAnimKits                   DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AttackAnimKits.dbc.extract.json.
+ *   AttackAnimTypes                  DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AttackAnimTypes.dbc.extract.json.
+ *   AuctionHouse                     ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AuctionHouse.dbc.extract.json.
+ *   BankBagSlotPrices                ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/BankBagSlotPrices.dbc.extract.json.
+ *   BannedAddOns                     DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/BannedAddOns.dbc.extract.json.
+ *   BarberShopStyle                  ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/BarberShopStyle.dbc.extract.json.
+ *   BattlemasterList                 ACTIVE on-disk fields 20, record size 80 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/BattlemasterList.dbc.extract.json.
+ *   CameraMode                       DOC    on-disk fields 17, record size 68 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/CameraMode.dbc.extract.json.
+ *   CameraShakes                     DOC    on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CameraShakes.dbc.extract.json.
+ *   CastableRaidBuffs                DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CastableRaidBuffs.dbc.extract.json.
+ *   Cfg_Categories                   DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Cfg_Categories.dbc.extract.json.
+ *   Cfg_Configs                      DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Cfg_Configs.dbc.extract.json.
+ *   CharacterFacialHairStyles        DOC    on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CharacterFacialHairStyles.dbc.extract.json.
+ *   CharBaseInfo                     DOC    on-disk fields 3, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CharBaseInfo.dbc.extract.json.
+ *   CharHairGeosets                  DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CharHairGeosets.dbc.extract.json.
+ *   CharSections                     DOC    on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/CharSections.dbc.extract.json.
+ *   CharStartOutfit                  ACTIVE on-disk fields 79, record size 304 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/CharStartOutfit.dbc.extract.json.
+ *   CharTitles                       ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CharTitles.dbc.extract.json.
+ *   ChatChannels                     ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ChatChannels.dbc.extract.json.
+ *   ChatProfanity                    DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ChatProfanity.dbc.extract.json.
+ *   ChrClasses                       ACTIVE on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ChrClasses.dbc.extract.json.
+ *   ChrClassesXPowerTypes            ACTIVE on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ChrClassesXPowerTypes.dbc.extract.json.
+ *   ChrRaces                         ACTIVE on-disk fields 24, record size 96 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ChrRaces.dbc.extract.json.
+ *   CinematicCamera                  DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/CinematicCamera.dbc.extract.json.
+ *   CinematicSequences               ACTIVE on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CinematicSequences.dbc.extract.json.
+ *   CreatureDisplayInfo              ACTIVE on-disk fields 17, record size 68 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CreatureDisplayInfo.dbc.extract.json.
+ *   CreatureDisplayInfoExtra         ACTIVE on-disk fields 21, record size 84 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CreatureDisplayInfoExtra.dbc.extract.json.
+ *   CreatureFamily                   ACTIVE on-disk fields 12, record size 48 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CreatureFamily.dbc.extract.json.
+ *   CreatureImmunities               DOC    on-disk fields 26, record size 104 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/CreatureImmunities.dbc.extract.json.
+ *   CreatureModelData                ACTIVE on-disk fields 31, record size 124 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/CreatureModelData.dbc.extract.json.
+ *   CreatureMovementInfo             DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CreatureMovementInfo.dbc.extract.json.
+ *   CreatureSoundData                DOC    on-disk fields 40, record size 160 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/CreatureSoundData.dbc.extract.json.
+ *   CreatureSpellData                ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CreatureSpellData.dbc.extract.json.
+ *   CreatureType                     ACTIVE on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CreatureType.dbc.extract.json.
+ *   CurrencyCategory                 DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CurrencyCategory.dbc.extract.json.
+ *   CurrencyTypes                    ACTIVE on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CurrencyTypes.dbc.extract.json.
+ *   DanceMoves                       DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DanceMoves.dbc.extract.json.
+ *   DeathThudLookups                 DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DeathThudLookups.dbc.extract.json.
+ *   DeclinedWord                     DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DeclinedWord.dbc.extract.json.
+ *   DeclinedWordCases                DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DeclinedWordCases.dbc.extract.json.
+ *   DestructibleModelData            ACTIVE on-disk fields 24, record size 96 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DestructibleModelData.dbc.extract.json.
+ *   DungeonEncounter                 ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/DungeonEncounter.dbc.extract.json.
+ *   DungeonMap                       DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DungeonMap.dbc.extract.json.
+ *   DungeonMapChunk                  DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DungeonMapChunk.dbc.extract.json.
+ *   DurabilityCosts                  ACTIVE on-disk fields 30, record size 120 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DurabilityCosts.dbc.extract.json.
+ *   DurabilityQuality                ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DurabilityQuality.dbc.extract.json.
+ *   Emotes                           ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Emotes.dbc.extract.json.
+ *   EmotesText                       ACTIVE on-disk fields 19, record size 76 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/EmotesText.dbc.extract.json.
+ *   EmotesTextData                   DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/EmotesTextData.dbc.extract.json.
+ *   EmotesTextSound                  DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/EmotesTextSound.dbc.extract.json.
+ *   EnvironmentalDamage              DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/EnvironmentalDamage.dbc.extract.json.
+ *   Exhaustion                       DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Exhaustion.dbc.extract.json.
+ *   Faction                          ACTIVE on-disk fields 26, record size 104 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Faction.dbc.extract.json.
+ *   FactionGroup                     DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/FactionGroup.dbc.extract.json.
+ *   FactionTemplate                  ACTIVE on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/FactionTemplate.dbc.extract.json.
+ *   FileData                         DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/FileData.dbc.extract.json.
+ *   FootprintTextures                DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/FootprintTextures.dbc.extract.json.
+ *   FootstepTerrainLookup            DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/FootstepTerrainLookup.dbc.extract.json.
+ *   GameObjectArtKit                 DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GameObjectArtKit.dbc.extract.json.
+ *   GameObjectDisplayInfo            ACTIVE on-disk fields 21, record size 84 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/GameObjectDisplayInfo.dbc.extract.json.
+ *   GameTables                       DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GameTables.dbc.extract.json.
+ *   GameTips                         DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GameTips.dbc.extract.json.
+ *   GemProperties                    ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GemProperties.dbc.extract.json.
+ *   GlueScreenEmote                  DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GlueScreenEmote.dbc.extract.json.
+ *   GlyphProperties                  ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GlyphProperties.dbc.extract.json.
+ *   GlyphSlot                        ACTIVE on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GlyphSlot.dbc.extract.json.
+ *   GMSurveyAnswers                  DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GMSurveyAnswers.dbc.extract.json.
+ *   GMSurveyCurrentSurvey            DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GMSurveyCurrentSurvey.dbc.extract.json.
+ *   GMSurveyQuestions                DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GMSurveyQuestions.dbc.extract.json.
+ *   GMSurveySurveys                  DOC    on-disk fields 16, record size 64 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/GMSurveySurveys.dbc.extract.json.
+ *   GMTicketCategory                 DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GMTicketCategory.dbc.extract.json.
+ *   GroundEffectDoodad               DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GroundEffectDoodad.dbc.extract.json.
+ *   GroundEffectTexture              DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GroundEffectTexture.dbc.extract.json.
+ *   gtBarberShopCostBase             ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtBarberShopCostBase.dbc.extract.json.
+ *   gtChanceToMeleeCrit              ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtChanceToMeleeCrit.dbc.extract.json.
+ *   gtChanceToMeleeCritBase          ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtChanceToMeleeCritBase.dbc.extract.json.
+ *   gtChanceToSpellCrit              ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtChanceToSpellCrit.dbc.extract.json.
+ *   gtChanceToSpellCritBase          ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtChanceToSpellCritBase.dbc.extract.json.
+ *   gtCombatRatings                  ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtCombatRatings.dbc.extract.json.
+ *   gtNPCManaCostScaler              DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtNPCManaCostScaler.dbc.extract.json.
+ *   gtOCTBaseHPByClass               ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtOCTBaseHPByClass.dbc.extract.json.
+ *   gtOCTBaseMPByClass               ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtOCTBaseMPByClass.dbc.extract.json.
+ *   gtOCTClassCombatRatingScalar     ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtOCTClassCombatRatingScalar.dbc.extract.json.
+ *   gtOCTHpPerStamina                ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtOCTHpPerStamina.dbc.extract.json.
+ *   gtOCTRegenMP                     DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtOCTRegenMP.dbc.extract.json.
+ *   gtRegenMPPerSpt                  ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtRegenMPPerSpt.dbc.extract.json.
+ *   gtSpellScaling                   ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtSpellScaling.dbc.extract.json.
+ *   GuildColorBackground             DOC    on-disk fields 4, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GuildColorBackground.dbc.extract.json.
+ *   GuildColorBorder                 DOC    on-disk fields 4, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GuildColorBorder.dbc.extract.json.
+ *   GuildColorEmblem                 DOC    on-disk fields 4, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GuildColorEmblem.dbc.extract.json.
+ *   GuildPerkSpells                  DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GuildPerkSpells.dbc.extract.json.
+ *   HelmetGeosetVisData              DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/HelmetGeosetVisData.dbc.extract.json.
+ *   HolidayDescriptions              DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/HolidayDescriptions.dbc.extract.json.
+ *   HolidayNames                     DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/HolidayNames.dbc.extract.json.
+ *   Holidays                         ACTIVE on-disk fields 55, record size 220 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/Holidays.dbc.extract.json.
+ *   ImportPriceArmor                 DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ImportPriceArmor.dbc.extract.json.
+ *   ImportPriceQuality               DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ImportPriceQuality.dbc.extract.json.
+ *   ImportPriceShield                DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ImportPriceShield.dbc.extract.json.
+ *   ImportPriceWeapon                DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ImportPriceWeapon.dbc.extract.json.
+ *   ItemArmorQuality                 ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemArmorQuality.dbc.extract.json.
+ *   ItemArmorShield                  ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemArmorShield.dbc.extract.json.
+ *   ItemArmorTotal                   ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemArmorTotal.dbc.extract.json.
+ *   ItemBagFamily                    ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemBagFamily.dbc.extract.json.
+ *   ItemClass                        ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemClass.dbc.extract.json.
+ *   ItemDamageAmmo                   ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemDamageAmmo.dbc.extract.json.
+ *   ItemDamageOneHand                ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemDamageOneHand.dbc.extract.json.
+ *   ItemDamageOneHandCaster          ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemDamageOneHandCaster.dbc.extract.json.
+ *   ItemDamageRanged                 ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemDamageRanged.dbc.extract.json.
+ *   ItemDamageThrown                 ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemDamageThrown.dbc.extract.json.
+ *   ItemDamageTwoHand                ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemDamageTwoHand.dbc.extract.json.
+ *   ItemDamageTwoHandCaster          ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemDamageTwoHandCaster.dbc.extract.json.
+ *   ItemDamageWand                   ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemDamageWand.dbc.extract.json.
+ *   ItemDisenchantLoot               DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemDisenchantLoot.dbc.extract.json.
+ *   ItemDisplayInfo                  DOC    on-disk fields 25, record size 100 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/ItemDisplayInfo.dbc.extract.json.
+ *   ItemGroupSounds                  DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/ItemGroupSounds.dbc.extract.json.
+ *   ItemLimitCategory                ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemLimitCategory.dbc.extract.json.
+ *   ItemNameDescription              DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemNameDescription.dbc.extract.json.
+ *   ItemPetFood                      DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemPetFood.dbc.extract.json.
+ *   ItemPriceBase                    DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemPriceBase.dbc.extract.json.
+ *   ItemPurchaseGroup                DOC    on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemPurchaseGroup.dbc.extract.json.
+ *   ItemRandomProperties             ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemRandomProperties.dbc.extract.json.
+ *   ItemRandomSuffix                 ACTIVE on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemRandomSuffix.dbc.extract.json.
+ *   ItemReforge                      ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemReforge.dbc.extract.json.
+ *   ItemSet                          ACTIVE on-disk fields 37, record size 148 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemSet.dbc.extract.json.
+ *   ItemSubClass                     DOC    on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemSubClass.dbc.extract.json.
+ *   ItemSubClassMask                 DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemSubClassMask.dbc.extract.json.
+ *   ItemVisualEffects                DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemVisualEffects.dbc.extract.json.
+ *   ItemVisuals                      DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemVisuals.dbc.extract.json.
+ *   JournalEncounter                 DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/JournalEncounter.dbc.extract.json.
+ *   JournalEncounterCreature         DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/JournalEncounterCreature.dbc.extract.json.
+ *   JournalEncounterItem             DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/JournalEncounterItem.dbc.extract.json.
+ *   JournalEncounterSection          DOC    on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/JournalEncounterSection.dbc.extract.json.
+ *   JournalInstance                  DOC    on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/JournalInstance.dbc.extract.json.
+ *   Languages                        DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Languages.dbc.extract.json.
+ *   LanguageWords                    DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LanguageWords.dbc.extract.json.
+ *   LFGDungeonExpansion              DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LFGDungeonExpansion.dbc.extract.json.
+ *   LFGDungeonGroup                  DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LFGDungeonGroup.dbc.extract.json.
+ *   LFGDungeons                      ACTIVE on-disk fields 21, record size 84 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LFGDungeons.dbc.extract.json.
+ *   LFGDungeonsGroupingmap           DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LFGDungeonsGroupingmap.dbc.extract.json.
+ *   Light                            DOC    on-disk fields 15, record size 60 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/Light.dbc.extract.json.
+ *   LightFloatBand                   DOC    on-disk fields 34, record size 136 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/LightFloatBand.dbc.extract.json.
+ *   LightIntBand                     DOC    on-disk fields 34, record size 136 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/LightIntBand.dbc.extract.json.
+ *   LightParams                      DOC    on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/LightParams.dbc.extract.json.
+ *   LightSkybox                      DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/LightSkybox.dbc.extract.json.
+ *   LiquidMaterial                   DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LiquidMaterial.dbc.extract.json.
+ *   LiquidObject                     DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LiquidObject.dbc.extract.json.
+ *   LiquidType                       ACTIVE on-disk fields 45, record size 180 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/LiquidType.dbc.extract.json.
+ *   LoadingScreens                   DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LoadingScreens.dbc.extract.json.
+ *   LoadingScreenTaxiSplines         DOC    on-disk fields 19, record size 76 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/LoadingScreenTaxiSplines.dbc.extract.json.
+ *   Lock                             ACTIVE on-disk fields 33, record size 132 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Lock.dbc.extract.json.
+ *   LockType                         DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LockType.dbc.extract.json.
+ *   MailTemplate                     ACTIVE on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/MailTemplate.dbc.extract.json.
+ *   Map                              ACTIVE on-disk fields 20, record size 80 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Map.dbc.extract.json.
+ *   MapDifficulty                    ACTIVE on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/MapDifficulty.dbc.extract.json.
+ *   Material                         DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Material.dbc.extract.json.
+ *   MountCapability                  ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/MountCapability.dbc.extract.json.
+ *   MountType                        ACTIVE on-disk fields 25, record size 100 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/MountType.dbc.extract.json.
+ *   Movie                            ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Movie.dbc.extract.json.
+ *   MovieFileData                    DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/MovieFileData.dbc.extract.json.
+ *   MovieVariation                   DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/MovieVariation.dbc.extract.json.
+ *   NameGen                          DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/NameGen.dbc.extract.json.
+ *   NamesProfanity                   DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/NamesProfanity.dbc.extract.json.
+ *   NamesReserved                    DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/NamesReserved.dbc.extract.json.
+ *   NPCSounds                        DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/NPCSounds.dbc.extract.json.
+ *   NumTalentsAtLevel                ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/NumTalentsAtLevel.dbc.extract.json.
+ *   ObjectEffect                     DOC    on-disk fields 12, record size 48 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ObjectEffect.dbc.extract.json.
+ *   ObjectEffectGroup                DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ObjectEffectGroup.dbc.extract.json.
+ *   ObjectEffectModifier             DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ObjectEffectModifier.dbc.extract.json.
+ *   ObjectEffectPackage              DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ObjectEffectPackage.dbc.extract.json.
+ *   ObjectEffectPackageElem          DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ObjectEffectPackageElem.dbc.extract.json.
+ *   OverrideSpellData                ACTIVE on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/OverrideSpellData.dbc.extract.json.
+ *   Package                          DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Package.dbc.extract.json.
+ *   PageTextMaterial                 DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/PageTextMaterial.dbc.extract.json.
+ *   PaperDollItemFrame               DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/PaperDollItemFrame.dbc.extract.json.
+ *   ParticleColor                    DOC    on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ParticleColor.dbc.extract.json.
+ *   PetitionType                     DOC    on-disk fields 3, record size 12 bytes; extract unseeded_no_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/PetitionType.dbc.extract.json.
+ *   Phase                            ACTIVE on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Phase.dbc.extract.json.
+ *   PhaseShiftZoneSounds             DOC    on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/PhaseShiftZoneSounds.dbc.extract.json.
+ *   PhaseXPhaseGroup                 DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/PhaseXPhaseGroup.dbc.extract.json.
+ *   PlayerCondition                  DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/PlayerCondition.dbc.extract.json.
+ *   PowerDisplay                     ACTIVE on-disk fields 6, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/PowerDisplay.dbc.extract.json.
+ *   PvpDifficulty                    ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/PvpDifficulty.dbc.extract.json.
+ *   QuestFactionReward               ACTIVE on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/QuestFactionReward.dbc.extract.json.
+ *   QuestInfo                        DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/QuestInfo.dbc.extract.json.
+ *   QuestPOIBlob                     DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/QuestPOIBlob.dbc.extract.json.
+ *   QuestPOIPoint                    DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/QuestPOIPoint.dbc.extract.json.
+ *   QuestSort                        ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/QuestSort.dbc.extract.json.
+ *   QuestXP                          ACTIVE on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/QuestXP.dbc.extract.json.
+ *   RandPropPoints                   ACTIVE on-disk fields 16, record size 64 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/RandPropPoints.dbc.extract.json.
+ *   ResearchBranch                   DOC    on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ResearchBranch.dbc.extract.json.
+ *   ResearchField                    DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ResearchField.dbc.extract.json.
+ *   ResearchProject                  DOC    on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ResearchProject.dbc.extract.json.
+ *   ResearchSite                     DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ResearchSite.dbc.extract.json.
+ *   Resistances                      DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Resistances.dbc.extract.json.
+ *   ScalingStatDistribution          ACTIVE on-disk fields 23, record size 92 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/ScalingStatDistribution.dbc.extract.json.
+ *   ScalingStatValues                ACTIVE on-disk fields 47, record size 188 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/ScalingStatValues.dbc.extract.json.
+ *   ScreenEffect                     DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ScreenEffect.dbc.extract.json.
+ *   ScreenLocation                   DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ScreenLocation.dbc.extract.json.
+ *   ServerMessages                   DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ServerMessages.dbc.extract.json.
+ *   SkillLine                        ACTIVE on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SkillLine.dbc.extract.json.
+ *   SkillLineAbility                 ACTIVE on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SkillLineAbility.dbc.extract.json.
+ *   SkillLineAbilitySortedSpell      DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SkillLineAbilitySortedSpell.dbc.extract.json.
+ *   SkillLineCategory                DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SkillLineCategory.dbc.extract.json.
+ *   SkillRaceClassInfo               ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SkillRaceClassInfo.dbc.extract.json.
+ *   SkillTiers                       DOC    on-disk fields 33, record size 132 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SkillTiers.dbc.extract.json.
+ *   SoundAmbience                    DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundAmbience.dbc.extract.json.
+ *   SoundAmbienceFlavor              DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundAmbienceFlavor.dbc.extract.json.
+ *   SoundEmitterPillPoints           DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundEmitterPillPoints.dbc.extract.json.
+ *   SoundEmitters                    DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundEmitters.dbc.extract.json.
+ *   SoundEntries                     ACTIVE on-disk fields 35, record size 140 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SoundEntries.dbc.extract.json.
+ *   SoundEntriesAdvanced             DOC    on-disk fields 26, record size 104 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundEntriesAdvanced.dbc.extract.json.
+ *   SoundEntriesFallbacks            DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundEntriesFallbacks.dbc.extract.json.
+ *   SoundFilter                      DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundFilter.dbc.extract.json.
+ *   SoundFilterElem                  DOC    on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundFilterElem.dbc.extract.json.
+ *   SoundProviderPreferences         DOC    on-disk fields 24, record size 96 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundProviderPreferences.dbc.extract.json.
+ *   SpamMessages                     DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpamMessages.dbc.extract.json.
+ *   Spell                            ACTIVE on-disk fields 48, record size 192 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/Spell.dbc.extract.json.
+ *   SpellActivationOverlay           DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellActivationOverlay.dbc.extract.json.
+ *   SpellAuraOptions                 ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellAuraOptions.dbc.extract.json.
+ *   SpellAuraRestrictions            ACTIVE on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellAuraRestrictions.dbc.extract.json.
+ *   SpellAuraVisibility              DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellAuraVisibility.dbc.extract.json.
+ *   SpellAuraVisXTalentTab           DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellAuraVisXTalentTab.dbc.extract.json.
+ *   SpellCastingRequirements         ACTIVE on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellCastingRequirements.dbc.extract.json.
+ *   SpellCastTimes                   ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellCastTimes.dbc.extract.json.
+ *   SpellCategories                  ACTIVE on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellCategories.dbc.extract.json.
+ *   SpellCategory                    DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellCategory.dbc.extract.json.
+ *   SpellChainEffects                DOC    on-disk fields 48, record size 180 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SpellChainEffects.dbc.extract.json.
+ *   SpellClassOptions                ACTIVE on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellClassOptions.dbc.extract.json.
+ *   SpellCooldowns                   ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellCooldowns.dbc.extract.json.
+ *   SpellDescriptionVariables        DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellDescriptionVariables.dbc.extract.json.
+ *   SpellDifficulty                  ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellDifficulty.dbc.extract.json.
+ *   SpellDispelType                  DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellDispelType.dbc.extract.json.
+ *   SpellDuration                    ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellDuration.dbc.extract.json.
+ *   SpellEffect                      ACTIVE on-disk fields 27, record size 108 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellEffect.dbc.extract.json.
+ *   SpellEffectCameraShakes          DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellEffectCameraShakes.dbc.extract.json.
+ *   SpellEquippedItems               ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellEquippedItems.dbc.extract.json.
+ *   SpellFlyout                      DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellFlyout.dbc.extract.json.
+ *   SpellFlyoutItem                  DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellFlyoutItem.dbc.extract.json.
+ *   SpellFocusObject                 ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellFocusObject.dbc.extract.json.
+ *   SpellIcon                        DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellIcon.dbc.extract.json.
+ *   SpellInterrupts                  ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellInterrupts.dbc.extract.json.
+ *   SpellItemEnchantment             ACTIVE on-disk fields 23, record size 92 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellItemEnchantment.dbc.extract.json.
+ *   SpellItemEnchantmentCondition    ACTIVE on-disk fields 31, record size 72 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellItemEnchantmentCondition.dbc.extract.json.
+ *   SpellLevels                      ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellLevels.dbc.extract.json.
+ *   SpellMechanic                    DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellMechanic.dbc.extract.json.
+ *   SpellMissile                     DOC    on-disk fields 15, record size 60 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SpellMissile.dbc.extract.json.
+ *   SpellMissileMotion               DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellMissileMotion.dbc.extract.json.
+ *   SpellPower                       ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellPower.dbc.extract.json.
+ *   SpellRadius                      ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellRadius.dbc.extract.json.
+ *   SpellRange                       ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellRange.dbc.extract.json.
+ *   SpellReagents                    ACTIVE on-disk fields 17, record size 68 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellReagents.dbc.extract.json.
+ *   SpellRuneCost                    ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellRuneCost.dbc.extract.json.
+ *   SpellScaling                     ACTIVE on-disk fields 16, record size 64 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellScaling.dbc.extract.json.
+ *   SpellShapeshift                  ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellShapeshift.dbc.extract.json.
+ *   SpellShapeshiftForm              ACTIVE on-disk fields 21, record size 84 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellShapeshiftForm.dbc.extract.json.
+ *   SpellSpecialUnitEffect           DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellSpecialUnitEffect.dbc.extract.json.
+ *   SpellTargetRestrictions          ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellTargetRestrictions.dbc.extract.json.
+ *   SpellTotems                      ACTIVE on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellTotems.dbc.extract.json.
+ *   SpellVisual                      DOC    on-disk fields 33, record size 132 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SpellVisual.dbc.extract.json.
+ *   SpellVisualEffectName            DOC    on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellVisualEffectName.dbc.extract.json.
+ *   SpellVisualKit                   DOC    on-disk fields 39, record size 156 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SpellVisualKit.dbc.extract.json.
+ *   SpellVisualKitAreaModel          DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellVisualKitAreaModel.dbc.extract.json.
+ *   SpellVisualKitModelAttach        DOC    on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellVisualKitModelAttach.dbc.extract.json.
+ *   SpellVisualPrecastTransitions    DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellVisualPrecastTransitions.dbc.extract.json.
+ *   Startup_Strings                  DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Startup_Strings.dbc.extract.json.
+ *   Stationery                       DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Stationery.dbc.extract.json.
+ *   StringLookups                    DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/StringLookups.dbc.extract.json.
+ *   SummonProperties                 ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SummonProperties.dbc.extract.json.
+ *   Talent                           ACTIVE on-disk fields 19, record size 76 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Talent.dbc.extract.json.
+ *   TalentTab                        ACTIVE on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TalentTab.dbc.extract.json.
+ *   TalentTreePrimarySpells          ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TalentTreePrimarySpells.dbc.extract.json.
+ *   TaxiNodes                        ACTIVE on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TaxiNodes.dbc.extract.json.
+ *   TaxiPath                         ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TaxiPath.dbc.extract.json.
+ *   TaxiPathNode                     ACTIVE on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TaxiPathNode.dbc.extract.json.
+ *   TerrainMaterial                  DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TerrainMaterial.dbc.extract.json.
+ *   TerrainType                      DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TerrainType.dbc.extract.json.
+ *   TerrainTypeSounds                DOC    on-disk fields 1, record size 4 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/TerrainTypeSounds.dbc.extract.json.
+ *   TotemCategory                    ACTIVE on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TotemCategory.dbc.extract.json.
+ *   TransportAnimation               ACTIVE on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TransportAnimation.dbc.extract.json.
+ *   TransportPhysics                 DOC    on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TransportPhysics.dbc.extract.json.
+ *   TransportRotation                DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TransportRotation.dbc.extract.json.
+ *   UnitBlood                        DOC    on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/UnitBlood.dbc.extract.json.
+ *   UnitBloodLevels                  DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/UnitBloodLevels.dbc.extract.json.
+ *   UnitPowerBar                     DOC    on-disk fields 27, record size 108 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/UnitPowerBar.dbc.extract.json.
+ *   Vehicle                          ACTIVE on-disk fields 40, record size 160 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/Vehicle.dbc.extract.json.
+ *   VehicleSeat                      ACTIVE on-disk fields 66, record size 264 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/VehicleSeat.dbc.extract.json.
+ *   VehicleUIIndicator               DOC    on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/VehicleUIIndicator.dbc.extract.json.
+ *   VehicleUIIndSeat                 DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/VehicleUIIndSeat.dbc.extract.json.
+ *   VideoHardware                    DOC    on-disk fields 23, record size 92 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/VideoHardware.dbc.extract.json.
+ *   VocalUISounds                    DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/VocalUISounds.dbc.extract.json.
+ *   WeaponImpactSounds               DOC    on-disk fields 23, record size 92 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/WeaponImpactSounds.dbc.extract.json.
+ *   WeaponSwingSounds2               DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/WeaponSwingSounds2.dbc.extract.json.
+ *   Weather                          DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Weather.dbc.extract.json.
+ *   WMOAreaTable                     ACTIVE on-disk fields 15, record size 60 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/WMOAreaTable.dbc.extract.json.
+ *   world_PVP_Area                   DOC    on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/world_PVP_Area.dbc.extract.json.
+ *   WorldChunkSounds                 DOC    on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/WorldChunkSounds.dbc.extract.json.
+ *   WorldMapArea                     ACTIVE on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/WorldMapArea.dbc.extract.json.
+ *   WorldMapContinent                DOC    on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/WorldMapContinent.dbc.extract.json.
+ *   WorldMapOverlay                  ACTIVE on-disk fields 15, record size 60 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/WorldMapOverlay.dbc.extract.json.
+ *   WorldMapTransforms               DOC    on-disk fields 12, record size 48 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/WorldMapTransforms.dbc.extract.json.
+ *   WorldSafeLocs                    ACTIVE on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/WorldSafeLocs.dbc.extract.json.
+ *   WorldStateUI                     DOC    on-disk fields 17, record size 68 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/WorldStateUI.dbc.extract.json.
+ *   WorldStateZoneSounds             DOC    on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/WorldStateZoneSounds.dbc.extract.json.
+ *   WowError_Strings                 DOC    on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/WowError_Strings.dbc.extract.json.
+ *   ZoneIntroMusicTable              DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ZoneIntroMusicTable.dbc.extract.json.
+ *   ZoneLight                        DOC    on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ZoneLight.dbc.extract.json.
+ *   ZoneLightPoint                   DOC    on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ZoneLightPoint.dbc.extract.json.
+ *   ZoneMusic                        DOC    on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ZoneMusic.dbc.extract.json.
  *
  *   133 ACTIVE, 195 DOC
  */
 
-// Achievement_Category.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Achievement_Category.dbc.extract.json.
+// Achievement_Category.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Achievement_Category.dbc.extract.json.
 struct Achievement_CategoryEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -354,7 +354,7 @@ struct Achievement_CategoryEntry
     std::int32_t Ui_order; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// AnimationData.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimationData.dbc.extract.json.
+// AnimationData.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimationData.dbc.extract.json.
 struct AnimationDataEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -365,7 +365,7 @@ struct AnimationDataEntry
     std::int32_t BehaviorTier; // field 5; disk bytes 20-23; DBD-only, confidence low
 };
 
-// AnimKit.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimKit.dbc.extract.json.
+// AnimKit.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimKit.dbc.extract.json.
 struct AnimKitEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -373,7 +373,7 @@ struct AnimKitEntry
     std::int32_t OneShotStopAnimKitID; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// AnimKitBoneSet.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimKitBoneSet.dbc.extract.json.
+// AnimKitBoneSet.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimKitBoneSet.dbc.extract.json.
 struct AnimKitBoneSetEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -384,7 +384,7 @@ struct AnimKitBoneSetEntry
     std::int32_t AltAnimKitBoneSetID; // field 5; disk bytes 20-23; DBD-only, confidence low
 };
 
-// AnimKitBoneSetAlias.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimKitBoneSetAlias.dbc.extract.json.
+// AnimKitBoneSetAlias.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimKitBoneSetAlias.dbc.extract.json.
 struct AnimKitBoneSetAliasEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -392,14 +392,14 @@ struct AnimKitBoneSetAliasEntry
     std::int32_t AnimKitBoneSetID; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// AnimKitConfig.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimKitConfig.dbc.extract.json.
+// AnimKitConfig.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimKitConfig.dbc.extract.json.
 struct AnimKitConfigEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t ConfigFlags; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// AnimKitConfigBoneSet.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimKitConfigBoneSet.dbc.extract.json.
+// AnimKitConfigBoneSet.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimKitConfigBoneSet.dbc.extract.json.
 struct AnimKitConfigBoneSetEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -408,14 +408,14 @@ struct AnimKitConfigBoneSetEntry
     std::int32_t AnimKitPriorityID; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// AnimKitPriority.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimKitPriority.dbc.extract.json.
+// AnimKitPriority.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimKitPriority.dbc.extract.json.
 struct AnimKitPriorityEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t Priority; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// AnimKitSegment.dbc -- on-disk fields 16, record size 64 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/AnimKitSegment.dbc.extract.json.
+// AnimKitSegment.dbc -- on-disk fields 16, record size 64 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/AnimKitSegment.dbc.extract.json.
 struct AnimKitSegmentEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -436,7 +436,7 @@ struct AnimKitSegmentEntry
     std::int32_t LoopToSegmentIndex; // field 15; disk bytes 60-63; DBD-only, confidence low
 };
 
-// AnimReplacement.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimReplacement.dbc.extract.json.
+// AnimReplacement.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimReplacement.dbc.extract.json.
 struct AnimReplacementEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -445,14 +445,14 @@ struct AnimReplacementEntry
     std::int32_t ParentAnimReplacementSetID; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// AnimReplacementSet.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AnimReplacementSet.dbc.extract.json.
+// AnimReplacementSet.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AnimReplacementSet.dbc.extract.json.
 struct AnimReplacementSetEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t ExecOrder; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// AreaAssignment.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AreaAssignment.dbc.extract.json.
+// AreaAssignment.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AreaAssignment.dbc.extract.json.
 struct AreaAssignmentEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -462,7 +462,7 @@ struct AreaAssignmentEntry
     std::int32_t ChunkY; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// AreaPOI.dbc -- on-disk fields 22, record size 88 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/AreaPOI.dbc.extract.json.
+// AreaPOI.dbc -- on-disk fields 22, record size 88 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/AreaPOI.dbc.extract.json.
 struct AreaPOIEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -480,7 +480,7 @@ struct AreaPOIEntry
     std::int32_t PortLocID; // field 21; disk bytes 84-87; DBD-only, confidence low
 };
 
-// AreaPOISortedWorldState.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AreaPOISortedWorldState.dbc.extract.json.
+// AreaPOISortedWorldState.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AreaPOISortedWorldState.dbc.extract.json.
 struct AreaPOISortedWorldStateEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence unknown
@@ -488,7 +488,7 @@ struct AreaPOISortedWorldStateEntry
     std::int32_t CemeteryID; // field 2; disk bytes 8-11; DBD-only, confidence unknown
 };
 
-// AttackAnimKits.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AttackAnimKits.dbc.extract.json.
+// AttackAnimKits.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AttackAnimKits.dbc.extract.json.
 struct AttackAnimKitsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -498,14 +498,14 @@ struct AttackAnimKitsEntry
     std::int32_t WhichHand; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// AttackAnimTypes.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/AttackAnimTypes.dbc.extract.json.
+// AttackAnimTypes.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/AttackAnimTypes.dbc.extract.json.
 struct AttackAnimTypesEntry
 {
     std::int32_t AnimID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString AnimName; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// BannedAddOns.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/BannedAddOns.dbc.extract.json.
+// BannedAddOns.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/BannedAddOns.dbc.extract.json.
 struct BannedAddOnsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -515,7 +515,7 @@ struct BannedAddOnsEntry
     std::int32_t Flags; // field 10; disk bytes 40-43; DBD-only, confidence low
 };
 
-// CameraMode.dbc -- on-disk fields 17, record size 68 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/CameraMode.dbc.extract.json.
+// CameraMode.dbc -- on-disk fields 17, record size 68 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/CameraMode.dbc.extract.json.
 struct CameraModeEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -533,7 +533,7 @@ struct CameraModeEntry
     std::int32_t LockedTargetOffsetDirection; // field 16; disk bytes 64-67; DBD-only, confidence low
 };
 
-// CameraShakes.dbc -- on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CameraShakes.dbc.extract.json.
+// CameraShakes.dbc -- on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CameraShakes.dbc.extract.json.
 struct CameraShakesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -547,7 +547,7 @@ struct CameraShakesEntry
     std::int32_t Flags; // field 8; disk bytes 32-35; DBD-only, confidence low
 };
 
-// CastableRaidBuffs.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CastableRaidBuffs.dbc.extract.json.
+// CastableRaidBuffs.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CastableRaidBuffs.dbc.extract.json.
 struct CastableRaidBuffsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -555,7 +555,7 @@ struct CastableRaidBuffsEntry
     std::int32_t CastingSpellID; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// Cfg_Categories.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Cfg_Categories.dbc.extract.json.
+// Cfg_Categories.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Cfg_Categories.dbc.extract.json.
 struct Cfg_CategoriesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -566,7 +566,7 @@ struct Cfg_CategoriesEntry
     DBCString Name_lang; // field 5; disk bytes 20-23; DBD-only, confidence low
 };
 
-// Cfg_Configs.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Cfg_Configs.dbc.extract.json.
+// Cfg_Configs.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Cfg_Configs.dbc.extract.json.
 struct Cfg_ConfigsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -576,7 +576,7 @@ struct Cfg_ConfigsEntry
     std::int32_t PlayerAttackSpeedBase; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// CharacterFacialHairStyles.dbc -- on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CharacterFacialHairStyles.dbc.extract.json.
+// CharacterFacialHairStyles.dbc -- on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CharacterFacialHairStyles.dbc.extract.json.
 struct CharacterFacialHairStylesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -586,7 +586,7 @@ struct CharacterFacialHairStylesEntry
     std::int32_t Geoset[5]; // fields 4-8; disk bytes 16-35; DBD-only, confidence low
 };
 
-// CharBaseInfo.dbc -- on-disk fields 3, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CharBaseInfo.dbc.extract.json.
+// CharBaseInfo.dbc -- on-disk fields 3, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CharBaseInfo.dbc.extract.json.
 struct CharBaseInfoEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -595,7 +595,7 @@ struct CharBaseInfoEntry
     std::uint8_t Padding_4_0_0_11792_003[2]; // explicit padding; disk bytes 6-7
 };
 
-// CharHairGeosets.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CharHairGeosets.dbc.extract.json.
+// CharHairGeosets.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CharHairGeosets.dbc.extract.json.
 struct CharHairGeosetsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -606,7 +606,7 @@ struct CharHairGeosetsEntry
     std::int32_t Showscalp; // field 5; disk bytes 20-23; DBD-only, confidence low
 };
 
-// CharSections.dbc -- on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/CharSections.dbc.extract.json.
+// CharSections.dbc -- on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/CharSections.dbc.extract.json.
 struct CharSectionsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -619,7 +619,7 @@ struct CharSectionsEntry
     std::int32_t ColorIndex; // field 9; disk bytes 36-39; DBD-only, confidence low
 };
 
-// ChatProfanity.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ChatProfanity.dbc.extract.json.
+// ChatProfanity.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ChatProfanity.dbc.extract.json.
 struct ChatProfanityEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -627,7 +627,7 @@ struct ChatProfanityEntry
     std::int32_t Language; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// CinematicCamera.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/CinematicCamera.dbc.extract.json.
+// CinematicCamera.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/CinematicCamera.dbc.extract.json.
 struct CinematicCameraEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -637,7 +637,7 @@ struct CinematicCameraEntry
     float OriginFacing; // field 6; disk bytes 24-27; DBD-only, confidence low
 };
 
-// CreatureImmunities.dbc -- on-disk fields 26, record size 104 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/CreatureImmunities.dbc.extract.json.
+// CreatureImmunities.dbc -- on-disk fields 26, record size 104 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/CreatureImmunities.dbc.extract.json.
 struct CreatureImmunitiesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -652,14 +652,14 @@ struct CreatureImmunitiesEntry
     std::int32_t Flags; // field 25; disk bytes 100-103; DBD-only, confidence low
 };
 
-// CreatureMovementInfo.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CreatureMovementInfo.dbc.extract.json.
+// CreatureMovementInfo.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CreatureMovementInfo.dbc.extract.json.
 struct CreatureMovementInfoEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     float SmoothFacingChaseRate; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// CreatureSoundData.dbc -- on-disk fields 40, record size 160 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/CreatureSoundData.dbc.extract.json.
+// CreatureSoundData.dbc -- on-disk fields 40, record size 160 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/CreatureSoundData.dbc.extract.json.
 struct CreatureSoundDataEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -697,7 +697,7 @@ struct CreatureSoundDataEntry
     std::int32_t TransformAnimatedSoundID; // field 39; disk bytes 156-159; DBD-only, confidence low
 };
 
-// CurrencyCategory.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/CurrencyCategory.dbc.extract.json.
+// CurrencyCategory.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/CurrencyCategory.dbc.extract.json.
 struct CurrencyCategoryEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -705,7 +705,7 @@ struct CurrencyCategoryEntry
     DBCString Name_lang; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// DanceMoves.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DanceMoves.dbc.extract.json.
+// DanceMoves.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DanceMoves.dbc.extract.json.
 struct DanceMovesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -718,7 +718,7 @@ struct DanceMovesEntry
     std::int32_t LockID; // field 7; disk bytes 28-31; DBD-only, confidence low
 };
 
-// DeathThudLookups.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DeathThudLookups.dbc.extract.json.
+// DeathThudLookups.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DeathThudLookups.dbc.extract.json.
 struct DeathThudLookupsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -728,14 +728,14 @@ struct DeathThudLookupsEntry
     std::int32_t SoundEntryIDWater; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// DeclinedWord.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DeclinedWord.dbc.extract.json.
+// DeclinedWord.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DeclinedWord.dbc.extract.json.
 struct DeclinedWordEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Word; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// DeclinedWordCases.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DeclinedWordCases.dbc.extract.json.
+// DeclinedWordCases.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DeclinedWordCases.dbc.extract.json.
 struct DeclinedWordCasesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -744,7 +744,7 @@ struct DeclinedWordCasesEntry
     DBCString DeclinedWord; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// DungeonMap.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DungeonMap.dbc.extract.json.
+// DungeonMap.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DungeonMap.dbc.extract.json.
 struct DungeonMapEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -757,7 +757,7 @@ struct DungeonMapEntry
     std::int32_t ParentWorldMapID; // field 7; disk bytes 28-31; DBD-only, confidence low
 };
 
-// DungeonMapChunk.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/DungeonMapChunk.dbc.extract.json.
+// DungeonMapChunk.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/DungeonMapChunk.dbc.extract.json.
 struct DungeonMapChunkEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -767,14 +767,14 @@ struct DungeonMapChunkEntry
     float MinZ; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// EmotesTextData.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/EmotesTextData.dbc.extract.json.
+// EmotesTextData.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/EmotesTextData.dbc.extract.json.
 struct EmotesTextDataEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Text_lang; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// EmotesTextSound.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/EmotesTextSound.dbc.extract.json.
+// EmotesTextSound.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/EmotesTextSound.dbc.extract.json.
 struct EmotesTextSoundEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -784,7 +784,7 @@ struct EmotesTextSoundEntry
     std::int32_t SoundID; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// EnvironmentalDamage.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/EnvironmentalDamage.dbc.extract.json.
+// EnvironmentalDamage.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/EnvironmentalDamage.dbc.extract.json.
 struct EnvironmentalDamageEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -792,7 +792,7 @@ struct EnvironmentalDamageEntry
     std::int32_t VisualkitID; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// Exhaustion.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Exhaustion.dbc.extract.json.
+// Exhaustion.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Exhaustion.dbc.extract.json.
 struct ExhaustionEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -804,7 +804,7 @@ struct ExhaustionEntry
     float Threshold; // field 6; disk bytes 24-27; DBD-only, confidence low
 };
 
-// FactionGroup.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/FactionGroup.dbc.extract.json.
+// FactionGroup.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/FactionGroup.dbc.extract.json.
 struct FactionGroupEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -813,7 +813,7 @@ struct FactionGroupEntry
     DBCString Name_lang; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// FileData.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/FileData.dbc.extract.json.
+// FileData.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/FileData.dbc.extract.json.
 struct FileDataEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -821,14 +821,14 @@ struct FileDataEntry
     DBCString Filepath; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// FootprintTextures.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/FootprintTextures.dbc.extract.json.
+// FootprintTextures.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/FootprintTextures.dbc.extract.json.
 struct FootprintTexturesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString FootstepFilename; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// FootstepTerrainLookup.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/FootstepTerrainLookup.dbc.extract.json.
+// FootstepTerrainLookup.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/FootstepTerrainLookup.dbc.extract.json.
 struct FootstepTerrainLookupEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -838,7 +838,7 @@ struct FootstepTerrainLookupEntry
     std::int32_t SoundIDSplash; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// GameObjectArtKit.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GameObjectArtKit.dbc.extract.json.
+// GameObjectArtKit.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GameObjectArtKit.dbc.extract.json.
 struct GameObjectArtKitEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -846,7 +846,7 @@ struct GameObjectArtKitEntry
     DBCString AttachModel[4]; // fields 4-7; disk bytes 16-31; DBD-only, confidence low
 };
 
-// GameTables.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GameTables.dbc.extract.json.
+// GameTables.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GameTables.dbc.extract.json.
 struct GameTablesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -855,7 +855,7 @@ struct GameTablesEntry
     std::int32_t NumColumns; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// GameTips.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GameTips.dbc.extract.json.
+// GameTips.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GameTips.dbc.extract.json.
 struct GameTipsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -864,7 +864,7 @@ struct GameTipsEntry
     std::int32_t Max_level; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// GlueScreenEmote.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GlueScreenEmote.dbc.extract.json.
+// GlueScreenEmote.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GlueScreenEmote.dbc.extract.json.
 struct GlueScreenEmoteEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -877,7 +877,7 @@ struct GlueScreenEmoteEntry
     std::int32_t SpellVisualKitID; // field 7; disk bytes 28-31; DBD-only, confidence low
 };
 
-// GMSurveyAnswers.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GMSurveyAnswers.dbc.extract.json.
+// GMSurveyAnswers.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GMSurveyAnswers.dbc.extract.json.
 struct GMSurveyAnswersEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -886,35 +886,35 @@ struct GMSurveyAnswersEntry
     DBCString Answer_lang; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// GMSurveyCurrentSurvey.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GMSurveyCurrentSurvey.dbc.extract.json.
+// GMSurveyCurrentSurvey.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GMSurveyCurrentSurvey.dbc.extract.json.
 struct GMSurveyCurrentSurveyEntry
 {
     std::int32_t LANGID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t GMSURVEY_ID; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// GMSurveyQuestions.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GMSurveyQuestions.dbc.extract.json.
+// GMSurveyQuestions.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GMSurveyQuestions.dbc.extract.json.
 struct GMSurveyQuestionsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Question_lang; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// GMSurveySurveys.dbc -- on-disk fields 16, record size 64 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/GMSurveySurveys.dbc.extract.json.
+// GMSurveySurveys.dbc -- on-disk fields 16, record size 64 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/GMSurveySurveys.dbc.extract.json.
 struct GMSurveySurveysEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t Q[15]; // fields 1-15; disk bytes 4-63; DBD-only, confidence low
 };
 
-// GMTicketCategory.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GMTicketCategory.dbc.extract.json.
+// GMTicketCategory.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GMTicketCategory.dbc.extract.json.
 struct GMTicketCategoryEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Category_lang; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// GroundEffectDoodad.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GroundEffectDoodad.dbc.extract.json.
+// GroundEffectDoodad.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GroundEffectDoodad.dbc.extract.json.
 struct GroundEffectDoodadEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -922,7 +922,7 @@ struct GroundEffectDoodadEntry
     std::int32_t Flags; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// GroundEffectTexture.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GroundEffectTexture.dbc.extract.json.
+// GroundEffectTexture.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GroundEffectTexture.dbc.extract.json.
 struct GroundEffectTextureEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -932,21 +932,21 @@ struct GroundEffectTextureEntry
     std::int32_t Sound; // field 10; disk bytes 40-43; DBD-only, confidence low
 };
 
-// gtNPCManaCostScaler.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtNPCManaCostScaler.dbc.extract.json.
+// gtNPCManaCostScaler.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtNPCManaCostScaler.dbc.extract.json.
 struct gtNPCManaCostScalerEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     float Data; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// gtOCTRegenMP.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/gtOCTRegenMP.dbc.extract.json.
+// gtOCTRegenMP.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/gtOCTRegenMP.dbc.extract.json.
 struct gtOCTRegenMPEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     float Data; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// GuildColorBackground.dbc -- on-disk fields 4, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GuildColorBackground.dbc.extract.json.
+// GuildColorBackground.dbc -- on-disk fields 4, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GuildColorBackground.dbc.extract.json.
 struct GuildColorBackgroundEntry
 {
     std::int32_t ColorID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -956,7 +956,7 @@ struct GuildColorBackgroundEntry
     std::uint8_t Padding_6_0_1_18179_004; // explicit padding; disk bytes 7-7
 };
 
-// GuildColorBorder.dbc -- on-disk fields 4, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GuildColorBorder.dbc.extract.json.
+// GuildColorBorder.dbc -- on-disk fields 4, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GuildColorBorder.dbc.extract.json.
 struct GuildColorBorderEntry
 {
     std::int32_t ColorID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -966,7 +966,7 @@ struct GuildColorBorderEntry
     std::uint8_t Padding_6_0_1_18179_004; // explicit padding; disk bytes 7-7
 };
 
-// GuildColorEmblem.dbc -- on-disk fields 4, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GuildColorEmblem.dbc.extract.json.
+// GuildColorEmblem.dbc -- on-disk fields 4, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GuildColorEmblem.dbc.extract.json.
 struct GuildColorEmblemEntry
 {
     std::int32_t ColorID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -976,7 +976,7 @@ struct GuildColorEmblemEntry
     std::uint8_t Padding_6_0_1_18179_004; // explicit padding; disk bytes 7-7
 };
 
-// GuildPerkSpells.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/GuildPerkSpells.dbc.extract.json.
+// GuildPerkSpells.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/GuildPerkSpells.dbc.extract.json.
 struct GuildPerkSpellsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -984,28 +984,28 @@ struct GuildPerkSpellsEntry
     std::int32_t SpellID; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// HelmetGeosetVisData.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/HelmetGeosetVisData.dbc.extract.json.
+// HelmetGeosetVisData.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/HelmetGeosetVisData.dbc.extract.json.
 struct HelmetGeosetVisDataEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t HideGeoset[7]; // fields 1-7; disk bytes 4-31; DBD-only, confidence low
 };
 
-// HolidayDescriptions.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/HolidayDescriptions.dbc.extract.json.
+// HolidayDescriptions.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/HolidayDescriptions.dbc.extract.json.
 struct HolidayDescriptionsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Description_lang; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// HolidayNames.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/HolidayNames.dbc.extract.json.
+// HolidayNames.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/HolidayNames.dbc.extract.json.
 struct HolidayNamesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Name_lang; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// ImportPriceArmor.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ImportPriceArmor.dbc.extract.json.
+// ImportPriceArmor.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ImportPriceArmor.dbc.extract.json.
 struct ImportPriceArmorEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1015,28 +1015,28 @@ struct ImportPriceArmorEntry
     float PlateModifier; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// ImportPriceQuality.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ImportPriceQuality.dbc.extract.json.
+// ImportPriceQuality.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ImportPriceQuality.dbc.extract.json.
 struct ImportPriceQualityEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     float Data; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// ImportPriceShield.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ImportPriceShield.dbc.extract.json.
+// ImportPriceShield.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ImportPriceShield.dbc.extract.json.
 struct ImportPriceShieldEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     float Data; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// ImportPriceWeapon.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ImportPriceWeapon.dbc.extract.json.
+// ImportPriceWeapon.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ImportPriceWeapon.dbc.extract.json.
 struct ImportPriceWeaponEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     float Data; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// ItemDisenchantLoot.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemDisenchantLoot.dbc.extract.json.
+// ItemDisenchantLoot.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemDisenchantLoot.dbc.extract.json.
 struct ItemDisenchantLootEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1048,7 +1048,7 @@ struct ItemDisenchantLootEntry
     std::int32_t SkillRequired; // field 6; disk bytes 24-27; DBD-only, confidence low
 };
 
-// ItemDisplayInfo.dbc -- on-disk fields 25, record size 100 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/ItemDisplayInfo.dbc.extract.json.
+// ItemDisplayInfo.dbc -- on-disk fields 25, record size 100 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/ItemDisplayInfo.dbc.extract.json.
 struct ItemDisplayInfoEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1065,14 +1065,14 @@ struct ItemDisplayInfoEntry
     std::int32_t ParticleColorID; // field 24; disk bytes 96-99; DBD-only, confidence low
 };
 
-// ItemGroupSounds.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/ItemGroupSounds.dbc.extract.json.
+// ItemGroupSounds.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/ItemGroupSounds.dbc.extract.json.
 struct ItemGroupSoundsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t Sound[4]; // fields 1-4; disk bytes 4-19; DBD-only, confidence low
 };
 
-// ItemNameDescription.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemNameDescription.dbc.extract.json.
+// ItemNameDescription.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemNameDescription.dbc.extract.json.
 struct ItemNameDescriptionEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1080,14 +1080,14 @@ struct ItemNameDescriptionEntry
     std::int32_t Color; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// ItemPetFood.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemPetFood.dbc.extract.json.
+// ItemPetFood.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemPetFood.dbc.extract.json.
 struct ItemPetFoodEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Name_lang; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// ItemPriceBase.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemPriceBase.dbc.extract.json.
+// ItemPriceBase.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemPriceBase.dbc.extract.json.
 struct ItemPriceBaseEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1096,7 +1096,7 @@ struct ItemPriceBaseEntry
     float Weapon; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// ItemPurchaseGroup.dbc -- on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemPurchaseGroup.dbc.extract.json.
+// ItemPurchaseGroup.dbc -- on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemPurchaseGroup.dbc.extract.json.
 struct ItemPurchaseGroupEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1104,7 +1104,7 @@ struct ItemPurchaseGroupEntry
     DBCString Name_lang; // field 9; disk bytes 36-39; DBD-only, confidence low
 };
 
-// ItemSubClass.dbc -- on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemSubClass.dbc.extract.json.
+// ItemSubClass.dbc -- on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemSubClass.dbc.extract.json.
 struct ItemSubClassEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1122,7 +1122,7 @@ struct ItemSubClassEntry
     DBCString VerboseName_lang; // field 12; disk bytes 48-51; DBD-only, confidence low
 };
 
-// ItemSubClassMask.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemSubClassMask.dbc.extract.json.
+// ItemSubClassMask.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemSubClassMask.dbc.extract.json.
 struct ItemSubClassMaskEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1131,21 +1131,21 @@ struct ItemSubClassMaskEntry
     DBCString Name_lang; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// ItemVisualEffects.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemVisualEffects.dbc.extract.json.
+// ItemVisualEffects.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemVisualEffects.dbc.extract.json.
 struct ItemVisualEffectsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Model; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// ItemVisuals.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemVisuals.dbc.extract.json.
+// ItemVisuals.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemVisuals.dbc.extract.json.
 struct ItemVisualsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t Slot[5]; // fields 1-5; disk bytes 4-23; DBD-only, confidence low
 };
 
-// JournalEncounter.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/JournalEncounter.dbc.extract.json.
+// JournalEncounter.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/JournalEncounter.dbc.extract.json.
 struct JournalEncounterEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1160,7 +1160,7 @@ struct JournalEncounterEntry
     DBCString Description_lang; // field 10; disk bytes 40-43; DBD-only, confidence low
 };
 
-// JournalEncounterCreature.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/JournalEncounterCreature.dbc.extract.json.
+// JournalEncounterCreature.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/JournalEncounterCreature.dbc.extract.json.
 struct JournalEncounterCreatureEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1172,7 +1172,7 @@ struct JournalEncounterCreatureEntry
     DBCString Description_lang; // field 6; disk bytes 24-27; DBD-only, confidence low
 };
 
-// JournalEncounterItem.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/JournalEncounterItem.dbc.extract.json.
+// JournalEncounterItem.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/JournalEncounterItem.dbc.extract.json.
 struct JournalEncounterItemEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1182,7 +1182,7 @@ struct JournalEncounterItemEntry
     std::int32_t FactionMask; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// JournalEncounterSection.dbc -- on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/JournalEncounterSection.dbc.extract.json.
+// JournalEncounterSection.dbc -- on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/JournalEncounterSection.dbc.extract.json.
 struct JournalEncounterSectionEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1201,7 +1201,7 @@ struct JournalEncounterSectionEntry
     std::int32_t IconFileDataID; // field 13; disk bytes 52-55; DBD-only, confidence low
 };
 
-// JournalInstance.dbc -- on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/JournalInstance.dbc.extract.json.
+// JournalInstance.dbc -- on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/JournalInstance.dbc.extract.json.
 struct JournalInstanceEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1215,14 +1215,14 @@ struct JournalInstanceEntry
     DBCString Description_lang; // field 8; disk bytes 32-35; DBD-only, confidence low
 };
 
-// Languages.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Languages.dbc.extract.json.
+// Languages.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Languages.dbc.extract.json.
 struct LanguagesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Name_lang; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// LanguageWords.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LanguageWords.dbc.extract.json.
+// LanguageWords.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LanguageWords.dbc.extract.json.
 struct LanguageWordsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1230,7 +1230,7 @@ struct LanguageWordsEntry
     DBCString Word; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// LFGDungeonExpansion.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LFGDungeonExpansion.dbc.extract.json.
+// LFGDungeonExpansion.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LFGDungeonExpansion.dbc.extract.json.
 struct LFGDungeonExpansionEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1243,7 +1243,7 @@ struct LFGDungeonExpansionEntry
     std::int32_t Target_level_max; // field 7; disk bytes 28-31; DBD-only, confidence low
 };
 
-// LFGDungeonGroup.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LFGDungeonGroup.dbc.extract.json.
+// LFGDungeonGroup.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LFGDungeonGroup.dbc.extract.json.
 struct LFGDungeonGroupEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1253,7 +1253,7 @@ struct LFGDungeonGroupEntry
     std::int32_t TypeID; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// LFGDungeonsGroupingmap.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LFGDungeonsGroupingmap.dbc.extract.json.
+// LFGDungeonsGroupingmap.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LFGDungeonsGroupingmap.dbc.extract.json.
 struct LFGDungeonsGroupingmapEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1262,7 +1262,7 @@ struct LFGDungeonsGroupingmapEntry
     std::int32_t Group_ID; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// Light.dbc -- on-disk fields 15, record size 60 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/Light.dbc.extract.json.
+// Light.dbc -- on-disk fields 15, record size 60 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/Light.dbc.extract.json.
 struct LightEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1273,7 +1273,7 @@ struct LightEntry
     std::int32_t LightParamsID[8]; // fields 7-14; disk bytes 28-59; DBD-only, confidence low
 };
 
-// LightFloatBand.dbc -- on-disk fields 34, record size 136 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/LightFloatBand.dbc.extract.json.
+// LightFloatBand.dbc -- on-disk fields 34, record size 136 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/LightFloatBand.dbc.extract.json.
 struct LightFloatBandEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1282,7 +1282,7 @@ struct LightFloatBandEntry
     float Data[16]; // fields 18-33; disk bytes 72-135; DBD-only, confidence low
 };
 
-// LightIntBand.dbc -- on-disk fields 34, record size 136 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/LightIntBand.dbc.extract.json.
+// LightIntBand.dbc -- on-disk fields 34, record size 136 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/LightIntBand.dbc.extract.json.
 struct LightIntBandEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1291,7 +1291,7 @@ struct LightIntBandEntry
     std::int32_t Data[16]; // fields 18-33; disk bytes 72-135; DBD-only, confidence low
 };
 
-// LightParams.dbc -- on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/LightParams.dbc.extract.json.
+// LightParams.dbc -- on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/LightParams.dbc.extract.json.
 struct LightParamsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1306,7 +1306,7 @@ struct LightParamsEntry
     std::int32_t Flags; // field 9; disk bytes 36-39; DBD-only, confidence low
 };
 
-// LightSkybox.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/LightSkybox.dbc.extract.json.
+// LightSkybox.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/LightSkybox.dbc.extract.json.
 struct LightSkyboxEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1314,7 +1314,7 @@ struct LightSkyboxEntry
     std::int32_t Flags; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// LiquidMaterial.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LiquidMaterial.dbc.extract.json.
+// LiquidMaterial.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LiquidMaterial.dbc.extract.json.
 struct LiquidMaterialEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1322,7 +1322,7 @@ struct LiquidMaterialEntry
     std::int32_t Flags; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// LiquidObject.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LiquidObject.dbc.extract.json.
+// LiquidObject.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LiquidObject.dbc.extract.json.
 struct LiquidObjectEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1333,7 +1333,7 @@ struct LiquidObjectEntry
     std::int32_t Reflection; // field 5; disk bytes 20-23; DBD-only, confidence low
 };
 
-// LoadingScreens.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LoadingScreens.dbc.extract.json.
+// LoadingScreens.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LoadingScreens.dbc.extract.json.
 struct LoadingScreensEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1342,7 +1342,7 @@ struct LoadingScreensEntry
     std::int32_t HasWideScreen; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// LoadingScreenTaxiSplines.dbc -- on-disk fields 19, record size 76 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/LoadingScreenTaxiSplines.dbc.extract.json.
+// LoadingScreenTaxiSplines.dbc -- on-disk fields 19, record size 76 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/LoadingScreenTaxiSplines.dbc.extract.json.
 struct LoadingScreenTaxiSplinesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1352,7 +1352,7 @@ struct LoadingScreenTaxiSplinesEntry
     std::int32_t LegIndex; // field 18; disk bytes 72-75; DBD-only, confidence low
 };
 
-// LockType.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/LockType.dbc.extract.json.
+// LockType.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/LockType.dbc.extract.json.
 struct LockTypeEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1362,7 +1362,7 @@ struct LockTypeEntry
     DBCString CursorName; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// Material.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Material.dbc.extract.json.
+// Material.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Material.dbc.extract.json.
 struct MaterialEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1372,14 +1372,14 @@ struct MaterialEntry
     std::int32_t UnsheatheSoundID; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// MovieFileData.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/MovieFileData.dbc.extract.json.
+// MovieFileData.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/MovieFileData.dbc.extract.json.
 struct MovieFileDataEntry
 {
     std::int32_t FileDataID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t Resolution; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// MovieVariation.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/MovieVariation.dbc.extract.json.
+// MovieVariation.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/MovieVariation.dbc.extract.json.
 struct MovieVariationEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1387,7 +1387,7 @@ struct MovieVariationEntry
     std::int32_t FileDataID; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// NameGen.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/NameGen.dbc.extract.json.
+// NameGen.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/NameGen.dbc.extract.json.
 struct NameGenEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1396,7 +1396,7 @@ struct NameGenEntry
     std::int32_t Sex; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// NamesProfanity.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/NamesProfanity.dbc.extract.json.
+// NamesProfanity.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/NamesProfanity.dbc.extract.json.
 struct NamesProfanityEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1404,7 +1404,7 @@ struct NamesProfanityEntry
     std::int32_t Language; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// NamesReserved.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/NamesReserved.dbc.extract.json.
+// NamesReserved.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/NamesReserved.dbc.extract.json.
 struct NamesReservedEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1412,14 +1412,14 @@ struct NamesReservedEntry
     std::int32_t Language; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// NPCSounds.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/NPCSounds.dbc.extract.json.
+// NPCSounds.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/NPCSounds.dbc.extract.json.
 struct NPCSoundsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t SoundID[4]; // fields 1-4; disk bytes 4-19; DBD-only, confidence low
 };
 
-// ObjectEffect.dbc -- on-disk fields 12, record size 48 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ObjectEffect.dbc.extract.json.
+// ObjectEffect.dbc -- on-disk fields 12, record size 48 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ObjectEffect.dbc.extract.json.
 struct ObjectEffectEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1434,14 +1434,14 @@ struct ObjectEffectEntry
     std::int32_t ObjectEffectModifierID; // field 11; disk bytes 44-47; DBD-only, confidence low
 };
 
-// ObjectEffectGroup.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ObjectEffectGroup.dbc.extract.json.
+// ObjectEffectGroup.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ObjectEffectGroup.dbc.extract.json.
 struct ObjectEffectGroupEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Name; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// ObjectEffectModifier.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ObjectEffectModifier.dbc.extract.json.
+// ObjectEffectModifier.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ObjectEffectModifier.dbc.extract.json.
 struct ObjectEffectModifierEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1451,14 +1451,14 @@ struct ObjectEffectModifierEntry
     float Param[4]; // fields 4-7; disk bytes 16-31; DBD-only, confidence low
 };
 
-// ObjectEffectPackage.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ObjectEffectPackage.dbc.extract.json.
+// ObjectEffectPackage.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ObjectEffectPackage.dbc.extract.json.
 struct ObjectEffectPackageEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Name; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// ObjectEffectPackageElem.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ObjectEffectPackageElem.dbc.extract.json.
+// ObjectEffectPackageElem.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ObjectEffectPackageElem.dbc.extract.json.
 struct ObjectEffectPackageElemEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1467,7 +1467,7 @@ struct ObjectEffectPackageElemEntry
     std::int32_t StateType; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// Package.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Package.dbc.extract.json.
+// Package.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Package.dbc.extract.json.
 struct PackageEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1476,14 +1476,14 @@ struct PackageEntry
     DBCString Name_lang; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// PageTextMaterial.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/PageTextMaterial.dbc.extract.json.
+// PageTextMaterial.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/PageTextMaterial.dbc.extract.json.
 struct PageTextMaterialEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Name; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// PaperDollItemFrame.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/PaperDollItemFrame.dbc.extract.json.
+// PaperDollItemFrame.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/PaperDollItemFrame.dbc.extract.json.
 struct PaperDollItemFrameEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1492,7 +1492,7 @@ struct PaperDollItemFrameEntry
     std::int32_t SlotNumber; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// ParticleColor.dbc -- on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ParticleColor.dbc.extract.json.
+// ParticleColor.dbc -- on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ParticleColor.dbc.extract.json.
 struct ParticleColorEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1501,13 +1501,13 @@ struct ParticleColorEntry
     std::int32_t End[3]; // fields 7-9; disk bytes 28-39; DBD-only, confidence low
 };
 
-// PetitionType.dbc -- on-disk fields 3, record size 12 bytes; extract unseeded_no_exact_dbd, tier easy; provenance Claude/registry/extract_results/PetitionType.dbc.extract.json.
+// PetitionType.dbc -- on-disk fields 3, record size 12 bytes; extract unseeded_no_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/PetitionType.dbc.extract.json.
 struct PetitionTypeEntry
 {
     std::uint8_t RawRecord[12]; // SEMANTICS UNRESOLVED: exact-size opaque on-disk record
 };
 
-// PhaseShiftZoneSounds.dbc -- on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/PhaseShiftZoneSounds.dbc.extract.json.
+// PhaseShiftZoneSounds.dbc -- on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/PhaseShiftZoneSounds.dbc.extract.json.
 struct PhaseShiftZoneSoundsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1526,7 +1526,7 @@ struct PhaseShiftZoneSoundsEntry
     std::int32_t UWSoundProviderPreferencesID; // field 13; disk bytes 52-55; DBD-only, confidence low
 };
 
-// PhaseXPhaseGroup.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/PhaseXPhaseGroup.dbc.extract.json.
+// PhaseXPhaseGroup.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/PhaseXPhaseGroup.dbc.extract.json.
 struct PhaseXPhaseGroupEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1534,21 +1534,21 @@ struct PhaseXPhaseGroupEntry
     std::int32_t PhaseGroupID; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// PlayerCondition.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/PlayerCondition.dbc.extract.json.
+// PlayerCondition.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/PlayerCondition.dbc.extract.json.
 struct PlayerConditionEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Failure_description_lang; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// QuestInfo.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/QuestInfo.dbc.extract.json.
+// QuestInfo.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/QuestInfo.dbc.extract.json.
 struct QuestInfoEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString InfoName_lang; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// QuestPOIBlob.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/QuestPOIBlob.dbc.extract.json.
+// QuestPOIBlob.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/QuestPOIBlob.dbc.extract.json.
 struct QuestPOIBlobEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1557,7 +1557,7 @@ struct QuestPOIBlobEntry
     std::int32_t WorldMapAreaID; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// QuestPOIPoint.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/QuestPOIPoint.dbc.extract.json.
+// QuestPOIPoint.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/QuestPOIPoint.dbc.extract.json.
 struct QuestPOIPointEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1566,7 +1566,7 @@ struct QuestPOIPointEntry
     std::int32_t QuestPOIBlobID; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// ResearchBranch.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ResearchBranch.dbc.extract.json.
+// ResearchBranch.dbc -- on-disk fields 6, record size 24 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ResearchBranch.dbc.extract.json.
 struct ResearchBranchEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1577,7 +1577,7 @@ struct ResearchBranchEntry
     std::int32_t ItemID; // field 5; disk bytes 20-23; DBD-only, confidence low
 };
 
-// ResearchField.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ResearchField.dbc.extract.json.
+// ResearchField.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ResearchField.dbc.extract.json.
 struct ResearchFieldEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1585,7 +1585,7 @@ struct ResearchFieldEntry
     std::int32_t Slot; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// ResearchProject.dbc -- on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ResearchProject.dbc.extract.json.
+// ResearchProject.dbc -- on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ResearchProject.dbc.extract.json.
 struct ResearchProjectEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1599,7 +1599,7 @@ struct ResearchProjectEntry
     std::int32_t RequiredWeight; // field 8; disk bytes 32-35; DBD-only, confidence low
 };
 
-// ResearchSite.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ResearchSite.dbc.extract.json.
+// ResearchSite.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ResearchSite.dbc.extract.json.
 struct ResearchSiteEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1609,7 +1609,7 @@ struct ResearchSiteEntry
     std::int32_t AreaPOIIconEnum; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// Resistances.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Resistances.dbc.extract.json.
+// Resistances.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Resistances.dbc.extract.json.
 struct ResistancesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1618,7 +1618,7 @@ struct ResistancesEntry
     DBCString Name_lang; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// ScreenEffect.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ScreenEffect.dbc.extract.json.
+// ScreenEffect.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ScreenEffect.dbc.extract.json.
 struct ScreenEffectEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1631,28 +1631,28 @@ struct ScreenEffectEntry
     std::int32_t TimeOfDayOverride; // field 10; disk bytes 40-43; DBD-only, confidence low
 };
 
-// ScreenLocation.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ScreenLocation.dbc.extract.json.
+// ScreenLocation.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ScreenLocation.dbc.extract.json.
 struct ScreenLocationEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Name; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// ServerMessages.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ServerMessages.dbc.extract.json.
+// ServerMessages.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ServerMessages.dbc.extract.json.
 struct ServerMessagesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Text_lang; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// SkillLineAbilitySortedSpell.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SkillLineAbilitySortedSpell.dbc.extract.json.
+// SkillLineAbilitySortedSpell.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SkillLineAbilitySortedSpell.dbc.extract.json.
 struct SkillLineAbilitySortedSpellEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t Spell; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// SkillLineCategory.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SkillLineCategory.dbc.extract.json.
+// SkillLineCategory.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SkillLineCategory.dbc.extract.json.
 struct SkillLineCategoryEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1660,7 +1660,7 @@ struct SkillLineCategoryEntry
     std::int32_t SortIndex; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// SkillTiers.dbc -- on-disk fields 33, record size 132 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SkillTiers.dbc.extract.json.
+// SkillTiers.dbc -- on-disk fields 33, record size 132 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SkillTiers.dbc.extract.json.
 struct SkillTiersEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1668,14 +1668,14 @@ struct SkillTiersEntry
     std::int32_t Value[16]; // fields 17-32; disk bytes 68-131; DBD-only, confidence low
 };
 
-// SoundAmbience.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundAmbience.dbc.extract.json.
+// SoundAmbience.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundAmbience.dbc.extract.json.
 struct SoundAmbienceEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t AmbienceID[2]; // fields 1-2; disk bytes 4-11; DBD-only, confidence low
 };
 
-// SoundAmbienceFlavor.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundAmbienceFlavor.dbc.extract.json.
+// SoundAmbienceFlavor.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundAmbienceFlavor.dbc.extract.json.
 struct SoundAmbienceFlavorEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1684,7 +1684,7 @@ struct SoundAmbienceFlavorEntry
     std::int32_t SoundEntriesIDNight; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// SoundEmitterPillPoints.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundEmitterPillPoints.dbc.extract.json.
+// SoundEmitterPillPoints.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundEmitterPillPoints.dbc.extract.json.
 struct SoundEmitterPillPointsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1692,7 +1692,7 @@ struct SoundEmitterPillPointsEntry
     float Position[3]; // fields 2-4; disk bytes 8-19; DBD-only, confidence low
 };
 
-// SoundEmitters.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundEmitters.dbc.extract.json.
+// SoundEmitters.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundEmitters.dbc.extract.json.
 struct SoundEmittersEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1704,7 +1704,7 @@ struct SoundEmittersEntry
     std::int32_t EmitterType; // field 10; disk bytes 40-43; DBD-only, confidence low
 };
 
-// SoundEntriesAdvanced.dbc -- on-disk fields 26, record size 104 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundEntriesAdvanced.dbc.extract.json.
+// SoundEntriesAdvanced.dbc -- on-disk fields 26, record size 104 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundEntriesAdvanced.dbc.extract.json.
 struct SoundEntriesAdvancedEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1735,7 +1735,7 @@ struct SoundEntriesAdvancedEntry
     float Field_4_3_2_15211_025; // field 25; disk bytes 100-103; DBD-only, confidence unknown
 };
 
-// SoundEntriesFallbacks.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundEntriesFallbacks.dbc.extract.json.
+// SoundEntriesFallbacks.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundEntriesFallbacks.dbc.extract.json.
 struct SoundEntriesFallbacksEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1743,14 +1743,14 @@ struct SoundEntriesFallbacksEntry
     std::int32_t FallbackSoundEntriesID; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// SoundFilter.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundFilter.dbc.extract.json.
+// SoundFilter.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundFilter.dbc.extract.json.
 struct SoundFilterEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Name; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// SoundFilterElem.dbc -- on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundFilterElem.dbc.extract.json.
+// SoundFilterElem.dbc -- on-disk fields 13, record size 52 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundFilterElem.dbc.extract.json.
 struct SoundFilterElemEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1760,7 +1760,7 @@ struct SoundFilterElemEntry
     float Params[9]; // fields 4-12; disk bytes 16-51; DBD-only, confidence low
 };
 
-// SoundProviderPreferences.dbc -- on-disk fields 24, record size 96 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SoundProviderPreferences.dbc.extract.json.
+// SoundProviderPreferences.dbc -- on-disk fields 24, record size 96 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SoundProviderPreferences.dbc.extract.json.
 struct SoundProviderPreferencesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1789,14 +1789,14 @@ struct SoundProviderPreferencesEntry
     float EAX3LFReference; // field 23; disk bytes 92-95; DBD-only, confidence low
 };
 
-// SpamMessages.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpamMessages.dbc.extract.json.
+// SpamMessages.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpamMessages.dbc.extract.json.
 struct SpamMessagesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Text; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// SpellActivationOverlay.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellActivationOverlay.dbc.extract.json.
+// SpellActivationOverlay.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellActivationOverlay.dbc.extract.json.
 struct SpellActivationOverlayEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1810,7 +1810,7 @@ struct SpellActivationOverlayEntry
     std::int32_t SoundEntriesID; // field 10; disk bytes 40-43; DBD-only, confidence low
 };
 
-// SpellAuraVisibility.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellAuraVisibility.dbc.extract.json.
+// SpellAuraVisibility.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellAuraVisibility.dbc.extract.json.
 struct SpellAuraVisibilityEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1819,7 +1819,7 @@ struct SpellAuraVisibilityEntry
     std::int32_t Flags; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// SpellAuraVisXTalentTab.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellAuraVisXTalentTab.dbc.extract.json.
+// SpellAuraVisXTalentTab.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellAuraVisXTalentTab.dbc.extract.json.
 struct SpellAuraVisXTalentTabEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1827,7 +1827,7 @@ struct SpellAuraVisXTalentTabEntry
     std::int32_t TalentTabID; // field 2; disk bytes 8-11; DBD-only, confidence unknown
 };
 
-// SpellCategory.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellCategory.dbc.extract.json.
+// SpellCategory.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellCategory.dbc.extract.json.
 struct SpellCategoryEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1836,7 +1836,7 @@ struct SpellCategoryEntry
     DBCString Name_lang; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// SpellChainEffects.dbc -- on-disk fields 48, record size 180 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SpellChainEffects.dbc.extract.json.
+// SpellChainEffects.dbc -- on-disk fields 48, record size 180 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SpellChainEffects.dbc.extract.json.
 struct SpellChainEffectsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1890,14 +1890,14 @@ struct SpellChainEffectsEntry
     float WavePhase; // field 47; disk bytes 176-179; DBD-only, confidence low
 };
 
-// SpellDescriptionVariables.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellDescriptionVariables.dbc.extract.json.
+// SpellDescriptionVariables.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellDescriptionVariables.dbc.extract.json.
 struct SpellDescriptionVariablesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString Variables; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// SpellDispelType.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellDispelType.dbc.extract.json.
+// SpellDispelType.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellDispelType.dbc.extract.json.
 struct SpellDispelTypeEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1907,14 +1907,14 @@ struct SpellDispelTypeEntry
     DBCString InternalName; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// SpellEffectCameraShakes.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellEffectCameraShakes.dbc.extract.json.
+// SpellEffectCameraShakes.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellEffectCameraShakes.dbc.extract.json.
 struct SpellEffectCameraShakesEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t CameraShake[3]; // fields 1-3; disk bytes 4-15; DBD-only, confidence low
 };
 
-// SpellFlyout.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellFlyout.dbc.extract.json.
+// SpellFlyout.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellFlyout.dbc.extract.json.
 struct SpellFlyoutEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1926,7 +1926,7 @@ struct SpellFlyoutEntry
     DBCString Description_lang; // field 6; disk bytes 24-27; DBD-only, confidence low
 };
 
-// SpellFlyoutItem.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellFlyoutItem.dbc.extract.json.
+// SpellFlyoutItem.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellFlyoutItem.dbc.extract.json.
 struct SpellFlyoutItemEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1935,21 +1935,21 @@ struct SpellFlyoutItemEntry
     std::int32_t Slot; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// SpellIcon.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellIcon.dbc.extract.json.
+// SpellIcon.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellIcon.dbc.extract.json.
 struct SpellIconEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString TextureFilename; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// SpellMechanic.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellMechanic.dbc.extract.json.
+// SpellMechanic.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellMechanic.dbc.extract.json.
 struct SpellMechanicEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString StateName_lang; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// SpellMissile.dbc -- on-disk fields 15, record size 60 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SpellMissile.dbc.extract.json.
+// SpellMissile.dbc -- on-disk fields 15, record size 60 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SpellMissile.dbc.extract.json.
 struct SpellMissileEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1969,7 +1969,7 @@ struct SpellMissileEntry
     float CollisionRadius; // field 14; disk bytes 56-59; DBD-only, confidence low
 };
 
-// SpellMissileMotion.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellMissileMotion.dbc.extract.json.
+// SpellMissileMotion.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellMissileMotion.dbc.extract.json.
 struct SpellMissileMotionEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -1979,14 +1979,14 @@ struct SpellMissileMotionEntry
     std::int32_t MissileCount; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// SpellSpecialUnitEffect.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellSpecialUnitEffect.dbc.extract.json.
+// SpellSpecialUnitEffect.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellSpecialUnitEffect.dbc.extract.json.
 struct SpellSpecialUnitEffectEntry
 {
     std::int32_t EnumID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t SpellVisualEffectNameID; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// SpellVisual.dbc -- on-disk fields 33, record size 132 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SpellVisual.dbc.extract.json.
+// SpellVisual.dbc -- on-disk fields 33, record size 132 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SpellVisual.dbc.extract.json.
 struct SpellVisualEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2020,7 +2020,7 @@ struct SpellVisualEntry
     std::int32_t Field_4_1_0_13914_028; // field 32; disk bytes 128-131; DBD-only, confidence unknown
 };
 
-// SpellVisualEffectName.dbc -- on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellVisualEffectName.dbc.extract.json.
+// SpellVisualEffectName.dbc -- on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellVisualEffectName.dbc.extract.json.
 struct SpellVisualEffectNameEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2034,7 +2034,7 @@ struct SpellVisualEffectNameEntry
     float Alpha; // field 8; disk bytes 32-35; DBD-only, confidence low
 };
 
-// SpellVisualKit.dbc -- on-disk fields 39, record size 156 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/SpellVisualKit.dbc.extract.json.
+// SpellVisualKit.dbc -- on-disk fields 39, record size 156 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/SpellVisualKit.dbc.extract.json.
 struct SpellVisualKitEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2061,7 +2061,7 @@ struct SpellVisualKitEntry
     std::int32_t Flags; // field 38; disk bytes 152-155; DBD-only, confidence low
 };
 
-// SpellVisualKitAreaModel.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellVisualKitAreaModel.dbc.extract.json.
+// SpellVisualKitAreaModel.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellVisualKitAreaModel.dbc.extract.json.
 struct SpellVisualKitAreaModelEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2073,7 +2073,7 @@ struct SpellVisualKitAreaModelEntry
     float ModelScale; // field 6; disk bytes 24-27; DBD-only, confidence low
 };
 
-// SpellVisualKitModelAttach.dbc -- on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellVisualKitModelAttach.dbc.extract.json.
+// SpellVisualKitModelAttach.dbc -- on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellVisualKitModelAttach.dbc.extract.json.
 struct SpellVisualKitModelAttachEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2090,7 +2090,7 @@ struct SpellVisualKitModelAttachEntry
     std::int32_t EndAnimID; // field 13; disk bytes 52-55; DBD-only, confidence low
 };
 
-// SpellVisualPrecastTransitions.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/SpellVisualPrecastTransitions.dbc.extract.json.
+// SpellVisualPrecastTransitions.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/SpellVisualPrecastTransitions.dbc.extract.json.
 struct SpellVisualPrecastTransitionsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2098,7 +2098,7 @@ struct SpellVisualPrecastTransitionsEntry
     DBCString PrecastHoldAnimName; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// Startup_Strings.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Startup_Strings.dbc.extract.json.
+// Startup_Strings.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Startup_Strings.dbc.extract.json.
 struct Startup_StringsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2106,7 +2106,7 @@ struct Startup_StringsEntry
     DBCString Message_lang; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// Stationery.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Stationery.dbc.extract.json.
+// Stationery.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Stationery.dbc.extract.json.
 struct StationeryEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2115,14 +2115,14 @@ struct StationeryEntry
     std::int32_t Flags; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// StringLookups.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/StringLookups.dbc.extract.json.
+// StringLookups.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/StringLookups.dbc.extract.json.
 struct StringLookupsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString String; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// TerrainMaterial.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TerrainMaterial.dbc.extract.json.
+// TerrainMaterial.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TerrainMaterial.dbc.extract.json.
 struct TerrainMaterialEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2131,7 +2131,7 @@ struct TerrainMaterialEntry
     DBCString EnvMapPath; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// TerrainType.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TerrainType.dbc.extract.json.
+// TerrainType.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TerrainType.dbc.extract.json.
 struct TerrainTypeEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2143,13 +2143,13 @@ struct TerrainTypeEntry
     std::int32_t Flags; // field 6; disk bytes 24-27; DBD-only, confidence low
 };
 
-// TerrainTypeSounds.dbc -- on-disk fields 1, record size 4 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/TerrainTypeSounds.dbc.extract.json.
+// TerrainTypeSounds.dbc -- on-disk fields 1, record size 4 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/TerrainTypeSounds.dbc.extract.json.
 struct TerrainTypeSoundsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
 };
 
-// TransportPhysics.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TransportPhysics.dbc.extract.json.
+// TransportPhysics.dbc -- on-disk fields 11, record size 44 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TransportPhysics.dbc.extract.json.
 struct TransportPhysicsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2165,7 +2165,7 @@ struct TransportPhysicsEntry
     float SpeedDamp; // field 10; disk bytes 40-43; DBD-only, confidence low
 };
 
-// TransportRotation.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/TransportRotation.dbc.extract.json.
+// TransportRotation.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/TransportRotation.dbc.extract.json.
 struct TransportRotationEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2174,7 +2174,7 @@ struct TransportRotationEntry
     float Rot[4]; // fields 3-6; disk bytes 12-27; DBD-only, confidence low
 };
 
-// UnitBlood.dbc -- on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/UnitBlood.dbc.extract.json.
+// UnitBlood.dbc -- on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/UnitBlood.dbc.extract.json.
 struct UnitBloodEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2183,14 +2183,14 @@ struct UnitBloodEntry
     DBCString GroundBlood[5]; // fields 5-9; disk bytes 20-39; DBD-only, confidence low
 };
 
-// UnitBloodLevels.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/UnitBloodLevels.dbc.extract.json.
+// UnitBloodLevels.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/UnitBloodLevels.dbc.extract.json.
 struct UnitBloodLevelsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     std::int32_t Violencelevel[3]; // fields 1-3; disk bytes 4-15; DBD-only, confidence low
 };
 
-// UnitPowerBar.dbc -- on-disk fields 27, record size 108 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/UnitPowerBar.dbc.extract.json.
+// UnitPowerBar.dbc -- on-disk fields 27, record size 108 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/UnitPowerBar.dbc.extract.json.
 struct UnitPowerBarEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2212,14 +2212,14 @@ struct UnitPowerBarEntry
     float EndInset; // field 26; disk bytes 104-107; DBD-only, confidence low
 };
 
-// VehicleUIIndicator.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/VehicleUIIndicator.dbc.extract.json.
+// VehicleUIIndicator.dbc -- on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/VehicleUIIndicator.dbc.extract.json.
 struct VehicleUIIndicatorEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
     DBCString BackgroundTexture; // field 1; disk bytes 4-7; DBD-only, confidence low
 };
 
-// VehicleUIIndSeat.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/VehicleUIIndSeat.dbc.extract.json.
+// VehicleUIIndSeat.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/VehicleUIIndSeat.dbc.extract.json.
 struct VehicleUIIndSeatEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2229,7 +2229,7 @@ struct VehicleUIIndSeatEntry
     float YPos; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// VideoHardware.dbc -- on-disk fields 23, record size 92 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/VideoHardware.dbc.extract.json.
+// VideoHardware.dbc -- on-disk fields 23, record size 92 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/VideoHardware.dbc.extract.json.
 struct VideoHardwareEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2257,7 +2257,7 @@ struct VideoHardwareEntry
     std::int32_t Atlasdisable; // field 22; disk bytes 88-91; DBD-only, confidence low
 };
 
-// VocalUISounds.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/VocalUISounds.dbc.extract.json.
+// VocalUISounds.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/VocalUISounds.dbc.extract.json.
 struct VocalUISoundsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2267,7 +2267,7 @@ struct VocalUISoundsEntry
     std::int32_t PissedSoundID[2]; // fields 5-6; disk bytes 20-27; DBD-only, confidence low
 };
 
-// WeaponImpactSounds.dbc -- on-disk fields 23, record size 92 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/WeaponImpactSounds.dbc.extract.json.
+// WeaponImpactSounds.dbc -- on-disk fields 23, record size 92 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/WeaponImpactSounds.dbc.extract.json.
 struct WeaponImpactSoundsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2277,7 +2277,7 @@ struct WeaponImpactSoundsEntry
     std::int32_t CritImpactSoundID[10]; // fields 13-22; disk bytes 52-91; DBD-only, confidence low
 };
 
-// WeaponSwingSounds2.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/WeaponSwingSounds2.dbc.extract.json.
+// WeaponSwingSounds2.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/WeaponSwingSounds2.dbc.extract.json.
 struct WeaponSwingSounds2Entry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2286,7 +2286,7 @@ struct WeaponSwingSounds2Entry
     std::int32_t SoundID; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// Weather.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Weather.dbc.extract.json.
+// Weather.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Weather.dbc.extract.json.
 struct WeatherEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2297,7 +2297,7 @@ struct WeatherEntry
     DBCString EffectTexture; // field 7; disk bytes 28-31; DBD-only, confidence low
 };
 
-// world_PVP_Area.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/world_PVP_Area.dbc.extract.json.
+// world_PVP_Area.dbc -- on-disk fields 7, record size 28 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/world_PVP_Area.dbc.extract.json.
 struct world_PVP_AreaEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2309,7 +2309,7 @@ struct world_PVP_AreaEntry
     std::int32_t Max_level; // field 6; disk bytes 24-27; DBD-only, confidence low
 };
 
-// WorldChunkSounds.dbc -- on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/WorldChunkSounds.dbc.extract.json.
+// WorldChunkSounds.dbc -- on-disk fields 10, record size 40 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/WorldChunkSounds.dbc.extract.json.
 struct WorldChunkSoundsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2324,7 +2324,7 @@ struct WorldChunkSoundsEntry
     std::int32_t SoundProviderPreferencesID; // field 9; disk bytes 36-39; DBD-only, confidence low
 };
 
-// WorldMapContinent.dbc -- on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/WorldMapContinent.dbc.extract.json.
+// WorldMapContinent.dbc -- on-disk fields 14, record size 56 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/WorldMapContinent.dbc.extract.json.
 struct WorldMapContinentEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2340,7 +2340,7 @@ struct WorldMapContinentEntry
     std::int32_t WorldMapID; // field 13; disk bytes 52-55; DBD-only, confidence low
 };
 
-// WorldMapTransforms.dbc -- on-disk fields 12, record size 48 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/WorldMapTransforms.dbc.extract.json.
+// WorldMapTransforms.dbc -- on-disk fields 12, record size 48 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/WorldMapTransforms.dbc.extract.json.
 struct WorldMapTransformsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2354,7 +2354,7 @@ struct WorldMapTransformsEntry
     std::int32_t NewAreaID; // field 11; disk bytes 44-47; DBD-only, confidence low
 };
 
-// WorldStateUI.dbc -- on-disk fields 17, record size 68 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/WorldStateUI.dbc.extract.json.
+// WorldStateUI.dbc -- on-disk fields 17, record size 68 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/WorldStateUI.dbc.extract.json.
 struct WorldStateUIEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2374,7 +2374,7 @@ struct WorldStateUIEntry
     std::int32_t ExtendedUIStateVariable[3]; // fields 14-16; disk bytes 56-67; DBD-only, confidence low
 };
 
-// WorldStateZoneSounds.dbc -- on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/WorldStateZoneSounds.dbc.extract.json.
+// WorldStateZoneSounds.dbc -- on-disk fields 9, record size 36 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/WorldStateZoneSounds.dbc.extract.json.
 struct WorldStateZoneSoundsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2388,7 +2388,7 @@ struct WorldStateZoneSoundsEntry
     std::int32_t SoundProviderPreferencesID; // field 8; disk bytes 32-35; DBD-only, confidence low
 };
 
-// WowError_Strings.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/WowError_Strings.dbc.extract.json.
+// WowError_Strings.dbc -- on-disk fields 3, record size 12 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/WowError_Strings.dbc.extract.json.
 struct WowError_StringsEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2396,7 +2396,7 @@ struct WowError_StringsEntry
     DBCString Description_lang; // field 2; disk bytes 8-11; DBD-only, confidence low
 };
 
-// ZoneIntroMusicTable.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ZoneIntroMusicTable.dbc.extract.json.
+// ZoneIntroMusicTable.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ZoneIntroMusicTable.dbc.extract.json.
 struct ZoneIntroMusicTableEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2406,7 +2406,7 @@ struct ZoneIntroMusicTableEntry
     std::int32_t MinDelayMinutes; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// ZoneLight.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ZoneLight.dbc.extract.json.
+// ZoneLight.dbc -- on-disk fields 4, record size 16 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ZoneLight.dbc.extract.json.
 struct ZoneLightEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2415,7 +2415,7 @@ struct ZoneLightEntry
     std::int32_t LightID; // field 3; disk bytes 12-15; DBD-only, confidence low
 };
 
-// ZoneLightPoint.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ZoneLightPoint.dbc.extract.json.
+// ZoneLightPoint.dbc -- on-disk fields 5, record size 20 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ZoneLightPoint.dbc.extract.json.
 struct ZoneLightPointEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low
@@ -2424,7 +2424,7 @@ struct ZoneLightPointEntry
     std::int32_t PointOrder; // field 4; disk bytes 16-19; DBD-only, confidence low
 };
 
-// ZoneMusic.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ZoneMusic.dbc.extract.json.
+// ZoneMusic.dbc -- on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ZoneMusic.dbc.extract.json.
 struct ZoneMusicEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low

@@ -13,22 +13,22 @@ using DBCString = char const*;
  * DB2 MAP -- 5 client DB2 tables (build 4.3.4.15595)
  * ACTIVE is derived only from uncommented literal LoadDB2 calls; DOC is inert.
  *
- *   Item                             ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/Item.db2.extract.json. WDB2 metadata: table hash 1344507586, build 15595, ID range 0-0, locale -1, index bytes 0, index count 0, string-length bytes 0, payload offset 48.
- *   Item-sparse                      DOC    on-disk fields 133, record size 532 bytes; extract unseeded_no_exact_dbd, tier hard; provenance Claude/registry/extract_results/Item-sparse.db2.extract.json. WDB2 metadata: table hash 2442913102, build 15595, ID range 17-83086, locale 1, index bytes 332280, index count 83070, string-length bytes 166140, payload offset 498468.
- *   ItemCurrencyCost                 ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemCurrencyCost.db2.extract.json. WDB2 metadata: table hash 1876974313, build 15595, ID range 0-0, locale -1, index bytes 0, index count 0, string-length bytes 0, payload offset 48.
- *   ItemExtendedCost                 ACTIVE on-disk fields 31, record size 124 bytes; extract seeded_exact_dbd, tier easy; provenance Claude/registry/extract_results/ItemExtendedCost.db2.extract.json. WDB2 metadata: table hash 3146089301, build 15595, ID range 0-0, locale -1, index bytes 0, index count 0, string-length bytes 0, payload offset 48.
- *   KeyChain                         DOC    on-disk fields 33, record size 36 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/KeyChain.db2.extract.json. WDB2 metadata: table hash 1837770388, build 15595, ID range 0-0, locale -1, index bytes 0, index count 0, string-length bytes 0, payload offset 48.
+ *   Item                             ACTIVE on-disk fields 8, record size 32 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/Item.db2.extract.json. WDB2 metadata: table hash 1344507586, build 15595, ID range 0-0, locale -1, index bytes 0, index count 0, string-length bytes 0, payload offset 48.
+ *   Item-sparse                      DOC    on-disk fields 133, record size 532 bytes; extract unseeded_no_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/Item-sparse.db2.extract.json. WDB2 metadata: table hash 2442913102, build 15595, ID range 17-83086, locale 1, index bytes 332280, index count 83070, string-length bytes 166140, payload offset 498468.
+ *   ItemCurrencyCost                 ACTIVE on-disk fields 2, record size 8 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemCurrencyCost.db2.extract.json. WDB2 metadata: table hash 1876974313, build 15595, ID range 0-0, locale -1, index bytes 0, index count 0, string-length bytes 0, payload offset 48.
+ *   ItemExtendedCost                 ACTIVE on-disk fields 31, record size 124 bytes; extract seeded_exact_dbd, tier easy; provenance tools/dbc-registry/extract_results/ItemExtendedCost.db2.extract.json. WDB2 metadata: table hash 3146089301, build 15595, ID range 0-0, locale -1, index bytes 0, index count 0, string-length bytes 0, payload offset 48.
+ *   KeyChain                         DOC    on-disk fields 33, record size 36 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/KeyChain.db2.extract.json. WDB2 metadata: table hash 1837770388, build 15595, ID range 0-0, locale -1, index bytes 0, index count 0, string-length bytes 0, payload offset 48.
  *
  *   3 ACTIVE, 2 DOC
  */
 
-// Item-sparse.db2 -- on-disk fields 133, record size 532 bytes; extract unseeded_no_exact_dbd, tier hard; provenance Claude/registry/extract_results/Item-sparse.db2.extract.json. WDB2 metadata: table hash 2442913102, build 15595, ID range 17-83086, locale 1, index bytes 332280, index count 83070, string-length bytes 166140, payload offset 498468.
+// Item-sparse.db2 -- on-disk fields 133, record size 532 bytes; extract unseeded_no_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/Item-sparse.db2.extract.json. WDB2 metadata: table hash 2442913102, build 15595, ID range 17-83086, locale 1, index bytes 332280, index count 83070, string-length bytes 166140, payload offset 498468.
 struct Item_sparseEntry
 {
     std::uint8_t RawRecord[532]; // SEMANTICS UNRESOLVED: exact-size opaque on-disk record; not loadable by the current DB2 loader
 };
 
-// KeyChain.db2 -- on-disk fields 33, record size 36 bytes; extract seeded_exact_dbd, tier hard; provenance Claude/registry/extract_results/KeyChain.db2.extract.json. WDB2 metadata: table hash 1837770388, build 15595, ID range 0-0, locale -1, index bytes 0, index count 0, string-length bytes 0, payload offset 48.
+// KeyChain.db2 -- on-disk fields 33, record size 36 bytes; extract seeded_exact_dbd, tier hard; provenance tools/dbc-registry/extract_results/KeyChain.db2.extract.json. WDB2 metadata: table hash 1837770388, build 15595, ID range 0-0, locale -1, index bytes 0, index count 0, string-length bytes 0, payload offset 48.
 struct KeyChainEntry
 {
     std::int32_t ID; // field 0; disk bytes 0-3; DBD-only, confidence low

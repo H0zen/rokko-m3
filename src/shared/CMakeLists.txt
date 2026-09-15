@@ -268,7 +268,6 @@ target_include_directories(shared
 
 target_compile_definitions(shared
     PUBLIC
-        ${MANGOS_EXP}
         $<$<CONFIG:Debug>:MANGOS_DEBUG>
         MANGOS_ENDIAN=${ENDIAN_VALUE}
         $<$<BOOL:${ENDIAN_VALUE}>:ARCH_IS_BIG_ENDIAN>

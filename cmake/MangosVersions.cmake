@@ -43,7 +43,6 @@
 # The release version itself is `project(MaNGOS VERSION ...)` in the top-level
 # CMakeLists, because CMake has to have it before anything else runs.
 
-set(MANGOS_EXP "CATA")
 set(MANGOS_PKG "Mangos Three")
 
 # Bumped per release. Cosmetic: reported by `.server info` and in the console

@@ -32,21 +32,11 @@
 # =============================================================================
 
 # =============================================================================
-# WHICH CLIENT THIS BAKER IS FOR. MANGOS_EXP (cmake/MangosVersions.cmake) is the one
-# place the expansion is named; this maps it to something a person reads, so the
-# window and the --help banner cannot drift from what the tool actually parses.
+# WHICH CLIENT THIS BAKER IS FOR. This tree builds for one client; the name is
+# what the window and the --help banner show, so it cannot drift from what the
+# tool actually parses.
 # =============================================================================
-if("${MANGOS_EXP}" STREQUAL "CLASSIC")
-    set(MANGOS_CLIENT_NAME "World of Warcraft 1.12.x")
-elseif("${MANGOS_EXP}" STREQUAL "TBC")
-    set(MANGOS_CLIENT_NAME "The Burning Crusade 2.4.3")
-elseif("${MANGOS_EXP}" STREQUAL "WOTLK")
-    set(MANGOS_CLIENT_NAME "Wrath of the Lich King 3.3.5a")
-elseif("${MANGOS_EXP}" STREQUAL "CATA")
-    set(MANGOS_CLIENT_NAME "Cataclysm 4.3.4")
-else()
-    set(MANGOS_CLIENT_NAME "unknown client")
-endif()
+set(MANGOS_CLIENT_NAME "Cataclysm 4.3.4")
 
 set(SRC_GRP_CLIENT
     client/AdtParser.cpp
