@@ -337,14 +337,8 @@ TEST(PacketCodec_encode_sizes_the_header_the_way_this_expansion_does)
     // high byte of the SIZE, not the large-packet marker -- and the five-byte form
     // starts 0x80 0x80 0x02, where it is. Only the LENGTH distinguishes them, so that
     // is what gets asserted.
-#if defined(CLASSIC) || defined(TBC)
-    CHECK_EQ(int(wire.size()), 4 + 0x8000);
-    CHECK_EQ(int(wire[0]), 0x80);
-    CHECK_EQ(int(wire[1]), 0x02);
-#else
     CHECK_EQ(int(wire.size()), 5 + 0x8000);
     CHECK_EQ(int(wire[0]), 0x80);
     CHECK_EQ(int(wire[1]), 0x80);
     CHECK_EQ(int(wire[2]), 0x02);
-#endif
 }

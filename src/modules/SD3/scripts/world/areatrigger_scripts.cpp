@@ -82,7 +82,6 @@ struct at_childrens_week_spot : public AreaTriggerScript
     }
 };
 
-#if defined (WOTLK) || defined(CATA) || defined(MISTS)
 /*######
 ## Quest 13315/13351
 ######*/
@@ -116,8 +115,6 @@ struct at_aldurthar_gate : public AreaTriggerScript
         return false;
     }
 };
-#endif
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## at_coilfang_waterfall
 ######*/
@@ -181,7 +178,6 @@ struct at_legion_teleporter : public AreaTriggerScript
         return false;
     }
 };
-#endif
 
 /*######
 ## at_ravenholdt
@@ -208,7 +204,6 @@ struct at_ravenholdt : public AreaTriggerScript
     }
 };
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## at_spearborn_encampment
 ######*/
@@ -336,7 +331,6 @@ struct at_stormwright_shelf : public AreaTriggerScript
         return false;
     }
 };
-#endif
 
 /*######
 ## at_scent_larkorwi
@@ -423,7 +417,6 @@ struct at_murkdeep : public AreaTriggerScript
     }
 };
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## at_hot_on_the_trail
 ######*/
@@ -528,7 +521,6 @@ struct at_ancient_leaf : public AreaTriggerScript
         return false;
     }
 };
-#endif
 
 void AddSC_areatrigger_scripts()
 {
@@ -536,14 +528,11 @@ void AddSC_areatrigger_scripts()
     s = new at_childrens_week_spot();
     s->RegisterSelf();
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new at_aldurthar_gate();
     s->RegisterSelf();
-#endif
     s = new at_ravenholdt();
     s->RegisterSelf();
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new at_spearborn_encampment();
     s->RegisterSelf();
 
@@ -555,26 +544,21 @@ void AddSC_areatrigger_scripts()
 
     s = new at_stormwright_shelf();
     s->RegisterSelf();
-#endif
 
     s = new at_scent_larkorwi();
     s->RegisterSelf();
     s = new at_murkdeep();
     s->RegisterSelf();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new at_coilfang_waterfall();
     s->RegisterSelf();
 
     s = new at_legion_teleporter();
     s->RegisterSelf();
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new at_ancient_leaf();
     s->RegisterSelf();
     s = new at_hot_on_the_trail();
     s->RegisterSelf();
-#endif
 
     //pNewScript = new Script;
     //pNewScript->Name = "at_childrens_week_spot";

@@ -43,7 +43,6 @@
 
 #include "precompiled.h"
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## npc_lady_sylvanas_windrunner
 ######*/
@@ -186,16 +185,13 @@ struct npc_lady_sylvanas_windrunner : public CreatureScript
         return true;
     }
 };
-#endif
 
 void AddSC_undercity()
 {
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     Script* s;
 
     s = new npc_lady_sylvanas_windrunner();
     s->RegisterSelf();
-#endif
 
     //pNewScript = new Script;
     //pNewScript->Name = "npc_lady_sylvanas_windrunner";

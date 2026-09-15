@@ -42,21 +42,17 @@ void AddEasternKingdomsScripts();
  */
 void AddKalimdorScripts();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 
 /**
  * @brief Adds scripts for Outlands.
  */
 void AddOutlandsScripts();
-#endif
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 
 /**
  * @brief Adds scripts for Northrend.
  */
 void AddNorthrendScripts();
-#endif
 
 /**
  * @brief Adds world scripts.

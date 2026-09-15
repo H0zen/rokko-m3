@@ -1629,7 +1629,6 @@ struct npc_drijya : public CreatureScript
     }
 };
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## npc_dimensius
 ######*/
@@ -1797,7 +1796,6 @@ struct npc_dimensius : public CreatureScript
     }
 };
 
-#endif
 
 void AddSC_netherstorm()
 {
@@ -1823,10 +1821,8 @@ void AddSC_netherstorm()
     s->RegisterSelf();
     s = new npc_drijya();
     s->RegisterSelf();
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new npc_dimensius();
     s->RegisterSelf();
-#endif
 
     //pNewScript = new Script;
     //pNewScript->Name = "go_manaforge_control_console";

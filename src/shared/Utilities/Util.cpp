@@ -919,23 +919,7 @@ void utf8printf(FILE* out, const char* str, ...)
 
 int return_iCoreNumber()
 {
-#if defined(CLASSIC)
-    return 0;
-#elif defined(TBC)
-    return 1;
-#elif defined(WOTLK)
-    return 2;
-#elif defined(CATA)
     return 3;
-#elif defined(MOP)
-    return 4;
-#elif defined(WOD)
-    return 5;
-#elif defined(LEGION)
-    return 6;
-#else
-    return -1;
-#endif
 }
 
 /// Print out the core banner

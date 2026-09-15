@@ -249,12 +249,8 @@ struct npc_snufflenose_gopher : public CreatureScript
             // Always need to find new ones
             for (std::list<GameObject*>::const_iterator itr = lTubbersInRange.begin(); itr != lTubbersInRange.end(); ++itr)
             {
-#if defined (CLASSIC) || defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
                 if (!(*itr)->isSpawned() && (*itr)->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_INTERACT_COND) && HasLineOfSight(*(*itr), *m_creature) && (*itr)->Where().HeightGapTo(m_creature->Where()) <= 6.0f)
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
                 if (!(*itr)->isSpawned() && (*itr)->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_INTERACT_COND) && HasLineOfSight(*(*itr), *m_creature))
-#endif
                 {
                     pNearestTubber = *itr;
                     break;
@@ -291,12 +287,7 @@ struct npc_snufflenose_gopher : public CreatureScript
 struct spell_npc_snufflenose_gopher : public SpellScript
 {
     spell_npc_snufflenose_gopher() : SpellScript("spell_npc_snufflenose_gopher") {}
-#if defined (CLASSIC) || defined (TBC)
-    bool EffectDummy(Unit* /*pCaster*/, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pCreatureTarget, ObjectGuid /*originalCasterGuid*/) override
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     bool EffectDummyCreature_npc_snufflenose_gopher(Unit* /*pCaster*/, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Creature* pCreatureTarget, ObjectGuid /*originalCasterGuid*/)
-#endif
     {
         // always check spellid and effectindex
         if (uiSpellId == SPELL_SNUFFLENOSE_COMMAND && uiEffIndex == EFFECT_INDEX_0)

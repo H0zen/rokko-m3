@@ -54,9 +54,7 @@ enum
 
     SPELL_SPIRIT_HEAL               = 22012,                // Spirit Heal
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     SPELL_SPIRIT_HEAL_MANA          = 44535,                // in battlegrounds player get this no-mana-cost-buff
-#endif
 
     SPELL_WAITING_TO_RESURRECT      = 2584                  // players who cancel this aura don't want a resurrection
 };
@@ -149,7 +147,6 @@ struct npc_spirit_guide : public CreatureScript
             }
         }
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 
         /**
          * @brief Handles the spell hit target event.
@@ -167,7 +164,6 @@ struct npc_spirit_guide : public CreatureScript
                 pUnit->CastSpell(pUnit, SPELL_SPIRIT_HEAL_MANA, true);
             }
         }
-#endif
     };
 
     /**

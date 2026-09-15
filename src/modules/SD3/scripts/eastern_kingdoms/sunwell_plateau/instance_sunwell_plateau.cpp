@@ -56,16 +56,9 @@ static const DialogueEntry aFelmystOutroDialogue[] =
 static const EventLocations aKalecLoc[] =
 {
     { 1573.146f, 755.2025f, 99.524f, 3.59f },         // spawn loc
-#if defined (TBC)
-    { 1474.235f, 624.0703f, 29.325f },                // first move
-    { 1511.655f, 550.7028f, 25.510f },                // open door
-    { 1648.255f, 519.377f, 165.848f },                // fly away
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     {1474.235f, 624.0703f, 29.325f, 0},             // first move
     {1511.655f, 550.7028f, 25.510f, 0},             // open door
     {1648.255f, 519.377f, 165.848f, 0},             // fly away
-#endif
 };
 
 struct is_sunwell_plateau : public InstanceScript
@@ -109,22 +102,6 @@ struct is_sunwell_plateau : public InstanceScript
 
             void OnPlayerEnter(Player* pPlayer) override
             {
-#if defined (CLASSIC) || defined (TBC)
-                // Return if Felmyst already dead, or Brutallus alive
-                if (m_auiEncounter[TYPE_BRUTALLUS] != DONE || m_auiEncounter[TYPE_FELMYST] == DONE)
-                {
-                    return;
-                }
-
-                // Return if already summoned
-                if (GetSingleCreatureFromStorage(NPC_FELMYST, true))
-                {
-                    return;
-                }
-
-                // Summon Felmyst in reload case
-                pPlayer->SummonCreature(NPC_FELMYST, aMadrigosaLoc[0].m_fX, aMadrigosaLoc[0].m_fY, aMadrigosaLoc[0].m_fZ, aMadrigosaLoc[0].m_fO, TEMPSPAWN_DEAD_DESPAWN, 0);
-#else
                 // Spawn Felmyst if not already dead and Brutallus is complete
                 if (m_auiEncounter[TYPE_BRUTALLUS] == DONE && m_auiEncounter[TYPE_FELMYST] != DONE)
                 {
@@ -143,7 +120,6 @@ struct is_sunwell_plateau : public InstanceScript
                         pPlayer->SummonCreature(NPC_MURU, afMuruSpawnLoc[0], afMuruSpawnLoc[1], afMuruSpawnLoc[2], afMuruSpawnLoc[3], TEMPSPAWN_DEAD_DESPAWN, 0, true);
                     }
                 }
-#endif
             }
 
             void OnObjectCreate(GameObject* pGo) override
@@ -319,16 +295,10 @@ struct is_sunwell_plateau : public InstanceScript
                         m_auiEncounter[uiType] = uiData;
                         if (uiData == DONE)
                         {
-#if defined (TBC)
-                            DoUseDoorOrButton(GO_SECOND_GATE);
-                            DoUseDoorOrButton(GO_MURU_ENTER_GATE);
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
                             if (Player* pPlayer = GetPlayerInMap())
                             {
                                 pPlayer->SummonCreature(NPC_MURU, afMuruSpawnLoc[0], afMuruSpawnLoc[1], afMuruSpawnLoc[2], afMuruSpawnLoc[3], TEMPSPAWN_DEAD_DESPAWN, 0, true);
                             }
-#endif
                         }
                         break;
                     case TYPE_MURU:
@@ -338,9 +308,6 @@ struct is_sunwell_plateau : public InstanceScript
                         if (uiData == DONE)
                         {
                             DoUseDoorOrButton(GO_MURU_EXIT_GATE);
-#if defined (TBC)
-                            DoUseDoorOrButton(GO_THIRD_GATE);
-#endif
                         }
                         else if (uiData == IN_PROGRESS)
                         {

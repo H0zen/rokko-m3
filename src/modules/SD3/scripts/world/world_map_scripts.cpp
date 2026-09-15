@@ -175,7 +175,6 @@ struct map_kalimdor : public ZoneScript
     }
 };
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /** *********************************************************
  *                     OUTLAND
  */
@@ -229,8 +228,6 @@ struct map_outland : public ZoneScript
         return new world_map_outland(pMap);
     }
 };
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 /** *********************************************************
  *                     NORTHREND
  */
@@ -250,7 +247,6 @@ struct  map_northrend : public ZoneScript
         return new world_map_northrend(pMap);
     }
 };
-#endif
 
 void AddSC_world_map_scripts()
 {
@@ -259,14 +255,10 @@ void AddSC_world_map_scripts()
     s->RegisterSelf();
     s = new map_kalimdor();
     s->RegisterSelf();
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new map_outland();
     s->RegisterSelf();
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new map_northrend();
     s->RegisterSelf();
-#endif
 
     //pNewScript = new Script;
     //pNewScript->Name = "world_map_eastern_kingdoms";
@@ -278,16 +270,12 @@ void AddSC_world_map_scripts()
     //pNewScript->GetInstanceData = &GetInstanceData_world_map_kalimdor;
     //pNewScript->RegisterSelf();
 
-    //#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     //pNewScript = new Script;
     //pNewScript->Name = "world_map_outland";
     //pNewScript->GetInstanceData = &GetInstanceData_world_map_outland;
     //pNewScript->RegisterSelf();
-    //#endif
-    //#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     //pNewScript = new Script;
     //pNewScript->Name = "world_map_northrend";
     //pNewScript->GetInstanceData = &GetInstanceData_world_map_northrend;
     //pNewScript->RegisterSelf();
-    //#endif
 }

@@ -41,7 +41,6 @@
 
 #include "precompiled.h"
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 # npc_kyle_the_frenzied
 ######*/
@@ -146,11 +145,7 @@ struct npc_kyle_the_frenzied : public CreatureScript
                                 if (!pGo)
                                 {
                                     const SpellEntry* pSpell = GetSpellStore()->LookupEntry(SPELL_LUNCH);
-#if defined (CATA) || defined(MISTS)
                                     uint32 uiGameobjectEntry = pSpell->GetEffectMiscValue(EFFECT_INDEX_1);
-#else
-                                    uint32 uiGameobjectEntry = pSpell->EffectMiscValue[EFFECT_INDEX_1];
-#endif
                                     pGo = GetClosestGameObjectWithEntry(pPlayer, uiGameobjectEntry, 2 * INTERACTION_DISTANCE);
                                 }
 
@@ -202,10 +197,8 @@ struct npc_kyle_the_frenzied : public CreatureScript
         return new npc_kyle_the_frenziedAI(pCreature);
     }
 };
-#endif
 void AddSC_mulgore()
 {
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     Script* s;
 
     s = new npc_kyle_the_frenzied();
@@ -215,5 +208,4 @@ void AddSC_mulgore()
     //pNewScript->Name = "npc_kyle_the_frenzied";
     //pNewScript->GetAI = &GetAI_npc_kyle_the_frenzied;
     //pNewScript->RegisterSelf();
-#endif
 }

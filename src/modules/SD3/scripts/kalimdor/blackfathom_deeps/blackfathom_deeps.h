@@ -35,12 +35,7 @@ enum
 
     TYPE_KELRIS                 = 1,
     TYPE_SHRINE                 = 2,
-#if defined (CLASSIC) || defined (TBC)
-    TYPE_STONE                  = 3,
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     TYPE_AQUANIS                = 3,
-#endif
 
     NPC_KELRIS                  = 4832,
     NPC_BARON_AQUANIS           = 12876,
@@ -56,9 +51,7 @@ enum
     GO_SHRINE_2                 = 21119,
     GO_SHRINE_3                 = 21120,
     GO_SHRINE_4                 = 21121,
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     GO_FATHOM_STONE             = 177964,
-#endif
 };
 
 /* This is the spawn pattern for the event mobs
@@ -80,6 +73,4 @@ enum
 */
 
 #endif
-#if defined(WOTLK) || defined(CATA) || defined(MISTS)
 static const float afAquanisPos[4] = { -782.21f, -63.26f, -42.43f, 2.36f };
-#endif

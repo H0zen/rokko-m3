@@ -202,12 +202,7 @@ struct boss_felmyst : public CreatureScript
                 m_pInstance->SetData(TYPE_FELMYST, IN_PROGRESS);
             }
 
-#if defined (TBC)
-            float fGroundZ = m_creature->GetMap()->GetHeight(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
             float fGroundZ = m_creature->GetMap()->GetHeight(m_creature->GetPhaseMask(), m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
-#endif
             m_creature->GetMotionMaster()->MovePoint(PHASE_TRANSITION, pWho->Where().X(), pWho->Where().Y(), fGroundZ, false);
             m_creature->HandleEmote(EMOTE_ONESHOT_LAND);
         }
@@ -267,12 +262,7 @@ struct boss_felmyst : public CreatureScript
                     if (m_uiCorruptionCount == 3)
                     {
                         m_uiPhase = PHASE_TRANSITION;
-#if defined (TBC)
-                        float fGroundZ = m_creature->GetMap()->GetHeight(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
                         float fGroundZ = m_creature->GetMap()->GetHeight(m_creature->GetPhaseMask(), m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
-#endif
                         m_creature->GetMotionMaster()->MovePoint(PHASE_TRANSITION, m_creature->getVictim()->Where().X(), m_creature->getVictim()->Where().Y(), fGroundZ, false);
                         return;
                     }

@@ -45,7 +45,6 @@
 #include "escort_ai.h"
 #include "ObjectMgr.h"
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 # npc_clintar_dw_spirit
 ####*/
@@ -200,7 +199,6 @@ struct spell_emerald_dream : public SpellScript
         return true;
     }
 };
-#endif
 
 /*######
 ## npc_keeper_remulos
@@ -1122,12 +1120,10 @@ struct boss_eranikus : public CreatureScript
 void AddSC_moonglade()
 {
     Script* s;
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new npc_clintar_dw_spirit();
     s->RegisterSelf();
     s = new spell_emerald_dream();
     s->RegisterSelf();
-#endif
     s = new npc_keeper_remulos();
     s->RegisterSelf();
     s = new boss_eranikus();

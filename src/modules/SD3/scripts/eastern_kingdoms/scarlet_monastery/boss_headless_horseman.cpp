@@ -36,9 +36,6 @@ EndScriptData */
 
 enum
 {
-#if defined (CLASSIC) || defined (TBC)
-    SAY_ENTRANCE           = -1189022,
-#endif
     SAY_REJOINED           = -1189023,
     SAY_BODY_DEFEAT        = -1189024,
     SAY_LOST_HEAD          = -1189025,

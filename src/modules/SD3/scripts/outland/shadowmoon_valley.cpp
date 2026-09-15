@@ -421,11 +421,7 @@ struct npc_dragonmaw_peon : public CreatureScript
                         {
                             const SpellEntry* pSpell = GetSpellStore()->LookupEntry(SPELL_SERVING_MUTTON);
 
-#if defined (CATA) || defined(MISTS)
                             uint32 uiGameobjectEntry = pSpell->GetEffectMiscValue(EFFECT_INDEX_0);
-#else
-                            uint32 uiGameobjectEntry = pSpell->EffectMiscValue[EFFECT_INDEX_0];
-#endif
                             // this can fail, but very low chance
                             pMutton = GetClosestGameObjectWithEntry(pPlayer, uiGameobjectEntry, 2 * INTERACTION_DISTANCE);
                         }
@@ -521,29 +517,21 @@ struct spell_serving_mutton : public SpellScript
 enum
 {
     SAY_WIL_START               = -1000381,
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     SAY_WIL_AGGRO1              = -1000382,
     SAY_WIL_AGGRO2              = -1000383,
     SAY_WIL_PROGRESS1           = -1000384,
     SAY_WIL_PROGRESS2           = -1000385,
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     SAY_WIL_AGGRO_1             = -1000382,
     SAY_WIL_AGGRO_2             = -1000383,
     SAY_WIL_FREE_SPIRITS        = -1000384,
-#endif
     SAY_WIL_FIND_EXIT           = -1000386,
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     SAY_WIL_PROGRESS4           = -1000387,
     SAY_WIL_PROGRESS5           = -1000388,
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     SAY_WIL_PROGRESS_1          = -1000385,
     SAY_WIL_PROGRESS_2          = -1000387,
     SAY_WIL_PROGRESS_3          = -1000388,
     SAY_WIL_PROGRESS_4          = -1001168,
     SAY_WIL_PROGRESS_5          = -1001169,
-#endif
     SAY_WIL_JUST_AHEAD          = -1000389,
     SAY_WIL_END                 = -1000390,
 
@@ -551,18 +539,12 @@ enum
     SPELL_EARTHBING_TOTEM       = 15786,
     SPELL_FROST_SHOCK           = 12548,
     SPELL_HEALING_WAVE          = 12491,
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     SPELL_WATER_BUBBLE          = 35929,
-#endif
 
     QUEST_ESCAPE_COILSCAR       = 10451,
     NPC_COILSKAR_ASSASSIN       = 21044,
-#if defined (CLASSIC) || defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     FACTION_EARTHEN             = 1726,                      // guessed
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     NPC_CAPTURED_WATER_SPIRIT   = 21029,
-#endif
 };
 
 // this script needs verification
@@ -574,29 +556,22 @@ struct npc_wilda : public CreatureScript
     {
         npc_wildaAI(Creature* pCreature) : npc_escortAI(pCreature)
         {
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
             // the creature is floating in a prison; no quest available first;
             // the floating prison setup and quest flag restore is handled by DB
             m_creature->SetLevitate(true);
             m_creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
-#endif
         }
         uint32 m_uiHealingTimer;
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
         uint32 m_uiShockTimer;
         uint32 m_uiLightningTimer;
-#endif
 
         void Reset() override
         {
             m_uiHealingTimer = 0;
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
             m_uiShockTimer = 1000;
             m_uiLightningTimer = 2000;
-#endif
         }
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
         void Aggro(Unit* /*pWho*/) override
         {
             if (roll_chance_i(30))
@@ -615,9 +590,7 @@ struct npc_wilda : public CreatureScript
                 DoStartMovement(pWho, 10.0f);
             }
         }
-#endif
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
         void WaypointReached(uint32 uiPointId) override
         {
             Player* pPlayer = GetPlayerForEscort();
@@ -677,8 +650,6 @@ struct npc_wilda : public CreatureScript
                     pPlayer->GroupEventHappens(QUEST_ESCAPE_COILSCAR, m_creature);
                     break;
             }
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
             switch (uiPointId)
             {
                 case 8:
@@ -719,19 +690,8 @@ struct npc_wilda : public CreatureScript
                     }
                     break;
             }
-#endif
         }
 
-#if defined (TBC)
-        void JustSummoned(Creature* pSummoned) override
-        {
-            if (pSummoned->GetEntry() == NPC_COILSKAR_ASSASSIN)
-            {
-                pSummoned->AI()->AttackStart(m_creature);
-            }
-        }
-#endif
-#if defined (TBC)  || defined (WOTLK) || defined (CATA) || defined(MISTS)
         // this is very unclear, random say without no real relevance to script/event
         void DoRandomSay()
         {
@@ -742,8 +702,6 @@ struct npc_wilda : public CreatureScript
                 case 2: DoScriptText(SAY_WIL_PROGRESS5, m_creature); break;
             }
         }
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
         void JustSummoned(Creature* pSummoned) override
         {
             if (pSummoned->GetEntry() == NPC_COILSKAR_ASSASSIN)
@@ -754,21 +712,6 @@ struct npc_wilda : public CreatureScript
                 }
             }
         }
-#endif
-#if defined (TBC)
-        void DoSpawnAssassin()
-        {
-            // unknown where they actually appear
-            float fX, fY, fZ;
-            const Geometry::Vector3 randSpot5 = RandomGroundPointNear(*m_creature, Geometry::Vector3(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z()), 15.0f);
-            fX = randSpot5.x;
-            fY = randSpot5.y;
-            fZ = randSpot5.z;
-
-            m_creature->SummonCreature(NPC_COILSKAR_ASSASSIN, fX, fY, fZ, 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 5000);
-        }
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
         // wrapper to spawn assassin and do text
         void DoSpawnAssassin(uint8 uiCount = 1)
         {
@@ -801,31 +744,8 @@ struct npc_wilda : public CreatureScript
                 case 6: DoScriptText(SAY_WIL_AGGRO_2, m_creature); break;
             }
         }
-#endif
 
-#if defined (TBC)
-        void Aggro(Unit* pWho) override
-        {
-            // don't always use
-            if (urand(0, 4))
-            {
-                return;
-            }
 
-            // only aggro text if not player
-            if (pWho->GetTypeId() != TYPEID_PLAYER)
-            {
-                // appears to be random
-                switch (urand(0, 3))
-                {
-                    case 0: DoScriptText(SAY_WIL_AGGRO1, m_creature, pWho); break;
-                    case 1: DoScriptText(SAY_WIL_AGGRO2, m_creature, pWho); break;
-                }
-            }
-        }
-#endif
-
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
         // free the water spirits
         void DoFreeSpirits()
         {
@@ -862,7 +782,6 @@ struct npc_wilda : public CreatureScript
                 (*itr)->ForcedDespawn(6000);
             }
         }
-#endif
 
         void UpdateEscortAI(const uint32 uiDiff) override
         {
@@ -872,7 +791,6 @@ struct npc_wilda : public CreatureScript
             }
 
             // TODO: add more abilities
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
             if (m_uiLightningTimer < uiDiff)
             {
                 if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_CHAIN_LIGHTNING) == CAST_OK)
@@ -896,7 +814,6 @@ struct npc_wilda : public CreatureScript
             {
                 m_uiShockTimer -= uiDiff;
             }
-#endif
 
             if (m_creature->GetHealthPercent() <= 30.0f)
             {
@@ -925,13 +842,9 @@ struct npc_wilda : public CreatureScript
         if (pQuest->GetQuestId() == QUEST_ESCAPE_COILSCAR)
         {
             DoScriptText(SAY_WIL_START, pCreature, pPlayer);
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
             pCreature->SetFactionTemporary(FACTION_EARTHEN, TEMPFACTION_RESTORE_RESPAWN);
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
             pCreature->SetFactionTemporary(FACTION_ESCORT_A_NEUTRAL_ACTIVE, TEMPFACTION_RESTORE_RESPAWN);
             pCreature->SetLevitate(false);
-#endif
 
             if (npc_wildaAI* pEscortAI = dynamic_cast<npc_wildaAI*>(pCreature->AI()))
             {
@@ -1677,7 +1590,6 @@ struct spell_totem_of_spirits : public SpellScript
     }
 };
 
-#if defined (TBC) || defined (WOTLK) || defined(CATA) || defined(MISTS)
 struct aura_elemental_sieve : public AuraScript
 {
     aura_elemental_sieve() : AuraScript("aura_elemental_sieve") {}
@@ -1724,7 +1636,6 @@ struct aura_elemental_sieve : public AuraScript
         return true;
     }
 };
-#endif
 
 struct event_spell_soul_captured_credit : public MapEventScript
 {
@@ -1842,16 +1753,9 @@ const static EventLocations aDamnationLocations[] =
     { -3600.68f, 1886.58f, 47.24f, 1.81f},     // 1 earth spirit summon loc
     { -3597.19f, 1887.46f, 47.24f, 1.77f},     // 2 water spirit summon loc
     { -3593.18f, 1888.27f, 47.24f, 1.77f},     // 3 air spirit summon loc
-#if defined (TBC)
-    { -3595.36f, 1869.78f, 47.24f},            // 4 fight ready move loc
-    { -3635.90f, 1860.94f, 52.93f},            // 5 elementals move loc
-    { -3599.71f, 1897.94f, 47.24f}             // 6 epilogue move loc
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     { -3595.36f, 1869.78f, 47.24f, 0},            // 4 fight ready move loc
     { -3635.90f, 1860.94f, 52.93f, 0},            // 5 elementals move loc
     { -3599.71f, 1897.94f, 47.24f, 0}             // 6 epilogue move loc
-#endif
 };
 
 struct npc_spawned_oronok_tornheart : public CreatureScript
@@ -2336,9 +2240,7 @@ struct npc_veneratus_spawn_node : public CreatureScript
             }
         }
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
         void UpdateAI(const uint32 /*uiDiff*/) override {}
-#endif
     };
 
     CreatureAI* GetAI(Creature* pCreature) override
@@ -2379,10 +2281,8 @@ void AddSC_shadowmoon_valley()
     s->RegisterSelf();
     s = new spell_totem_of_spirits();
     s->RegisterSelf();
-#if defined (TBC) || defined (WOTLK) || defined(CATA) || defined(MISTS)
     s = new aura_elemental_sieve();
     s->RegisterSelf();
-#endif
 
     //pNewScript = new Script;
     //pNewScript->Name = "mob_mature_netherwing_drake";

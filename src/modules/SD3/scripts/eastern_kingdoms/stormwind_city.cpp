@@ -47,7 +47,6 @@
 #include "../scripts/world/world_map_scripts.h"
 #include "escort_ai.h"
 
-#if defined (CLASSIC) || defined (TBC) || defined(WOTLK) || defined (CATA) || defined (MISTS)
 /*######
 ## npc_tyrion
 ######*/
@@ -74,7 +73,6 @@ struct npc_tyrion : public CreatureScript
         return false;
     }
 };
-#endif
 
 /*######
 ## npc_bartleby
@@ -998,11 +996,7 @@ struct npc_reginald_windsor : public CreatureScript
                     m_creature->StopMoving();
                     m_creature->ClearComboPointHolders();
                     m_creature->RemoveAllAurasOnDeath();
-#if defined (CLASSIC)
-                    m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, false);
-#else
                     m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
-#endif
 
                     m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                     m_creature->ClearAllReactives();
@@ -1190,7 +1184,6 @@ struct npc_reginald_windsor : public CreatureScript
     }
 };
 
-#if defined (CLASSIC) || defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## npc_tyrion_spybot
 ######*/
@@ -1348,7 +1341,6 @@ struct npc_tyrion_spybot : public CreatureScript
         return new npc_tyrion_spybotAI(pCreature);
     }
 };
-#endif
 
 void AddSC_stormwind_city()
 {

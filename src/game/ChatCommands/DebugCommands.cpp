@@ -547,7 +547,6 @@ bool ChatHandler::HandleDebugPlayCinematicCommand(char* args)
  */
 bool ChatHandler::HandleDebugPlayMovieCommand(char* args)
 {
-#if defined(TBC) || defined(WOTLK) || defined(CATA) || defined(MISTS)
     // USAGE: .debug play movie #movieid
     // #movieid - ID decimal number from Movie.dbc (1st column)
     uint32 dwId;
@@ -564,7 +563,6 @@ bool ChatHandler::HandleDebugPlayMovieCommand(char* args)
     }
 
     m_session->GetPlayer()->SendMovieStart(dwId);
-#endif
     return true;
 }
 

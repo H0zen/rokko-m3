@@ -173,7 +173,6 @@ struct boss_noth : public CreatureScript
 
         void SpellHit(Unit* pCaster, const SpellEntry* pSpell) override
         {
-#if defined (CATA) || defined(MISTS)
             if (SpellEffectEntry const* pSpellEffect = pSpell->GetSpellEffect(EFFECT_INDEX_0))
             {
                 if (pSpellEffect->Effect == SPELL_EFFECT_LEAP)
@@ -181,12 +180,6 @@ struct boss_noth : public CreatureScript
                     DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_CRIPPLE : SPELL_CRIPPLE_H);
                 }
             }
-#else
-            if (pCaster == m_creature && pSpell->Effect[EFFECT_INDEX_0] == SPELL_EFFECT_LEAP)
-            {
-                DoCastSpellIfCan(m_creature, m_bIsRegularMode ? SPELL_CRIPPLE : SPELL_CRIPPLE_H);
-            }
-#endif
         }
 
         void UpdateAI(const uint32 uiDiff) override

@@ -118,14 +118,12 @@ struct npc_shadowfang_prisoner : public CreatureScript
                         DoScriptText(EMOTE_UNLOCK_DOOR_AD, m_creature);
                     }
                     break;
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
                 case 12:
                     if (m_uiNpcEntry != NPC_ASH)
                     {
                         m_creature->HandleEmote(EMOTE_ONESHOT_USESTANDING);
                     }
                     break;
-#endif
                 case 13:
                     if (m_uiNpcEntry == NPC_ASH)
                     {

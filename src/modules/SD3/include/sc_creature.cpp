@@ -102,12 +102,10 @@ void ScriptedAI::MoveInLineOfSight(Unit* pWho)
  */
 void ScriptedAI::AttackStart(Unit* pWho)
 {
-#if defined (WOTLK) || defined (CATA) || defined (MISTS)
     if (!m_creature->CanInitiateAttack())
     {
         return;
     }
-#endif
     if (pWho && m_creature->Attack(pWho, true))  // The Attack function also uses basic checks if pWho can be attacked
     {
         m_creature->AddThreat(pWho);
@@ -144,7 +142,6 @@ void ScriptedAI::UpdateAI(const uint32 /*uiDiff*/)
 
     DoMeleeAttackIfReady();
 
-#if defined (WOTLK) || defined (CATA) || defined (MISTS)
     Unit* victim = m_creature->getVictim();
 
     const SpellEntry* potentialSpell = m_creature->ReachWithSpellAttack(victim);
@@ -152,7 +149,6 @@ void ScriptedAI::UpdateAI(const uint32 /*uiDiff*/)
     {
         m_creature->CastSpell(victim, SD3_SpellId(potentialSpell), true);
     }
-#endif
 }
 
 /**
@@ -350,24 +346,13 @@ SpellEntry const* ScriptedAI::SelectSpell(Unit* pTarget, int32 uiSchool, int32 i
         }
 
         // Check for school if specified
-#if defined (TBC) || defined (WOTLK) || defined (CATA)
         if (uiSchool >= 0 && pTempSpell->SchoolMask & uiSchool)
         {
             continue;
         }
-#elif defined(MISTS)
-        if (uiSchool >= 0 && pTempSpell->GetSchoolMask() & uiSchool)
-        {
-            continue;
-        }
-#endif
 
         // Check for spell mechanic if specified
-#if defined (CATA) || defined (MISTS)
         if (iMechanic >= 0 && pTempSpell->GetMechanic() != (uint32)iMechanic)
-#else
-        if (iMechanic >= 0 && pTempSpell->Mechanic != (uint32)iMechanic)
-#endif
         {
             continue;
         }
@@ -496,40 +481,25 @@ void FillSpellSummary()
 
         for (uint8 j = 0; j < 3; ++j)
         {
-#if defined (CATA) || defined (MISTS)
             SpellEffectEntry const* pSpellEffect = pTempSpell->GetSpellEffect(SpellEffectIndex(j));
             if (!pSpellEffect)
             {
                 continue;
             }
-#endif
             // Spell targets self
-#if defined (CATA) || defined (MISTS)
             if (pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_SELF)
-#else
-            if (SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_SELF)
-#endif
             {
                 SpellSummary[i].Targets |= 1 << (SELECT_TARGET_SELF - 1);
             }
 
             // Spell targets a single enemy
-#if defined (CATA) || defined (MISTS)
             if (pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_CHAIN_DAMAGE ||
                 pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_CURRENT_ENEMY_COORDINATES)
             {
                 SpellSummary[i].Targets |= 1 << (SELECT_TARGET_SINGLE_ENEMY - 1);
             }
-#else
-            if (SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_CHAIN_DAMAGE ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_CURRENT_ENEMY_COORDINATES)
-            {
-                SpellSummary[i].Targets |= 1 << (SELECT_TARGET_SINGLE_ENEMY - 1);
-            }
-#endif
 
             // Spell targets AoE at enemy
-#if defined (CATA) || defined (MISTS)
             if (pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_ALL_ENEMY_IN_AREA ||
                 pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_ALL_ENEMY_IN_AREA_INSTANT ||
                 pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_CASTER_COORDINATES ||
@@ -537,18 +507,8 @@ void FillSpellSummary()
             {
                 SpellSummary[i].Targets |= 1 << (SELECT_TARGET_AOE_ENEMY - 1);
             }
-#else
-            if (SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_ALL_ENEMY_IN_AREA ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_ALL_ENEMY_IN_AREA_INSTANT ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_CASTER_COORDINATES ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_ALL_ENEMY_IN_AREA_CHANNELED)
-            {
-                SpellSummary[i].Targets |= 1 << (SELECT_TARGET_AOE_ENEMY - 1);
-            }
-#endif
 
             // Spell targets an enemy
-#if defined (CATA) || defined (MISTS)
             if (pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_CHAIN_DAMAGE ||
                 pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_CURRENT_ENEMY_COORDINATES ||
                 pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_ALL_ENEMY_IN_AREA ||
@@ -558,54 +518,24 @@ void FillSpellSummary()
             {
                 SpellSummary[i].Targets |= 1 << (SELECT_TARGET_ANY_ENEMY - 1);
             }
-#else
-            if (SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_CHAIN_DAMAGE ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_CURRENT_ENEMY_COORDINATES ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_ALL_ENEMY_IN_AREA ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_ALL_ENEMY_IN_AREA_INSTANT ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_CASTER_COORDINATES ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_ALL_ENEMY_IN_AREA_CHANNELED)
-            {
-                SpellSummary[i].Targets |= 1 << (SELECT_TARGET_ANY_ENEMY - 1);
-            }
-#endif
 
             // Spell targets a single friend(or self)
-#if defined (CATA) || defined (MISTS)
             if (pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_SELF ||
                 pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_SINGLE_FRIEND ||
                 pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_SINGLE_PARTY)
             {
                 SpellSummary[i].Targets |= 1 << (SELECT_TARGET_SINGLE_FRIEND - 1);
             }
-#else
-            if (SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_SELF ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_SINGLE_FRIEND ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_SINGLE_PARTY)
-            {
-                SpellSummary[i].Targets |= 1 << (SELECT_TARGET_SINGLE_FRIEND - 1);
-            }
-#endif
 
             // Spell targets aoe friends
-#if defined (CATA) || defined (MISTS)
             if (pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_ALL_PARTY_AROUND_CASTER ||
                 pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_AREAEFFECT_PARTY ||
                 pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_CASTER_COORDINATES)
             {
                 SpellSummary[i].Targets |= 1 << (SELECT_TARGET_AOE_FRIEND - 1);
             }
-#else
-            if (SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_ALL_PARTY_AROUND_CASTER ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_AREAEFFECT_PARTY ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_CASTER_COORDINATES)
-            {
-                SpellSummary[i].Targets |= 1 << (SELECT_TARGET_AOE_FRIEND - 1);
-            }
-#endif
 
             // Spell targets any friend(or self)
-#if defined (CATA) || defined (MISTS)
             if (pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_SELF ||
                 pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_SINGLE_FRIEND ||
                 pTempSpell->GetEffectImplicitTargetAByIndex(SpellEffectIndex(j)) == TARGET_SINGLE_PARTY ||
@@ -615,20 +545,8 @@ void FillSpellSummary()
             {
                 SpellSummary[i].Targets |= 1 << (SELECT_TARGET_ANY_FRIEND - 1);
             }
-#else
-            if (SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_SELF ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_SINGLE_FRIEND ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_SINGLE_PARTY ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_ALL_PARTY_AROUND_CASTER ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_AREAEFFECT_PARTY ||
-                SD3_SpellEffectImplicitTargetA(pTempSpell, j) == TARGET_CASTER_COORDINATES)
-            {
-                SpellSummary[i].Targets |= 1 << (SELECT_TARGET_ANY_FRIEND - 1);
-            }
-#endif
 
             // Make sure that this spell includes a damage effect
-#if defined (CATA) || defined (MISTS)
             if (pSpellEffect->Effect == SPELL_EFFECT_SCHOOL_DAMAGE ||
                 pSpellEffect->Effect == SPELL_EFFECT_INSTAKILL ||
                 pSpellEffect->Effect == SPELL_EFFECT_ENVIRONMENTAL_DAMAGE ||
@@ -636,18 +554,8 @@ void FillSpellSummary()
             {
                 SpellSummary[i].Effects |= 1 << (SELECT_EFFECT_DAMAGE - 1);
             }
-#else
-            if (pTempSpell->Effect[j] == SPELL_EFFECT_SCHOOL_DAMAGE ||
-                pTempSpell->Effect[j] == SPELL_EFFECT_INSTAKILL ||
-                pTempSpell->Effect[j] == SPELL_EFFECT_ENVIRONMENTAL_DAMAGE ||
-                pTempSpell->Effect[j] == SPELL_EFFECT_HEALTH_LEECH)
-            {
-                SpellSummary[i].Effects |= 1 << (SELECT_EFFECT_DAMAGE - 1);
-            }
-#endif
 
             // Make sure that this spell includes a healing effect (or an apply aura with a periodic heal)
-#if defined (CATA) || defined (MISTS)
             if (pSpellEffect->Effect == SPELL_EFFECT_HEAL ||
                 pSpellEffect->Effect == SPELL_EFFECT_HEAL_MAX_HEALTH ||
                 pSpellEffect->Effect == SPELL_EFFECT_HEAL_MECHANICAL ||
@@ -655,22 +563,9 @@ void FillSpellSummary()
             {
                 SpellSummary[i].Effects |= 1 << (SELECT_EFFECT_HEALING - 1);
             }
-#else
-            if (pTempSpell->Effect[j] == SPELL_EFFECT_HEAL ||
-                pTempSpell->Effect[j] == SPELL_EFFECT_HEAL_MAX_HEALTH ||
-                pTempSpell->Effect[j] == SPELL_EFFECT_HEAL_MECHANICAL ||
-                (pTempSpell->Effect[j] == SPELL_EFFECT_APPLY_AURA  && SD3_SpellEffectApplyAuraName(pTempSpell, j) == 8))
-            {
-                SpellSummary[i].Effects |= 1 << (SELECT_EFFECT_HEALING - 1);
-            }
-#endif
 
             // Make sure that this spell applies an aura
-#if defined (CATA) || defined (MISTS)
             if (pSpellEffect->Effect == SPELL_EFFECT_APPLY_AURA)
-#else
-            if (pTempSpell->Effect[j] == SPELL_EFFECT_APPLY_AURA)
-#endif
             {
                 SpellSummary[i].Effects |= 1 << (SELECT_EFFECT_AURA - 1);
             }
@@ -831,22 +726,15 @@ void ScriptedAI::SetEquipmentSlots(bool bLoadDefault, int32 iMainHand, int32 iOf
 enum
 {
 
-#if defined (CLASSIC)
-    NPC_BROODLORD               = 12017
-#endif
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     NPC_BROODLORD               = 12017,
     NPC_VOID_REAVER             = 19516,
     NPC_JAN_ALAI                = 23578,
     NPC_SARTHARION              = 28860,
     NPC_TALON_KING_IKISS        = 18473,
     NPC_KARGATH_BLADEFIST       = 16808,
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     NPC_ANUBARAK                = 29120,
     NPC_SINDRAGOSA              = 36853,
     NPC_ZARITHRIAN              = 39746,
-#endif
 };
 
 /**
@@ -883,7 +771,6 @@ bool ScriptedAI::EnterEvadeIfOutOfCombatArea(const uint32 uiDiff)
                 return false;
             }
             break;
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
         case NPC_VOID_REAVER:  // void reaver (calculate from center of room)
             if (m_creature->Where().DistanceTo(Geometry::Vector2(432.59f, 371.93f)) < 105.0f)
             {
@@ -921,8 +808,6 @@ bool ScriptedAI::EnterEvadeIfOutOfCombatArea(const uint32 uiDiff)
             }
             break;
 
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
         case NPC_ANUBARAK:
             if (fY < 281.0f && fY > 228.0f)
             {
@@ -941,7 +826,6 @@ bool ScriptedAI::EnterEvadeIfOutOfCombatArea(const uint32 uiDiff)
                 return false;
             }
             break;
-#endif
         default:
             script_error_log("EnterEvadeIfOutOfCombatArea used for creature entry %u, but does not have any definition.", m_creature->GetEntry());
             return false;
@@ -966,12 +850,10 @@ void Scripted_NoMovementAI::GetAIInformation(ChatHandler& reader)
  */
 void Scripted_NoMovementAI::AttackStart(Unit* pWho)
 {
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     if (!m_creature->CanInitiateAttack())
     {
         return;
     }
-#endif
     if (pWho && m_creature->Attack(pWho, true))
     {
         m_creature->AddThreat(pWho);

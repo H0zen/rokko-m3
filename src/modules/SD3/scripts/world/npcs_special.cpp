@@ -54,7 +54,6 @@
  * EndContentData
  */
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*########
 # npc_air_force_bots
 #########*/
@@ -292,7 +291,6 @@ struct npc_air_force_bots : public CreatureScript
         return new npc_air_force_botsAI(pCreature);
     }
 };
-#endif
 
 /*########
 # npc_chicken_cluck
@@ -418,7 +416,6 @@ struct npc_chicken_cluck : public CreatureScript
         return true;
     }
 };
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## npc_dancing_flames
 ######*/
@@ -469,7 +466,6 @@ struct npc_dancing_flames : public CreatureScript
         return new npc_dancing_flamesAI(pCreature);
     }
 };
-#endif
 
 /*######
 ## Triage quest
@@ -732,14 +728,8 @@ struct npc_doctor : public CreatureScript
 
                     if (Creature* Patient = m_creature->SummonCreature(patientEntry, (*itr)->x, (*itr)->y, (*itr)->z, (*itr)->o, TEMPSPAWN_TIMED_OOC_DESPAWN, 5000))
                     {
-#if defined (CLASSIC) || defined (TBC)
-                        // 2.4.3, this flag appear to be required for client side item->spell to work (TARGET_SINGLE_FRIEND)
-                        Patient->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PVP);
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
                         // 303, this flag appear to be required for client side item->spell to work (TARGET_SINGLE_FRIEND)
                         Patient->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PVP_ATTACKABLE);
-#endif
 
                         m_lPatientGuids.push_back(Patient->GetObjectGuid());
 
@@ -1248,16 +1238,8 @@ struct npc_innkeeper : public CreatureScript
         // Should only apply to innkeeper close to start areas.
         if (AreaTableEntry const* pAreaEntry = GetAreaEntryByAreaID(pCreature->GetTerrain()->GetAreaId(pCreature->Where().X(), pCreature->Where().Y(), pCreature->Where().Z())))
         {
-#if defined (TBC) || defined (WOTLK)
             // Note: this area flag doesn't exist in 1.12.1. The behavior of this gossip require additional research
             if (pAreaEntry->Flags & AREA_FLAG_LOWLEVEL)
-#elif defined (MISTS)
-            // Note: this area flag doesn't exist in 1.12.1. The behavior of this gossip require additional research
-            if (pAreaEntry->Flags & AREA_FLAG_LOWLEVEL)
-#elif defined (CATA)
-            // Note: this area flag doesn't exist in 1.12.1. The behavior of this gossip require additional research
-            if (pAreaEntry->Flags & AREA_FLAG_LOWLEVEL)
-#endif
             {
                 pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_ITEM_WHAT_TO_DO, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
             }
@@ -1293,7 +1275,6 @@ struct npc_innkeeper : public CreatureScript
     }
 };
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## npc_spring_rabbit
 ## ATTENTION: This is actually a "fun" script, entirely done without proper source!
@@ -1503,7 +1484,6 @@ struct npc_spring_rabbit : public CreatureScript
         return new npc_spring_rabbitAI(pCreature);
     }
 };
-#endif
 
 /*######
 ## npc_redemption_target
@@ -1598,9 +1578,7 @@ struct npc_redemption_target : public CreatureScript
                 if (m_uiEvadeTimer <= uiDiff)
                 {
                     EnterEvadeMode();
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
                     m_uiEvadeTimer = 0;
-#endif
                 }
                 else
                 {
@@ -1616,54 +1594,7 @@ struct npc_redemption_target : public CreatureScript
     }
 };
 
-#if defined (CLASSIC)
-struct spell_npc_redemption_target : public SpellScript
-{
-    spell_npc_redemption_target() : SpellScript("spell_npc_redemption_target") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pCreatureTarget, ObjectGuid /*originalCasterGuid*/) override
-    {
-        // always check spellid and effectindex
-        if ((uiSpellId == SPELL_SYMBOL_OF_LIFE || uiSpellId == SPELL_SHIMMERING_VESSEL) && uiEffIndex == EFFECT_INDEX_0)
-        {
-            if (CreatureAI* pTargetAI = pCreatureTarget->ToCreature()->AI())
-            {
-                pTargetAI->SendAIEvent(AI_EVENT_CUSTOM_A, pCaster, pCreatureTarget->ToCreature());//>DoReviveSelf(pCaster->GetObjectGuid());
-            }
-
-            // always return true when we are handling this spell and effect
-            return true;
-        }
-
-        return false;
-    }
-};
-#endif
-#if defined(TBC) || defined(WOTLK)
-struct spell_symbol_of_life : public SpellScript
-{
-    spell_symbol_of_life() : SpellScript("spell_symbol_of_life") {}
-
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
-    {
-        // always check spellid and effectindex
-        if ((uiSpellId == SPELL_SYMBOL_OF_LIFE || uiSpellId == SPELL_SHIMMERING_VESSEL) && uiEffIndex == EFFECT_INDEX_0)
-        {
-            if (CreatureAI* pTargetAI = pTarget->ToCreature()->AI())
-            {
-                pTargetAI->SendAIEvent(AI_EVENT_CUSTOM_A, pCaster, pTarget->ToCreature());//>DoReviveSelf(pCaster->GetObjectGuid());
-            }
-
-            // always return true when we are handling this spell and effect
-            return true;
-        }
-
-        return false;
-    }
-};
-#endif
-
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## npc_burster_worm
 ######*/
@@ -1923,7 +1854,6 @@ struct npc_burster_worm : public CreatureScript
         return new npc_burster_wormAI(pCreature);
     }
 };
-#endif
 
 void AddSC_npcs_special()
 {
@@ -1931,14 +1861,12 @@ void AddSC_npcs_special()
     s = new npc_chicken_cluck();
     s->RegisterSelf();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new npc_air_force_bots();
     s->RegisterSelf();
     s = new npc_dancing_flames();
     s->RegisterSelf();
     s = new npc_burster_worm();
     s->RegisterSelf();
-#endif
 
     s = new npc_doctor();
     s->RegisterSelf();
@@ -1952,18 +1880,8 @@ void AddSC_npcs_special()
     s->RegisterSelf(false);
     s = new npc_redemption_target();
     s->RegisterSelf();
-#if defined(CLASSIC)
-    s = new spell_npc_redemption_target();
-    s->RegisterSelf();
-#endif
-#if defined(TBC) || defined(WOTLK)
-    s = new spell_symbol_of_life();
-    s->RegisterSelf();
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new npc_spring_rabbit();
     s->RegisterSelf();
-#endif
 
     //pNewScript = new Script;
     //pNewScript->Name = "npc_chicken_cluck";

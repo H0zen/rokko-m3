@@ -136,12 +136,10 @@ struct is_blackfathom_deeps : public InstanceScript
 
             void OnCreatureDeath(Creature* pCreature) override
             {
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
                 if (pCreature->GetEntry() == NPC_BARON_AQUANIS)
                 {
                     SetData(TYPE_AQUANIS, DONE);
                 }
-#endif
 
                 // Only use this function if shrine event is in progress
                 if (m_auiEncounter[1] != IN_PROGRESS)
@@ -218,19 +216,9 @@ struct is_blackfathom_deeps : public InstanceScript
                             DoUseDoorOrButton(GO_PORTAL_DOOR);
                         }
                         break;
-#if defined (CLASSIC) || defined (TBC)
-                    case TYPE_STONE:
-                        if (m_auiEncounter[2] != DONE && uiData == DONE)
-                        {
-                            m_auiEncounter[2] = uiData;
-                        }
-                        break;
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
                     case TYPE_AQUANIS:
                         m_auiEncounter[2] = uiData;;
                         break;
-#endif
                 }
 
                 if (uiData == DONE)
@@ -255,10 +243,6 @@ struct is_blackfathom_deeps : public InstanceScript
                         return m_auiEncounter[0];
                     case TYPE_SHRINE:
                         return m_auiEncounter[1];
-#if defined (CLASSIC) || defined (TBC)
-                    case TYPE_STONE:
-                        return m_auiEncounter[2];
-#endif
                     default:
                         return 0;
                 }

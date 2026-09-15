@@ -589,7 +589,6 @@ struct npc_fel_guard_hound : public CreatureScript
     }
 };
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 struct spell_inform_dog : public SpellScript
 {
     spell_inform_dog() : SpellScript("spell_inform_dog") {}
@@ -615,7 +614,6 @@ struct spell_inform_dog : public SpellScript
         return false;
     }
 };
-#endif
 
 /*######
 ## npc_anchorite_barada
@@ -1123,7 +1121,6 @@ struct npc_caretaker_dilandrus : public CreatureScript
         return new npc_caretaker_dilandrusAI(pCreature);
     }
 };
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## npc_magister_aledis
 ######*/
@@ -1268,7 +1265,6 @@ struct npc_magister_aledis : public CreatureScript
         return new npc_magister_aledisAI(pCreature);
     }
 };
-#endif
 
 void AddSC_hellfire_peninsula()
 {
@@ -1293,10 +1289,8 @@ void AddSC_hellfire_peninsula()
     s = new npc_caretaker_dilandrus();
     s->RegisterSelf();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new spell_inform_dog();
     s->RegisterSelf();
-#endif
 
     //pNewScript = new Script;
     //pNewScript->Name = "npc_aeranas";
@@ -1340,7 +1334,6 @@ void AddSC_hellfire_peninsula()
     //pNewScript->pEffectDummyNPC = &EffectDummyCreature_npc_colonel_jules;
     //pNewScript->RegisterSelf();
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new npc_magister_aledis();
     s->RegisterSelf();
 
@@ -1348,5 +1341,4 @@ void AddSC_hellfire_peninsula()
     //pNewScript->Name = "npc_magister_aledis";
     //pNewScript->GetAI = &GetAI_npc_magister_aledis;
     //pNewScript->RegisterSelf();
-#endif
 }

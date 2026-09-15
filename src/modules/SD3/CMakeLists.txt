@@ -54,51 +54,28 @@ file(GLOB sources_world scripts/world/*.cpp scripts/world/*.h)
 
 #Eastern Kingdom Scripts
 file(GLOB sources_eastern_kingdoms scripts/eastern_kingdoms/*.cpp scripts/eastern_kingdoms/*.h)
-# --- Remove Azuremyst and BloodMyst Isle from classic
-IF("${MANGOS_EXP}" STREQUAL "CLASSIC")
-    string(REGEX REPLACE "(eversong_woods.cpp|eversong_woods.h)" "" sources_eastern_kingdoms "${sources_eastern_kingdoms}")
-    string(REGEX REPLACE "(ghostlands.cpp|ghostlands.h)" "" sources_eastern_kingdoms "${sources_eastern_kingdoms}")
-    string(REGEX REPLACE "(isle_of_queldanas.cpp|isle_of_queldanas.h)" "" sources_eastern_kingdoms "${sources_eastern_kingdoms}")
-endif()
 
     LIST(APPEND mangosscript_LIB_SRCS ${sources_eastern_kingdoms})
     source_group("Eastern Kingdoms Scripts" FILES ${sources_eastern_kingdoms})
 
 #Kalimdor Scripts
-set (GLOBIGNORE azuremyst_isle.cpp azuremyst_isle.h)
 file(GLOB sources_kalimdor scripts/kalimdor/*.cpp scripts/kalimdor/*.h)
 
-# --- Remove Azuremyst and BloodMyst Isle from classic
-IF("${MANGOS_EXP}" STREQUAL "CLASSIC")
-    string(REGEX REPLACE "(azuremyst_isle.cpp|azuremyst_isle.h)" "" sources_kalimdor "${sources_kalimdor}")
-    string(REGEX REPLACE "(bloodmyst_isle.cpp|bloodmyst_isle.h)" "" sources_kalimdor "${sources_kalimdor}")
-endif()
     LIST(APPEND mangosscript_LIB_SRCS ${sources_kalimdor})
     source_group("Kalimdor Scripts" FILES ${sources_kalimdor})
 
-# --- NOT FOR ZERO ---
-IF(("${MANGOS_EXP}" STREQUAL "TBC") OR ("${MANGOS_EXP}" STREQUAL "WOTLK") OR ("${MANGOS_EXP}" STREQUAL "CATA") OR ("${MANGOS_EXP}" STREQUAL "MISTS"))
 #Outlands Scripts
 file(GLOB sources_outlands scripts/outland/*.cpp scripts/outland/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_outlands})
   source_group("Outlands Scripts" FILES ${sources_outlands})
-endif()
-# --- END IF ---
 
-# --- TWO / Three / Four ---
-if (("${MANGOS_EXP}" STREQUAL "WOTLK") OR ("${MANGOS_EXP}" STREQUAL "CATA") OR ("${MANGOS_EXP}" STREQUAL "MISTS"))
 #Northrend Scripts
 file(GLOB sources_northrend scripts/northrend/*.cpp scripts/northrend/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_northrend})
   source_group("Northrend Scripts" FILES ${sources_northrend})
-endif()
-# --- END IF ---
 
 #Instance: Blackrock Depths Scripts
 file(GLOB sources_instance_ek_brd scripts/eastern_kingdoms/blackrock_mountain/blackrock_depths/*.cpp scripts/eastern_kingdoms/blackrock_mountain/blackrock_depths/*.h)
-IF("${MANGOS_EXP}" STREQUAL "CLASSIC")
-    string(REGEX REPLACE "(boss_coren_direbrew.cpp|boss_coren_direbrew.h)" "" sources_instance_ek_brd "${sources_instance_ek_brd}")
-endif()
 
     LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_ek_brd})
     source_group("Eastern Kingdoms Scripts\\Instances\\Blackrock Depths" FILES ${sources_instance_ek_brd})
@@ -120,9 +97,6 @@ file(GLOB sources_instance_ek_gno scripts/eastern_kingdoms/gnomeregan/*.cpp scri
 
 #Instance: Scarlet Monastery Scripts
 file(GLOB sources_instance_ek_sm scripts/eastern_kingdoms/scarlet_monastery/*.cpp scripts/eastern_kingdoms/scarlet_monastery/*.h)
-IF("${MANGOS_EXP}" STREQUAL "CLASSIC")
-    string(REGEX REPLACE "(boss_headless_horseman.cpp|boss_headless_horseman.h)" "" sources_instance_ek_sm "${sources_instance_ek_sm}")
-endif()
     LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_ek_sm})
     source_group("Eastern Kingdoms Scripts\\Instances\\Scarlet Monastery" FILES ${sources_instance_ek_sm})
 
@@ -138,10 +112,6 @@ file(GLOB sources_instance_ek_uld scripts/eastern_kingdoms/uldaman/*.cpp scripts
 
 #Instance: Shadowfang Keep Scripts
 file(GLOB sources_instance_ek_sfk scripts/eastern_kingdoms/shadowfang_keep/*.cpp scripts/eastern_kingdoms/shadowfang_keep/*.h)
-# --- Remove Hummel from classic
-IF("${MANGOS_EXP}" STREQUAL "CLASSIC")
-    string(REGEX REPLACE "(boss_hummel.cpp|boss_hummel.h)" "" sources_instance_ek_sfk "${sources_instance_ek_sfk}")
-endif()
 
     LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_ek_sfk})
     source_group("Eastern Kingdoms Scripts\\Instances\\Shadowfang Keep" FILES ${sources_instance_ek_sfk})
@@ -152,21 +122,11 @@ file(GLOB sources_instance_ek_st scripts/eastern_kingdoms/sunken_temple/*.cpp sc
     source_group("Eastern Kingdoms Scripts\\Instances\\Sunken Temple" FILES ${sources_instance_ek_st})
 
 #Instance: Stratholme Scripts
-# --- ONLY FOR ZERO ---
-IF("${MANGOS_EXP}" STREQUAL "CLASSIC")
-file(GLOB sources_instance_ek_files scripts/eastern_kingdoms/stratholme/*.cpp scripts/eastern_kingdoms/stratholme/*.h)
-    string(REGEX REPLACE "(boss_order_of_silver_hand.cpp|boss_order_of_silver_hand.h)" "" sources_instance_ek_files "${sources_instance_ek_files}")
-    LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_ek_files})
-    source_group("Eastern Kingdoms Scripts\\Instances\\Stratholme" FILES ${sources_instance_ek_files})
-endif()
 
-IF(("${MANGOS_EXP}" STREQUAL "TBC") OR ("${MANGOS_EXP}" STREQUAL "WOTLK") OR ("${MANGOS_EXP}" STREQUAL "CATA") OR ("${MANGOS_EXP}" STREQUAL "MISTS"))
 file(GLOB sources_instance_ek_strat scripts/eastern_kingdoms/stratholme/*.cpp scripts/eastern_kingdoms/stratholme/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_ek_strat})
   source_group("Eastern Kingdoms Scripts\\Instances\\Stratholme" FILES ${sources_instance_ek_strat})
-endif()
 
-IF(("${MANGOS_EXP}" STREQUAL "TBC") OR ("${MANGOS_EXP}" STREQUAL "WOTLK") OR ("${MANGOS_EXP}" STREQUAL "CATA") OR ("${MANGOS_EXP}" STREQUAL "MISTS"))
 #Instance: Magisters Terrace Scripts
 file(GLOB sources_instance_ek_mt scripts/eastern_kingdoms/magisters_terrace/*.cpp scripts/eastern_kingdoms/magisters_terrace/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_ek_mt})
@@ -186,8 +146,6 @@ file(GLOB sources_raid_ek_sp scripts/eastern_kingdoms/sunwell_plateau/*.cpp scri
 file(GLOB sources_raid_ek_za scripts/eastern_kingdoms/zulaman/*.cpp scripts/eastern_kingdoms/zulaman/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_raid_ek_za})
   source_group("Eastern Kingdoms Scripts\\Raids\\Zul'Aman" FILES ${sources_raid_ek_za})
-endif()
-# --- END IF ---
 
 #Raid: Molten Core Scripts
 file(GLOB sources_raid_ek_mc scripts/eastern_kingdoms/blackrock_mountain/molten_core/*.cpp scripts/eastern_kingdoms/blackrock_mountain/molten_core/*.h)
@@ -198,15 +156,6 @@ file(GLOB sources_raid_ek_mc scripts/eastern_kingdoms/blackrock_mountain/molten_
 file(GLOB sources_raid_ek_bwl scripts/eastern_kingdoms/blackrock_mountain/blackwing_lair/*.cpp scripts/eastern_kingdoms/blackrock_mountain/blackwing_lair/*.h)
     LIST(APPEND mangosscript_LIB_SRCS ${sources_raid_ek_bwl})
     source_group("Eastern Kingdoms Scripts\\Raids\\Blackwing Lair" FILES ${sources_raid_ek_bwl})
-
-# --- NOT TWO ---
-IF(("${MANGOS_EXP}" STREQUAL "CLASSIC") OR ("${MANGOS_EXP}" STREQUAL "TBC"))
-#Raid: Naxxramas Scripts
-file(GLOB sources_raid_ek_naxx scripts/eastern_kingdoms/naxxramas/*.cpp scripts/eastern_kingdoms/naxxramas/*.h)
-    LIST(APPEND mangosscript_LIB_SRCS ${sources_raid_ek_naxx})
-    source_group("Eastern Kingdoms Scripts\\Raids\\Naxxramas" FILES ${sources_raid_ek_naxx})
-endif()
-# --- END IF ---
 
 #Raid: Zul Gurub Scripts
 file(GLOB sources_raid_ek_zg scripts/eastern_kingdoms/zulgurub/*.cpp scripts/eastern_kingdoms/zulgurub/*.h)
@@ -243,8 +192,6 @@ file(GLOB sources_instance_k_wc scripts/kalimdor/wailing_caverns/*.cpp scripts/k
     LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_k_wc})
     source_group("Kalimdor Scripts\\Instances\\Wailing Caverns" FILES ${sources_instance_k_wc})
 
-# --- NOT FOR ZERO ---
-IF(("${MANGOS_EXP}" STREQUAL "TBC") OR ("${MANGOS_EXP}" STREQUAL "WOTLK") OR ("${MANGOS_EXP}" STREQUAL "CATA") OR ("${MANGOS_EXP}" STREQUAL "MISTS"))
 #Instance: Caverns of Time - Black Morass
 file(GLOB sources_instance_k_cot_bm scripts/kalimdor/caverns_of_time/dark_portal/*.cpp scripts/kalimdor/caverns_of_time/dark_portal/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_k_cot_bm})
@@ -254,31 +201,21 @@ file(GLOB sources_instance_k_cot_bm scripts/kalimdor/caverns_of_time/dark_portal
 file(GLOB sources_instance_k_cot_oh scripts/kalimdor/caverns_of_time/old_hillsbrad/*.cpp scripts/kalimdor/caverns_of_time/old_hillsbrad/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_k_cot_oh})
   source_group("Kalimdor Scripts\\Instances\\Caverns of Time\\Old Hillsbrad" FILES ${sources_instance_k_cot_oh})
-endif()
-# --- END IF ---
 
-# --- TWO / THREE / FOUR ONLY ---
-if (("${MANGOS_EXP}" STREQUAL "WOTLK") OR ("${MANGOS_EXP}" STREQUAL "CATA") OR ("${MANGOS_EXP}" STREQUAL "MISTS"))
 #Instance: Caverns of Time - Culling of Stratholme
 file(GLOB sources_instance_k_cot_cos scripts/kalimdor/caverns_of_time/culling_of_stratholme/*.cpp scripts/kalimdor/caverns_of_time/culling_of_stratholme/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_k_cot_cos})
   source_group("Kalimdor Scripts\\Instances\\Caverns of Time\\Culling of Stratholme" FILES ${sources_instance_k_cot_cos})
-endif()
-# --- END IF ---
 
 #Instance: Zul Farrak Scripts
 file(GLOB sources_instance_k_zf scripts/kalimdor/zulfarrak/*.cpp scripts/kalimdor/zulfarrak/*.h)
     LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_k_zf})
     source_group("Kalimdor Scripts\\Instances\\Zul Farrak" FILES ${sources_instance_k_zf})
 
-# --- NOT FOR ZERO ---
 #Raid: Caverns of Time - Mount Hyjal
-IF(("${MANGOS_EXP}" STREQUAL "TBC") OR ("${MANGOS_EXP}" STREQUAL "WOTLK") OR ("${MANGOS_EXP}" STREQUAL "CATA") OR ("${MANGOS_EXP}" STREQUAL "MISTS"))
 file(GLOB sources_instance_k_cot_mh scripts/kalimdor/caverns_of_time/hyjal/*.cpp scripts/kalimdor/caverns_of_time/hyjal/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_k_cot_mh})
   source_group("Kalimdor Scripts\\Raids\\Caverns of Time\\Mount Hyjal" FILES ${sources_instance_k_cot_mh})
-endif()
-# --- END IF ---
 
 #Raid: Onyxias Lair Scripts
 file(GLOB sources_raid_k_ony scripts/kalimdor/onyxias_lair/*.cpp scripts/kalimdor/onyxias_lair/*.h)
@@ -295,8 +232,6 @@ file(GLOB sources_raid_k_taq scripts/kalimdor/temple_of_ahnqiraj/*.cpp scripts/k
     LIST(APPEND mangosscript_LIB_SRCS ${sources_raid_k_taq})
     source_group("Kalimdor Scripts\\Raids\\Temple of AQ" FILES ${sources_raid_k_taq})
 
-# --- NOT FOR ZERO ---
-IF(("${MANGOS_EXP}" STREQUAL "TBC") OR ("${MANGOS_EXP}" STREQUAL "WOTLK") OR ("${MANGOS_EXP}" STREQUAL "CATA") OR ("${MANGOS_EXP}" STREQUAL "MISTS"))
 #Instance: Auchindoun - Auchenai Crypts
 file(GLOB sources_instance_ol_aac scripts/outland/auchindoun/auchenai_crypts/*.cpp scripts/outland/auchindoun/auchenai_crypts/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_ol_aac})
@@ -386,11 +321,7 @@ file(GLOB sources_raid_ol_bt scripts/outland/black_temple/*.cpp scripts/outland/
 file(GLOB sources_raid_ol_gl scripts/outland/gruuls_lair/*.cpp scripts/outland/gruuls_lair/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_raid_ol_gl})
   source_group("Outlands Scripts\\Raids\\Gruul's Lair" FILES ${sources_raid_ol_gl})
-endif()
-# --- END IF ---
 
-# --- TWO / THREE / FOUR ONLY ---
-if (("${MANGOS_EXP}" STREQUAL "WOTLK") OR ("${MANGOS_EXP}" STREQUAL "CATA") OR ("${MANGOS_EXP}" STREQUAL "MISTS"))
 #Instance: Azjol Nerub
 file(GLOB sources_instance_nr_aznj scripts/northrend/azjol-nerub/azjol-nerub/*.cpp scripts/northrend/azjol-nerub/azjol-nerub/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_instance_nr_aznj})
@@ -506,8 +437,6 @@ file(GLOB sources_raid_nr_uld scripts/northrend/ulduar/ulduar/*.cpp scripts/nort
   LIST(APPEND mangosscript_LIB_SRCS ${sources_raid_nr_uld})
   source_group("Northrend Scripts\\Raids\\Ulduar" FILES ${sources_raid_nr_uld})
 
-# --- THREE / FOUR ONLY ---
-if (("${MANGOS_EXP}" STREQUAL "CATA") OR ("${MANGOS_EXP}" STREQUAL "MISTS"))
 #Maelstrom Scripts
 file(GLOB sources_maelstrom scripts/maelstrom/*.cpp scripts/maelstrom/*.h)
     LIST(APPEND mangosscript_LIB_SRCS ${sources_maelstrom})
@@ -520,16 +449,11 @@ file(GLOB sources_instance_m_sc scripts/maelstrom/stonecore/*.cpp scripts/maelst
 file(GLOB sources_raid_ek_bh scripts/eastern_kingdoms/baradin_hold/*.cpp scripts/eastern_kingdoms/baradin_hold/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_raid_ek_bh})
   source_group("Eastern Kingdoms Scripts\\Raids\\Baradin Hold" FILES ${sources_raid_ek_bh})
-endif()
-# --- END IF ---
 
 #WorldScript: Scarlet Enclave
 file(GLOB sources_world_scarlet_enclave scripts/eastern_kingdoms/scarlet_enclave/*.cpp scripts/eastern_kingdoms/scarlet_enclave/*.h)
   LIST(APPEND mangosscript_LIB_SRCS ${sources_world_scarlet_enclave})
   source_group("Eastern Kingdoms Scripts\\World\\Scarlet Enclave" FILES ${sources_world_scarlet_enclave})
-endif()
-# --- END IF ---
-
 
 add_library(mangosscript STATIC ${mangosscript_LIB_SRCS})
 

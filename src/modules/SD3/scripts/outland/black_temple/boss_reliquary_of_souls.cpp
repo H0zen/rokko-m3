@@ -91,9 +91,6 @@ enum
     SPELL_SUMMON_ESSENCE_DESIRE     = 41493,
     SPELL_SUMMON_ESSENCE_ANGER      = 41496,
     SPELL_SUMMON_ENSLAVED_SOUL      = 41537,
-#if defined (CLASSIC) || defined (TBC)
-    SPELL_SUBMERGE_VISUAL           = 28819,
-#endif
 
     // Soul spells
     SPELL_ENSLAVED_SOUL_PASSIVE     = 41535,
@@ -251,13 +248,8 @@ struct boss_reliquary_of_souls : public CreatureScript
             m_uiSoulDeathCount = 0;
             m_uiSoulSummonedCount = 0;
             m_uiAnimResetTimer = 2000;
-#if defined (CLASSIC) || defined (TBC)
-            // Reset animation - visual effect similar to EMOTE_ONESHOT_EMERGE
-            m_creature->RemoveAurasDueToSpell(SPELL_SUBMERGE_VISUAL);
-#else
             // Reset animation
             m_creature->HandleEmote(EMOTE_ONESHOT_EMERGE);
-#endif
         }
 
         // Wrapper to count the dead spirits
@@ -287,17 +279,8 @@ struct boss_reliquary_of_souls : public CreatureScript
             {
                 if (m_uiAnimationTimer <= uiDiff)
                 {
-#if defined (CLASSIC) || defined (TBC)
-                    // Visual effect similar to EMOTE_ONESHOT_SUBMERGE
-                    if (DoCastSpellIfCan(m_creature, SPELL_SUBMERGE_VISUAL) == CAST_OK)
-                    {
-                        m_creature->HandleEmote(EMOTE_ONESHOT_SUBMERGE);
-                        m_uiAnimationTimer = 0;
-                    }
-#else
                     m_creature->HandleEmote(EMOTE_ONESHOT_SUBMERGE);
                     m_uiAnimationTimer = 0;
-#endif
                 }
                 else
                 {

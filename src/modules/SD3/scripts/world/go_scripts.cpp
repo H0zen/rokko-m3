@@ -74,7 +74,6 @@ struct go_barov_journal : public GameObjectScript
     }
 };
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## go_ethereum_prison
 ######*/
@@ -195,8 +194,6 @@ struct go_jump_a_tron : public GameObjectScript
         return false;
     }
 };
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## go_mysterious_snow_mound
 ######*/
@@ -277,7 +274,6 @@ struct go_tele_to_violet_stand : public GameObjectScript
         return true;
     }
 };
-#endif
 
 /*######
 ## go_andorhal_tower
@@ -330,35 +326,7 @@ struct go_andorhal_tower : public GameObjectScript
     }
 };
 
-#if defined (CLASSIC) || defined (TBC)
-enum
-{
-    GOSSIP_TABLE_THEKA = 1653,
-    QUEST_SPIDER_GOD = 2936
-};
 
-struct go_table_theka : public GameObjectScript
-{
-    go_table_theka() : GameObjectScript("go_table_theka") {}
-
-    bool OnGossipHello(Player* pPlayer, GameObject* pGo) override
-    {
-        if (pPlayer->GetQuestStatus(QUEST_SPIDER_GOD) == QUEST_STATUS_INCOMPLETE)
-        {
-            pPlayer->AreaExploredOrEventHappens(QUEST_SPIDER_GOD);
-        }
-
-        pPlayer->SEND_GOSSIP_MENU(GOSSIP_TABLE_THEKA, pGo->GetObjectGuid());
-
-        return true;
-    }
-};
-
-// go_fixed_trap
-
-#endif
-
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## go_scourge_enclosure
 ######*/
@@ -434,7 +402,6 @@ struct go_lab_work_reagents : public GameObjectScript
         return false;
     }
 };
-#endif
 
 void AddSC_go_scripts()
 {
@@ -444,13 +411,7 @@ void AddSC_go_scripts()
     s = new go_andorhal_tower();
     s->RegisterSelf();
 
-#if defined (CLASSIC) || defined (TBC)
-    s = new go_table_theka();
-    s->RegisterSelf();
 
-#endif
-
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new go_ethereum_prison();
     s->RegisterSelf();
 
@@ -459,9 +420,7 @@ void AddSC_go_scripts()
 
     s = new go_jump_a_tron();
     s->RegisterSelf();
-#endif
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new go_mysterious_snow_mound();
     s->RegisterSelf();
 
@@ -476,7 +435,6 @@ void AddSC_go_scripts()
 
     s = new go_lab_work_reagents();
     s->RegisterSelf();
-#endif
 
     //pNewScript = new Script;
     //pNewScript->Name = "go_barov_journal";

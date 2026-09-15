@@ -230,7 +230,6 @@ struct mob_firesworn : public CreatureScript
             }
         }
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
         void JustDied(Unit* /*pKiller*/) override
         {
             if (m_pInstance)
@@ -241,7 +240,6 @@ struct mob_firesworn : public CreatureScript
                 }
             }
         }
-#endif
 
         void JustReachedHome() override
         {
@@ -258,12 +256,10 @@ struct mob_firesworn : public CreatureScript
 
             if (m_uiSeparationCheckTimer < uiDiff)
             {
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
                 if (!m_pInstance)
                 {
                     return;
                 }
-#endif
                 // Distance guesswork, but should be ok
                 Creature* pGarr = m_pInstance->GetSingleCreatureFromStorage(NPC_GARR);
                 if (pGarr && pGarr->IsAlive() && !m_creature->Where().WithinDist(Geometry::Vector2(pGarr->Where().X(), pGarr->Where().Y()), 50.0f))
@@ -278,7 +274,6 @@ struct mob_firesworn : public CreatureScript
                 m_uiSeparationCheckTimer -= uiDiff;
             }
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
             // Cast Erruption and let them die
             if (m_creature->GetHealthPercent() <= 10.0f)
             {
@@ -286,7 +281,6 @@ struct mob_firesworn : public CreatureScript
                 m_creature->SetDeathState(JUST_DIED);
                 m_creature->RemoveCorpse();
             }
-#endif
 
             DoMeleeAttackIfReady();
         }

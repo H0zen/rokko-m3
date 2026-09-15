@@ -124,7 +124,6 @@ struct npc_the_scourge_cauldron : public CreatureScript
     }
 };
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## npc_anchorite_truuen
 ######*/
@@ -262,7 +261,6 @@ struct npc_anchorite_truuen : public CreatureScript
         return true;
     }
 };
-#endif
 
 /*######
 ## npc_taelan_fordring
@@ -454,11 +452,7 @@ struct npc_taelan_fordring : public CreatureScript
                 m_creature->StopMoving();
                 m_creature->ClearComboPointHolders();
                 m_creature->RemoveAllAurasOnDeath();
-#if defined (CLASSIC)
-                m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_20_PERCENT, false);
-#else
                 m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
-#endif
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                 m_creature->ClearAllReactives();
                 m_creature->GetMotionMaster()->Clear();
@@ -1247,10 +1241,8 @@ void AddSC_western_plaguelands()
     s->RegisterSelf();
     s = new spell_npc_taelan_fordring();
     s->RegisterSelf();
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new npc_anchorite_truuen();
     s->RegisterSelf();
-#endif
     //pNewScript = new Script;
     //pNewScript->Name = "npc_the_scourge_cauldron";
     //pNewScript->GetAI = &GetAI_npc_the_scourge_cauldron;

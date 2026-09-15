@@ -370,9 +370,7 @@ struct AuraScript : public Script
     //bool IsValid() override { return bool(sSpellStore.LookupEntry(spellID)); }
 
     virtual bool OnDummyApply(const Aura*, bool) { return false; }
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     virtual bool OnDummyTick(const Aura*) { return false; }
-#endif
 };
 
 /**

@@ -46,7 +46,6 @@
 #include "precompiled.h"
 #include <unordered_map>
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 #include "escort_ai.h"
 
 /*#####
@@ -286,7 +285,6 @@ struct go_southfury_moonstone : public GameObjectScript
         return false;
     }
 };
-#endif
 
 /** ######
  *  ## mobs_spitelashes
@@ -538,14 +536,12 @@ struct npc_loramus_thalipedes : public CreatureScript
 void AddSC_azshara()
 {
     Script* s;
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new npc_rizzle_sprysprocket();
     s->RegisterSelf();
     s = new npc_depth_charge();
     s->RegisterSelf();
     s = new go_southfury_moonstone();
     s->RegisterSelf();
-#endif
     s = new mobs_spitelashes();
     s->RegisterSelf();
     s = new npc_loramus_thalipedes();

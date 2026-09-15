@@ -3703,7 +3703,6 @@ void Player::SendCinematicStart(uint32 CinematicSequenceId)
     SendDirectMessage(&data);
 }
 
-#if defined (WOTLK) || defined (CATA) || defined (MISTS)
 /**
  * @brief Starts a movie sequence for the player client.
  *
@@ -3715,7 +3714,6 @@ void Player::SendMovieStart(uint32 MovieId)
     data << uint32(MovieId);
     SendDirectMessage(&data);
 }
-#endif
 
 /**
  * @brief True while a DK intro cinematic/flyover is in progress for this player.

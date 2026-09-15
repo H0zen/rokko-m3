@@ -167,7 +167,6 @@ struct guard_shattrath_asAI : public guardAI
     }
 };
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 
 struct guard_shattrath_aldor : public CreatureScript
 {
@@ -198,7 +197,6 @@ struct guard_shattrath_scryer : public CreatureScript
         return new guard_shattrath_scryerAI(pCreature);
     }
 };
-#endif
 
 void AddSC_guards()
 {
@@ -212,12 +210,10 @@ void AddSC_guards()
     s = new guard_ironforge();
     s->RegisterSelf();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new guard_shattrath_aldor();
     s->RegisterSelf();
     s = new guard_shattrath_scryer();
     s->RegisterSelf();
-#endif
 
     //pNewScript = new Script;
     //pNewScript->Name = "guard_azuremyst";

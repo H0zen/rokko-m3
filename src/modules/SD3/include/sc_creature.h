@@ -31,224 +31,72 @@
 #include "DBCStores.h"  // Mostly only used for Lookup access, but a few cases really do use the DBC-Stores
 
 // -------------------------------------------------------------------------
-// SpellEntry field accessors (cross-expansion compatibility)
+// SpellEntry field accessors
 //
-// ScriptDev3 is a single repository shared by every mangos core (Zero/One/Two/
-// Three/Four). mangos-zero (CLASSIC) aligned its SpellEntry struct field names to
-// the build-exact 1.12 .dbd names; the other cores keep the legacy field names
-// (and the later cores expose GetXxx() accessor methods). These helpers resolve
-// each field per expansion so shared scripts compile and behave identically on
-// every core - each build only ever compiles its own branch.
+// ScriptDev3 was once shared by every mangos core and resolved these fields
+// per expansion. This tree builds for 4.3.4 only, so each helper is simply
+// the Cataclysm field; the names stay because the scripts call them.
 // -------------------------------------------------------------------------
 inline uint32 SD3_SpellId(SpellEntry const* pSpell)
 {
-#if defined (CLASSIC)
     return pSpell->ID;
-#elif defined (TBC)
-    return pSpell->ID;
-#elif defined (WOTLK)
-    return pSpell->ID;
-#elif defined (CATA)
-    return pSpell->ID;
-#elif defined (MISTS)
-    return pSpell->ID;
-#else
-    return pSpell->Id;
-#endif
 }
 
 inline uint32 SD3_SpellManaCost(SpellEntry const* pSpell)
 {
-#if defined (CATA) || defined (MISTS)
     return pSpell->GetManaCost();
-#elif defined (CLASSIC)
-    return pSpell->ManaCost;
-#elif defined (TBC)
-    return pSpell->ManaCost;
-#elif defined (WOTLK)
-    return pSpell->ManaCost;
-#else   // WOTLK
-    return pSpell->manaCost;
-#endif
 }
 
 inline uint32 SD3_SpellPowerType(SpellEntry const* pSpell)
 {
-#if defined (MISTS)
-    return pSpell->GetPowerType();
-#elif defined (CATA)
     return pSpell->PowerType;
-#elif defined (CLASSIC)
-    return pSpell->PowerType;
-#elif defined (TBC)
-    return pSpell->PowerType;
-#elif defined (WOTLK)
-    return pSpell->PowerType;
-#else   // WOTLK, CATA
-    return pSpell->powerType;
-#endif
 }
 
 inline uint32 SD3_SpellRangeIndex(SpellEntry const* pSpell)
 {
-#if defined (MISTS)
-    return pSpell->GetRangeIndex();
-#elif defined (CATA)
     return pSpell->RangeIndex;
-#elif defined (CLASSIC)
-    return pSpell->RangeIndex;
-#elif defined (TBC)
-    return pSpell->RangeIndex;
-#elif defined (WOTLK)
-    return pSpell->RangeIndex;
-#else   // WOTLK, CATA
-    return pSpell->rangeIndex;
-#endif
 }
 
 inline uint32 SD3_SpellVisual(SpellEntry const* pSpell, uint8 index)
 {
-#if defined (CLASSIC) || defined (TBC)
-    return pSpell->SpellVisualID;
-#elif defined (WOTLK)
     return pSpell->SpellVisualID[index];
-#elif defined (CATA)
-    return pSpell->SpellVisualID[index];
-#else   // MISTS (SpellVisual member replaced by GetSpellVisual API)
-    return pSpell->GetSpellVisual(index);
-#endif
 }
 
-// Effect-array accessors - used only on the non-CATA/MISTS path (CATA/MISTS
-// expose GetEffect*ByIndex() with their own SpellEffect null-checks and stay
-// inline at the call sites). CATA/MISTS SpellEntry has no EffectImplicitTargetA/
-// EffectApplyAuraName member at all, so these helpers are only defined for the
-// cores that have those fields (Zero/One/Two).
-#if !defined (CATA) && !defined (MISTS)
-inline uint32 SD3_SpellEffectImplicitTargetA(SpellEntry const* pSpell, uint8 index)
-{
-#if defined (CLASSIC)
-    return pSpell->ImplicitTargetA[index];
-#elif defined (TBC)
-    return pSpell->ImplicitTargetA[index];
-#elif defined (WOTLK)
-    return pSpell->ImplicitTargetA[index];
-#else   // WOTLK
-    return pSpell->EffectImplicitTargetA[index];
-#endif
-}
-
-inline uint32 SD3_SpellEffectApplyAuraName(SpellEntry const* pSpell, uint8 index)
-{
-#if defined (CLASSIC)
-    return pSpell->EffectAura[index];
-#elif defined (TBC)
-    return pSpell->EffectAura[index];
-#elif defined (WOTLK)
-    return pSpell->EffectAura[index];
-#else   // WOTLK
-    return pSpell->EffectApplyAuraName[index];
-#endif
-}
-#endif
-
-// AreaTriggerEntry / SpellRangeEntry accessors (cross-expansion compatibility).
-// mangos-zero (CLASSIC) renamed these DBC fields to their .dbd names; the other
-// cores keep the legacy names. Same per-expansion resolution as the SpellEntry
-// helpers above so shared scripts compile on every core.
+// AreaTriggerEntry / SpellRangeEntry accessors, same story as above.
 inline uint32 SD3_AreaTriggerId(AreaTriggerEntry const* pAt)
 {
-#if defined (CLASSIC)
     return pAt->ID;
-#elif defined (WOTLK)
-    return pAt->ID;
-#elif defined (CATA)
-    return pAt->ID;
-#elif defined (MISTS)
-    return pAt->ID;
-#else
-    return pAt->id;
-#endif
 }
 
 inline float SD3_AreaTriggerX(AreaTriggerEntry const* pAt)
 {
-#if defined (WOTLK)
-    return pAt->Pos_0;
-#elif defined (CATA)
     return pAt->PosX;
-#else
-    return pAt->x;
-#endif
 }
 
 inline float SD3_AreaTriggerY(AreaTriggerEntry const* pAt)
 {
-#if defined (WOTLK)
-    return pAt->Pos_1;
-#elif defined (CATA)
     return pAt->PosY;
-#else
-    return pAt->y;
-#endif
 }
 
 inline float SD3_AreaTriggerZ(AreaTriggerEntry const* pAt)
 {
-#if defined (WOTLK)
-    return pAt->Pos_2;
-#elif defined (CATA)
     return pAt->PosZ;
-#else
-    return pAt->z;
-#endif
 }
 
 inline float SD3_SpellRangeMin(SpellRangeEntry const* pRange)
 {
-#if defined (CLASSIC)
-    return pRange->RangeMin;
-#elif defined (TBC)
-    return pRange->RangeMin;
-#elif defined (WOTLK)
     return pRange->RangeMin_0;
-#elif defined (CATA)
-    return pRange->RangeMin_0;
-#else
-    return pRange->minRange;
-#endif
 }
 
 inline float SD3_SpellRangeMax(SpellRangeEntry const* pRange)
 {
-#if defined (CLASSIC)
-    return pRange->RangeMax;
-#elif defined (TBC)
-    return pRange->RangeMax;
-#elif defined (WOTLK)
     return pRange->RangeMax_0;
-#elif defined (CATA)
-    return pRange->RangeMax_0;
-#else
-    return pRange->maxRange;
-#endif
 }
 
-// FactionTemplateEntry accessor (cross-expansion compatibility).
-// mangos-two (WOTLK) renamed this DBC field to its .dbd name (Faction);
-// the other cores keep the legacy name. Same per-expansion resolution
-// as the AreaTrigger/SpellRange helpers above.
+// FactionTemplateEntry accessor, same story as above.
 inline uint32 SD3_FactionTemplateFaction(FactionTemplateEntry const* pFT)
 {
-#if defined (WOTLK) || defined (CLASSIC)
     return pFT->Faction;
-#elif defined (CATA)
-    return pFT->Faction;
-#elif defined (MISTS)
-    return pFT->Faction;
-#else
-    return pFT->faction;
-#endif
 }
 
 // Spell targets used by SelectSpell

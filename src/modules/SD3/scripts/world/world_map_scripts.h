@@ -41,16 +41,11 @@ enum
     NPC_WRYNN                   = 1747,
     NPC_BOLVAR                  = 1748,
     NPC_PRESTOR                 = 1749,
-#if defined (CLASSIC)
-    NPC_WINDSOR                 = 12580
-#endif
     // Quest 11538
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     NPC_WINDSOR                 = 12580,
     NPC_EMISSARY_OF_HATE        = 25003,
     NPC_IRESPEAKER              = 24999,
     NPC_UNLEASHED_HELLION       = 25002,
-#endif
 };
 
 enum SpawnIndexes

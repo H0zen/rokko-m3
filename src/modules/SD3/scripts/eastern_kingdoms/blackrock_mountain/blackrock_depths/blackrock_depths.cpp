@@ -1291,9 +1291,7 @@ struct npc_marshal_windsor : public CreatureScript
                     }
                     break;
                 case 15:
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
                     m_creature->HandleEmoteCommand(EMOTE_ONESHOT_USESTANDING);
-#endif
                     break;
                 case 16:
                     if (m_pInstance)
@@ -1305,9 +1303,7 @@ struct npc_marshal_windsor : public CreatureScript
                     DoScriptText(SAY_WINDSOR_EQUIPMENT_2, m_creature);
                     break;
                 case 19:
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
                     m_creature->HandleEmoteCommand(EMOTE_ONESHOT_USESTANDING);
-#endif
                     break;
                 case 20:
                     if (m_pInstance)

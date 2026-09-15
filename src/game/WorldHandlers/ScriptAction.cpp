@@ -65,9 +65,7 @@ bool ScriptAction::GetScriptCommandObject(const ObjectGuid guid, bool includeIte
     switch (guid.GetHigh())
     {
         case HIGHGUID_UNIT:
-#if defined(WOTLK) || defined(CATA) || defined(MISTS)
         case HIGHGUID_VEHICLE:
-#endif
             resultObject = m_map->GetCreature(guid);
             break;
         case HIGHGUID_PET:
@@ -837,7 +835,6 @@ bool ScriptAction::HandleScriptStep()
         }
         case SCRIPT_COMMAND_PLAY_MOVIE:                     // 19
         {
-#if defined(WOTLK) || defined (CATA) || defined (MISTS)
             Player* pPlayer = GetPlayerTargetOrSourceAndLog(pSource, pTarget);
             if (!pPlayer)
             {
@@ -845,7 +842,6 @@ bool ScriptAction::HandleScriptStep()
             }
 
             pPlayer->SendMovieStart(m_script->playMovie.movieId);
-#endif
             break;                                      // must be skipped at loading
         }
         case SCRIPT_COMMAND_MOVEMENT:                       // 20
@@ -1232,9 +1228,6 @@ bool ScriptAction::HandleScriptStep()
                 break;
             }
 
-#if defined(CLASSIC) || defined(TBC) || defined(WOTLK)
-            ((Creature*)pSource)->AI()->SendAIEventAround(AIEventType(m_script->sendAIEvent.eventType), (Unit*)pTarget, 0, float(m_script->sendAIEvent.radius));
-#else
             // if radius is provided send AI event around
             if (m_script->sendAIEvent.radius)
             {
@@ -1245,7 +1238,6 @@ bool ScriptAction::HandleScriptStep()
             {
                 ((Creature*)pSource)->AI()->SendAIEvent(AIEventType(m_script->sendAIEvent.eventType), NULL, (Creature*)pTarget);
             }
-#endif
             break;
         }
         case SCRIPT_COMMAND_TURN_TO:                        // 36
@@ -1476,19 +1468,11 @@ bool ScriptAction::HandleScriptStep()
             {
                 if (m_script->fly.enable)
                 {
-#if defined(CLASSIC) || defined(TBC) || defined(WOTLK)
-                    pSource->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND);
-#else
                     pSource->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_FLY_ANIM);
-#endif
                 }
                 else
                 {
-#if defined(CLASSIC) || defined(TBC) || defined(WOTLK)
-                    pSource->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND);
-#else
                     pSource->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_FLY_ANIM);
-#endif
                 }
             }
 

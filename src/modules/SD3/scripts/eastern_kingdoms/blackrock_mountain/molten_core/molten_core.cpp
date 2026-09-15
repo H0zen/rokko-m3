@@ -40,7 +40,6 @@
  */
 
 #include "precompiled.h"
-#if defined (CLASSIC) || defined (TBC) || defined(WOTLK) || defined(CATA) || defined(MISTS)
 #include "molten_core.h"
 
 /*######
@@ -69,14 +68,12 @@ struct go_molten_core_rune : public GameObjectScript
         return true;
     }
 };
-#endif
 
 /**
  * Registers Molten Core zone script content.
  */
 void AddSC_molten_core()
 {
-#if defined (CLASSIC) || defined (TBC) || defined(WOTLK) || defined(CATA) || defined(MISTS)
     Script* s;
     s = new go_molten_core_rune();
     s->RegisterSelf();
@@ -85,5 +82,4 @@ void AddSC_molten_core()
     //pNewScript->Name = "go_molten_core_rune";
     //pNewScript->pGOUse = &GOUse_go_molten_core_rune;
     //pNewScript->RegisterSelf();
-#endif
 }

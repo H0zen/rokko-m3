@@ -30,9 +30,7 @@
 void AddSC_blackrock_depths();                       // blackrock_depths
 void AddSC_boss_ambassador_flamelash();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_boss_coren_direbrew();
-#endif
 void AddSC_boss_draganthaurissan();
 void AddSC_boss_general_angerforge();
 void AddSC_boss_high_interrogator_gerstahn();
@@ -58,7 +56,6 @@ void AddSC_gnomeregan();                             // gnomeregan
 void AddSC_boss_thermaplugg();
 void AddSC_instance_gnomeregan();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_boss_attumen();                           // karazhan
 void AddSC_boss_curator();
 void AddSC_boss_maiden_of_virtue();
@@ -78,7 +75,6 @@ void AddSC_boss_vexallus();
 void AddSC_boss_priestess_delrissa();
 void AddSC_instance_magisters_terrace();
 void AddSC_magisters_terrace();
-#endif
 
 void AddSC_boss_lucifron();                          // molten_core
 void AddSC_boss_magmadar();
@@ -93,35 +89,13 @@ void AddSC_boss_ragnaros();
 void AddSC_instance_molten_core();
 void AddSC_molten_core();
 
-#if defined (CLASSIC) || defined (TBC)
-void AddSC_boss_anubrekhan();                        // naxxramas
-void AddSC_boss_four_horsemen();
-void AddSC_boss_faerlina();
-void AddSC_boss_gluth();
-void AddSC_boss_gothik();
-void AddSC_boss_grobbulus();
-void AddSC_boss_kelthuzad();
-void AddSC_boss_loatheb();
-void AddSC_boss_maexxna();
-void AddSC_boss_noth();
-void AddSC_boss_heigan();
-void AddSC_boss_patchwerk();
-void AddSC_boss_razuvious();
-void AddSC_boss_sapphiron();
-void AddSC_boss_thaddius();
-void AddSC_instance_naxxramas();
-#endif
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_ebon_hold();                              // scarlet_enclave
-#endif
 void AddSC_boss_arcanist_doan();                     // scarlet_monastery
 void AddSC_boss_herod();
 void AddSC_boss_mograine_and_whitemane();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_boss_headless_horseman();
-#endif
 
 void AddSC_instance_scarlet_monastery();
 void AddSC_boss_darkmaster_gandling();               // scholomance
@@ -129,9 +103,7 @@ void AddSC_boss_jandicebarov();
 void AddSC_instance_scholomance();
 void AddSC_scholomance();
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_boss_hummel();                            // shadowfang_keep
-#endif
 void AddSC_shadowfang_keep();                        // shadowfang_keep
 void AddSC_instance_shadowfang_keep();
 void AddSC_boss_maleki_the_pallid();                 // stratholme
@@ -139,16 +111,13 @@ void AddSC_boss_cannon_master_willey();
 void AddSC_boss_baroness_anastari();
 void AddSC_boss_dathrohan_balnazzar();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_boss_order_of_silver_hand();
-#endif
 
 void AddSC_instance_stratholme();
 void AddSC_stratholme();
 void AddSC_instance_sunken_temple();                 // sunken_temple
 void AddSC_sunken_temple();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_boss_brutallus();                         // sunwell_plateau
 void AddSC_boss_eredar_twins();
 void AddSC_boss_felmyst();
@@ -156,13 +125,11 @@ void AddSC_boss_kalecgos();
 void AddSC_boss_kiljaeden();
 void AddSC_boss_muru();
 void AddSC_instance_sunwell_plateau();
-#endif
 
 void AddSC_boss_archaedas();                         // uldaman
 void AddSC_instance_uldaman();
 void AddSC_uldaman();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_boss_akilzon();                           // zulaman
 void AddSC_boss_halazzi();
 void AddSC_boss_janalai();
@@ -171,7 +138,6 @@ void AddSC_boss_nalorakk();
 void AddSC_instance_zulaman();
 void AddSC_zulaman();
 void AddSC_boss_zuljin();
-#endif
 
 void AddSC_boss_arlokk();                            // zulgurub
 void AddSC_boss_hakkar();
@@ -190,33 +156,24 @@ void AddSC_alterac_mountains();
 void AddSC_arathi_highlands();
 void AddSC_blasted_lands();
 
-#if defined (CLASSIC)
-void AddSC_boss_kazzakAI();
-#endif
 void AddSC_burning_steppes();
 void AddSC_dun_morogh();
 void AddSC_eastern_plaguelands();
 void AddSC_elwynn_forest();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_eversong_woods();
 void AddSC_ghostlands();
-#endif
 
 void AddSC_hinterlands();
 void AddSC_ironforge();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_isle_of_queldanas();
-#endif
 
 void AddSC_loch_modan();
 void AddSC_redridge_mountains();
 void AddSC_searing_gorge();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_silvermoon_city();
-#endif
 
 void AddSC_silverpine_forest();
 void AddSC_stormwind_city();
@@ -229,23 +186,19 @@ void AddSC_westfall();
 void AddSC_wetlands();
 
 // Cata zones
-#if defined (CATA) || defined(MISTS)
 void AddSC_gilneas();
 void AddSC_gilneas_city();
 void AddSC_twilight_highlands();
 void AddSC_vashjir();
 void AddSC_instance_baradin_hold();
 void AddSC_boss_alizabal();
-#endif
 
 void AddEasternKingdomsScripts()
 {
     AddSC_blackrock_depths();                               // blackrock_depths
     AddSC_boss_ambassador_flamelash();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_boss_coren_direbrew();
-#endif
 
     AddSC_boss_draganthaurissan();
     AddSC_boss_general_angerforge();
@@ -272,7 +225,6 @@ void AddEasternKingdomsScripts()
     AddSC_boss_thermaplugg();
     AddSC_instance_gnomeregan();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_boss_attumen();                                   // karazhan
     AddSC_boss_curator();
     AddSC_boss_maiden_of_virtue();
@@ -292,7 +244,6 @@ void AddEasternKingdomsScripts()
     AddSC_boss_priestess_delrissa();
     AddSC_instance_magisters_terrace();
     AddSC_magisters_terrace();
-#endif
 
     AddSC_boss_lucifron();                                  // molten_core
     AddSC_boss_magmadar();
@@ -306,43 +257,19 @@ void AddEasternKingdomsScripts()
     AddSC_boss_ragnaros();
     AddSC_instance_molten_core();
     AddSC_molten_core();
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_ebon_hold();                                      // scarlet_enclave
-#endif
-#if defined (CLASSIC) || defined (TBC)
-    AddSC_boss_anubrekhan();                                // naxxramas
-    AddSC_boss_four_horsemen();
-    AddSC_boss_faerlina();
-    AddSC_boss_gluth();
-    AddSC_boss_gothik();
-    AddSC_boss_grobbulus();
-    AddSC_boss_kelthuzad();
-    AddSC_boss_loatheb();
-    AddSC_boss_maexxna();
-    AddSC_boss_noth();
-    AddSC_boss_heigan();
-    AddSC_boss_patchwerk();
-    AddSC_boss_razuvious();
-    AddSC_boss_sapphiron();
-    AddSC_boss_thaddius();
-    AddSC_instance_naxxramas();
-#endif
     AddSC_boss_arcanist_doan();                             // scarlet_monastery
     AddSC_boss_herod();
     AddSC_boss_mograine_and_whitemane();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_boss_headless_horseman();
-#endif
 
     AddSC_instance_scarlet_monastery();
     AddSC_boss_darkmaster_gandling();                       // scholomance
     AddSC_boss_jandicebarov();
     AddSC_instance_scholomance();
     AddSC_scholomance();
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_boss_hummel();                                    // shadowfang_keep
-#endif
     AddSC_shadowfang_keep();                                // shadowfang_keep
     AddSC_instance_shadowfang_keep();
     AddSC_boss_maleki_the_pallid();                         // stratholme
@@ -350,16 +277,13 @@ void AddEasternKingdomsScripts()
     AddSC_boss_baroness_anastari();
     AddSC_boss_dathrohan_balnazzar();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_boss_order_of_silver_hand();
-#endif
 
     AddSC_instance_stratholme();
     AddSC_stratholme();
     AddSC_instance_sunken_temple();                         // sunken_temple
     AddSC_sunken_temple();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_boss_brutallus();                                 // sunwell_plateau
     AddSC_boss_eredar_twins();
     AddSC_boss_felmyst();
@@ -367,13 +291,11 @@ void AddEasternKingdomsScripts()
     AddSC_boss_kiljaeden();
     AddSC_boss_muru();
     AddSC_instance_sunwell_plateau();
-#endif
 
     AddSC_boss_archaedas();                                 // uldaman
     AddSC_instance_uldaman();
     AddSC_uldaman();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_boss_akilzon();                                   // zulaman
     AddSC_boss_halazzi();
     AddSC_boss_janalai();
@@ -382,7 +304,6 @@ void AddEasternKingdomsScripts()
     AddSC_instance_zulaman();
     AddSC_zulaman();
     AddSC_boss_zuljin();
-#endif
 
     AddSC_boss_arlokk();                                    // zulgurub
     AddSC_boss_hakkar();
@@ -401,34 +322,25 @@ void AddEasternKingdomsScripts()
     AddSC_arathi_highlands();
     AddSC_blasted_lands();
 
-#if defined (CLASSIC)
-    AddSC_boss_kazzakAI();
-#endif
 
     AddSC_burning_steppes();
     AddSC_dun_morogh();
     AddSC_eastern_plaguelands();
     AddSC_elwynn_forest();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_eversong_woods();
     AddSC_ghostlands();
-#endif
 
     AddSC_hinterlands();
     AddSC_ironforge();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_isle_of_queldanas();
-#endif
 
     AddSC_loch_modan();
     AddSC_redridge_mountains();
     AddSC_searing_gorge();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_silvermoon_city();
-#endif
 
     AddSC_silverpine_forest();
     AddSC_stormwind_city();
@@ -441,12 +353,10 @@ void AddEasternKingdomsScripts()
     AddSC_wetlands();
 
     // Cata zones
-#if defined (CATA) || defined(MISTS)
     AddSC_gilneas();
     AddSC_gilneas_city();
     AddSC_instance_baradin_hold();
     AddSC_boss_alizabal();
-#endif
 
 }
 
@@ -454,7 +364,6 @@ void AddEasternKingdomsScripts()
 void AddSC_instance_blackfathom_deeps();             // blackfathom_deeps
 void AddSC_blackfathom_deeps();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_boss_aeonus();                            // COT, dark_portal
 void AddSC_boss_chrono_lord_deja();
 void AddSC_boss_temporus();
@@ -465,11 +374,8 @@ void AddSC_boss_archimonde();
 void AddSC_instance_mount_hyjal();
 void AddSC_instance_old_hillsbrad();                 // COT, old_hillsbrad
 void AddSC_old_hillsbrad();
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_culling_of_stratholme();                  // COT, culling_of_stratholme
 void AddSC_instance_culling_of_stratholme();
-#endif
 void AddSC_dire_maul();                              // dire_maul
 void AddSC_instance_dire_maul();
 void AddSC_boss_noxxion();                           // maraudon
@@ -507,10 +413,8 @@ void AddSC_zulfarrak();
 void AddSC_ashenvale();
 void AddSC_azshara();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_azuremyst_isle();
 void AddSC_bloodmyst_isle();
-#endif
 
 void AddSC_boss_azuregos();
 void AddSC_darkshore();
@@ -533,17 +437,14 @@ void AddSC_ungoro_crater();
 void AddSC_winterspring();
 
 // Cata zones
-#if defined (CATA) || defined(MISTS)
 void AddSC_uldum();
 void AddSC_mount_hyjal();
-#endif
 
 void AddKalimdorScripts()
 {
     AddSC_instance_blackfathom_deeps();                     // blackfathom deeps
     AddSC_blackfathom_deeps();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_boss_aeonus();                                    // CoT, dark_portal
     AddSC_boss_chrono_lord_deja();
     AddSC_boss_temporus();
@@ -554,11 +455,8 @@ void AddKalimdorScripts()
     AddSC_instance_mount_hyjal();
     AddSC_instance_old_hillsbrad();                         // CoT, old_hillsbrand
     AddSC_old_hillsbrad();
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_culling_of_stratholme();                          // CoT, culling_of_stratholme
     AddSC_instance_culling_of_stratholme();
-#endif
     AddSC_dire_maul();                                      // dire_maul
     AddSC_instance_dire_maul();
     AddSC_boss_noxxion();                                   // maraudon
@@ -596,10 +494,8 @@ void AddKalimdorScripts()
     AddSC_ashenvale();
     AddSC_azshara();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_azuremyst_isle();
     AddSC_bloodmyst_isle();
-#endif
 
     AddSC_boss_azuregos();
     AddSC_darkshore();
@@ -622,13 +518,10 @@ void AddKalimdorScripts()
     AddSC_winterspring();
 
     // Cata zones
-#if defined (CATA) || defined(MISTS)
     AddSC_uldum();
     AddSC_mount_hyjal();
-#endif
 }
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 // northrend
 void AddSC_boss_amanitar();                          // azjol-nerub, ahnkahet
 void AddSC_boss_jedoga();
@@ -775,7 +668,6 @@ void AddSC_icecrown();
 void AddSC_sholazar_basin();
 void AddSC_storm_peaks();
 void AddSC_zuldrak();
-#endif
 
 // outland
 void AddSC_boss_exarch_maladaar();                   // auchindoun, auchenai_crypts
@@ -861,7 +753,6 @@ void AddSC_shattrath_city();
 void AddSC_terokkar_forest();
 void AddSC_zangarmarsh();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 // outland
 void AddOutlandsScripts()
 {
@@ -948,8 +839,6 @@ void AddOutlandsScripts()
     AddSC_terokkar_forest();
     AddSC_zangarmarsh();
 }
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 // Northrend
 void AddNorthrendScripts()
 {
@@ -1100,7 +989,6 @@ void AddNorthrendScripts()
     AddSC_storm_peaks();
     AddSC_zuldrak();
 }
-#endif
 
 // world
 void AddSC_areatrigger_scripts();
@@ -1113,9 +1001,7 @@ void AddSC_npc_professions();
 void AddSC_npcs_special();
 void AddSC_spell_scripts();
 void AddSC_world_map_scripts();
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 void AddSC_world_map_ebon_hold();
-#endif
 
 void AddWorldScripts()
 {
@@ -1129,9 +1015,7 @@ void AddWorldScripts()
     AddSC_npcs_special();
     AddSC_spell_scripts();
     AddSC_world_map_scripts();
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddSC_world_map_ebon_hold();
-#endif
 }
 
 // battlegrounds
@@ -1142,9 +1026,7 @@ void AddBattlegroundScripts()
     AddSC_battleground();
 }
 
-#if defined (CATA) || defined(MISTS)
 void AddSC_kezan();
-#endif
 
 // initialize scripts
 void AddScripts()
@@ -1152,17 +1034,11 @@ void AddScripts()
     AddWorldScripts();
     AddEasternKingdomsScripts();
     AddKalimdorScripts();
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddOutlandsScripts();
-#endif
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     AddNorthrendScripts();
-#endif
 
-#if defined (CATA) || defined(MISTS)
     AddSC_kezan();
-#endif
 
     AddBattlegroundScripts();
 }

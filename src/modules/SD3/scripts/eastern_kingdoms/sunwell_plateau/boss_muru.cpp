@@ -74,7 +74,6 @@ enum
     // Muru npcs
     NPC_VOID_SENTINEL_SUMMONER      = 25782,
     NPC_VOID_SENTINEL               = 25772,    // scripted in Acid
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     NPC_DARK_FIEND                  = 25744,
 
     // darkness spells
@@ -86,7 +85,6 @@ enum
     SPELL_BLACK_HOLE_VISUAL         = 46242,
     SPELL_BLACK_HOLE_VISUAL_2       = 46247,
     SPELL_BLACK_HOLE_PASSIVE        = 46228,
-#endif
 
     MAX_TRANSFORM_CASTS             = 10
 };
@@ -298,31 +296,8 @@ struct boss_entropius : public CreatureScript
             {
                 m_pInstance->SetData(TYPE_MURU, DONE);
             }
-#if defined (TBC)
-            // Despawn summoned creatures
-            DespawnSummonedCreatures();
-#endif
         }
 
-#if defined (TBC)
-        void JustSummoned(Creature* pSummoned) override
-        {
-            // Add the Darkness and Singularity into the list
-            m_lSummonedCreaturesList.push_back(pSummoned->GetObjectGuid());
-        }
-
-        // Wrapper to despawn the Singularities and Darkness on death or on evade
-        void DespawnSummonedCreatures()
-        {
-            for (GuidList::const_iterator itr = m_lSummonedCreaturesList.begin(); itr != m_lSummonedCreaturesList.end(); ++itr)
-            {
-                if (Creature* pTemp = m_creature->GetMap()->GetCreature(*itr))
-                {
-                    pTemp->ForcedDespawn();
-                }
-            }
-        }
-#endif
         void JustReachedHome() override
         {
             if (m_pInstance)
@@ -330,21 +305,10 @@ struct boss_entropius : public CreatureScript
                 m_pInstance->SetData(TYPE_MURU, FAIL);
 
                 // respawn muru
-#if defined (TBC)
-                if (Creature* pMuru = m_pInstance->GetSingleCreatureFromStorage(NPC_MURU))
-                {
-                    pMuru->Respawn();
-                }
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
                 m_creature->SummonCreature(NPC_MURU, afMuruSpawnLoc[0], afMuruSpawnLoc[1], afMuruSpawnLoc[2], afMuruSpawnLoc[3], TEMPSPAWN_DEAD_DESPAWN, 0, true);
-#endif
             }
 
             // despawn boss and summons for reset
-#if defined (TBC)
-            DespawnSummonedCreatures();
-#endif
             m_creature->ForcedDespawn();
         }
 

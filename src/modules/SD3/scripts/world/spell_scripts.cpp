@@ -36,29 +36,18 @@
 /**
  * ContentData
  * Spell 8913:  Sacred Cleansing
- #if defined (CLASSIC)
- * Spell 10848: Shroud of Death
- * Spell 17327: Spirit Particles
- #endif
  * Spell 19512: Apply Salve
- #if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
  * spell 21014
- #endif
  * Spell 21050: Melodious Rapture
- #if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
  * spell 29528
  * spell 29866
  * spell 34665
  * spell 37136
  * spell 39246
- #if defined (WOTLK) || defined (CATA) || defined(MISTS)
  * spell 43340
- #endif
  * spell 44935
  * spell 45109
  * spell 45111
- #endif
- #if defined (WOTLK) || defined (CATA) || defined(MISTS)
  * spell 46023
  * spell 46770
  * spell 47575
@@ -68,7 +57,6 @@
  * spell 51366
  * spell 52090
  * spell 56099
- #endif
  * EndContentData
  */
 
@@ -81,7 +69,6 @@
  * - always return true when the spell is handled by script
  */
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 enum
 {
     // quest 9452
@@ -90,13 +77,11 @@ enum
     NPC_ANGRY_MURLOC            = 17102,
     ITEM_RED_SNAPPER            = 23614,
     // SPELL_SUMMON_TEST           = 49214                  // ! Just wrong spell name? It summon correct creature (17102)but does not appear to be used.
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     // quest 11472
     SPELL_ANUNIAQS_NET          = 21014,
     GO_TASTY_REEF_FISH          = 186949,
     NPC_REEF_SHARK              = 24637,
     ITEM_TASTY_REEF_FISH        = 34127,
-#endif
 };
 
 struct spell_cast_fishing_net : public SpellScript
@@ -105,7 +90,6 @@ struct spell_cast_fishing_net : public SpellScript
 
     bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
         if (uiSpellId == SPELL_ANUNIAQS_NET)
         {
             GameObject* pGOTarget = pTarget->ToGameObject();
@@ -136,7 +120,6 @@ struct spell_cast_fishing_net : public SpellScript
             }
             return true;
         }
-#endif
         if (uiSpellId == SPELL_CAST_FISHING_NET)
         {
             GameObject* pGOTarget = pTarget->ToGameObject();
@@ -171,11 +154,9 @@ struct spell_cast_fishing_net : public SpellScript
         return false;
     }
 };
-#endif
 
 enum
 {
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     // quest 9629
     SPELL_TAG_MURLOC                    = 30877,
     SPELL_TAG_MURLOC_PROC               = 30875,
@@ -195,7 +176,6 @@ enum
     SPELL_ADMINISTER_ANTIDOTE           = 34665,
     NPC_HELBOAR                         = 16880,
     NPC_DREADTUSK                       = 16992,
-#endif
 
     // quest 6124/6129
     SPELL_APPLY_SALVE                   = 19512,
@@ -207,7 +187,6 @@ enum
     NPC_CURED_DEER                      = 12299,
     NPC_CURED_GAZELLE                   = 12297,
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     // quest 12906/13422
     SPELL_DISCIPLINING_ROD              = 56033,
     SAY_RAND_WORK1                      = -1000555,
@@ -216,14 +195,12 @@ enum
     SAY_RAND_ATTACK1                    = -1000558,
     SAY_RAND_ATTACK2                    = -1000559,
     SAY_RAND_ATTACK3                    = -1000560,
-#endif
 
     // target morbent fel
     SPELL_SACRED_CLEANSING              = 8913,
     NPC_MORBENT                         = 1200,
     NPC_WEAKENED_MORBENT                = 24782,
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     // quest 11515
     SPELL_FEL_SIPHON_DUMMY              = 44936,
     NPC_FELBLOOD_INITIATE               = 24918,
@@ -234,7 +211,6 @@ enum
     NPC_OWLKIN                          = 16518,
     NPC_OWLKIN_INOC                     = 16534,
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     // target for quest 12166)
     SPELL_LIQUID_FIRE                   = 46770,
     SPELL_LIQUID_FIRE_AURA              = 47972,
@@ -301,7 +277,6 @@ enum
     SAY_SPECIMEN                        = -1000581,
     NPC_NEXUS_DRAKE_HATCHLING           = 26127,
     SPELL_RAELORASZ_FIREBALL            = 46704,
-#endif
 
     // Quest "Disrupt the Greengill Coast" (11541)
     SPELL_ORB_OF_MURLOC_CONTROL         = 45109,
@@ -311,7 +286,6 @@ enum
     NPC_DARKSPINE_MYRMIDON              = 25060,
     NPC_DARKSPINE_SIREN                 = 25073,
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     // quest 14107
     SPELL_BLESSING_OF_PEACE             = 66719,
     NPC_FALLEN_HERO_SPIRIT              = 32149,
@@ -321,7 +295,6 @@ enum
     SAY_BLESS_3                         = -1000596,
     SAY_BLESS_4                         = -1000597,
     SAY_BLESS_5                         = -1000598,
-#endif
 
     // quest "The Big Bone Worm" 10930
     SPELL_FUMPING                       = 39246,
@@ -329,7 +302,6 @@ enum
     NPC_SAND_GNOME                      = 22483,
     NPC_MATURE_BONE_SIFTER              = 22482,
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     // quest 12813, by item 40587
     SPELL_DARKMENDER_TINCTURE           = 52741,
     SPELL_SUMMON_CORRUPTED_SCARLET      = 54415,
@@ -350,13 +322,10 @@ enum
     NPC_BEAR_KILL_CREDIT                = 33006,
     SAY_ITS_FEMALE                      = -1000642,
     SAY_ITS_MALE                        = -1000643,
-#endif
 
     // quest 9849, item 24501
     SPELL_THROW_GORDAWG_BOULDER         = 32001,
     NPC_MINION_OF_GUROK                 = 18181,
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     // quest 12589
     SPELL_HIT_APPLE                     = 51331,
     SPELL_MISS_APPLE                    = 51332,
@@ -382,16 +351,12 @@ enum
     SAY_FREE_1                          = -1000781,
     SAY_FREE_2                          = -1000782,
     SAY_FREE_3                          = -1000783,
-#endif
     // npcs that are only interactable while dead
     SPELL_SHROUD_OF_DEATH               = 10848,
     SPELL_SPIRIT_PARTICLES              = 17327,
     NPC_FRANCLORN_FORGEWRIGHT           = 8888,
     NPC_GAERIYAN                        = 9299,
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     NPC_GANJO                           = 26924,
-#endif
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     // quest 11521
     SPELL_EXPOSE_RAZORTHORN_ROOT        = 44935,
     SPELL_SUMMON_RAZORTHORN_ROOT        = 44941,
@@ -401,24 +366,19 @@ enum
     //  for quest 10584
     SPELL_PROTOVOLTAIC_MAGNETO_COLLECTOR = 37136,
     NPC_ENCASED_ELECTROMENTAL           = 21731,
-#endif
-#if defined (CATA) || defined(MISTS)
     SPELL_KAJACOLA_ITEM_EFFECT          = 70478,
     SPELL_KAJACOLA_BUFF                 = 70483,
-#endif
 
     // quest 6661
     SPELL_MELODIOUS_RAPTURE             = 21050,
     SPELL_MELODIOUS_RAPTURE_VISUAL      = 21051,
     NPC_DEEPRUN_RAT                     = 13016,
     NPC_ENTHRALLED_DEEPRUN_RAT          = 13017,
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     // quest 12981
     SPELL_THROW_ICE                     = 56099,
     SPELL_FROZEN_IRON_SCRAP             = 56101,
     NPC_SMOLDERING_SCRAP_BUNNY          = 30169,
     GO_SMOLDERING_SCRAP                 = 192124,
-#endif
 };
 
 struct aura_spirit_particles : public AuraScript
@@ -455,7 +415,6 @@ struct aura_spirit_particles : public AuraScript
     }
 };
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 struct aura_healing_salve : public AuraScript
 {
     aura_healing_salve() : AuraScript("aura_healing_salve") {}
@@ -612,9 +571,7 @@ struct aura_photovoltaic_magneto_collector : public AuraScript
         return true;
     }
 };
-#endif
 
-#if defined (CATA) || defined(MISTS)
 static const int32 aKajaColaIdeas[] =
 {
     -1002000, -1002001, -1002002, -1002003, -1002004, -1002005, -1002006, -1002007,
@@ -654,7 +611,6 @@ struct aura_kajacola_item_effect : public AuraScript
         return true;
     }
 };
-#endif
 
 struct spell_apply_salve : public SpellScript
 {
@@ -728,7 +684,6 @@ struct spell_melodious_rapture : public SpellScript
     }
 };
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 struct spell_administer_antidote : public SpellScript
 {
     spell_administer_antidote() : SpellScript("spell_administer_antidote") {}
@@ -841,8 +796,6 @@ struct spell_fel_siphon_dummy : public SpellScript
 
     }
 };
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 //        case SPELL_SEEDS_OF_NATURES_WRATH:
 //        {
 //            if (uiEffIndex == EFFECT_INDEX_0)
@@ -905,8 +858,6 @@ struct spell_create_bark_walkers : public SpellScript
         return true;
     }
 };
-#endif
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 struct spell_tag_murloc_proc : public SpellScript
 {
     spell_tag_murloc_proc() : SpellScript("spell_tag_murloc_proc") {}
@@ -923,8 +874,6 @@ struct spell_tag_murloc_proc : public SpellScript
         return true;
     }
 };
-#endif
-//#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 //       case SPELL_THROW_BOULDER:
 //       {
 //           if (uiEffIndex == EFFECT_INDEX_0)
@@ -975,9 +924,7 @@ struct spell_tag_murloc_proc : public SpellScript
 //       }
 //   };
 
-//#endif
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 struct spell_orb_of_murloc_control : public SpellScript
 {
     spell_orb_of_murloc_control() : SpellScript("spell_orb_of_murloc_control") {}
@@ -1049,9 +996,7 @@ struct spell_fumping : public SpellScript
         return true;
     }
 };
-#endif
 
-//#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 //       case SPELL_AHUNAES_KNIFE:
 //       {
 //           if (uiEffIndex == EFFECT_INDEX_0)
@@ -1110,9 +1055,7 @@ struct spell_fumping : public SpellScript
 //           }
 //           return true;
 //       }
-//#endif
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 struct spell_throw_gordawg_boulder : public SpellScript
 {
     spell_throw_gordawg_boulder() : SpellScript("spell_throw_gordawg_boulder") {}
@@ -1149,8 +1092,6 @@ struct spell_throw_gordawg_boulder : public SpellScript
         return true;
     }
 };
-#endif
-//#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 //       case SPELL_HIT_APPLE:
 //       {
 //           if (uiEffIndex == EFFECT_INDEX_0)
@@ -1215,9 +1156,7 @@ struct spell_throw_gordawg_boulder : public SpellScript
 //           }
 //           return true;
 //       }
-//#endif
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 struct spell_expose_rathorthorn_root : public SpellScript
 {
     spell_expose_rathorthorn_root() : SpellScript("spell_expose_rathorthorn_root") {}
@@ -1245,8 +1184,6 @@ struct spell_expose_rathorthorn_root : public SpellScript
         return true;
     }
 };
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 struct spell_throw_ice : public SpellScript
 {
     spell_throw_ice() : SpellScript("spell_throw_ice") {}
@@ -1276,7 +1213,6 @@ struct spell_throw_ice : public SpellScript
         return true;
     }
 };
-#endif
 
 void AddSC_spell_scripts()
 {
@@ -1289,7 +1225,6 @@ void AddSC_spell_scripts()
     s->RegisterSelf();
     s = new spell_melodious_rapture();
     s->RegisterSelf();
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new spell_cast_fishing_net();
     s->RegisterSelf();
     s = new aura_healing_salve();
@@ -1304,10 +1239,8 @@ void AddSC_spell_scripts()
     s->RegisterSelf();
     s = new aura_photovoltaic_magneto_collector();
     s->RegisterSelf();
-#if defined (CATA) || defined(MISTS)
     s = new aura_kajacola_item_effect();
     s->RegisterSelf();
-#endif
     s = new spell_administer_antidote();
     s->RegisterSelf();
     s = new spell_inoculate_owlkin();
@@ -1324,13 +1257,10 @@ void AddSC_spell_scripts()
     s->RegisterSelf();
     s = new spell_expose_rathorthorn_root();
     s->RegisterSelf();
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new spell_throw_ice();
     s->RegisterSelf();
     s = new spell_strength_ancients();
     s->RegisterSelf();
     s = new spell_create_bark_walkers();
     s->RegisterSelf();
-#endif
 }

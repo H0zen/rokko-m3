@@ -163,7 +163,6 @@ struct mob_aquementas : public CreatureScript
     }
 };
 
-#if defined(TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*######
 ## npc_custodian_of_time
 ######*/
@@ -261,7 +260,6 @@ struct npc_custodian_of_time : public CreatureScript
         return new npc_custodian_of_timeAI(pCreature);
     }
 };
-#endif
 
 /*######
 ## npc_oox17tn
@@ -718,10 +716,8 @@ void AddSC_tanaris()
     s = new npc_tooga();
     s->RegisterSelf();
 
-#if defined(TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new npc_custodian_of_time();
     s->RegisterSelf();
-#endif
 
     //pNewScript = new Script;
     //pNewScript->Name = "go_pirate_treasure";

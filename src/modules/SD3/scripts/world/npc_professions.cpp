@@ -101,7 +101,6 @@
 
 #define BOX_UNLEARN_LEATHER_SPEC    "Do you really want to unlearn your leatherworking specialty and lose all associated recipes? \n Cost: "
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 #define GOSSIP_LEARN_SPELLFIRE      "Please teach me how to become a Spellcloth tailor"
 #define GOSSIP_UNLEARN_SPELLFIRE    "I wish to unlearn Spellfire Tailoring"
 #define GOSSIP_LEARN_MOONCLOTH      "Please teach me how to become a Mooncloth tailor"
@@ -110,7 +109,6 @@
 #define GOSSIP_UNLEARN_SHADOWEAVE   "I wish to unlearn Shadoweave Tailoring"
 
 #define BOX_UNLEARN_TAILOR_SPEC     "Do you really want to unlearn your tailoring specialty and lose all associated recipes? \n Cost: "
-#endif
 #define GOSSIP_LEARN_GOBLIN         "I am absolutely certain that i want to learn Goblin engineering"
 #define GOSSIP_LEARN_GNOMISH        "I am absolutely certain that i want to learn Gnomish engineering"
 
@@ -163,7 +161,6 @@
 #define S_LEARN_GOBLIN          20221
 #define S_LEARN_GNOMISH         20220
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 #define S_SPELLFIRE             26797
 #define S_MOONCLOTH             26798
 #define S_SHADOWEAVE            26801
@@ -175,12 +172,10 @@
 #define S_UNLEARN_SPELLFIRE     41299
 #define S_UNLEARN_MOONCLOTH     41558
 #define S_UNLEARN_SHADOWEAVE    41559
-#endif
 /*###
 # formulas to calculate unlearning cost
 ###*/
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 int32 GetLearningCost(Player* /*pPlayer*/)                      // tailor, alchemy
 {
     return 200000;
@@ -190,7 +185,6 @@ int32 GetUnlearnCostHigh(Player* /*pPlayer*/)                   // tailor, alche
 {
     return 1500000;
 }
-#endif
 
 int32 GetUnlearnCostMedium(Player* pPlayer)                 // blacksmith, leatherwork
 {
@@ -237,7 +231,6 @@ bool EquippedOk(Player* pPlayer, uint32 spellId)
 
     for (int i = 0; i < 3; ++i)
     {
-#if defined(CATA) || defined (MISTS)
         SpellEffectEntry const* pSpellEffect = spell->GetSpellEffect(SpellEffectIndex(i));
         if (!pSpellEffect)
         {
@@ -245,9 +238,6 @@ bool EquippedOk(Player* pPlayer, uint32 spellId)
         }
 
         uint32 reqSpell = pSpellEffect->EffectTriggerSpell;
-#else
-        uint32 reqSpell = spell->EffectTriggerSpell[i];
-#endif
         if (!reqSpell)
         {
             continue;
@@ -903,7 +893,6 @@ struct npc_prof_leather : public CreatureScript
         }
 };
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*###
 # start menues tailoring
 ###*/
@@ -1159,7 +1148,6 @@ struct npc_prof_tailor : public CreatureScript
             return false;
         }
 };
-#endif
 /*###
 # start menues for GO (engineering and leatherworking)
 ###*/
@@ -1179,15 +1167,12 @@ struct npc_prof_tailor : public CreatureScript
 
 void AddSC_npc_professions()
 {
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     Script* s;
 
     s = new npc_prof_blacksmith();
     s->RegisterSelf();
     s = new npc_prof_leather();
     s->RegisterSelf();
-#endif
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new npc_prof_tailor();
     s->RegisterSelf();
 
@@ -1208,7 +1193,6 @@ void AddSC_npc_professions()
     //pNewScript->pGossipHello =  &GossipHello_npc_prof_tailor;
     //pNewScript->pGossipSelect = &GossipSelect_npc_prof_tailor;
     //pNewScript->RegisterSelf();
-#endif
 
     /*pNewScript = new Script;
     pNewScript->Name = "go_soothsaying_for_dummies";

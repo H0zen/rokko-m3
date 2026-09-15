@@ -79,25 +79,6 @@ struct go_fathom_stone : public GameObjectScript
     bool OnUse(Player* pPlayer, GameObject* pGo) override
     {
         ScriptedInstance* pInstance = (ScriptedInstance*)pGo->GetInstanceData();
-#if defined (CLASSIC) || defined (TBC)
-        if (!pInstance)
-        {
-            return false;
-        }
-
-        if (pInstance->GetData(TYPE_STONE) == DONE)
-        {
-            return false;
-        }
-        else
-        {
-            pPlayer->SummonCreature(NPC_BARON_AQUANIS, -782.21f, -63.26f, -42.43f, 2.36f, TEMPSPAWN_TIMED_OOC_DESPAWN, 120000);
-        }
-
-        pInstance->SetData(TYPE_STONE, DONE);
-        return true;
-#endif
-#if defined (WOTLK) || defined (CATA) || defined (MISTS)
         if (!pInstance)
         {
             return true;
@@ -110,7 +91,6 @@ struct go_fathom_stone : public GameObjectScript
         }
 
         return false;
-#endif
     }
 };
 

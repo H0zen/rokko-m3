@@ -48,7 +48,6 @@
 
 #include "precompiled.h"
 #include "escort_ai.h"
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 #include "TemporarySummon.h"
 
 /*######
@@ -222,7 +221,6 @@ struct npc_restless_apparition : public CreatureScript
         return new npc_restless_apparitionAI(pCreature);
     }
 };
-#endif
 
 /*######
 ## npc_morokk
@@ -929,7 +927,6 @@ struct npc_stinky_ignatz : public CreatureScript
     }
 };
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
 /** ######
  *  ## at_nats_landing
  *  ######*/
@@ -1237,7 +1234,6 @@ struct boss_tethyr : public CreatureScript
         return new boss_tethyrAI(pCreature);
     }
 };
-#endif
 void AddSC_dustwallow_marsh()
 {
     Script* s;
@@ -1250,21 +1246,17 @@ void AddSC_dustwallow_marsh()
     s = new npc_stinky_ignatz();
     s->RegisterSelf();
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new mobs_risen_husk_spirit();
     s->RegisterSelf();
     s = new npc_restless_apparition();
     s->RegisterSelf();
 
-#endif
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new boss_tethyr();
     s->RegisterSelf();
     s = new at_nats_landing();
     s->RegisterSelf();
 
-#endif
 
     //pNewScript = new Script;
     //pNewScript->Name = "mobs_risen_husk_spirit";

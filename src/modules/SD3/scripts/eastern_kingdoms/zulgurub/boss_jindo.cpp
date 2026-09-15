@@ -47,9 +47,7 @@ enum
     SPELL_SHADE_OF_JINDO            = 24308,                // Spell was removed  from DBC around TBC; will summon npcs manually!
 
     SPELL_HEALING_WARD_HEAL         = 24311,
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     SPELL_SHADE_OF_JINDO_PASSIVE    = 24307,
-#endif
 
     // npcs
     NPC_SHADE_OF_JINDO              = 14986,
@@ -173,11 +171,7 @@ struct boss_jindo : public CreatureScript
                     fZ = randSpot2.z;
                     if (Creature* pSummoned = m_creature->SummonCreature(NPC_SHADE_OF_JINDO, fX, fY, fZ, 0, TEMPSPAWN_TIMED_OOC_DESPAWN, 15000))
                     {
-#if defined (CLASSIC) || defined (TBC)
-                        pSummoned->AI()->AttackStart(pTarget);
-#else
                         pSummoned->CastSpell(pSummoned, SPELL_SHADE_OF_JINDO_PASSIVE, true);
-#endif
                     }
 
                     m_uiDelusionsTimer = urand(4000, 12000);

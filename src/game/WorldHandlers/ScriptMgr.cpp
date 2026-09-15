@@ -63,9 +63,6 @@
 #include "OutdoorPvP/OutdoorPvP.h"
 #include "WaypointMovementGenerator.h"
 #include "Mail.h"
-#if defined(CLASSIC)
-#include "LFGMgr.h"
-#endif
 
 #ifdef ENABLE_SD3
 #include "system/ScriptDevMgr.h"
@@ -154,14 +151,12 @@ void ScriptMgr::CollectPossibleEventIds(std::set<uint32>& eventIds)
                 eventIds.insert(itr->capturePoint.winEventID1);
                 eventIds.insert(itr->capturePoint.winEventID2);
                 break;
-#if defined(WOTLK) || defined (CATA) || defined (MISTS)
             case GAMEOBJECT_TYPE_DESTRUCTIBLE_BUILDING:
                 eventIds.insert(itr->destructibleBuilding.damagedEvent);
                 eventIds.insert(itr->destructibleBuilding.destroyedEvent);
                 eventIds.insert(itr->destructibleBuilding.intactEvent);
                 eventIds.insert(itr->destructibleBuilding.rebuildingEvent);
                 break;
-#endif
             default:
                 break;
         }
@@ -175,7 +170,6 @@ void ScriptMgr::CollectPossibleEventIds(std::set<uint32>& eventIds)
         {
             for (int j = 0; j < MAX_EFFECT_INDEX; ++j)
             {
-#if defined (CATA)
                 SpellEffectEntry const* spellEffect = spell->GetSpellEffect(SpellEffectIndex(j));
                 if (!spellEffect)
                 {
@@ -189,19 +183,9 @@ void ScriptMgr::CollectPossibleEventIds(std::set<uint32>& eventIds)
                         eventIds.insert(spellEffect->EffectMiscValue_0);
                     }
                 }
-#else
-                if (spell->Effect[j] == SPELL_EFFECT_SEND_EVENT)
-                {
-                    if (spell->EffectMiscValue[j])
-                    {
-                        eventIds.insert(spell->EffectMiscValue[j]);
-                    }
-                }
-#endif
             }
         }
     }
-#if defined(TBC) || defined (WOTLK) || defined (CATA)
     // Load all possible event entries from taxi path nodes
     for (size_t path_idx = 0; path_idx < sTaxiPathNodesByPath.size(); ++path_idx)
     {
@@ -220,7 +204,6 @@ void ScriptMgr::CollectPossibleEventIds(std::set<uint32>& eventIds)
             }
         }
     }
-#endif
 }
 
 // Starters for events
@@ -249,11 +232,7 @@ bool StartEvents_Event(Map* map, uint32 id, Object* source, Object* target, bool
         }
         else
         {
-#if defined(CLASSIC)
-            if (map->IsBattleGround())
-#else
             if (map->IsBattleGroundOrArena())
-#endif
             {
                 bg = ((BattleGroundMap*)map)->GetBG();
             }

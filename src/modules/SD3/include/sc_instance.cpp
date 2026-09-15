@@ -41,12 +41,7 @@ void ScriptedInstance::DoUseDoorOrButton(ObjectGuid guid, uint32 uiWithRestoreTi
 
     if (GameObject* pGo = instance->GetGameObject(guid))
     {
-#if defined (CLASSIC) || defined (TBC)
-        if (pGo->GetGoType() == GAMEOBJECT_TYPE_DOOR || pGo->GetGoType() == GAMEOBJECT_TYPE_BUTTON)
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
         if (pGo->GetGoType() == GAMEOBJECT_TYPE_DOOR || pGo->GetGoType() == GAMEOBJECT_TYPE_BUTTON || pGo->GetGoType() == GAMEOBJECT_TYPE_TRAPDOOR)
-#endif
         {
             if (pGo->getLootState() == GO_READY)
             {
@@ -100,12 +95,7 @@ void ScriptedInstance::DoRespawnGameObject(ObjectGuid guid, uint32 uiTimeToDespa
     {
         // not expect any of these should ever be handled
         if (pGo->GetGoType() == GAMEOBJECT_TYPE_FISHINGNODE || pGo->GetGoType() == GAMEOBJECT_TYPE_DOOR ||
-#if defined (CLASSIC) || defined (TBC)
-            pGo->GetGoType() == GAMEOBJECT_TYPE_BUTTON || pGo->GetGoType() == GAMEOBJECT_TYPE_TRAP)
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
             pGo->GetGoType() == GAMEOBJECT_TYPE_BUTTON)
-#endif
         {
             return;
         }
@@ -274,7 +264,6 @@ Creature* ScriptedInstance::GetSingleCreatureFromStorage(uint32 uiEntry, bool bS
     return nullptr;
 }
 
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 
 /**
  * @brief Starts a timed achievement criteria for players in the map.
@@ -300,7 +289,6 @@ void ScriptedInstance::DoStartTimedAchievement(AchievementCriteriaTypes criteria
         debug_log("SD3: DoStartTimedAchievement attempt start achievements but no players in map.");
     }
 }
-#endif
 
 /**
  * @brief Constructor for DialogueHelper.

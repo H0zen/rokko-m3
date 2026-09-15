@@ -74,11 +74,7 @@ struct item_gossip_test : public ItemScript
         pPlayer->ADD_GOSSIP_ITEM_ID(GOSSIP_ICON_DOT, "Option with GOSSIP_ICON_DOT", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 3);
         pPlayer->ADD_GOSSIP_ITEM_ID(GOSSIP_ICON_CHAT_11, "Option with GOSSIP_ICON_CHAT_11", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 3);
         pPlayer->ADD_GOSSIP_ITEM_ID(GOSSIP_ICON_CHAT_12, "Option with GOSSIP_ICON_CHAT_12", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 3);
-#if defined(CLASSIC) || defined(TBC)
-        pPlayer->ADD_GOSSIP_ITEM_ID(GOSSIP_ICON_DOT_13, "Option with GOSSIP_ICON_DOT_13", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 3);
-#else
         pPlayer->ADD_GOSSIP_ITEM_ID(GOSSIP_ICON_CHAT_13, "Option with GOSSIP_ICON_DOT_13", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 3);
-#endif
         // Max gossip options seem to be 15
         /**  pPlayer->ADD_GOSSIP_ITEM_ID(GOSSIP_ICON_DOT_14, "Option with GOSSIP_ICON_DOT_14", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 3);
          * pPlayer->ADD_GOSSIP_ITEM_ID(GOSSIP_ICON_DOT_15, "Option with GOSSIP_ICON_DOT_15", GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 3);
@@ -133,7 +129,6 @@ struct item_gossip_test : public ItemScript
     }
 };
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined (MISTS)
 #include "Spell.h" // This include is not needed in Zero, but is in the rest
 
 /*#####
@@ -268,8 +263,6 @@ struct item_gor_dreks_ointment : public ItemScript
         return false;
     }
 };
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
 /*#####
 # item_petrov_cluster_bombs
 #####*/
@@ -307,17 +300,13 @@ struct item_petrov_cluster_bombs : public ItemScript
         return false;
     }
 };
-#endif
 
 void AddSC_item_scripts()
 {
-#if defined (CLASSIC) || (TBC) || defined (WOTLK) || defined (CATA) || defined (MISTS)
     Script* s;
     s = new item_gossip_test();
     s->RegisterSelf();
-#endif
 
-#if defined (TBC) || defined (WOTLK) || defined (CATA) || defined (MISTS)
     s = new item_ogre_brew();
     s->RegisterSelf();
     s = new item_arcane_charges();
@@ -341,8 +330,6 @@ void AddSC_item_scripts()
     //pNewScript->Name = "item_gor_dreks_ointment";
     //pNewScript->pItemUse = &ItemUse_item_gor_dreks_ointment;
     //pNewScript->RegisterSelf();
-#endif
-#if defined (WOTLK) || defined (CATA) || defined(MISTS)
     s = new item_petrov_cluster_bombs();
     s->RegisterSelf();
 
@@ -350,5 +337,4 @@ void AddSC_item_scripts()
     // pNewScript->Name = "item_petrov_cluster_bombs";
     // pNewScript->pItemUse = &ItemUse_item_petrov_cluster_bombs;
     // pNewScript->RegisterSelf();
-#endif
 }
