@@ -49,6 +49,7 @@
 #include "DBCStores.h"
 #include "ProgressBar.h"
 #include "ScriptMgr.h"
+#include "World.h"
 
 /**
  * @brief Loads and initializes all configured global transports.
@@ -121,6 +122,18 @@ void MapManager::LoadTransports()
         const MapEntry* pMapInfo = sMapStore.LookupEntry(mapid);
         if (!pMapInfo || pMapInfo->Instanceable())
         {
+            delete t;
+            continue;
+        }
+
+        // The harness's bare map (P0-D) carries none of the world's spawns, and a
+        // vessel is one: an active object whose position is the boot's wall clock
+        // modulo its period, loading and unloading grids along its route at moments
+        // no seed controls. Skipped here, before it is registered anywhere.
+        const uint32 bareMap = sWorld.getConfig(CONFIG_UINT32_MOVEMENT_HARNESS_BARE_MAP);
+        if (bareMap && mapsUsed.count(bareMap))
+        {
+            sLog.outString("Transport %u '%s' skipped: map %u is bare", entry, name.c_str(), bareMap);
             delete t;
             continue;
         }

@@ -28,6 +28,7 @@
 
 #include "Platform/Define.h"
 #include "Policies/Singleton.h"
+#include "Timeline.h"
 
 #include <string>
 #include <vector>
@@ -49,12 +50,32 @@ namespace Harness
     /// inform type, so this is unobserved.
     static const int32 kExternalPath = 250;
 
+    /// The world patroller's (Mouse, entry 6271, guid 261361) four nodes, mirrored as
+    /// an external path for S8's own spawn (Movement.HarnessBareMap leaves the map
+    /// with no world creature to find). Same id scheme as kExternalPath, one slot up.
+    static const int32 kMousePath = 251;
+
+    /// A scenario still running after this much virtual time is abandoned, so
+    /// MVTEST DONE always comes (long-follow needs about four).
+    static const uint32 kScenarioMaxMs = 300000;
+
     /**
      * The GM harness runner (design v2 §12): the registry of scenarios in the old
      * harness's order, the map they run on (Kalimdor, Mulgore), the clock, and the
      * MVTEST log. Ticked from World::Update after the maps, outside the map phase,
      * where console commands run; one scenario at a time; every actor a scenario
      * spawned is despawned when it ends.
+     *
+     * A run steps the world (movement P0-D): from `Start` to `MVTEST DONE` the world
+     * loop advances the clock in fixed 50 ms ticks without sleeping, every map updates
+     * on the world thread, and each scenario starts from `SeedFor(seedBase, order)` and
+     * reseeds again right before the harness map's own update (`SeedMapUpdate`) and its
+     * own step, and, on a bare map, from no loaded grids; a run refuses to start while
+     * any session is online -- the mode exists for the headless launcher.
+     *
+     * A run started from a chat command is processed in UpdateSessions, before the maps'
+     * update of its tick, and one from the console after it, so a GM-started run pins a
+     * different tick phase and is not bit-comparable with a launcher run.
      */
     class Runner
     {
@@ -62,10 +83,12 @@ namespace Harness
         Runner();
         ~Runner();
 
-        /// `all`, or one scenario's name. False when unknown or a run is in progress.
-        bool Start(std::string const& what);
+        /// `all`, or one scenario's name; `seedBase` is the console's optional second
+        /// argument. False when unknown or a run is in progress.
+        bool Start(std::string const& what, uint32 seedBase = kSeedBase);
         std::string Status() const;
         void Update(uint32 diff);
+        void SeedMapUpdate();   ///< right before the harness map's update, while a scenario is running: the world thread's generator takes TickSeed(seedBase, order, elapsed)
         Map* GetMap() const { return m_map; }
         void Register(Scenario* scenario) { m_registry.push_back(scenario); }
         bool Running() const { return m_index < m_queue.size(); }
@@ -81,6 +104,7 @@ namespace Harness
         uint32                 m_settle;        ///< ms of pause left before the next
         uint32                 m_sinceTick;
         uint32                 m_verdicts;
+        uint32                 m_seedBase;      ///< the run's seed base (Start's second argument): each scenario seeds from SeedFor(m_seedBase, order)
         Map*                   m_map;
     };
 }

@@ -63,6 +63,7 @@
 #include "Transports.h"
 #include "TransportMap.h"
 #include "ObjectMgr.h"
+#include "WorldClock.h"
 
 
 MapManager::MapManager()
@@ -312,6 +313,7 @@ void MapManager::Update(uint32 diff)
     // among them: it belongs to the vessel, which runs it nested inside the tick of the
     // map it sails, once that map has finished with its own containers. There is no second
     // pass and no barrier between them, because there are no longer two of anything.
+    const bool pooled = m_updater.activated() && !WorldClock::IsStepped();   // a stepped run updates every map on the world thread, in order (P0-D)
     MapPhase::Begin();
     for (MapMapType::iterator iter = i_maps.begin(); iter != i_maps.end(); ++iter)
     {
@@ -320,7 +322,7 @@ void MapManager::Update(uint32 diff)
             continue;
         }
 
-        if (m_updater.activated())
+        if (pooled)
         {
             m_updater.schedule_update(*iter->second, (uint32)i_timer.GetCurrent());
         }
@@ -328,11 +330,15 @@ void MapManager::Update(uint32 diff)
         {
             // Map::Update sets its own ownership scope now; no worker pool, so the
             // world thread updates maps in turn, one Scope at a time.
+            if (m_beforeMapUpdate)
+            {
+                m_beforeMapUpdate(*iter->second);
+            }
             iter->second->Update((uint32)i_timer.GetCurrent());
         }
     }
 
-    if (m_updater.activated())
+    if (pooled)
     {
         m_updater.wait();
     }
@@ -378,6 +384,12 @@ void MapManager::Update(uint32 diff)
         }
     }
 
+    i_timer.SetCurrent(0);
+}
+
+/// Restart the map update interval from zero: the GM harness pins the phase of the map updates to a run's start (P0-D).
+void MapManager::ResetUpdateTimer()
+{
     i_timer.SetCurrent(0);
 }
 
@@ -428,6 +440,9 @@ bool MapManager::IsValidMAP(uint32 mapid)
  */
 void MapManager::UnloadAll()
 {
+    // No hook outlives the maps it refers to.
+    m_beforeMapUpdate = BeforeMapUpdateHook();
+
     // Off the world entirely, while the maps that hold them are still alive. See
     // Transport::WithdrawFromWorld -- no grid unload ever reaches a vessel.
     for (TransportSet::iterator i = m_Transports.begin(); i != m_Transports.end(); ++i)

@@ -222,28 +222,53 @@ namespace world::terrain
         if (m_globalWmo && now - m_globalWmoLastUse.load(std::memory_order_relaxed) >=
                                TILE_IDLE_MS)
         {
-            bool anyPinned = false;
-            for (int tx = 0; tx < GRID_COUNT && !anyPinned; ++tx)
+            DropGlobalWmoIfUnpinned();
+        }
+    }
+
+    void FusedTerrain::RestartSweep()
+    {
+        // Lock order is cell-ref then tile cache; nothing else takes both.
+        std::lock_guard<std::mutex> refLock(m_cellRefMutex);
+        std::unique_lock<std::shared_mutex> lock(m_mutex);
+
+        m_sweepAccumMs = 0;
+
+        for (int tx = 0; tx < GRID_COUNT; ++tx)
+        {
+            for (int ty = 0; ty < GRID_COUNT; ++ty)
             {
-                for (int ty = 0; ty < GRID_COUNT; ++ty)
+                if (m_tiles[tx][ty] && m_cellRef[tx][ty] == 0)
                 {
-                    if (m_cellRef[tx][ty] > 0)
-                    {
-                        anyPinned = true;
-                        break;
-                    }
+                    EvictTile(tx, ty);
                 }
             }
+        }
 
-            if (!anyPinned)
+        if (m_globalWmo)
+        {
+            DropGlobalWmoIfUnpinned();
+        }
+    }
+
+    void FusedTerrain::DropGlobalWmoIfUnpinned() const
+    {
+        for (int tx = 0; tx < GRID_COUNT; ++tx)
+        {
+            for (int ty = 0; ty < GRID_COUNT; ++ty)
             {
-                // The probe memo goes with it: unlike an absent tile, this file plainly
-                // exists, so the next query should re-read rather than remember a miss.
-                m_globalWmo.reset();
-                m_globalWmoProbed = 0;
-                m_globalWmoLastUse.store(0, std::memory_order_relaxed);
+                if (m_cellRef[tx][ty] > 0)
+                {
+                    return;
+                }
             }
         }
+
+        // The probe memo goes with it: unlike an absent tile, this file plainly
+        // exists, so the next query should re-read rather than remember a miss.
+        m_globalWmo.reset();
+        m_globalWmoProbed = 0;
+        m_globalWmoLastUse.store(0, std::memory_order_relaxed);
     }
 
     void FusedTerrain::PinCell(int tx, int ty)

@@ -106,6 +106,12 @@ class MapManager : public MaNGOS::Singleton<MapManager>
             i_timer.Reset();
         }
 
+        /// Restart the map update interval from zero: the GM harness pins the phase of the map updates to a run's start (P0-D).
+        void ResetUpdateTimer();
+
+        typedef std::function<void(Map&)> BeforeMapUpdateHook;
+        void SetBeforeMapUpdateHook(BeforeMapUpdateHook hook) { m_beforeMapUpdate = hook; }   ///< runs on the world thread right before a map's inline update (the GM harness reseeds its map's stream, P0-D)
+
         void UnloadAll();
 
         static bool ExistMapAndVMap(uint32 mapid, float x, float y);
@@ -188,6 +194,7 @@ class MapManager : public MaNGOS::Singleton<MapManager>
         MapMapType i_maps;
         IntervalTimer i_timer;
         MapUpdater m_updater;
+        BeforeMapUpdateHook m_beforeMapUpdate;
 
         // Plain, not recursive. Every path that used to reenter now goes
         // through a FindMapLocked-style helper instead; see MapManager.cpp.

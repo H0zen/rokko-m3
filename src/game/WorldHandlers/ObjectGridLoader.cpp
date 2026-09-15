@@ -386,6 +386,11 @@ void ObjectGridLoader::LoadCell(uint32 cellX, uint32 cellY)
     }
     i_grid.setCellObjectDataLoaded(cellX, cellY, true);
 
+    if (i_map->IsBare())
+    {
+        return;   // the GM harness's map: terrain only, no creature, gameobject or corpse spawns (P0-D)
+    }
+
     i_cell.data.Part.cell_x = cellX;
     i_cell.data.Part.cell_y = cellY;
 

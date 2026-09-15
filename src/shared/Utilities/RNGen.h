@@ -39,6 +39,12 @@ class RNGen
             gen_.seed(rd());
         }
 
+        /// Reseed the generator (the GM harness seeds the world thread's per scenario, P0-D).
+        void Seed(uint32 seed)
+        {
+            gen_.seed(seed);
+        }
+
         int32 rand_i(int32 min, int32 max)
         {
             std::uniform_int_distribution<int32> dist{min, max};
@@ -88,6 +94,12 @@ class RNG
         {
             thread_local RNGen generator;
             return &generator;
+        }
+
+        /// Reseed the calling thread's generator.
+        static void Seed(uint32 seed)
+        {
+            instance()->Seed(seed);
         }
 };
 

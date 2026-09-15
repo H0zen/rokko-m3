@@ -41,6 +41,7 @@
 #include "BuildInfo.h"
 #include "Timer.h"
 #include "World.h"
+#include "WorldClock.h"
 #include "WorldSession.h"
 #include "movement/WireParity.h"
 
@@ -296,19 +297,26 @@ void Master::WorldLoop()
         // Read by the freeze watchdog to tell a busy server from a wedged one.
         ++World::m_worldLoopCounter;
 
+        // The GM harness's stepped mode (movement P0-D): a fixed tick, the clock advanced by
+        // exactly that, no sleep; the CPU sets the speed. Real mode is the loop as it was.
+        const bool stepped = WorldClock::IsStepped();
         const uint32 current = getMSTime();
-        sWorld.Update(getMSTimeDiff(previous, current));
-        previous = current;
+        const uint32 diff = stepped ? WORLD_SLEEP_CONST : getMSTimeDiff(previous, current);
+        if (stepped)
+        {
+            WorldClock::Step(WORLD_SLEEP_CONST);
+        }
+        sWorld.Update(diff);
+        previous = stepped ? getMSTime() : current;
 
         const uint32 spent = getMSTimeDiff(current, getMSTime());
-
-        if (getMSTimeDiff(lastStatus, current) >= 1000)
+        // The status line (and the console title inside it) is real-mode information; while stepped it would republish every twenty iterations instead of every wall-clock second.
+        if (!stepped && getMSTimeDiff(lastStatus, current) >= 1000)
         {
             lastStatus = current;
             PublishConsoleStatus(spent);
         }
-
-        if (spent < WORLD_SLEEP_CONST)
+        if (!stepped && spent < WORLD_SLEEP_CONST)
         {
             std::this_thread::sleep_for(
                 std::chrono::milliseconds(WORLD_SLEEP_CONST - spent));
@@ -325,6 +333,8 @@ void Master::WorldLoop()
         }
 #endif
     }
+
+    WorldClock::LeaveStepped();   // a run cut short by the stop: the shutdown that follows runs on real time (a no-op when real)
 
     sLog.outString("World updater stopped.");
 }

@@ -81,8 +81,9 @@ namespace Harness
         bool Finished() const { return m_finished; }
         /// True while the timeline has no pending steps left to run.
         bool Idle() const { return m_timeline.Idle(); }
-        /// The timeline ran dry without a verdict: reads BROKEN instead of wedging the runner.
-        void Abandon() { Verdict("BROKEN(no verdict: the timeline ran dry)"); }
+        /// The timeline ran dry, or the runner's per-scenario ceiling fired, without a
+        /// verdict: reads BROKEN (or `reason`, for the ceiling) instead of wedging the runner.
+        void Abandon(char const* reason = "BROKEN(no verdict: the timeline ran dry)") { Verdict(reason); }
         /// Every guid Spawn handed out: the runner despawns them at the end.
         std::vector<ObjectGuid> const& Spawned() const { return m_spawned; }
         /// Every creature Find resolved and activated: the runner hands each back

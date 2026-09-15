@@ -2169,12 +2169,17 @@ bool ChatHandler::HandleDebugMovementScenarioCommand(char* args)
         PSendSysMessage("harness: %s", sHarness.Status().c_str());
         return true;
     }
-    if (!sHarness.Start(what))
+    uint32 seedBase = Harness::kSeedBase;
+    if (!ExtractOptUInt32(&args, seedBase, Harness::kSeedBase))
+    {
+        return false;
+    }
+    if (!sHarness.Start(what, seedBase))
     {
         PSendSysMessage("harness: could not start %s (%s)", what, sHarness.Status().c_str());
         SetSentErrorMessage(true);
         return false;
     }
-    PSendSysMessage("harness: started %s", what);
+    PSendSysMessage("harness: started %s (seed base %u)", what, seedBase);
     return true;
 }

@@ -29,6 +29,7 @@
 
 #include "Log.h"
 #include "Timer.h"
+#include "WorldClock.h"
 #include "World.h"
 
 #include <chrono>
@@ -80,7 +81,7 @@ void AntiFreezeService::Run()
 {
     // Snapshot of the counter and when it last moved.
     uint32 lastLoops  = World::m_worldLoopCounter.load(std::memory_order_relaxed);
-    uint32 lastChange = getMSTime();
+    uint32 lastChange = WorldClock::RealMs();
 
     for (;;)
     {
@@ -97,7 +98,7 @@ void AntiFreezeService::Run()
             break;
         }
 
-        const uint32 now   = getMSTime();
+        const uint32 now   = WorldClock::RealMs();
         const uint32 loops = World::m_worldLoopCounter.load(std::memory_order_relaxed);
 
         if (loops != lastLoops)

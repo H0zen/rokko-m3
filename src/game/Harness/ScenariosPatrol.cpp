@@ -43,13 +43,11 @@ namespace Harness
     {
         const uint32 CHICKEN = 621;
         const uint32 STUN = 5211;   // Bash: a plain stun aura
-        const uint32 MOUSE_LOW = 261361;
         const uint32 MOUSE_ENTRY = 6271;
 
         struct Pt { float x, y, z; };
         const Pt P0 = { -3122.6f, -261.3f, 46.0f };    // the template square's near corner
         const Pt P0_FAR = { -3152.6f, -231.3f, 46.0f };   // the square's far (diagonal) corner
-        const Pt MOUSE_POS = { -2992.5f, -335.9f, 0.0f };   // the Mouse's grid, for Load before Find
 
         /// The nodes an S7/S19 sample recorded, comma-joined, as the old Lua's
         /// table.concat(reached, ",") did.
@@ -127,10 +125,11 @@ namespace Harness
             }
         };
 
-        /// S8: the world's own patroller (Mouse, guid 261361, 4 nodes near
-        /// -2993 -336) lifted sixty yards off the mesh, where there is no
-        /// navmesh under it. B7 asks whether the waypoint generator ever lays a
-        /// leg back down once its destination node turns out unreachable.
+        /// S8: a patroller of our own on Mouse's four nodes (the world's Mouse,
+        /// guid 261361, mirrored as an external path: the harness map is bare)
+        /// lifted sixty yards off the mesh, where there is no navmesh under it.
+        /// B7 asks whether the waypoint generator ever lays a leg back down once
+        /// its destination node turns out unreachable.
         class PatrolLifted : public Scenario
         {
         public:
@@ -139,16 +138,9 @@ namespace Harness
             void Prepare() override
             {
                 struct Sample { uint32 t; float z; uint32 node; MovementGeneratorType mt; };
-                // Find only sees creatures in loaded grids; the Mouse's grid must be
-                // forced in before the lookup.
-                Load(MOUSE_POS.x, MOUSE_POS.y);
-                Creature* c = Find(MOUSE_LOW, MOUSE_ENTRY);
-                if (!c)
-                {
-                    Log("ERR patroller %u not found", MOUSE_LOW);
-                    Verdict("B7=INVALID(patroller not found)");
-                    return;
-                }
+                Creature* c = Spawn(MOUSE_ENTRY, -2986.64f, -329.723f, 54.0748f, 0.0f);
+                if (!c) { Verdict("B7=INVALID(spawn failed)"); return; }
+                c->GetMotionMaster()->MoveWaypoint(kMousePath, PATH_FROM_EXTERNAL);
                 const ObjectGuid g = c->GetObjectGuid();
                 const float x = c->Where().X(), y = c->Where().Y(), z = c->Where().Z(), o = c->Where().Facing();
                 const float z0 = z + 60.0f;
@@ -170,7 +162,7 @@ namespace Harness
                         Log("+%5ums %.1f %.1f z=%.1f mt=%s lastWP=%u", s.t, px, py, s.z, Harness::TypeName(s.mt), s.node);
                     });
                 }
-                At(41000, [this, samples, z0, g, x, y, z, o]()
+                At(41000, [this, samples, z0]()
                 {
                     if (samples->empty())
                     {
@@ -194,19 +186,8 @@ namespace Harness
                         }
                         Verdict("B7=" + b7 + " | decisive count = MVTRACE dead-node lines");
                     }
-                    // Put the Mouse back where it stood before the lift: Find handed
-                    // back a world creature, not a spawn of ours, so the runner's
-                    // sweep restores its AI and active flag but never its position or
-                    // its generator's node. MotionMaster::Initialize rebuilds a WAYPOINT
-                    // creature's default path from its first node, so the Mouse resumes
-                    // its own patrol rather than picking up at the node the lifted run
-                    // left it on.
-                    if (Creature* m = Get(g))
-                    {
-                        m->NearTeleportTo(x, y, z, o);
-                        m->GetMotionMaster()->Initialize();
-                        Log("restored to %.1f %.1f %.1f", x, y, z);
-                    }
+                    // A spawn of our own now (the harness map is bare): the runner's
+                    // sweep despawns it, no restore needed.
                 });
             }
         };

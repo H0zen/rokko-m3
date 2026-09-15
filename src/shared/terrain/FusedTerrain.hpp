@@ -87,6 +87,11 @@ namespace world::terrain
         // walking a continent leaves every WMO he passed resident for the map's life.
         void Update(uint32_t diff);
 
+        // Drops every tile nothing pins, whatever its age, and restarts the sweep
+        // interval: the harness's pin (P0-D), so a stepped run meets the sweeps at the
+        // same virtual moments each time instead of at a phase the boot's clock set.
+        void RestartSweep();
+
         // Pins a cell's tile against the sweep while a grid is active.
         void PinCell(int tx, int ty);
         void UnpinCell(int tx, int ty);
@@ -100,6 +105,11 @@ namespace world::terrain
         TilePtr GlobalWmo() const;
         TilePtr LoadCell(int tx, int ty) const;
         void EvictTile(int tx, int ty) const;
+
+        // The "nothing pinned anywhere" scan and the drop itself, shared by Update()'s
+        // idle sweep and RestartSweep() so the two cannot drift on either. Caller must
+        // already hold m_cellRefMutex and the exclusive lock on m_mutex.
+        void DropGlobalWmoIfUnpinned() const;
 
         void CollectSegmentInstances(const Vec3& a, const Vec3& b,
                                      std::vector<const StaticInstance*>& out,
@@ -128,6 +138,7 @@ namespace world::terrain
         mutable std::array<std::array<std::atomic<uint32_t>, GRID_COUNT>, GRID_COUNT>
             m_tileLastUse{};
         std::atomic<uint32_t> m_clockMs{0};
+        // World thread only: Update() from the terrain manager's tick, RestartSweep() from the harness's start.
         uint32_t m_sweepAccumMs = 0;
 
         std::array<std::array<int16_t, GRID_COUNT>, GRID_COUNT> m_cellRef{};

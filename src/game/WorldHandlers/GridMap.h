@@ -236,6 +236,11 @@ class TerrainInfo : public Referencable<AtomicLong>
         // Ages the tile cache and reclaims what no active grid holds.
         void CleanUpGrids(const uint32 diff);
 
+        /// Reclaims every tile no grid holds right now and restarts both reclaim
+        /// intervals: the harness's pin (P0-D), so a stepped run meets the passes at the
+        /// same virtual moments each time instead of at a phase the boot's clock set.
+        void RestartCleanUp();
+
     protected:
         friend class Map;
         bool Load(const uint32 x, const uint32 y);
@@ -244,6 +249,9 @@ class TerrainInfo : public Referencable<AtomicLong>
     private:
         TerrainInfo(const TerrainInfo&);
         TerrainInfo& operator=(const TerrainInfo&);
+
+        // The navmesh-unload loop CleanUpGrids and RestartCleanUp both run.
+        void UnloadUnheldNavMesh();
 
         const uint32 m_mapId;
 

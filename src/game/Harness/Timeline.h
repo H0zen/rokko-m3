@@ -41,6 +41,32 @@
  */
 namespace Harness
 {
+    const uint32 kSeedBase = 0x4D56;   ///< the default seed base ("MV"); a scenario's seed is the base plus its order
+
+    /// The seed a scenario runs from: the base plus its order, so a scenario's outcome does not
+    /// depend on what ran before it and a single-scenario run reproduces the full run.
+    inline uint32 SeedFor(uint32 base, int order)
+    {
+        return base + uint32(order);
+    }
+
+    /// The seed a running scenario's map update draws from: the scenario's seed folded with its
+    /// tick, so nothing drawn outside the map phase (the auction bot, broadcasts, game events,
+    /// whose timers sit at arbitrary phases) can reach what the map draws.
+    inline uint32 TickSeed(uint32 base, int order, uint32 elapsedMs)
+    {
+        return SeedFor(base, order) ^ (0x9E3779B9u * (1u + elapsedMs / 50u));
+    }
+
+    /// The seed the harness's own step draws from: the scenario callbacks run from
+    /// World::Update after every map has updated, where the other continents' creatures
+    /// draw by amounts no seed controls, so the step reseeds as the map update does; the
+    /// tick seed under a fixed salt, so the two streams differ.
+    inline uint32 StepSeed(uint32 base, int order, uint32 elapsedMs)
+    {
+        return TickSeed(base, order, elapsedMs) ^ 0x7F4A7C15u;
+    }
+
     class Timeline
     {
     public:

@@ -170,7 +170,8 @@ Map::Map(uint32 id, time_t expiry, uint32 InstanceId, uint8 SpawnMode)
       m_persistentState(NULL),
       m_activeNonPlayersIter(m_activeNonPlayers.end()),
       i_gridExpiry(expiry), m_TerrainData(sTerrainMgr.LoadTerrain(id)),
-      i_data(NULL)
+      i_data(NULL),
+      m_bare(InstanceId == 0 && sWorld.getConfig(CONFIG_UINT32_MOVEMENT_HARNESS_BARE_MAP) == id)
 {
     m_CreatureGuids.Set(sObjectMgr.GetFirstTemporaryCreatureLowGuid());
     m_GameObjectGuids.Set(sObjectMgr.GetFirstTemporaryGameObjectLowGuid());
@@ -573,7 +574,10 @@ bool Map::EnsureGridLoaded(const Cell& cell)
         }
 
         // Add resurrectable corpses to world object list in grid
-        sCorpseManager.AddCorpsesToGrid(GridPair(cell.GridX(), cell.GridY()), (*grid)(cell.CellX(), cell.CellY()), this);
+        if (!IsBare()) // a bare map carries no corpse either (the loader's guard above covers the database spawns; this is the one object path outside it)
+        {
+            sCorpseManager.AddCorpsesToGrid(GridPair(cell.GridX(), cell.GridY()), (*grid)(cell.CellX(), cell.CellY()), this);
+        }
         return true;
     }
 
@@ -1749,6 +1753,11 @@ void Map::UnloadAll(bool pForce)
         ++i;
         UnloadGrid(grid.getX(), grid.getY(), pForce);       // deletes the grid and removes it from the GridRefManager
     }
+}
+
+void Map::RestartTerrainCleanUp()
+{
+    m_TerrainData->RestartCleanUp();
 }
 
 MapDifficultyEntry const* Map::GetMapDifficulty() const

@@ -220,16 +220,8 @@ void TerrainInfo::Unload(const uint32 x, const uint32 y)
     }
 }
 
-void TerrainInfo::CleanUpGrids(const uint32 diff)
+void TerrainInfo::UnloadUnheldNavMesh()
 {
-    m_terrain.Update(diff);
-
-    i_timer.Update(diff);
-    if (!i_timer.Passed())
-    {
-        return;
-    }
-
     for (int y = 0; y < MAX_NUMBER_OF_GRIDS; ++y)
     {
         for (int x = 0; x < MAX_NUMBER_OF_GRIDS; ++x)
@@ -241,8 +233,28 @@ void TerrainInfo::CleanUpGrids(const uint32 diff)
             }
         }
     }
+}
+
+void TerrainInfo::CleanUpGrids(const uint32 diff)
+{
+    m_terrain.Update(diff);
+
+    i_timer.Update(diff);
+    if (!i_timer.Passed())
+    {
+        return;
+    }
+
+    UnloadUnheldNavMesh();
 
     i_timer.Reset();
+}
+
+void TerrainInfo::RestartCleanUp()
+{
+    m_terrain.RestartSweep();
+    UnloadUnheldNavMesh();
+    i_timer.SetCurrent(0);
 }
 
 world::terrain::Column TerrainInfo::ColumnAt(float x, float y, float zTop, float zBottom,

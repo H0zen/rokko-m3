@@ -38,6 +38,7 @@
 #include "Database/SqlOperations.h"
 #include "DatabaseEnv.h"
 #include "Timer.h"
+#include "WorldClock.h"
 
 /**
  * @brief Constructor for SqlDelayThread
@@ -102,9 +103,9 @@ void SqlDelayThread::run()
 
         // A delay thread that stalls looks exactly like a server that has stopped
         // saving, with nothing in the log to say so. Time it and say when it does.
-        const uint32 start = getMSTime();
+        const uint32 start = WorldClock::RealMs();
         ProcessRequests();
-        const uint32 elapsed = getMSTimeDiff(start, getMSTime());
+        const uint32 elapsed = getMSTimeDiff(start, WorldClock::RealMs());
         if (elapsed > 5000)
         {
             sLog.outError("SqlDelayThread: ProcessRequests took %u ms", elapsed);

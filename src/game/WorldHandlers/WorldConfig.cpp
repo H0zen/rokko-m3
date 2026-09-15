@@ -711,6 +711,9 @@ void World::LoadConfigSettings(bool reload)
     setConfig(CONFIG_UINT32_MOVEMENT_ACK_TIMEOUT, "Movement.AckTimeout", 0);
     setConfig(CONFIG_UINT32_MOVEMENT_ACK_TOMBSTONE_TTL, "Movement.AckTombstoneTtl", 10000);
 
+    // The map the GM movement harness runs on (P0-D): a live server keeps 0.
+    setConfig(CONFIG_UINT32_MOVEMENT_HARNESS_BARE_MAP, "Movement.HarnessBareMap", 0);
+
     sLog.outString();
 }
 

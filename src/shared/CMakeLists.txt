@@ -199,6 +199,8 @@ set(SRC_GRP_UTILITIES
   Utilities/ScheduledExit.cpp
   Utilities/ScheduledExit.h
   Utilities/Timer.h
+  Utilities/WorldClock.cpp
+  Utilities/WorldClock.h
   Utilities/Util.cpp
   Utilities/Util.h
   Utilities/ByteConverter.h

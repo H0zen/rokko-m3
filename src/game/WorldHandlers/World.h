@@ -250,6 +250,7 @@ enum eConfigUInt32Values
     // Movement kernel (design v2 §6.2): the pending-change machine's timeout policy
     CONFIG_UINT32_MOVEMENT_ACK_TIMEOUT,
     CONFIG_UINT32_MOVEMENT_ACK_TOMBSTONE_TTL,
+    CONFIG_UINT32_MOVEMENT_HARNESS_BARE_MAP,
     CONFIG_UINT32_VALUE_COUNT
 };
 

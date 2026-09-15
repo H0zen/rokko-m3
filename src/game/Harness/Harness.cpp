@@ -32,6 +32,9 @@
 #include "TemporarySummon.h"
 #include "WaypointManager.h"
 #include "Log.h"
+#include "WorldClock.h"
+#include "RNGen.h"
+#include "World.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -53,7 +56,7 @@ namespace Harness
         const uint32 kMapId = 1;   ///< Kalimdor: the old scenarios' Mulgore plains
     }
 
-    Runner::Runner() : m_index(0), m_elapsed(0), m_settle(0), m_sinceTick(0), m_verdicts(0), m_map(NULL)
+    Runner::Runner() : m_index(0), m_elapsed(0), m_settle(0), m_sinceTick(0), m_verdicts(0), m_seedBase(kSeedBase), m_map(NULL)
     {
         // Every family registers its scenarios with their place in the old harness's
         // run order (S1=1, S2=2, S3=3, S5=4, S6=5, S7=6, S8=7, S9=8, S10=9, S11=10,
@@ -76,7 +79,7 @@ namespace Harness
         }
     }
 
-    bool Runner::Start(std::string const& what)
+    bool Runner::Start(std::string const& what, uint32 seedBase)
     {
         if (Running() || m_settle)
         {
@@ -111,12 +114,55 @@ namespace Harness
                 return false;
             }
         }
+        if (uint32 n = sWorld.GetActiveSessionCount())
+        {
+            sLog.outString("MVTEST refused: %u session(s) online; a run steps the world and its seconds, and a client's respawn and aura stamps would straddle the step back (run from the console on an empty realm)", n);
+            m_queue.clear();
+            return false;
+        }
         m_map = sMapMgr.CreateMap(kMapId, NULL);
         if (!m_map)
         {
             sLog.outString("MVTEST refused: map %u could not be created", kMapId);
             m_queue.clear();
             return false;
+        }
+        sLog.outString("MVTEST map %u bare=%d", kMapId, m_map->IsBare() ? 1 : 0);
+        if (!m_map->IsBare())
+        {
+            // A live GM may still run scenarios on a full map; only the launcher's
+            // headless, stepped runs need the map bare to read alike twice (P0-D).
+            sLog.outString("MVTEST WARN: map %u carries the world's spawns; two runs will not read alike (the launcher sets Movement.HarnessBareMap = %u)", kMapId, kMapId);
+        }
+        else
+        {
+            // Boot force-loads the grids of map 1's always-active creatures
+            // (ObjectMgr::LoadActiveEntities); a bare map skips their spawns but
+            // still loads their terrain, vmap and mmap tiles, and those grids'
+            // unload timers start in real time at boot. A run starting after a
+            // real-time delay that differs between two launches would then see a
+            // boot-loaded grid near the scenario area unload at a different
+            // virtual moment each time, so terrain and vmap queries at its edge
+            // would answer differently. A bare map holds no objects yet, so
+            // unloading every grid here is safe: from here every grid loads on
+            // demand at a deterministic virtual moment (a scenario's `Load` call
+            // or an actor's spawn) and its unload timer counts from there. The
+            // terrain caches' reclaim passes were phased the same way -- the fused
+            // tile cache's sweep and the navmesh purge both fell at boot-phased
+            // virtual moments -- so RestartTerrainCleanUp below reclaims every
+            // unheld tile now and restarts both, so the passes count from here too.
+            // UnloadAll(true) force-deletes a player's own NGridType, so a GM
+            // logged in on the bare map keeps its grids instead.
+            if (m_map->HavePlayers())
+            {
+                sLog.outString("MVTEST WARN: map %u has players; grids kept, two runs will not read alike", kMapId);
+            }
+            else
+            {
+                m_map->UnloadAll(true);
+                m_map->RestartTerrainCleanUp();
+                sLog.outString("MVTEST map %u grids reset: every grid loads at a scenario's own moment, terrain reclaim restarted", kMapId);
+            }
         }
         // The chicken's square (S7, S19), the old runner's template rows, as an
         // external path under the harness's own path id: id 0 is the one a script
@@ -141,9 +187,25 @@ namespace Harness
             {
                 sLog.outString("MVTEST %s", "ERR external node 4 not added");
             }
+            // Mouse's own four nodes (creature_movement guid 261361, entry 6271, read
+            // 2026-09-15), mirrored as an external path so patrol-lifted can spawn its
+            // own patroller on them: the harness map is bare (P0-D), so the world's
+            // Mouse is not there to Find.
+            // Nodes 3 and 4 coincide, as in the world's rows (creature_movement id
+            // 261361, points 2 and 3 share -2995.64 -338.986 53.5518): the path mirrors
+            // Mouse's exactly.
+            if (!sWaypointMgr.AddExternalNode(6271, kMousePath, 1, -2986.64f, -329.723f, 54.0748f, 0.0f, 0)) { sLog.outString("MVTEST %s", "ERR mouse node 1 not added"); }
+            if (!sWaypointMgr.AddExternalNode(6271, kMousePath, 2, -2985.8f, -329.178f, 54.0748f, 0.0f, 0)) { sLog.outString("MVTEST %s", "ERR mouse node 2 not added"); }
+            if (!sWaypointMgr.AddExternalNode(6271, kMousePath, 3, -2995.64f, -338.986f, 53.5518f, 0.0f, 0)) { sLog.outString("MVTEST %s", "ERR mouse node 3 not added"); }
+            if (!sWaypointMgr.AddExternalNode(6271, kMousePath, 4, -2995.64f, -338.986f, 53.5518f, 0.0f, 0)) { sLog.outString("MVTEST %s", "ERR mouse node 4 not added"); }
             pathAdded = true;
         }
         sLog.outString("MVTEST start: %u scenario(s) on map %u", uint32(m_queue.size()), kMapId);
+        m_seedBase = seedBase;
+        WorldClock::EnterStepped();
+        sMapMgr.ResetUpdateTimer();   // the next map update lands exactly two ticks after the start, every run
+        sMapMgr.SetBeforeMapUpdateHook([this](Map& map) { if (&map == m_map) { SeedMapUpdate(); } });   // the harness map's own update draws from the scenario's seed; the other maps' creatures ahead of it in the pass no longer shift its stream
+        sLog.outString("MVTEST stepped: seed base %u, map phase pinned", m_seedBase);
         Begin(m_queue[0]);
         return true;
     }
@@ -163,12 +225,25 @@ namespace Harness
         return text;
     }
 
+    void Runner::SeedMapUpdate()
+    {
+        // During the settle the actors are being despawned and Begin reseeds, so the map
+        // update draws from whatever the generator holds; only a running scenario's draws are pinned.
+        if (!Running() || m_settle)
+        {
+            return;
+        }
+        Scenario* s = m_queue[m_index];
+        RNG::Seed(TickSeed(m_seedBase, s->Order(), m_elapsed));
+    }
+
     void Runner::Begin(Scenario* s)
     {
         m_elapsed = 0;
         m_sinceTick = 0;
         s->Reset();
-        sLog.outString("MVTEST %s start", s->Name());
+        RNG::Seed(SeedFor(m_seedBase, s->Order()));
+        sLog.outString("MVTEST %s start seed=%u", s->Name(), SeedFor(m_seedBase, s->Order()));
         s->Prepare();
     }
 
@@ -235,6 +310,9 @@ namespace Harness
             else
             {
                 sLog.outString("MVTEST DONE %u scenarios, %u verdict lines", uint32(m_queue.size()), m_verdicts);
+                WorldClock::LeaveStepped();
+                sMapMgr.SetBeforeMapUpdateHook(MapManager::BeforeMapUpdateHook());
+                sLog.outString("MVTEST clock offset %u ms", WorldClock::OffsetMs());
                 m_queue.clear();
                 m_index = 0;
             }
@@ -252,10 +330,20 @@ namespace Harness
         }
         m_sinceTick = 0;
         Scenario* s = m_queue[m_index];
+        // The step below runs after every map's update (World::Update calls it after
+        // sMapMgr.Update), so it reseeds for the same reason SeedMapUpdate does.
+        RNG::Seed(StepSeed(m_seedBase, s->Order(), m_elapsed));
         s->Tick(m_elapsed);
         if (!s->Finished() && s->Idle())
         {
             s->Abandon();
+        }
+        if (!s->Finished() && m_elapsed > kScenarioMaxMs)
+        {
+            sLog.outString("MVTEST %s abandoned after %u ms (no verdict)", s->Name(), m_elapsed);
+            char text[64];
+            snprintf(text, sizeof(text), "timeout=INVALID(abandoned after %u s)", kScenarioMaxMs / 1000);
+            s->Abandon(text);
         }
         if (s->Finished())
         {

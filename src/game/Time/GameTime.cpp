@@ -46,6 +46,7 @@
 
 #include "GameTime.h"
 #include "Timer.h"
+#include "WorldClock.h"
 
 namespace GameTime
 {
@@ -174,8 +175,9 @@ namespace GameTime
      */
     void UpdateGameTimers()
     {
-        GameTime = time(nullptr);
+        GameTime = WorldClock::NowUnix();
         GameMSTime = getMSTime();
+        // the two points stay real: they exist for phases that must survive a restart
         GameTimeSystemPoint = std::chrono::system_clock::now();
         GameTimeSteadyPoint = std::chrono::steady_clock::now();
     }

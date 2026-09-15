@@ -227,6 +227,11 @@ class Map : public GridRefManager<NGridType>
         bool UnloadGrid(const uint32& x, const uint32& y, bool pForce);
         virtual void UnloadAll(bool pForce);
 
+        /// Restarts the terrain caches' reclaim passes: the harness's pin (P0-D), called
+        /// after UnloadAll(true) so a stepped run starts from no held tile and meets the
+        /// passes at the same virtual moments each time.
+        void RestartTerrainCleanUp();
+
         void ResetGridExpiry(NGridType& grid, float factor = 1) const
         {
             grid.ResetTimeTracker((time_t)((float)i_gridExpiry * factor));
@@ -269,6 +274,7 @@ class Map : public GridRefManager<NGridType>
         bool IsBattleArena() const { return i_mapEntry && i_mapEntry->IsBattleArena(); }
         bool IsBattleGroundOrArena() const { return i_mapEntry && i_mapEntry->IsBattleGroundOrArena(); }
         bool IsContinent() const { return i_mapEntry && i_mapEntry->IsContinent(); }
+        bool IsBare() const { return m_bare; }   ///< no spawns load into this map (Movement.HarnessBareMap): the GM harness's reproducible world
 
         /// This map AS A VESSEL, or NULL. Asked of the map itself rather than of its id, so
         /// the answer comes from what the map IS -- and the caller gets the thing it wanted
@@ -516,7 +522,9 @@ class Map : public GridRefManager<NGridType>
         MapRefManager m_mapRefManager;
         MapRefManager::iterator m_mapRefIter;
 
-        typedef std::set<WorldObject*> ActiveNonPlayers;
+        /// Ordered by guid: the walk is the same in every process (P0-D).
+        typedef std::set<WorldObject*, ObjectGuidPointerLess> ActiveNonPlayers;
+        static_assert(std::is_same<Map::ActiveNonPlayers::key_compare, ObjectGuidPointerLess>::value, "the map's active set walks by guid (P0-D)");
         ActiveNonPlayers m_activeNonPlayers;
         ActiveNonPlayers::iterator m_activeNonPlayersIter;
         MapStoredObjectTypesContainer m_objectsStore;
@@ -542,7 +550,10 @@ class Map : public GridRefManager<NGridType>
 
         std::bitset<TOTAL_NUMBER_OF_CELLS_PER_MAP* TOTAL_NUMBER_OF_CELLS_PER_MAP> marked_cells;
 
-        std::set<WorldObject*> i_objectsToRemove;
+        /// Ordered by guid: the walk is the same in every process (P0-D).
+        typedef std::set<WorldObject*, ObjectGuidPointerLess> RemoveList;
+        static_assert(std::is_same<Map::RemoveList::key_compare, ObjectGuidPointerLess>::value, "the map's remove list walks by guid (P0-D)");
+        RemoveList i_objectsToRemove;
 
         typedef std::multimap<time_t, ScriptAction> ScriptScheduleMap;
         ScriptScheduleMap m_scriptSchedule;
@@ -571,6 +582,8 @@ class Map : public GridRefManager<NGridType>
 
         // WeatherSystem
         WeatherSystem* m_weatherSystem;
+
+        bool m_bare;
 };
 
 class WorldMap : public Map

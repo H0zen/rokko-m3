@@ -1387,8 +1387,10 @@ bool World::RemoveBanAccount(BanMode mode, std::string nameOrIP)
 void World::_UpdateGameTime()
 {
     ///- update the time
-    time_t thisTime = time(NULL);
-    uint32 elapsed = uint32(thisTime - m_gameTime);
+    time_t thisTime = WorldClock::NowUnix();
+    /// The seconds step back once when a harness run ends; the step is taken
+    /// as no time passed, rather than underflowing to a huge elapsed value.
+    const uint32 elapsed = thisTime > m_gameTime ? uint32(thisTime - m_gameTime) : 0;
     m_gameTime = thisTime;
 
     ///- if there is a shutdown timer
