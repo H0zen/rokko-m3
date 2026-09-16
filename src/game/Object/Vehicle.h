@@ -142,6 +142,12 @@ class VehicleInfo
 
         void RemoveAccessoriesFromMap();                    ///< Unsummones accessory in case of far-teleport or death
 
+        /// Is @passenger allowed onto @seat specifically? A caller that must place a passenger
+        /// on a specific seat -- one that must avoid the control seat, say -- probes here
+        /// first; Board/SwitchSeat's own fallback (GetUsableSeatFor) picks the lowest usable
+        /// seat instead.
+        bool IsSeatAvailableFor(Unit* passenger, uint8 seat) const;
+
     private:
         void BoardPassenger(WorldObject* passenger, Geometry::Placement const& seatPose, uint8 seat);
         void UnBoardPassenger(WorldObject* passenger);
@@ -154,7 +160,6 @@ class VehicleInfo
 
         // Seat information
         bool GetUsableSeatFor(Unit* passenger, uint8& seat) const;
-        bool IsSeatAvailableFor(Unit* passenger, uint8 seat) const;
 
         uint8 GetTakenSeatsMask() const;
         uint8 GetEmptySeatsMask() const { return ~GetTakenSeatsMask(); }

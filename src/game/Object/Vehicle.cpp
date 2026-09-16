@@ -213,12 +213,20 @@ Geometry::Frame VehicleInfo::SeatFrame() const
 Geometry::Placement VehicleInfo::SeatPoseOf(Geometry::Vector3 const& worldPoint,
                                             float worldFacing) const
 {
-    // The vehicle's own basis turns a world delta into seat axes. The negated delta is
-    // MaNGOS' stored convention and is kept exactly: every seat offset in the database is
-    // expressed in it.
+    // The seat pose is the vehicle's own local frame: the exact inverse of
+    // CalculateGlobalPositionOf's composition (world = pos + R(o)*local, Basis().localToWorld),
+    // i.e. local = R(o)^T * (world - pos) -- the same rotation Basis().worldToLocal applies.
+    // The old core paired this side with its own negated composition
+    // (TransportBase::NormalizeRotatedPosition); the core unification (e881112bd, #306,
+    // 2026-07-29) replaced the composition with the standard localToWorld above but kept this
+    // side's negation, so every rider composed by UpdateGlobalPositions on a moving vehicle has
+    // sat at its reflection through the vehicle's centre since. No database row carries a seat
+    // offset and VehicleSeatEntry's attachment offsets are still unused, so nothing outside this
+    // function's own inverse depended on the old sign (see the caller/consumer audit in the
+    // commit body).
     const Geometry::Vector3 delta = worldPoint - m_owner->Where().Pos();
     const Geometry::Vector3 flat =
-        m_owner->Where().Basis().rot.mul(Geometry::Vector3(-delta.x, -delta.y, 0.0f));
+        m_owner->Where().Basis().rot.transpose().mul(Geometry::Vector3(delta.x, delta.y, 0.0f));
 
     Geometry::Placement seat;
     seat.EnterFrame(SeatFrame(), Geometry::Vector3(flat.x, flat.y, delta.z),
@@ -264,11 +272,62 @@ void VehicleInfo::UnBoardPassenger(WorldObject* passenger)
         return;
     }
 
-    passenger->SetTransportInfo(NULL);
+    // The seat pose is local to this vehicle's frame (BoardPassenger's own comment on
+    // TransportInfo::SetSeatPose): copied here as a value -- the TransportInfo holding it is
+    // deleted below, before anything that could run arbitrary code gets a chance to touch it.
+    Geometry::Placement const seatPose = itr->second->Seat();
 
+    // Leave the passenger map -- and delete the TransportInfo -- before anything below can run
+    // arbitrary code. UpdateGlobalPositionOf's relocation calls OnRelocated (visibility,
+    // notifiers) synchronously, and PassengerMap is an unordered_map: a passenger boarding onto
+    // this same vehicle from inside that callback can rehash it and invalidate this iterator --
+    // a use-after-invalidation on a delete/erase reached afterward. Erasing first also closes
+    // the half-state window where GetTransportInfo() already read NULL but the seat still read
+    // taken (GetTakenSeatsMask/GetPassenger) and the movement block still carried the old
+    // transport offset to an observer entering view in that window.
     delete itr->second;
-
     m_passengers.erase(itr);
+
+    // Stepping off must put the passenger back in the WORLD frame with the matching WORLD
+    // position -- but SetTransportInfo(NULL) below only re-tags the frame (WorldObject::
+    // RefreshFrame: "the pose is untouched: this says where the numbers are measured, not what
+    // they are"), so a passenger unboarded straight from its seat pose would keep that pose's
+    // LOCAL numbers, now mislabelled as world ones, if nothing composed them. UpdateGlobalPositionOf
+    // does exactly that below: the same composition the 500 ms refresh in VehicleInfo::Update
+    // uses to drag a seated rider along a moving vehicle, and it relocates through the map
+    // (Map::CreatureRelocation / PlayerRelocation), keeping the grid cell and running
+    // OnRelocated -- a plain Place().MoveTo would silently skip both.
+    passenger->SetTransportInfo(NULL);  // re-tag to the World frame first: relocation notifiers
+                                        // measure distances, and Placement fails closed across frames
+
+    if (!passenger->IsInWorld())
+    {
+        // No live map to relocate through -- a teardown (e.g. ~VehicleInfo's
+        // RemoveSpellsCausingAura, reached from Unit::~Unit, where GetMap() would assert). Keep
+        // the frame re-tag and the seat-pose conversion, but write the composed pose directly,
+        // the shape this code had before it started relocating through the map.
+        float gx, gy, gz, go;
+        CalculateGlobalPositionOf(seatPose.X(), seatPose.Y(), seatPose.Z(), seatPose.Facing(), gx, gy, gz, go);
+        passenger->Place().MoveTo(gx, gy, gz, go);
+        return;
+    }
+
+    // The old cell Map::PlayerRelocation unlinks from is read from the placement; a rider's may
+    // still be the seat pose (local numbers, a cell at the map's centre) if nothing has composed
+    // it yet. Seed it with the vehicle's own world pose first -- but ONLY while the placement
+    // still equals the copied seat pose: a placement still holding the seat pose names a cell at
+    // the map's centre, but one already composed by the 500 ms refresh names the rider's OWN
+    // cell and must be left as it is, or the seed would introduce the very mismatch it exists to
+    // avoid. (The cross-cell case, a seat offset straddling a cell edge, is P4-C's, the rider
+    // placement model's own limit.) This is the placement's OLD position for the cell
+    // derivation only -- the relocation just below writes the composed (and correct) pose over
+    // it.
+    if (passenger->Where().X() == seatPose.X() && passenger->Where().Y() == seatPose.Y() && passenger->Where().Z() == seatPose.Z())
+    {
+        passenger->Place().MoveTo(m_owner->Where().X(), m_owner->Where().Y(), m_owner->Where().Z(), m_owner->Where().Facing());
+    }
+
+    UpdateGlobalPositionOf(passenger, seatPose.X(), seatPose.Y(), seatPose.Z(), seatPose.Facing());
 }
 
 TransportInfo::TransportInfo(WorldObject* owner, VehicleInfo* transport,
@@ -362,9 +421,51 @@ void VehicleInfo::Board(Unit* passenger, uint8 seat)
 
     DEBUG_LOG("VehicleInfo::Board: Board passenger: %s to seat %u", passenger->GetGuidStr().c_str(), seat);
 
+    // Stop the passenger's own spline HERE, while it is still a world object, not after it
+    // becomes a rider: BoardPassenger (below) makes IsBoarded() true, and from that moment
+    // CommitSplinePosition (Unit.cpp:5848-5866) treats a running spline's position as
+    // SEAT-LOCAL and writes it straight into the seat pose. A root claimed on an already-
+    // boarded passenger used to be exactly that trigger -- Inhibit -> Suspend -> the
+    // generator's Interrupt -> InterruptMoving -- committing a wandering wolf's WORLD
+    // position into the seat pose and the client's transport offset with it, which is why a
+    // stationary vehicle still dragged its rider miles away the first time it moved: the
+    // "seat pose" was never local to begin with.
+    passenger->InterruptMoving();
+
+    // A stop only PENDS the placement write for a world unit (applied on the passenger's
+    // next Update, and dropped there if something else relocated it meanwhile --
+    // Unit.cpp:530-549): the boarding position is the stop's pending commit when a spline ran,
+    // the placement otherwise. Exception (pre-existing, not widened here): a passenger already
+    // a rider on ANOTHER vehicle -- the cross-vehicle click path, no UnBoard first -- commits
+    // straight into that other vehicle's seat pose instead (Unit.cpp:5857-5863, no pending path
+    // for a rider), so Where() there is the OLD seat pose, composed below as if a world point.
+    Position const* pending = passenger->PendingSplineCommit();
+    const float wx = pending ? pending->x : passenger->Where().X();
+    const float wy = pending ? pending->y : passenger->Where().Y();
+    const float wz = pending ? pending->z : passenger->Where().Z();
+    const float wo = pending ? pending->o : passenger->Where().Facing();
+
     // Calculate passengers local position
     float lx, ly, lz, lo;
-    CalculateBoardingPositionOf(passenger->Where().X(), passenger->Where().Y(), passenger->Where().Z(), passenger->Where().Facing(), lx, ly, lz, lo);
+    CalculateBoardingPositionOf(wx, wy, wz, wo, lx, ly, lz, lo);
+
+    // The rider's grid link moves to the vehicle's cell now, while the placement still holds
+    // world numbers (Map::PlayerRelocation reads the old cell from it). BoardPassenger below
+    // replaces the placement with the seat pose and never touches the link, so a boarding from
+    // across a cell edge would otherwise leave the rider registered in the cell it came from:
+    // every later relocation of it (the 500 ms composition, the unboard's seed) assumes the
+    // vehicle's cell.
+    if (passenger->IsInWorld() && m_owner->IsInWorld())
+    {
+        if (passenger->GetTypeId() == TYPEID_PLAYER)
+        {
+            m_owner->GetMap()->PlayerRelocation((Player*)passenger, m_owner->Where().X(), m_owner->Where().Y(), m_owner->Where().Z(), m_owner->Where().Facing());
+        }
+        else if (passenger->GetTypeId() == TYPEID_UNIT)
+        {
+            m_owner->GetMap()->CreatureRelocation((Creature*)passenger, m_owner->Where().X(), m_owner->Where().Y(), m_owner->Where().Z(), m_owner->Where().Facing());
+        }
+    }
 
     Geometry::Placement seatPose;
     seatPose.EnterFrame(SeatFrame(), Geometry::Vector3(lx, ly, lz), lo);
@@ -387,9 +488,22 @@ void VehicleInfo::Board(Unit* passenger, uint8 seat)
 
     passenger->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), seat));
 
+    // A rider's path is seat-local: MoveSplineInit::Launch starts it from
+    // GetTransportInfo()->Seat() -- the boarding offset BoardPassenger just set, wherever the
+    // passenger happened to be standing -- and sends it as SMSG_MONSTER_MOVE_TRANSPORT with the
+    // transport guid and seat index (MoveSplineInit.cpp:110-127, 180-188). The destination is
+    // the seat's own attachment point (VehicleSeatEntry::AttachmentOffset_0..2, in the vehicle's
+    // frame; many seats carry (0,0,0), the frame's own origin) facing the vehicle's own heading
+    // (0.0 in the seat frame): this IS the boarding animation, the walk from the boarding spot to
+    // the seat's modelled point, the same walk the client plays. As the spline ticks, the seat
+    // pose itself walks with it -- CommitSplinePosition/UpdateSplineMovement write a rider's
+    // spline position back through SetSeatPose -- settling at the attachment once the spline
+    // finishes. A seat pose corrupted with a world position (the defect the earlier commits on
+    // this branch fixed) was what once made this look like a drift toward the map origin; it
+    // never was one -- (0,0,0) was always the seat frame's own origin, not the world's.
     Movement::MoveSplineInit init(*passenger);
-    init.MoveTo(0.0f, 0.0f, 0.0f);                          // ToDo: Set correct local coords
-    init.SetFacing(0.0f);                                   // local orientation ? ToDo: Set proper orientation!
+    init.MoveTo(seatEntry->AttachmentOffset_0, seatEntry->AttachmentOffset_1, seatEntry->AttachmentOffset_2);
+    init.SetFacing(0.0f);
     init.SetBoardVehicle();
     init.Launch();
 
@@ -454,16 +568,22 @@ void VehicleInfo::SwitchSeat(Unit* passenger, uint8 seat)
     // Set to new seat
     itr->second->SetTransportSeat(seat);
 
+    // Get seatEntry of new seat
+    seatEntry = GetSeatEntry(seat);
+    MANGOS_ASSERT(seatEntry);
+
+    // Same reasoning as Board's own spline: the destination is the NEW seat's own attachment
+    // point (VehicleSeatEntry::AttachmentOffset_0..2, the vehicle's frame; many seats carry
+    // (0,0,0)), not (0,0,0) unconditionally. SetTransportSeat above only changed the seat
+    // INDEX, so the walk is from wherever the pose settled on the old seat to the new seat's
+    // modelled point -- the same boarding-style animation Board's own spline plays; the pose
+    // itself follows as the spline ticks (see Board).
     Movement::MoveSplineInit init(*passenger);
-    init.MoveTo(0.0f, 0.0f, 0.0f);                          // ToDo: Set correct local coords
+    init.MoveTo(seatEntry->AttachmentOffset_0, seatEntry->AttachmentOffset_1, seatEntry->AttachmentOffset_2);
     //if (oldorientation != neworientation) (?)
     //init.SetFacing(0.0f);                                 // local orientation ? ToDo: Set proper orientation!
     // It seems that Seat switching is sent without SplineFlag BoardVehicle
     init.Launch();
-
-    // Get seatEntry of new seat
-    seatEntry = GetSeatEntry(seat);
-    MANGOS_ASSERT(seatEntry);
 
     // Apply passenger modifications of the new seat
     ApplySeatMods(passenger, seatEntry->Flags);
@@ -489,6 +609,22 @@ void VehicleInfo::UnBoard(Unit* passenger, bool changeVehicle)
     VehicleSeatEntry const* seatEntry = GetSeatEntry(seat);
     MANGOS_ASSERT(seatEntry);
 
+    // The symmetric of Board's own stop (see there): a rider spline still in flight here (the
+    // board spline itself, or a seat switch's) writes seat-local coordinates through
+    // CommitSplinePosition while IsBoarded() is still true (Unit.cpp:5857-5866), so stop it
+    // before UnBoardPassenger reads the seat pose below -- otherwise the exit spline this
+    // function launches further down would read that spline's still-in-flight, still-seat-local
+    // ComputePosition() as if it were already a world position (MoveSplineInit.cpp:130-134,
+    // the non-rider branch, which is what Launch takes once IsBoarded() has flipped to false).
+    passenger->InterruptMoving();
+
+    // The movement block stops naming this vehicle before the unboard relocates: the
+    // relocation's OnRelocated can run a visibility update that builds a create block from
+    // m_movementInfo for an observer entering view, which would otherwise still carry the old
+    // transport guid, offset and seat for a unit no longer aboard. On a change of vehicle the
+    // next Board writes the new vehicle's data.
+    passenger->m_movementInfo.ClearTransportData();
+
     UnBoardPassenger(passenger);
 
     // Remove passenger modifications
@@ -502,9 +638,6 @@ void VehicleInfo::UnBoard(Unit* passenger, bool changeVehicle)
 
     if (!changeVehicle)                                     // Send expected unboarding packages
     {
-        // Update movementInfo
-        passenger->m_movementInfo.ClearTransportData();
-
         if (passenger->GetTypeId() == TYPEID_PLAYER)
         {
             Player* pPlayer = (Player*)passenger;
