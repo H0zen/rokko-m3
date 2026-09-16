@@ -50,6 +50,17 @@ namespace
 
 namespace Harness
 {
+    float Spread(std::vector<Pt> const& samples)
+    {
+        float spread = 0.0f;
+        for (size_t k = 1; k < samples.size(); ++k)
+        {
+            const float d = Dist2(samples[0].x, samples[0].y, samples[k].x, samples[k].y);
+            if (d > spread) { spread = d; }
+        }
+        return spread;
+    }
+
     void Scenario::Reset()
     {
         m_timeline = Timeline();

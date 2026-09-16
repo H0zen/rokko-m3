@@ -27,6 +27,7 @@
 #define MANGOS_MOTION_ARBITER_H
 
 #include "Platform/Define.h"
+#include "Mobility.h"
 #include <array>
 #include <memory>
 #include <optional>
@@ -120,7 +121,7 @@ namespace Motion
         enum class Op : uint8
         {
             InstallDefault, Request, Clear, ClearAll, ExpireSelected, Expire, FinishSelected,
-            CancelControl, Release, Notify, Die, Commit
+            CancelControl, Release, Notify, Die, Commit, Inhibit, Uninhibit, Refused
         };
         Op           op;
         Motion::Kind kind;        ///< the operation's kind argument (Idle when none)
@@ -205,8 +206,29 @@ namespace Motion
 
             /// Apply an event row (§4.2): CombatStarted cancels the Distract layer.
             void Notify(ExternalEvent event);
-            /// Death: finish everything as Died, ascending layer order; the model is empty after.
+            /// Death: finish everything as Died, ascending layer order, then drop every Aura and
+            /// Script inhibition source (an aura dies with its aura, a script's must not outlive
+            /// the unit; Seat, FixedVehicle and Possession sources have release paths of their
+            /// own and stay) before inhibiting Dead; the model is empty after.
             void Die();
+            /// An outside reason a behaviour may not move the unit (spec §3): counted by source.
+            /// On the reason's first source the selected entry is paused once (Suspended, Blocked)
+            /// when the table says it no longer ticks; nothing is finished, cancelled or released.
+            /// @return True when the reason became active.
+            bool Inhibit(Inhibition what, uint64 source);
+            /// The reason's source ends; on its last source the paused entry resumes once (Resumed, Blocked).
+            /// An unknown source is a no-op. @return True when the reason became inactive.
+            bool Uninhibit(Inhibition what, uint64 source);
+            /// Whether any source holds this reason.
+            bool Inhibited(Inhibition what) const { return m_mobility.Inhibited(what); }
+            /// The sources holding this reason, in arrival order (the GM dump).
+            std::vector<uint64> const& Sources(Inhibition what) const { return m_mobility.Sources(what); }
+            /// Every active reason: the inhibitions, plus Feared/Confused/Distracted/OnTaxi from the entries.
+            uint8 Reasons() const;
+            /// What the selected entry may do right now (spec §4).
+            MobilityDecision Evaluate() const;
+            /// What an entry of this kind could do right now, before it is requested.
+            MobilityDecision Evaluate(Kind kind) const;
             /// The current transaction generation (advances with each outermost transaction).
             uint32 Generation() const { return m_generation; }
             /// True while the outermost open transaction is Clear, ClearAll or Death.
@@ -231,6 +253,8 @@ namespace Motion
             /// The entry held on a command layer: for Control, the selected claim.
             /// Empty for Default and Combat, which have their own accessors.
             std::optional<Held> Command(Layer layer) const;
+            /// Whether a command is held on this layer; allocation-free, for the shell's per-tick mirror.
+            bool HasCommand(Layer layer) const;
             /// Every Control claim, in precedence order (the selected one first).
             std::vector<Held> Claims() const;
             /// Whether any Control claim of this kind is held.
@@ -268,6 +292,11 @@ namespace Motion
             void FinishSelectedNoRecord(FinishReason reason);
             /// Compare the selection before and after a mutation and log Suspended/Resumed.
             void Reselect(std::optional<Held> const& before);
+            /// The table's class of a layer.
+            static Motion::Selected ClassOf(std::optional<Layer> const& layer);
+            /// Pause or resume the selected entry as the reasons and the selection now stand:
+            /// exactly one Suspended(Blocked) when it stops ticking, one Resumed(Blocked) when it ticks again.
+            void ReconcileBlock();
             /// True when some entry Contents() would list (not the fallback) still has this seq.
             bool StillHeld(uint32 seq) const;
             /// The held entry with this `seq` (m_default, m_combat, the command slots other
@@ -304,6 +333,8 @@ namespace Motion
             std::unique_ptr<std::array<Decision, kRingSize>> m_ring; ///< the decision ring, allocated on demand, next write at m_ringNext
             size_t m_ringNext;                     ///< the next slot to overwrite, wraps at kRingSize
             size_t m_ringCount;                    ///< entries recorded so far, capped at kRingSize
+            Mobility m_mobility;                   ///< the block state (spec §3); mutated only here
+            uint32   m_blockedSeq;                 ///< the entry paused by the block, 0 when none
     };
 }
 

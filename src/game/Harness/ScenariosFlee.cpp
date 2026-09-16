@@ -45,7 +45,6 @@ namespace Harness
         const uint32 WOLF = 69;
         const uint32 KOBOLD = 6;
 
-        struct Pt { float x, y, z; };
         const Pt SE = { -3200.0f, -300.0f, 47.0f };
 
         /// S6: fleeing beyond the quiet band must drift BACK toward the source
@@ -776,19 +775,7 @@ namespace Harness
             }
         };
 
-        const uint32 ROOT = 745;   // Web: a plain root aura (SPELL_AURA_MOD_ROOT for 10 s), no damage
-
-        /// The distance from the first sample to the farthest one: how far the unit got.
-        float Spread(std::vector<Pt> const& samples)
-        {
-            float spread = 0.0f;
-            for (size_t k = 1; k < samples.size(); ++k)
-            {
-                const float d = Dist2(samples[0].x, samples[0].y, samples[k].x, samples[k].y);
-                if (d > spread) { spread = d; }
-            }
-            return spread;
-        }
+        const uint32 ROOT = 745;   // Web: a plain root aura (SPELL_AURA_MOD_ROOT for about 5 s), no damage
 
         /// A root on a feared creature: the flee stops in place while the root lasts (the unit
         /// state is what the movement gates read) and resumes when the root ends (reference
@@ -830,14 +817,14 @@ namespace Harness
                         Pt p = { a->Where().X(), a->Where().Y(), a->Where().Z() };
                         rooted->push_back(p);
                         if (Type(a) != FLEEING_MOTION_TYPE) { *keptFear = false; }
-                        Log("rooted +%4ums mt=%s root state=%d at %.1f %.1f", i * 400, TypeName(a), a->hasUnitState(UNIT_STAT_ROOT) ? 1 : 0, p.x, p.y);
+                        Log("rooted +%4ums mt=%s root state=%d at %.1f %.1f", i * 400, TypeName(a), a->IsRooted() ? 1 : 0, p.x, p.y);
                     });
                 }
                 At(6000, [this, g]()
                 {
                     Creature* a = Get(g); if (!a) { return; }
                     a->RemoveAurasDueToSpell(ROOT);
-                    Log("root removed, mt=%s root state=%d", TypeName(a), a->hasUnitState(UNIT_STAT_ROOT) ? 1 : 0);
+                    Log("root removed, mt=%s root state=%d", TypeName(a), a->IsRooted() ? 1 : 0);
                 });
                 for (uint32 i = 1; i <= 10; ++i)   // four seconds: the flee rests up to 1.5 s between bolts, and a bolt can be short
                 {
@@ -923,14 +910,14 @@ namespace Harness
                         Pt p = { a->Where().X(), a->Where().Y(), a->Where().Z() };
                         rooted->push_back(p);
                         if (Type(a) != CHASE_MOTION_TYPE) { *keptChase = false; }
-                        Log("rooted +%4ums mt=%s root state=%d at %.1f %.1f", i * 400, TypeName(a), a->hasUnitState(UNIT_STAT_ROOT) ? 1 : 0, p.x, p.y);
+                        Log("rooted +%4ums mt=%s root state=%d at %.1f %.1f", i * 400, TypeName(a), a->IsRooted() ? 1 : 0, p.x, p.y);
                     });
                 }
                 At(4800, [this, g]()
                 {
                     Creature* a = Get(g); if (!a) { return; }
                     a->RemoveAurasDueToSpell(ROOT);
-                    Log("root removed, mt=%s root state=%d", TypeName(a), a->hasUnitState(UNIT_STAT_ROOT) ? 1 : 0);
+                    Log("root removed, mt=%s root state=%d", TypeName(a), a->IsRooted() ? 1 : 0);
                 });
                 for (uint32 i = 1; i <= 6; ++i)
                 {

@@ -134,9 +134,9 @@ namespace Motion
         static char const* const names[] =
         {
             "InstallDefault", "Request", "Clear", "ClearAll", "ExpireSelected", "Expire", "FinishSelected",
-            "CancelControl", "Release", "Notify", "Die", "Commit"
+            "CancelControl", "Release", "Notify", "Die", "Commit", "Inhibit", "Uninhibit", "Refused"
         };
-        static_assert(sizeof(names) / sizeof(names[0]) == 12, "OpName out of sync with Decision::Op");
+        static_assert(sizeof(names) / sizeof(names[0]) == 15, "OpName out of sync with Decision::Op");
         const size_t index = static_cast<size_t>(op);
         return index < sizeof(names) / sizeof(names[0]) ? names[index] : "?";
     }
@@ -168,7 +168,7 @@ namespace Motion
     }
 
     Arbiter::Arbiter() : m_seq(0), m_generation(0), m_depth(0), m_outerKind(TransactionKind::Normal),
-        m_doomedInGeneration(false), m_ringNext(0), m_ringCount(0)
+        m_doomedInGeneration(false), m_ringNext(0), m_ringCount(0), m_blockedSeq(0)
     {
     }
 
@@ -349,7 +349,111 @@ namespace Motion
             }
             Finish(m_commands[i], FinishReason::Died);
         }
+        // An aura source dies with its aura and a script's must not outlive the unit; Seat,
+        // FixedVehicle and Possession sources have release paths of their own and stay.
+        m_mobility.DropDomain(SourceDomain::Aura);
+        m_mobility.DropDomain(SourceDomain::Script);
+        m_mobility.Inhibit(Inhibition::Dead, kDeathSource);
+        m_blockedSeq = 0;   // nothing is selected afterwards
         Record(Decision::Op::Die, Kind::Idle, 0, 0, before);
+    }
+
+    Motion::Selected Arbiter::ClassOf(std::optional<Layer> const& layer)
+    {
+        if (!layer)
+        {
+            return Motion::Selected::None;
+        }
+        switch (*layer)
+        {
+            case Layer::Distract: return Motion::Selected::Distract;
+            case Layer::Control:  return Motion::Selected::Control;
+            case Layer::Taxi:     return Motion::Selected::Taxi;
+            default:              return Motion::Selected::Ordinary;
+        }
+    }
+
+    uint8 Arbiter::Reasons() const
+    {
+        uint8 bits = m_mobility.Reasons();
+        if (HasClaim(Kind::Fear))
+        {
+            bits |= ReasonFeared;
+        }
+        if (HasClaim(Kind::Confused))
+        {
+            bits |= ReasonConfused;
+        }
+        if (HasCommand(Layer::Distract))
+        {
+            bits |= ReasonDistracted;
+        }
+        if (HasCommand(Layer::Taxi))
+        {
+            bits |= ReasonOnTaxi;
+        }
+        return bits;
+    }
+
+    MobilityDecision Arbiter::Evaluate() const
+    {
+        return Decide(ClassOf(SelectedLayer()), Reasons());
+    }
+
+    MobilityDecision Arbiter::Evaluate(Kind kind) const
+    {
+        return Decide(ClassOf(std::optional<Layer>(LayerOf(kind))), Reasons());
+    }
+
+    void Arbiter::ReconcileBlock()
+    {
+        const std::optional<Held> selected = Selected();
+        const bool paused = selected && !Evaluate().ticks;
+        if (paused)
+        {
+            if (m_blockedSeq != selected->seq)
+            {
+                // A different entry was paused before (a selection change under the block, handled
+                // by Reselect's own Suspended) or none: pause this one exactly once.
+                m_events.push_back({Event::Kind::Suspended, selected->kind, selected->id, FinishReason::Blocked, selected->claim, selected->seq});
+                m_blockedSeq = selected->seq;
+            }
+            return;
+        }
+        if (m_blockedSeq)
+        {
+            if (selected && selected->seq == m_blockedSeq)
+            {
+                m_events.push_back({Event::Kind::Resumed, selected->kind, selected->id, FinishReason::Blocked, selected->claim, selected->seq});
+            }
+            m_blockedSeq = 0;   // the paused entry is gone or no longer selected: its own events said so
+        }
+    }
+
+    bool Arbiter::Inhibit(Inhibition what, uint64 source)
+    {
+        Transaction tx(*this, TransactionKind::Normal);
+        const std::optional<Held> before = Selected();
+        const bool edge = m_mobility.Inhibit(what, source);
+        if (edge)
+        {
+            ReconcileBlock();
+        }
+        Record(Decision::Op::Inhibit, Kind::Idle, static_cast<uint32>(what), source, before);
+        return edge;
+    }
+
+    bool Arbiter::Uninhibit(Inhibition what, uint64 source)
+    {
+        Transaction tx(*this, TransactionKind::Normal);
+        const std::optional<Held> before = Selected();
+        const bool edge = m_mobility.Uninhibit(what, source);
+        if (edge)
+        {
+            ReconcileBlock();
+        }
+        Record(Decision::Op::Uninhibit, Kind::Idle, static_cast<uint32>(what), source, before);
+        return edge;
     }
 
     void Arbiter::InstallDefault(Kind kind)
@@ -376,6 +480,11 @@ namespace Motion
         {
             Record(Decision::Op::Request, request.kind, request.id, request.claim, before);
             return;   // a control without an identity cannot be released: refused
+        }
+        if (layer == Layer::Control && m_commands[static_cast<size_t>(Layer::Taxi)])
+        {
+            Record(Decision::Op::Refused, request.kind, request.id, request.claim, before);
+            return;   // nothing lands on a passenger (reference 8.4): a claim under a flight would run on landing
         }
         const Policy policy = PolicyOf(request.kind, request.resumeCombat);
         const Held held = Stamp(request.kind, request.id, layer == Layer::Control ? request.claim : 0);
@@ -737,6 +846,19 @@ namespace Motion
         return m_commands[static_cast<size_t>(layer)];
     }
 
+    bool Arbiter::HasCommand(Layer layer) const
+    {
+        if (layer == Layer::Default || layer == Layer::Combat)
+        {
+            return false;
+        }
+        if (layer == Layer::Control)
+        {
+            return !m_claims.empty();
+        }
+        return m_commands[static_cast<size_t>(layer)].has_value();
+    }
+
     std::vector<Held> Arbiter::Claims() const
     {
         std::vector<Held> out(m_claims);
@@ -935,6 +1057,7 @@ namespace Motion
                 held->started = true;
             }
         }
+        ReconcileBlock();
     }
 
     void Arbiter::EnableRing()

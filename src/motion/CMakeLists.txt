@@ -37,6 +37,8 @@ set(SRC_GRP_MOTION
     Writers.cpp
     State.h
     State.cpp
+    Mobility.h
+    Mobility.cpp
     Arbiter.h
     Arbiter.cpp
 )

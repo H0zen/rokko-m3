@@ -107,12 +107,12 @@ struct aura_charge_golem : public AuraScript
             if (bApply)
             {
                 DoScriptText(SAY_GOLEM_CHARGE, pCreature);
-                pCreature->addUnitState(UNIT_STAT_STUNNED);
+                pCreature->GetMotionMaster()->Inhibit(Motion::Inhibition::Stunned, Motion::ControlClaim(pAura->GetId(), 0, pAura->GetCasterGuid().GetCounter()));
             }
             else
             {
                 DoScriptText(SAY_GOLEM_COMPLETE, pCreature);
-                pCreature->clearUnitState(UNIT_STAT_STUNNED);
+                pCreature->GetMotionMaster()->Uninhibit(Motion::Inhibition::Stunned, Motion::ControlClaim(pAura->GetId(), 0, pAura->GetCasterGuid().GetCounter()));
 
                 // targets master
                 pCreature->CastSpell(pCreature, SPELL_GOLEM_CHARGE_CREDIT, true);

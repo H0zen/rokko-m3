@@ -110,7 +110,7 @@ class MotionMaster
         void Initialize();
         /// The selected behaviour's generator; NULL before Initialize.
         MovementGenerator const* GetCurrent() const;
-        /// One tick of the selected behaviour; nothing under UNIT_STAT_CAN_NOT_MOVE.
+        /// One tick of the selected behaviour; nothing while the block's decision withholds it (Evaluate().ticks).
         void UpdateMotion(uint32 diff);
         /// Every command and combat finish; the pushed default too when `all`; the survivor resets when `reset && !all`. A Control claim is left alone: it ends with its aura.
         void Clear(bool reset = true, bool all = false);
@@ -139,6 +139,16 @@ class MotionMaster
         void MoveFall();
         void MoveFlyOrLand(uint32 id, float x, float y, float z, bool liftOff);
 
+        /// An outside reason a behaviour may not move the unit (P5-A, spec §6): the one game-side
+        /// path to the kernel's block. Inside one scope it feeds the arbiter, projects the client
+        /// root (rooted or stunned: SetRoot on the aggregate's edge only) and writes the unit-state mirror.
+        void Inhibit(Motion::Inhibition what, uint64 source);
+        void Uninhibit(Motion::Inhibition what, uint64 source);
+        /// Whether any source holds this reason: the one answer to "is this unit rooted".
+        bool Inhibited(Motion::Inhibition what) const { return m_arbiter.Inhibited(what); }
+        /// What the selected behaviour may do right now, and why not.
+        Motion::MobilityDecision Mobility() const { return m_arbiter.Evaluate(); }
+
         MovementGeneratorType GetCurrentMovementGeneratorType() const;
         void PropagateSpeedChange();
         bool SetNextWaypoint(uint32 pointId);
@@ -150,6 +160,10 @@ class MotionMaster
         void Die();
         /// Release the control claims of this kind (a take that ends the episode without its aura: the pet possession take).
         void CancelControl(Motion::Kind kind);
+        /// Combat ended without a death or an evade: the Combat layer's one kind, Chase (today
+        /// the only one), finishes as TargetLost; the feign's apply uses it. Must follow the
+        /// layer if another Combat kind is ever added.
+        void ExpireCombat();
         /// End one Control claim by identity; the newest remaining claim of the layer drives.
         /// @return True when the claim was held.
         bool ReleaseControl(uint64 claim);
@@ -233,7 +247,13 @@ class MotionMaster
         Bound* SelectedBound();
         Bound const* SelectedBound() const;
         void Retire(size_t index, Motion::FinishReason reason);
-        void ReassertControlState(Motion::Kind kind);   ///< another claim of the kind may still hold the unit state a finishing hook just cleared
+        /// The client root follows the aggregate of Rooted and Stunned: SetRoot on its edges only.
+        void ProjectClientRoot();
+        /// The old unit-state bits, written here and nowhere else: the kernel's mirror for scripts
+        /// and the client. Reads the owner's own bits (Unit::GetUnitState()) and writes only what
+        /// differs, so an outside wipe of the unit state (a respawn's clearUnitState) heals at the
+        /// next commit instead of leaving a mirrored bit stuck stale.
+        void MirrorUnitState();
 
         Unit*              m_owner;
         Motion::Arbiter    m_arbiter;
@@ -243,6 +263,7 @@ class MotionMaster
         Motion::TransactionKind m_scopeKind; ///< the kind the outermost commit runs under; a nested death raises it to Death
         PendingReset       m_pendingReset;
         uint32             m_exposedSeq;     ///< WhenExposed: the entry an expiry exposed
+        bool               m_clientRooted;   ///< what ProjectClientRoot last told the owner
 };
 
 #endif // MANGOS_MOTIONMASTER_H

@@ -38,6 +38,14 @@ class Map;
 
 namespace Harness
 {
+    /// A sampled point (x, y, z): shared by every family that records where an actor
+    /// stood over a run (ScenariosFlee.cpp's original, moved here so a later family
+    /// does not carry its own copy).
+    struct Pt { float x, y, z; };
+
+    /// The distance from the first sample to the farthest one: how far the unit got.
+    float Spread(std::vector<Pt> const& samples);
+
     /// One MovementInform the recording AI saw: the generator type, the id the
     /// script gave, where the creature stood, and whose.
     struct Inform

@@ -292,6 +292,14 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
             return;
         }
 
+        // Nothing lands on a passenger (reference §8.4): the arbiter refuses a control request
+        // under a flight, so neither the flag nor the client's revoke is taken for a claim that
+        // will never be held; the aura's removal then finds nothing to give back.
+        if (GetMotionMaster()->Mobility().reasons & Motion::ReasonOnTaxi)
+        {
+            return;
+        }
+
         SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
         CastStop(GetObjectGuid() == casterGuid ? spellID : 0);
 
@@ -369,6 +377,12 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 
     const uint64 claim = Motion::ControlClaim(spellID, effIndex, casterGuid.GetCounter());
     if (apply)
     {
+        // As for a fear: refused under a flight, so no flag and no revoke for a claim never held.
+        if (GetMotionMaster()->Mobility().reasons & Motion::ReasonOnTaxi)
+        {
+            return;
+        }
+
         SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED);
 
         CastStop(GetObjectGuid() == casterGuid ? spellID : 0);
@@ -427,9 +441,15 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 
  *
  * @param apply True to enable feign death; false to clear it.
  * @param casterGuid The caster responsible for the effect.
+ * @param spellID The feigning spell, 0 for a caller with no spell of its own (the kernel's
+ * block-state identity then falls back to a shared one for that family, spell 5384).
  */
-void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 /*spellID*/)
+void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 spellID)
 {
+    // Every aura caller names its own spell and caster (two feign auras on one unit are two
+    // sources); a caller with no spell of its own shares the one fallback identity.
+    const uint64 source = Motion::ControlClaim(spellID != 0 ? spellID : 5384, 0, casterGuid.GetCounter());
+
     if (apply)
     {
         /*
@@ -455,8 +475,9 @@ void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 /*spellID*/)
         // blizz like 2.0.x
         SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
 
-        addUnitState(UNIT_STAT_DIED);
+        GetMotionMaster()->Inhibit(Motion::Inhibition::Dead, source);
         CombatStop();
+        GetMotionMaster()->ExpireCombat();   // CombatStop() clears the victim, not the Combat entry; end the chase as combat itself ends
         RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_IMMUNE_OR_LOST_SELECTION);
 
         // prevent interrupt message
@@ -475,26 +496,23 @@ void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 /*spellID*/)
         data<<uint8(1);
         SendMessageToSet(&data,true);
         */
+        // The block's own lift resumes whatever the feign paused -- a chase in the Combat
+        // layer, a follow, a patrol -- from where it stood; nothing here needs to guess it
+        // back from combat state.
+        GetMotionMaster()->Uninhibit(Motion::Inhibition::Dead, source);
+
+        // The flags follow the last feign: a second feign aura on the same unit keeps them
+        // (a real death removes its auras before it inhibits, so this reads feign sources only).
+        if (GetMotionMaster()->Inhibited(Motion::Inhibition::Dead))
+        {
+            return;
+        }
+
         // blizz like 2.0.x
         RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNK_29);
         // blizz like 2.0.x
         RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
         // blizz like 2.0.x
         RemoveFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
-
-        clearUnitState(UNIT_STAT_DIED);
-
-        if (GetTypeId() != TYPEID_PLAYER && IsAlive())
-        {
-            // restore appropriate movement generator
-            if (getVictim())
-            {
-                GetMotionMaster()->MoveChase(getVictim());
-            }
-            else
-            {
-                GetMotionMaster()->Initialize();
-            }
-        }
     }
 }

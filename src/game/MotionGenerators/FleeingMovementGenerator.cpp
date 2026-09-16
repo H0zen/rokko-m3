@@ -102,7 +102,7 @@ std::optional<Motion::Vector3> FleeingMovementGenerator::PickFleePoint(Unit& own
 
 void FleeingMovementGenerator::Initialize(Unit& owner)
 {
-    owner.addUnitState(UNIT_STAT_FLEEING | UNIT_STAT_FLEEING_MOVE);
+    owner.addUnitState(UNIT_STAT_FLEEING_MOVE);
     owner.StopMoving();
 
     if (owner.GetTypeId() == TYPEID_UNIT)
@@ -141,7 +141,7 @@ void FleeingMovementGenerator::Finalize(Unit& owner)
         owner.StopMoving();
     }
 
-    owner.clearUnitState(UNIT_STAT_FLEEING | UNIT_STAT_FLEEING_MOVE);
+    owner.clearUnitState(UNIT_STAT_FLEEING_MOVE);
 }
 
 Motion::MoveIntent FleeingMovementGenerator::Intent(Unit& owner,
@@ -153,8 +153,12 @@ Motion::MoveIntent FleeingMovementGenerator::Intent(Unit& owner,
         return Motion::MoveIntent::Done();
     }
 
-    // Ignore while any OTHER no-reaction or no-move state applies.
-    if (owner.hasUnitState((UNIT_STAT_CAN_NOT_REACT | UNIT_STAT_NOT_MOVE) & ~UNIT_STAT_FLEEING))
+    // MotionMaster::UpdateMotion already withholds a blocked behaviour's tick
+    // (Evaluate().ticks); this is a guard for a caller that ticks the generator
+    // directly, not the rule. The same source ConfusedMovementGenerator's gate reads
+    // (a flee is never selected under a confuse, so this cannot change what it does,
+    // only what it reads).
+    if (!owner.GetMotionMaster()->Mobility().mayMove)
     {
         owner.clearUnitState(UNIT_STAT_FLEEING_MOVE);
         return Motion::MoveIntent::Hold();
@@ -210,7 +214,7 @@ Motion::MoveIntent TimedFleeingMovementGenerator::Intent(Unit& owner,
 
 void TimedFleeingMovementGenerator::Finalize(Unit& owner)
 {
-    owner.clearUnitState(UNIT_STAT_FLEEING | UNIT_STAT_FLEEING_MOVE);
+    owner.clearUnitState(UNIT_STAT_FLEEING_MOVE);
 
     // The low-health flee has no aura to clear the client-visible flag: the shell finished this
     // claim before calling here, so when no fear claim remains the flag goes with it.

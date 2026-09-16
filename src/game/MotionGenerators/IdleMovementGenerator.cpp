@@ -42,18 +42,16 @@ void IdleMovementGenerator::Reset(Unit& /*owner*/)
  * @brief Initializes the DistractMovementGenerator.
  * @param owner Reference to the unit.
  */
-void DistractMovementGenerator::Initialize(Unit& owner)
+void DistractMovementGenerator::Initialize(Unit& /*owner*/)
 {
-    owner.addUnitState(UNIT_STAT_DISTRACTED);
 }
 
 /**
  * @brief Finalizes the DistractMovementGenerator.
  * @param owner Reference to the unit.
  */
-void DistractMovementGenerator::Finalize(Unit& owner)
+void DistractMovementGenerator::Finalize(Unit& /*owner*/)
 {
-    owner.clearUnitState(UNIT_STAT_DISTRACTED);
 }
 
 /**
@@ -96,7 +94,6 @@ bool DistractMovementGenerator::Update(Unit& /*owner*/, const uint32& time_diff)
  */
 void AssistanceDistractMovementGenerator::Finalize(Unit& unit)
 {
-    unit.clearUnitState(UNIT_STAT_DISTRACTED);
     if (Unit* victim = unit.getVictim())
     {
         if (unit.IsAlive())

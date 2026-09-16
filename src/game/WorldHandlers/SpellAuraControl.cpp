@@ -487,6 +487,7 @@ void Aura::HandleAuraModStun(bool apply, bool Real)
     }
 
     Unit* target = GetTarget();
+    const uint64 source = Motion::ControlClaim(GetId(), uint8(GetEffIndex()), GetCasterGuid().GetCounter());
 
     if (apply)
     {
@@ -496,20 +497,24 @@ void Aura::HandleAuraModStun(bool apply, bool Real)
             target->ModifyAuraState(AURA_STATE_FROZEN, apply);
         }
 
-        target->addUnitState(UNIT_STAT_STUNNED);
+        // M1: a player or player-charmed unit's movement-flag wipe (and stand state) must run
+        // before Inhibit's projection sets MOVEFLAG_ROOT, or this wipe erases it right back off
+        // (a plain creature is unaffected: the projection never roots it for a stun alone).
+        Unit* charmer = target->GetCharmer();
+        const bool clientMover = target->GetTypeId() == TYPEID_PLAYER || (charmer && charmer->GetTypeId() == TYPEID_PLAYER);
+        if (clientMover)
+        {
+            target->m_movementInfo.SetMovementFlags(MOVEFLAG_NONE);
+            target->SetStandState(UNIT_STAND_STATE_STAND);// in 1.5 client
+        }
+
+        target->GetMotionMaster()->Inhibit(Motion::Inhibition::Stunned, source);
         target->SetTargetGuid(ObjectGuid());
 
         target->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED);
         target->CastStop(target->GetObjectGuid() == GetCasterGuid() ? GetId() : 0);
 
-        Unit* charmer = target->GetCharmer();
-        if (target->GetTypeId() == TYPEID_PLAYER || (charmer && charmer->GetTypeId() == TYPEID_PLAYER))
-        {
-            target->m_movementInfo.SetMovementFlags(MOVEFLAG_NONE);
-            target->SetStandState(UNIT_STAND_STATE_STAND);// in 1.5 client
-            target->SetRoot(true);
-        }
-        else
+        if (!clientMover)
         {
             target->StopMoving();
         }
@@ -561,59 +566,63 @@ void Aura::HandleAuraModStun(bool apply, bool Real)
             }
         }
 
-        // Real remove called after current aura remove from lists, check if other similar auras active
-        if (target->HasAuraType(SPELL_AURA_MOD_STUN))
+        // Real remove called after current aura remove from lists; the client flag is still
+        // per-aura-type: only drop it when no other SPELL_AURA_MOD_STUN aura remains.
+        if (!target->HasAuraType(SPELL_AURA_MOD_STUN))
         {
-            return;
+            target->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED);
         }
 
-        target->clearUnitState(UNIT_STAT_STUNNED);
-        target->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED);
+        target->GetMotionMaster()->Uninhibit(Motion::Inhibition::Stunned, source);
 
-        if (!target->hasUnitState(UNIT_STAT_ROOT))        // prevent allow move if have also root effect
+        // I1: master returned here while another MOD_STUN aura remained, skipping the victim
+        // restore and the Wyvern Sting follow-up below; the per-source Uninhibit above must run
+        // on every removal, but this tail stays gated exactly as master gated it.
+        if (!target->HasAuraType(SPELL_AURA_MOD_STUN))
         {
-            if (target->getVictim() && target->IsAlive())
+            if (!target->GetMotionMaster()->Inhibited(Motion::Inhibition::Rooted))        // prevent allow move if have also root effect
             {
-                target->SetTargetGuid(target->getVictim()->GetObjectGuid());
+                if (target->getVictim() && target->IsAlive())
+                {
+                    target->SetTargetGuid(target->getVictim()->GetObjectGuid());
+                }
             }
 
-            target->SetRoot(false);
-        }
-
-        // Wyvern Sting
-        SpellClassOptionsEntry const* classOptions = GetSpellProto()->GetSpellClassOptions();
-        if (classOptions && classOptions->SpellClassSet == SPELLFAMILY_HUNTER && classOptions->SpellClassMask & UI64LIT(0x0000100000000000))
-        {
-            Unit* caster = GetCaster();
-            if (!caster || caster->GetTypeId() != TYPEID_PLAYER)
+            // Wyvern Sting
+            SpellClassOptionsEntry const* classOptions = GetSpellProto()->GetSpellClassOptions();
+            if (classOptions && classOptions->SpellClassSet == SPELLFAMILY_HUNTER && classOptions->SpellClassMask & UI64LIT(0x0000100000000000))
             {
-                return;
-            }
-
-            uint32 spell_id = 0;
-
-            switch (GetId())
-            {
-                case 19386: spell_id = 24131; break;
-                case 24132: spell_id = 24134; break;
-                case 24133: spell_id = 24135; break;
-                case 27068: spell_id = 27069; break;
-                case 49011: spell_id = 49009; break;
-                case 49012: spell_id = 49010; break;
-                default:
-                    sLog.outError("Spell selection called for unexpected original spell %u, new spell for this spell family?", GetId());
+                Unit* caster = GetCaster();
+                if (!caster || caster->GetTypeId() != TYPEID_PLAYER)
+                {
                     return;
-            }
+                }
 
-            SpellEntry const* spellInfo = sSpellStore.LookupEntry(spell_id);
+                uint32 spell_id = 0;
 
-            if (!spellInfo)
-            {
+                switch (GetId())
+                {
+                    case 19386: spell_id = 24131; break;
+                    case 24132: spell_id = 24134; break;
+                    case 24133: spell_id = 24135; break;
+                    case 27068: spell_id = 27069; break;
+                    case 49011: spell_id = 49009; break;
+                    case 49012: spell_id = 49010; break;
+                    default:
+                        sLog.outError("Spell selection called for unexpected original spell %u, new spell for this spell family?", GetId());
+                        return;
+                }
+
+                SpellEntry const* spellInfo = sSpellStore.LookupEntry(spell_id);
+
+                if (!spellInfo)
+                {
+                    return;
+                }
+
+                caster->CastSpell(target, spellInfo, true, NULL, this);
                 return;
             }
-
-            caster->CastSpell(target, spellInfo, true, NULL, this);
-            return;
         }
     }
 }
@@ -850,6 +859,7 @@ void Aura::HandleAuraModRoot(bool apply, bool Real)
     }
 
     Unit* target = GetTarget();
+    const uint64 source = Motion::ControlClaim(GetId(), uint8(GetEffIndex()), GetCasterGuid().GetCounter());
 
     if (apply)
     {
@@ -861,22 +871,25 @@ void Aura::HandleAuraModRoot(bool apply, bool Real)
 
         target->SetTargetGuid(ObjectGuid());
 
-        // The unit state is what the movement gates read (UNIT_STAT_CAN_NOT_MOVE): without it
-        // a rooted creature stopped once and its generator laid the next leg, and a stun's end
-        // unrooted a still-rooted player.
-        target->addUnitState(UNIT_STAT_ROOT);
+        // The kernel's block state is what the movement gates read: without it a rooted
+        // creature stopped once and its generator laid the next leg, and a stun's end
+        // unrooted a still-rooted player. The client root follows the aggregate's edges
+        // (MotionMaster::ProjectClientRoot).
+        //
+        // This Inhibit may run before the movement-flag wipe below (unlike the stun handler's
+        // M1, which wipes first): a player's root is a desired flag awaiting the ack, not part
+        // of m_movementInfo, while the stun handler wipes first because a charmed creature's
+        // root already is.
+        target->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, source);
 
         if (target->GetTypeId() == TYPEID_PLAYER)
         {
-            target->SetRoot(true);
-
             // Clear unit movement flags
             ((Player*)target)->m_movementInfo.SetMovementFlags(MOVEFLAG_NONE);
         }
         else
         {
             target->StopMoving();
-            target->SetRoot(true);   // the spline root form to everyone in range
         }
     }
     else
@@ -908,27 +921,10 @@ void Aura::HandleAuraModRoot(bool apply, bool Real)
             }
         }
 
-        // Real remove called after current aura remove from lists, check if other similar auras active
-        if (target->HasAuraType(SPELL_AURA_MOD_ROOT))
-        {
-            return;
-        }
-
-        target->clearUnitState(UNIT_STAT_ROOT);
-
-        // The kernel's root flag has other owners on a creature: a seat roots its passenger
-        // (VehicleInfo::Board) and a fixed-position vehicle roots itself (VehicleInfo::Initialize);
-        // an aura's end leaves those roots in place. (One writer for these states is P5's.)
-        bool seatRoot = target->IsBoarded();
-        if (VehicleInfo* vehicle = target->GetVehicleInfo())
-        {
-            seatRoot = seatRoot || (vehicle->GetVehicleEntry()->Flags & VEHICLE_FLAG_FIXED_POSITION);
-        }
-
-        if (!target->hasUnitState(UNIT_STAT_STUNNED) && !seatRoot)     // prevent allow move if have also stun effect
-        {
-            target->SetRoot(false);
-        }
+        // One writer for the root state now: the kernel's. The source count replaces the
+        // "other root auras active" check and the seat/fixed-vehicle check; the projection
+        // keeps the mover rooted while a stun or a seat still holds it.
+        target->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted, source);
     }
 }
 

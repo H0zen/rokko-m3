@@ -518,7 +518,7 @@ enum UnitState
     UNIT_STAT_CONTROLLED      = 0x00000040,                 // Aura::HandleAuraModPossess
 
     // persistent movement generator state (all time while movement generator applied to unit (independent from top state of movegen)
-    UNIT_STAT_TAXI_FLIGHT     = 0x00000080,                 // player is in flight mode (in fact interrupted at far teleport until next map telport landing)
+    UNIT_STAT_TAXI_FLIGHT     = 0x00000080,                 // player is in flight mode; the bit follows the Taxi entry and is continuous across a far teleport
     UNIT_STAT_DISTRACTED      = 0x00000100,                 // DistractedMovementGenerator active
 
     // persistent movement generator state with non-persistent mirror states for stop support
@@ -1736,6 +1736,8 @@ class Unit : public WorldObject
          * \see UnitState
          */
         bool hasUnitState(uint32 f) const { return (m_state & f); }
+        /// The raw state bits, for the movement mirror's changed-bits write.
+        uint32 GetUnitState() const { return m_state; }
         /**
          * Unsets a certain unit state
          * @param f the state to remove
@@ -1749,7 +1751,11 @@ class Unit : public WorldObject
          */
         bool CanFreeMove() const
         {
-            return !hasUnitState(UNIT_STAT_NO_FREE_MOVE) && !GetOwnerGuid();
+            // kNoFreeMoveReasons is the old UNIT_STAT_NO_FREE_MOVE less its feign bit, which the
+            // mirror carries as UNIT_STAT_DIED: a real death does not deny free movement, as on
+            // master, only a feign does.
+            return !(GetMotionMaster()->Mobility().reasons & Motion::kNoFreeMoveReasons) &&
+                   !hasUnitState(UNIT_STAT_DIED) && !GetOwnerGuid();
         }
 
         /**
@@ -3170,12 +3176,12 @@ class Unit : public WorldObject
          */
         bool IsWalking() const { return m_movementInfo.HasMovementFlag(MOVEFLAG_WALK_MODE); }
         /**
-         * Check if this \ref Unit has the movement flag \ref MovementFlags::MOVEFLAG_ROOT
-         * @return true if the \ref Unit is rooted to the ground (can't move), ie: has the flag
-         * MOVEFLAG_ROOT, false otherwise
-         * \see MovementInfo::HasMovementFlag
+         * Whether the kernel's Rooted inhibition is held (P5-A): the one answer to "is this unit
+         * rooted", independent of MOVEFLAG_ROOT, which MotionMaster::ProjectClientRoot projects from it.
+         * @return true if the \ref Unit is rooted to the ground (can't move), false otherwise
+         * \see MotionMaster::Inhibited
          */
-        bool IsRooted() const { return m_movementInfo.HasMovementFlag(MOVEFLAG_ROOT); }
+        bool IsRooted() const;
 
         virtual void SetLevitate(bool /*enabled*/) {}
         virtual void SetSwim(bool /*enabled*/) {}
@@ -3984,6 +3990,7 @@ class Unit : public WorldObject
         void RemoveFollower(FollowerReference* /*pRef*/) { /* nothing to do yet */ }
 
         MotionMaster* GetMotionMaster() { return &i_motionMaster; }
+        MotionMaster const* GetMotionMaster() const { return &i_motionMaster; }
 
         bool IsStopped() const { return !(hasUnitState(UNIT_STAT_MOVING)); }
         void StopMoving(bool forceSendStop = false);

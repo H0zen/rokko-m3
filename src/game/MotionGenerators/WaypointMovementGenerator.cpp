@@ -822,9 +822,12 @@ void FlightPathMovementGenerator::Initialize(Unit& u)
 void FlightPathMovementGenerator::Finalize(Unit& u)
 {
     Player& player = static_cast<Player&>(u);
-    // Remove flag to prevent send object build movement packets for flight state and crash (movement generator already not at top of stack)
+    // The mirror clears this bit at the commit's end, but Unmount and the online-state change
+    // below must not see a flight still in progress (the old comment warned of a crash sending
+    // an object-build movement packet for a flight state with the generator already off the
+    // stack); the one deliberate second writer of a mirrored bit -- MirrorUnitState agrees once
+    // the commit runs.
     player.clearUnitState(UNIT_STAT_TAXI_FLIGHT);
-
     player.Unmount();
     player.RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE | UNIT_FLAG_TAXI_FLIGHT);
 
@@ -847,10 +850,8 @@ void FlightPathMovementGenerator::Finalize(Unit& u)
  * @brief Interrupts the FlightPathMovementGenerator.
  * @param player Reference to the player.
  */
-void FlightPathMovementGenerator::Interrupt(Unit& u)
+void FlightPathMovementGenerator::Interrupt(Unit& /*u*/)
 {
-    Player& player = static_cast<Player&>(u);
-    player.clearUnitState(UNIT_STAT_TAXI_FLIGHT);
 }
 
 #define PLAYER_FLIGHT_SPEED        32.0f
@@ -864,8 +865,6 @@ void FlightPathMovementGenerator::Reset(Unit& u)
     Player& player = static_cast<Player&>(u);
     // Set the player to offline state for hostile references
     player.GetHostileRefManager().setOnlineOfflineState(false);
-    // Add the taxi flight state to the player
-    player.addUnitState(UNIT_STAT_TAXI_FLIGHT);
 
     // Set the client control lost and taxi flight flags
     player.SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE | UNIT_FLAG_TAXI_FLIGHT);

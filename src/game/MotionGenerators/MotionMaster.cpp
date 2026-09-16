@@ -80,6 +80,9 @@ namespace
 
     const uint64 kScriptConfuse = Motion::ControlClaim(0, 2, 1);   ///< MoveConfused() with no identity (no script calls it today)
     const uint32 kMaxCommitRounds = 8; ///< finalizers re-entering the facade during a commit
+    /// The eight bits MirrorUnitState owns; compared against the owner's own state, not a cache.
+    const uint32 kMirrorBits = UNIT_STAT_ROOT | UNIT_STAT_STUNNED | UNIT_STAT_DIED | UNIT_STAT_CONTROLLED |
+                               UNIT_STAT_FLEEING | UNIT_STAT_CONFUSED | UNIT_STAT_DISTRACTED | UNIT_STAT_TAXI_FLIGHT;
 
     /**
      * @brief One move request, spelled out.
@@ -183,7 +186,7 @@ class MotionMaster::Scope
  * @param unit Pointer to the unit.
  */
 MotionMaster::MotionMaster(Unit* unit)
-    : m_owner(unit), m_depth(0), m_scopeKind(Motion::TransactionKind::Normal), m_pendingReset(PendingReset::None), m_exposedSeq(0)
+    : m_owner(unit), m_depth(0), m_scopeKind(Motion::TransactionKind::Normal), m_pendingReset(PendingReset::None), m_exposedSeq(0), m_clientRooted(false)
 {
     if (sWorld.getConfig(CONFIG_BOOL_MOVEMENT_DECISION_RING))
     {
@@ -216,6 +219,7 @@ void MotionMaster::Commit(std::optional<Motion::Transaction>& transaction)
         Reconcile();                  // activate or resume the selection; may queue more
         if (!m_arbiter.HasEvents())
         {
+            MirrorUnitState();        // the bits are right after every settled commit (P5-A)
             m_retired.clear();
             return;
         }
@@ -225,6 +229,7 @@ void MotionMaster::Commit(std::optional<Motion::Transaction>& transaction)
     transaction.reset();
     DeliverEvents();
     Reconcile();   // whatever this queues stays in the arbiter's queue; the next facade call's commit delivers it
+    MirrorUnitState();
     m_retired.clear();
 }
 
@@ -282,6 +287,14 @@ void MotionMaster::Deliver(Motion::Event const& event)
         }
         case Motion::Event::Kind::Suspended:
         {
+            if (event.reason == Motion::FinishReason::Blocked)
+            {
+                if (bound->activated)
+                {
+                    bound->behaviour->Suspend(*m_owner);   // the block: paused where it stands, never finished
+                }
+                return;
+            }
             // The idle command masks without stopping what it covers (scripts rely on the
             // movement continuing physically under MoveIdle).
             std::optional<Motion::Held> selected = m_arbiter.Selected();
@@ -296,6 +309,10 @@ void MotionMaster::Deliver(Motion::Event const& event)
             return;
         }
         case Motion::Event::Kind::Resumed:
+            if (event.reason == Motion::FinishReason::Blocked)
+            {
+                m_pendingReset = PendingReset::Always;   // the block lifted: re-lay from where the unit stands (spec §5)
+            }
             return;   // the reset latch decides whether the exposed behaviour resets (Reconcile)
         default:
             return;
@@ -341,11 +358,10 @@ void MotionMaster::Reconcile()
             bound->activated = true;
             bound->behaviour->Activate(*m_owner);   // never a reset: the stack never Reset a freshly pushed generator
         }
-        else
+        else if (m_arbiter.Evaluate().ticks)
         {
-            // The selection hears Resume at every commit, reset or not: a behaviour suspended
-            // beneath a claim and exposed again learns it here (its suspended flag clears);
-            // the reset latch says whether it restarts.
+            // The selection hears Resume at every commit, reset or not, unless the block holds it:
+            // a paused behaviour stays suspended until the lift's own Resumed(Blocked) arrives.
             const bool reset = m_pendingReset == PendingReset::Always ||
                                (m_pendingReset == PendingReset::WhenExposed && selected->seq == m_exposedSeq);
             bound->behaviour->Resume(*m_owner, reset);
@@ -458,34 +474,12 @@ void MotionMaster::Retire(size_t index, Motion::FinishReason reason)
 {
     std::unique_ptr<MotionBehaviour> gone = std::move(m_bound[index].behaviour);
     const bool activated = m_bound[index].activated;
-    const Motion::Kind kind = gone->Kind();
     m_bound.erase(m_bound.begin() + static_cast<std::vector<Bound>::difference_type>(index));
     if (activated)
     {
         gone->Finish(*m_owner, reason);
-        ReassertControlState(kind);
     }
     m_retired.push_back(std::move(gone));   // a generator whose own Update fired this hook must outlive it
-}
-
-/**
- * @brief Re-asserts a kind's shared unit state after one of its behaviours finished.
- * @param kind The finished behaviour's kind; only Fear and Confused carry shared state.
- */
-void MotionMaster::ReassertControlState(Motion::Kind kind)
-{
-    if (kind == Motion::Kind::Fear && HoldsControl(Motion::Kind::Fear))
-    {
-        m_owner->addUnitState(UNIT_STAT_FLEEING);   // the hook cleared it; another fear still holds the unit
-        if (m_owner->GetTypeId() == TYPEID_UNIT)
-        {
-            static_cast<Creature*>(m_owner)->SetWalk(false, false);   // and the flee runs
-        }
-    }
-    else if (kind == Motion::Kind::Confused && HoldsControl(Motion::Kind::Confused))
-    {
-        m_owner->addUnitState(UNIT_STAT_CONFUSED);
-    }
 }
 
 /**
@@ -642,9 +636,9 @@ MovementGenerator const* MotionMaster::GetCurrent() const
  */
 void MotionMaster::UpdateMotion(uint32 diff)
 {
-    if (m_owner->hasUnitState(UNIT_STAT_CAN_NOT_MOVE))
+    if (!m_arbiter.Evaluate().ticks)
     {
-        return;
+        return;   // the block (P5-A): the selected behaviour is paused; nothing moves
     }
     if (m_arbiter.Empty())
     {
@@ -753,7 +747,7 @@ void MotionMaster::MoveRandomAroundPoint(float x, float y, float z, float radius
  */
 void MotionMaster::MoveTargetedHome()
 {
-    if (m_owner->hasUnitState(UNIT_STAT_LOST_CONTROL))
+    if (m_arbiter.Reasons() & (Motion::ReasonFeared | Motion::ReasonPossessed))
     {
         return;
     }
@@ -832,7 +826,7 @@ void MotionMaster::MoveChase(Unit* target, float dist, float angle)
  */
 void MotionMaster::MoveFollow(Unit* target, float dist, float angle)
 {
-    if (m_owner->hasUnitState(UNIT_STAT_LOST_CONTROL))
+    if (m_arbiter.Reasons() & (Motion::ReasonFeared | Motion::ReasonPossessed))
     {
         return;
     }
@@ -1226,6 +1220,16 @@ void MotionMaster::CancelControl(Motion::Kind kind)
 }
 
 /**
+ * @brief Combat ended without a death or an evade: the Combat entry finishes as TargetLost;
+ *        the feign's apply uses it.
+ */
+void MotionMaster::ExpireCombat()
+{
+    Scope scope(*this, Motion::TransactionKind::Normal);
+    m_arbiter.Expire(Motion::Kind::Chase);
+}
+
+/**
  * @brief Ends one Control claim by identity; the newest remaining claim of the layer drives.
  * @param claim The claim's identity (Motion::ControlClaim).
  */
@@ -1246,6 +1250,106 @@ bool MotionMaster::HoldsControl(Motion::Kind kind) const
 }
 
 /**
+ * @brief Feeds the kernel's block: the reason's source begins.
+ * @param what The inhibition.
+ * @param source The source's identity (Motion::InhibitSource or a ControlClaim-shaped aura identity).
+ */
+void MotionMaster::Inhibit(Motion::Inhibition what, uint64 source)
+{
+    Scope scope(*this, Motion::TransactionKind::Normal);
+    m_arbiter.Inhibit(what, source);
+    ProjectClientRoot();
+}
+
+/**
+ * @brief Feeds the kernel's block: the reason's source ends.
+ */
+void MotionMaster::Uninhibit(Motion::Inhibition what, uint64 source)
+{
+    Scope scope(*this, Motion::TransactionKind::Normal);
+    m_arbiter.Uninhibit(what, source);
+    ProjectClientRoot();
+}
+
+/**
+ * @brief The client's root flag follows rooted-or-stunned, on the aggregate's edges only, so two
+ * roots and a stun releasing in any order leave the mover rooted exactly until the last one goes.
+ * A stunned creature is stopped, not rooted, as before (the stun handler's StopMoving); a stunned
+ * player or player-charmed unit gets the root (reference 2.3).
+ */
+void MotionMaster::ProjectClientRoot()
+{
+    Unit* charmer = m_owner->GetCharmer();
+    const bool clientMover = m_owner->GetTypeId() == TYPEID_PLAYER || (charmer && charmer->GetTypeId() == TYPEID_PLAYER);
+    const bool want = m_arbiter.Inhibited(Motion::Inhibition::Rooted) ||
+                      (clientMover && m_arbiter.Inhibited(Motion::Inhibition::Stunned));
+    if (want == m_clientRooted)
+    {
+        return;
+    }
+    m_clientRooted = want;
+    m_owner->SetRoot(want);
+}
+
+/**
+ * @brief Writes the unit-state bits the kernel now owns: the inhibitions and the arbiter's entries.
+ * DIED mirrors a feign (real death never set the bit before and IsAlive() is the game's answer).
+ * Compares against the owner's own bits (GetUnitState() & kMirrorBits) rather than a cache, so an
+ * outside wipe of the unit state (a respawn's clearUnitState(UNIT_STAT_ALL_STATE)) heals at the
+ * next commit instead of leaving a source death does not drop (a fixed vehicle's root) unmirrored
+ * for good.
+ */
+void MotionMaster::MirrorUnitState()
+{
+    struct Bit { uint32 state; bool on; };
+    std::vector<uint64> const& dead = m_arbiter.Sources(Motion::Inhibition::Dead);
+    bool feign = false;
+    for (size_t i = 0; i < dead.size(); ++i)
+    {
+        if (dead[i] != Motion::kDeathSource)
+        {
+            feign = true;
+        }
+    }
+    const Bit bits[] =
+    {
+        { UNIT_STAT_ROOT,        m_arbiter.Inhibited(Motion::Inhibition::Rooted) },
+        { UNIT_STAT_STUNNED,     m_arbiter.Inhibited(Motion::Inhibition::Stunned) },
+        { UNIT_STAT_DIED,        feign },
+        { UNIT_STAT_CONTROLLED,  m_arbiter.Inhibited(Motion::Inhibition::Possessed) },
+        { UNIT_STAT_FLEEING,     m_arbiter.HasClaim(Motion::Kind::Fear) },
+        { UNIT_STAT_CONFUSED,    m_arbiter.HasClaim(Motion::Kind::Confused) },
+        { UNIT_STAT_DISTRACTED,  m_arbiter.HasCommand(Motion::Layer::Distract) },
+        { UNIT_STAT_TAXI_FLIGHT, m_arbiter.HasCommand(Motion::Layer::Taxi) },
+    };
+    uint32 mask = 0;
+    for (size_t i = 0; i < sizeof(bits) / sizeof(bits[0]); ++i)
+    {
+        if (bits[i].on)
+        {
+            mask |= bits[i].state;
+        }
+    }
+    const uint32 current = m_owner->GetUnitState() & kMirrorBits;
+    const uint32 changed = mask ^ current;
+    for (size_t i = 0; i < sizeof(bits) / sizeof(bits[0]); ++i)
+    {
+        if (!(changed & bits[i].state))
+        {
+            continue;
+        }
+        if (bits[i].on)
+        {
+            m_owner->addUnitState(bits[i].state);
+        }
+        else
+        {
+            m_owner->clearUnitState(bits[i].state);
+        }
+    }
+}
+
+/**
  * @brief A near teleport: suspend the selection, relocate, resume it with a reset.
  * @param x The destination X coordinate.
  * @param y The destination Y coordinate.
@@ -1255,7 +1359,10 @@ bool MotionMaster::HoldsControl(Motion::Kind kind) const
 void MotionMaster::RelocateSelected(float x, float y, float z, float o)
 {
     Bound* bound = SelectedBound();
-    if (bound && bound->activated)
+    // A blocked behaviour is already suspended and stays that way across the relocation; the
+    // lift's own Resumed(Blocked) relays it from the new spot, so this pair runs only when the
+    // selection ticks.
+    if (bound && bound->activated && m_arbiter.Evaluate().ticks)
     {
         bound->behaviour->Suspend(*m_owner);
     }
@@ -1264,7 +1371,7 @@ void MotionMaster::RelocateSelected(float x, float y, float z, float o)
     // The relocation and the heartbeat may have changed what is selected; resume whatever
     // is selected now, as the stack applied its Reset to whatever ended up on top.
     bound = SelectedBound();
-    if (bound && bound->activated)
+    if (bound && bound->activated && m_arbiter.Evaluate().ticks)
     {
         bound->behaviour->Resume(*m_owner, true);
     }

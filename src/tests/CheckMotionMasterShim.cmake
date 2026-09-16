@@ -12,7 +12,7 @@
 set(ALLOWED
     MovePoint Clear MoveIdle MoveChase MoveFollow MoveTargetedHome MoveWaypoint
     MoveRandomAroundPoint MovementExpired MoveJump MoveFlyOrLand Initialize
-    MoveRandom MoveFleeing ActiveKind IsChasing IsPatrolling)
+    MoveRandom MoveFleeing ActiveKind IsChasing IsPatrolling Inhibit Uninhibit)
 list(LENGTH ALLOWED ALLOWED_COUNT)
 file(GLOB_RECURSE SD3_SOURCES "${SOURCE_ROOT}/src/modules/SD3/*.cpp" "${SOURCE_ROOT}/src/modules/SD3/*.h")
 list(LENGTH SD3_SOURCES SD3_COUNT)

@@ -176,7 +176,7 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                     }
 
                     // see spell 10255 (aura dummy)
-                    m_caster->clearUnitState(UNIT_STAT_ROOT);
+                    m_caster->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted, Motion::ControlClaim(10255, 0, m_caster->GetObjectGuid().GetCounter()));
                     m_caster->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                     return;
                 }
@@ -2091,7 +2091,7 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                         unitTarget->MonsterMoveWithSpeed(pTargetDummy->Where().X(), pTargetDummy->Where().Y(), pTargetDummy->Where().Z(), 24.f);
 
                         // Add state to temporarily prevent follow
-                        unitTarget->addUnitState(UNIT_STAT_ROOT);
+                        unitTarget->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::ControlClaim(51866, 0, m_caster->GetObjectGuid().GetCounter()));
 
                         // Collect Hair Sample
                         unitTarget->CastSpell(pTargetDummy, 51870, true);
@@ -2106,8 +2106,21 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                         return;
                     }
 
-                    // clear state to allow follow again
-                    m_caster->clearUnitState(UNIT_STAT_ROOT);
+                    // clear state to allow follow again: m_caster here is the guardian pet
+                    // rooted by Kick Nass (spell 51866; that effect's unitTarget), so the
+                    // release must use its owner's counter to match the claim it was given.
+                    // M2: without an owner there is no way to reconstruct that identity; guessing
+                    // one (e.g. the pet's own counter) would silently leak the root instead, so
+                    // skip the release and say so.
+                    if (Unit* owner = m_caster->GetOwner())
+                    {
+                        m_caster->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted,
+                            Motion::ControlClaim(51866, 0, owner->GetObjectGuid().GetCounter()));
+                    }
+                    else
+                    {
+                        sLog.outError("SpellEffectDummy: spell 51872 (Hair Sample Collected) found no owner for %s to release its Kick Nass root", m_caster->GetGuidStr().c_str());
+                    }
 
                     // Nass Kill Credit
                     m_caster->CastSpell(m_caster, 51871, true);
@@ -3286,7 +3299,11 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                 }
 
                 // Any effect which causes you to lose control of your character will supress the starfall effect.
-                if (m_caster->hasUnitState(UNIT_STAT_NO_FREE_MOVE))
+                // The same two-part test CanFreeMove() runs (Unit.h): kNoFreeMoveReasons plus the
+                // mirror's feign-only DIED bit; CanFreeMove() itself does not apply here, as its
+                // extra owner-guid check has no place in this caster-state test.
+                if ((m_caster->GetMotionMaster()->Mobility().reasons & Motion::kNoFreeMoveReasons) ||
+                    m_caster->hasUnitState(UNIT_STAT_DIED))
                 {
                     return;
                 }

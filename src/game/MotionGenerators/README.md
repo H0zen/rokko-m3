@@ -21,8 +21,12 @@ The facade `MotionMaster` is the movement kernel campaign's shim for the vendore
 | IsChasing | 2 |
 | MoveRandom | 1 |
 | MoveFleeing | 1 |
+| Inhibit | 1 |
+| Uninhibit | 1 |
 
-Counted 2026-09-14 on `feat/movement-queries` with `grep -rhoE "GetMotionMaster\(\)->[A-Za-z_]+" src/modules/SD3 | sort | uniq -c`.
+Counted 2026-09-15 on `feat/movement-block-state` with `grep -rhoE "GetMotionMaster\(\)->[A-Za-z_]+" src/modules/SD3 | sort | uniq -c`. `Inhibit`/`Uninhibit` (P5-A Task 4) joined the promise with `grizzly_hills.cpp`'s stun: the one script that names itself as a source of the kernel's block instead of writing `UNIT_STAT_STUNNED` itself.
+
+A script's `Inhibit`/`Uninhibit` pair must balance: a source it never releases holds the creature until it dies (death releases the aura and script sources, `Motion::Mobility::DropDomain`).
 
 ## The shell
 
@@ -36,4 +40,4 @@ The behavioral net over the same facade is `src/game/Harness` (`.debug movement 
 
 ## Control claims
 
-A fear or a confuse holds a Control claim keyed by the aura that applied it (`Motion::ControlClaim(spell, effect, caster)`, P4-A). Claims of one kind coexist and the newest drives (Confused over Fear, then the newest): a second fear on a feared unit replaces the driver in place, an earlier aura's removal changes nothing while a later one runs, and the later one's removal resumes the earlier if it still runs. The shell owns the shared unit state (`UNIT_STAT_FLEEING`, `UNIT_STAT_CONFUSED`): a finishing behaviour clears it, and the shell puts it back while another claim of the kind remains. `SetFeared`/`SetConfused` release one claim and run the end-of-control rule only when the last claim of the kind went: a creature with a victim resumes its chase, one without goes home; a player gets its control back. The low-health flee and a script's `MoveFleeing` use spell-less identities.
+A fear or a confuse holds a Control claim keyed by the aura that applied it (`Motion::ControlClaim(spell, effect, caster)`, P4-A). Claims of one kind coexist and the newest drives (Confused over Fear, then the newest): a second fear on a feared unit replaces the driver in place, an earlier aura's removal changes nothing while a later one runs, and the later one's removal resumes the earlier if it still runs. The shell owns the shared unit state (`UNIT_STAT_FLEEING`, `UNIT_STAT_CONFUSED`): the mirror (`MotionMaster::MirrorUnitState`, P5-A) sets each bit while any claim of the kind is held, independent of which claim is finishing, and the run speed a fear was walked down to is restored only once no fear claim survives. `SetFeared`/`SetConfused` release one claim and run the end-of-control rule only when the last claim of the kind went: a creature with a victim resumes its chase, one without goes home; a player gets its control back. The low-health flee and a script's `MoveFleeing` use spell-less identities.

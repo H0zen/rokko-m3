@@ -2124,6 +2124,22 @@ bool ChatHandler::HandleDebugMovementDumpCommand(char* args)
     PSendSysMessage("movement of %s: %u held, selected %s, generation %u",
                     unit->GetGuidStr().c_str(), uint32(contents.size()),
                     selected ? Motion::KindName(selected->kind) : "none", arbiter.Generation());
+    Motion::MobilityDecision decision = mm->Mobility();
+    std::string reasons;
+    static char const* const reasonNames[] = { "Rooted", "Stunned", "Dead", "Possessed", "Feared", "Confused", "Distracted", "OnTaxi" };
+    static_assert(sizeof(reasonNames) / sizeof(reasonNames[0]) == 8, "the dump's reason names out of sync with Motion::Reason");
+    for (unsigned bit = 0; bit < 8; ++bit)
+    {
+        if (decision.reasons & (1u << bit))
+        {
+            reasons += reasons.empty() ? reasonNames[bit] : std::string(" ") + reasonNames[bit];
+        }
+    }
+    PSendSysMessage("  block: %s; rooted by %u source(s), stunned by %u, dead by %u, possessed by %u; selected may move=%d turn=%d dominant=%s",
+                    reasons.empty() ? "none" : reasons.c_str(),
+                    uint32(arbiter.Sources(Motion::Inhibition::Rooted).size()), uint32(arbiter.Sources(Motion::Inhibition::Stunned).size()),
+                    uint32(arbiter.Sources(Motion::Inhibition::Dead).size()), uint32(arbiter.Sources(Motion::Inhibition::Possessed).size()),
+                    decision.mayMove ? 1 : 0, decision.mayTurn ? 1 : 0, Motion::InhibitionName(decision.dominant));
     if (std::optional<Motion::Held> const& fallback = arbiter.Fallback())
     {
         PSendSysMessage("  fallback %s seq %u", Motion::KindName(fallback->kind), fallback->seq);

@@ -44,8 +44,6 @@ namespace
 
 void ConfusedMovementGenerator::Initialize(Unit& owner)
 {
-    owner.addUnitState(UNIT_STAT_CONFUSED);
-
     // Anchored to wherever the unit stood when it lost its wits, read through the frame
     // so the anchor and the points picked around it always speak the same coordinates.
     m_anchor = Motion::FrameFor(owner).MoverPosition(owner);
@@ -75,7 +73,7 @@ void ConfusedMovementGenerator::Reset(Unit& owner)
     }
 
     owner.StopMoving();
-    owner.addUnitState(UNIT_STAT_CONFUSED | UNIT_STAT_CONFUSED_MOVE);
+    owner.addUnitState(UNIT_STAT_CONFUSED_MOVE);
 }
 
 void ConfusedMovementGenerator::Interrupt(Unit& owner)
@@ -89,7 +87,7 @@ void ConfusedMovementGenerator::Interrupt(Unit& owner)
 
 void ConfusedMovementGenerator::Finalize(Unit& owner)
 {
-    owner.clearUnitState(UNIT_STAT_CONFUSED | UNIT_STAT_CONFUSED_MOVE);
+    owner.clearUnitState(UNIT_STAT_CONFUSED_MOVE);
 
     // A player is left where it stands with its client told to stop; a creature's spline
     // is simply abandoned to whatever generator takes over.
@@ -117,8 +115,12 @@ Motion::MoveIntent ConfusedMovementGenerator::Intent(Unit& owner,
                                                      Motion::MoveStatus const& status,
                                                      uint32 diff)
 {
-    // Ignore while any OTHER no-reaction state applies (stunned, rooted, ...).
-    if (owner.hasUnitState(UNIT_STAT_CAN_NOT_REACT & ~UNIT_STAT_CONFUSED))
+    // MotionMaster::UpdateMotion already withholds a blocked behaviour's tick
+    // (Evaluate().ticks); this is a guard for a caller that ticks the generator
+    // directly, not the rule. It reads the arbiter's own decision, so a claim held
+    // beneath this one (a fear beneath a confuse) no longer counts as a block once
+    // the arbiter has chosen this behaviour over it.
+    if (!owner.GetMotionMaster()->Mobility().mayMove)
     {
         return Motion::MoveIntent::Hold();
     }

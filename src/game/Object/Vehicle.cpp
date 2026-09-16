@@ -181,7 +181,8 @@ void VehicleInfo::Initialize()
 
     if (vehicleFlags & VEHICLE_FLAG_FIXED_POSITION)
     {
-        pVehicle->SetRoot(true);
+        // Never released: the vehicle is fixed for its life.
+        pVehicle->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::FixedVehicle, pVehicle->GetObjectGuid().GetCounter()));
     }
 
     // Initialize power type based on DBC values (creatures only)
@@ -384,10 +385,7 @@ void VehicleInfo::Board(Unit* passenger, uint8 seat)
         // SMSG_BREAK_TARGET (?)
     }
 
-    if (!passenger->IsRooted())
-    {
-        passenger->SetRoot(true);
-    }
+    passenger->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), seat));
 
     Movement::MoveSplineInit init(*passenger);
     init.MoveTo(0.0f, 0.0f, 0.0f);                          // ToDo: Set correct local coords
@@ -432,7 +430,8 @@ void VehicleInfo::SwitchSeat(Unit* passenger, uint8 seat)
         return;
     }
 
-    VehicleSeatEntry const* seatEntry = GetSeatEntry(itr->second->GetTransportSeat());
+    const uint8 oldSeat = itr->second->GetTransportSeat();
+    VehicleSeatEntry const* seatEntry = GetSeatEntry(oldSeat);
     MANGOS_ASSERT(seatEntry);
 
     // Switching seats is only allowed if this flag is set
@@ -443,6 +442,14 @@ void VehicleInfo::SwitchSeat(Unit* passenger, uint8 seat)
 
     // Remove passenger modifications of the old seat
     RemoveSeatMods(passenger, seatEntry->Flags);
+
+    // Claim the new seat's source before releasing the old one: the two identities differ (the
+    // seat index is part of each), so the aggregate never falls to zero between them and the
+    // client never sees an unroot immediately followed by a root. UnBoard(changeVehicle = true)
+    // followed by the next vehicle's Board has the same shape across two different vehicles and
+    // is left as it is.
+    passenger->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), seat));
+    passenger->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), oldSeat));
 
     // Set to new seat
     itr->second->SetTransportSeat(seat);
@@ -478,13 +485,20 @@ void VehicleInfo::UnBoard(Unit* passenger, bool changeVehicle)
     PassengerMap::const_iterator itr = m_passengers.find(passenger);
     MANGOS_ASSERT(itr != m_passengers.end());
 
-    VehicleSeatEntry const* seatEntry = GetSeatEntry(itr->second->GetTransportSeat());
+    const uint8 seat = itr->second->GetTransportSeat();
+    VehicleSeatEntry const* seatEntry = GetSeatEntry(seat);
     MANGOS_ASSERT(seatEntry);
 
     UnBoardPassenger(passenger);
 
     // Remove passenger modifications
     RemoveSeatMods(passenger, seatEntry->Flags);
+
+    // Every unboard releases its own seat's root (C1b), changing vehicle or not: a passenger
+    // moving straight to another vehicle would otherwise leave this seat's source held forever
+    // (nothing ever unboards it a second time to release it); the new vehicle's Board claims
+    // its own seat regardless.
+    passenger->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), seat));
 
     if (!changeVehicle)                                     // Send expected unboarding packages
     {
@@ -498,11 +512,6 @@ void VehicleInfo::UnBoard(Unit* passenger, bool changeVehicle)
             pPlayer->SetFallInformation(0, pPlayer->Where().Z());
 
             // SMSG_PET_DISMISS_SOUND (?)
-        }
-
-        if (passenger->IsRooted())
-        {
-            passenger->SetRoot(false);
         }
 
         Movement::MoveSplineInit init(*passenger);
@@ -792,7 +801,7 @@ void VehicleInfo::ApplySeatMods(Unit* passenger, uint32 seatFlags)
             pPlayer->SetCharm(pVehicle);
             pVehicle->SetCharmerGuid(pPlayer->GetObjectGuid());
 
-            pVehicle->addUnitState(UNIT_STAT_CONTROLLED);
+            pVehicle->GetMotionMaster()->Inhibit(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, pPlayer->GetObjectGuid().GetCounter()));
             pVehicle->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
 
             // Unconfirmed - default speed handling. Before the grant: a gait change is
@@ -869,7 +878,7 @@ void VehicleInfo::RemoveSeatMods(Unit* passenger, uint32 seatFlags)
 
             pPlayer->SetClientControl(pVehicle, 0);
 
-            pVehicle->clearUnitState(UNIT_STAT_CONTROLLED);
+            pVehicle->GetMotionMaster()->Uninhibit(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, pPlayer->GetObjectGuid().GetCounter()));
             pVehicle->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
 
             // must be called after movement control unapplying

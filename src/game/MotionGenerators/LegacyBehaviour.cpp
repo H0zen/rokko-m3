@@ -61,6 +61,10 @@ void LegacyBehaviour::Activate(Unit& owner)
 
 void LegacyBehaviour::Suspend(Unit& owner)
 {
+    if (m_suspended)
+    {
+        return;   // a block's Suspended and a mask's Suspended may both arrive; the generator hears one Interrupt
+    }
     m_suspended = true;
     switch (m_kind)
     {
@@ -97,7 +101,7 @@ void LegacyBehaviour::Finish(Unit& owner, Motion::FinishReason why)
                     return;
                 case Motion::Kind::Distract:
                 case Motion::Kind::AssistDistract:
-                    m_generator->Finalize(owner);   // the only cleanup that clears DISTRACTED; the stack expired these before pushing
+                    m_generator->Finalize(owner);   // the mirror owns DISTRACTED now; the stack expired these before pushing
                     return;
                 case Motion::Kind::Effect:
                     if (Landed(owner))
@@ -124,14 +128,14 @@ void LegacyBehaviour::CleanupAfterInterrupt(Unit& owner)
     switch (m_kind)
     {
         case Motion::Kind::Fear:
-            owner.clearUnitState(UNIT_STAT_FLEEING);
-            if (owner.GetTypeId() == TYPEID_UNIT)
+            // The arbiter has already erased the finished claim by the time this hook runs, so
+            // HoldsControl(Fear) answers for the survivor: a fear that outlives this one keeps its run.
+            if (owner.GetTypeId() == TYPEID_UNIT && !owner.GetMotionMaster()->HoldsControl(Motion::Kind::Fear))
             {
                 static_cast<Creature&>(owner).SetWalk(!owner.hasUnitState(UNIT_STAT_RUNNING_STATE), false);
             }
             return;
         case Motion::Kind::Confused:
-            owner.clearUnitState(UNIT_STAT_CONFUSED);
             return;
         default:
             return;
