@@ -40,7 +40,6 @@ class MovementGenerator;
 class MotionBehaviour;
 class WaypointMovementGenerator;
 class FlightPathMovementGenerator;
-struct EffectLaunch;
 
 // Creature Entry ID used for waypoints show, visible only for GMs
 #define VISUAL_WAYPOINT 1
@@ -53,7 +52,7 @@ struct EffectLaunch;
  */
 enum MovementGeneratorType
 {
-    IDLE_MOTION_TYPE = 0,                  ///< Idle movement (IdleMovementGenerator.h)
+    IDLE_MOTION_TYPE = 0,                  ///< Idle movement (Motion::IdleBehaviour)
     RANDOM_MOTION_TYPE = 1,                ///< Random movement (RandomMovementGenerator.h)
     WAYPOINT_MOTION_TYPE = 2,              ///< Waypoint movement (WaypointMovementGenerator.h)
     MAX_DB_MOTION_TYPE = 3,                ///< Maximum database motion type (values below this can be set in DB)
@@ -62,11 +61,11 @@ enum MovementGeneratorType
     CHASE_MOTION_TYPE = 5,                 ///< Chase movement (TargetedMovementGenerator.h)
     HOME_MOTION_TYPE = 6,                  ///< Return home movement (HomeMovementGenerator.h)
     FLIGHT_MOTION_TYPE = 7,                ///< Flight movement (WaypointMovementGenerator.h)
-    POINT_MOTION_TYPE = 8,                 ///< Point movement (PointMovementGenerator.h)
+    POINT_MOTION_TYPE = 8,                 ///< Point movement (Motion::PointBehaviour; fly/land projects here too)
     FLEEING_MOTION_TYPE = 9,               ///< Fleeing movement (FleeingMovementGenerator.h)
-    DISTRACT_MOTION_TYPE = 10,             ///< Distract movement (IdleMovementGenerator.h)
-    ASSISTANCE_MOTION_TYPE = 11,           ///< Assistance movement (PointMovementGenerator.h - first part of flee for assistance)
-    ASSISTANCE_DISTRACT_MOTION_TYPE = 12,  ///< Assistance distract (IdleMovementGenerator.h - second part of flee for assistance)
+    DISTRACT_MOTION_TYPE = 10,             ///< Distract movement (Motion::DistractBehaviour)
+    ASSISTANCE_MOTION_TYPE = 11,           ///< Assistance movement (Motion::PointBehaviour - first part of flee for assistance)
+    ASSISTANCE_DISTRACT_MOTION_TYPE = 12,  ///< Assistance distract (Motion::DistractBehaviour - second part of flee for assistance)
     TIMED_FLEEING_MOTION_TYPE = 13,        ///< Timed fleeing (FleeingMovementGenerator.h - alternative second part of flee for assistance)
     FOLLOW_MOTION_TYPE = 14,               ///< Follow movement (TargetedMovementGenerator.h)
     EFFECT_MOTION_TYPE = 15,               ///< Effect movement
@@ -78,6 +77,9 @@ enum MovementGeneratorType
 
 namespace Motion
 {
+    class Behaviour;      ///< a native kernel behaviour (src/motion/BehaviourModel.h); the .cpp has the definition
+    struct EffectLaunch;   ///< a jump, a knockback arc or a fall (src/motion/MoveIntent.h); the .cpp has the definition
+
     /**
      * @brief The identity of a Control claim: the aura that holds it.
      * @param spellId The aura's spell (0 for the low-health flee and for a script's fear).
@@ -108,7 +110,7 @@ class MotionMaster
 
         /// The factory default: clear everything, install the creature's default movement (idle for players).
         void Initialize();
-        /// The selected behaviour's generator; NULL before Initialize.
+        /// The selected behaviour's generator; NULL before Initialize and NULL for a native.
         MovementGenerator const* GetCurrent() const;
         /// One tick of the selected behaviour; nothing while the block's decision withholds it (Evaluate().ticks).
         void UpdateMotion(uint32 diff);
@@ -132,12 +134,17 @@ class MotionMaster
         bool PauseWaypoints(int32 ms);
         void MoveTaxiFlight(uint32 path, uint32 pathnode);
         void MoveDistract(uint32 timeLimit);
-        void MoveJump(float x, float y, float z, float horizontalSpeed, float max_height, uint32 id = 0);
-        void MoveJump(Position& pos, float horizontalSpeed, float max_height, uint32 id = 0);
-        /// A jump that ends facing a target, or a given orientation: a raw spline, no behaviour (P5).
-        void MoveDestination(float x, float y, float z, float o, float horizontalSpeed, float max_height, Unit* target = NULL);
+        /// A jump or a knockback arc. @return False when it was refused: a rooted unit is never displaced by an arc.
+        bool MoveJump(float x, float y, float z, float horizontalSpeed, float max_height, uint32 id = 0);
+        bool MoveJump(Position& pos, float horizontalSpeed, float max_height, uint32 id = 0);
+        /// A jump that ends facing a target, or a given orientation (was MoveDestination: a raw spline; now an Effect like every jump).
+        bool MoveJump(float x, float y, float z, float o, float horizontalSpeed, float max_height, Unit* target);
         void MoveFall();
         void MoveFlyOrLand(uint32 id, float x, float y, float z, bool liftOff);
+        /// The charge (P5-B family 1 section 6): a point that follows its target's contact point at `speed`, routed with a forced destination, informing nothing.
+        void MoveCharge(Unit* target, float speed);
+        /// The swoop's destination form: a fixed goal at `speed`, informing nothing.
+        void MoveCharge(float x, float y, float z, float speed);
 
         /// An outside reason a behaviour may not move the unit (P5-A, spec §6): the one game-side
         /// path to the kernel's block. Inside one scope it feeds the arbiter, projects the client
@@ -201,11 +208,14 @@ class MotionMaster
         /// The held taxi flight, else NULL.
         FlightPathMovementGenerator* HeldFlight();
 
-        /// One held entry for a listing.
+        /// One held entry for a listing: what it is, without asking a generator for it.
         struct HeldView
         {
-            MovementGenerator const* generator;
-            bool selected;
+            Motion::Kind kind;                   ///< the kernel kind the entry runs under
+            MovementGeneratorType type;          ///< its projection, the type the commands print
+            bool selected;                       ///< this is the one that ticks
+            bool reachable;                      ///< it can still reach its goal
+            MovementGenerator const* generator;  ///< the adapted generator, NULL for a native
         };
         /// Every held behaviour in arrival order, the selected one marked.
         std::vector<HeldView> Held() const;
@@ -231,10 +241,16 @@ class MotionMaster
 
         class Scope;   ///< the transaction guard (MotionMaster.cpp)
 
-        void Request(Motion::MoveRequest const& request, MovementGenerator* generator, bool owned, EffectLaunch const& launch);
         void Request(Motion::MoveRequest const& request, MovementGenerator* generator, bool owned);
+        /// One facade request whose behaviour is a native of the kernel.
+        void Request(Motion::MoveRequest const& request, std::unique_ptr<Motion::Behaviour> native);
+        /// One Effect request, through the shell's own gate: a Jump on a rooted unit is refused.
+        /// @return False when it was refused; nothing was bound and nothing will inform.
+        bool RequestEffect(uint32 id, Motion::EffectLaunch const& launch);
         void InstallFactory(Motion::Kind kind, MovementGenerator* generator, bool owned);
-        bool Bind(Motion::Kind kind, uint32 seqBefore, MovementGenerator* generator, bool owned, EffectLaunch const& launch);
+        void InstallFactoryNative(Motion::Kind kind, std::unique_ptr<Motion::Behaviour> native);
+        bool Bind(Motion::Kind kind, uint32 seqBefore, MovementGenerator* generator, bool owned);
+        bool BindNative(uint32 seqBefore, std::unique_ptr<Motion::Behaviour> native);
         void SweepStale(Motion::Kind kind);
         void Commit(std::optional<Motion::Transaction>& transaction);
         void DeliverEvents();

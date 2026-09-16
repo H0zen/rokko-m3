@@ -522,6 +522,12 @@ namespace Motion
         Record(Decision::Op::Request, request.kind, request.id, request.claim, before);
     }
 
+    void Arbiter::Refuse(MoveRequest const& request)
+    {
+        Transaction tx(*this, TransactionKind::Normal);
+        Record(Decision::Op::Refused, request.kind, request.id, request.claim, Selected());
+    }
+
     void Arbiter::RequestDefault(MoveRequest const& request, Held const& held, Policy policy)
     {
         if (request.kind == Kind::Idle && !Empty())

@@ -53,7 +53,6 @@
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
 #include "Weather.h"
-#include "PointMovementGenerator.h"
 #include "PathFinder.h"
 #include "TargetedMovementGenerator.h"
 #include "Config/Config.h"

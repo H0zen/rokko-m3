@@ -49,7 +49,20 @@ namespace Harness
         const Pt B4 = { -2891.0f, -416.7f, 47.9f };
 
         /// S5: a POINT leg interrupted by a real chase and then cleared must not
-        /// spuriously inform for the point it never reached (B4).
+        /// spuriously inform for the point it never reached (B4). roamingBits and
+        /// projection (task 5) read the shell's own bookkeeping: UNIT_STAT_ROAMING_MOVE
+        /// is set while the point leg runs (mid-leg, before the Attack+MoveChase at
+        /// 2.5 s), and Type() reads POINT while the point is the selection. The
+        /// Attack+MoveChase at 2.5 s does not in fact win the claim against a Point
+        /// already laying a leg here (Type() stays POINT straight through to the
+        /// explicit Clear() at 6.5 s -- the log's own "5.9 yd short... 42.2 yd from
+        /// kobold" already said so, unchanged from the record), so "after the point
+        /// finished" is read where the point actually does relinquish control: the
+        /// same world tick as Clear(), before the reselected default (Random, which
+        /// reuses the same bit for its own wander) has had a tick to run -- confirmed
+        /// empirically: hasUnitState reads 0 in that same tick and 1 by the next one.
+        /// Type() itself flips to RANDOM synchronously within Clear(), one tick ahead
+        /// of the roaming bit, so it cannot serve as this category's own "after" read.
         class PointInformAfterInterrupt : public Scenario
         {
         public:
@@ -59,23 +72,37 @@ namespace Harness
             {
                 Creature* a = Spawn(WOLF, SD.x, SD.y, SD.z, 0.0f);
                 Creature* b = Spawn(KOBOLD, SD.x + 8.0f, SD.y, Ground(SD.x + 8.0f, SD.y, SD.z), 3.1f);
-                if (!a || !b) { Verdict("B4=INVALID(spawn failed)"); return; }
+                if (!a || !b) { Verdict("B4=INVALID(spawn failed) | roamingBits=INVALID(spawn failed) | projection=INVALID(spawn failed)"); return; }
                 const size_t mark = Informs().size();
                 const ObjectGuid g = a->GetObjectGuid();
                 const ObjectGuid h = b->GetObjectGuid();
+                auto roamingAtPoint = std::make_shared<bool>(false);
+                auto projectionAtPoint = std::make_shared<bool>(false);
+                auto roamingAfterClear = std::make_shared<bool>(false);
+                auto sampledBefore = std::make_shared<bool>(false);
+                auto sampledAfter = std::make_shared<bool>(false);
                 At(500, [this, g]()
                 {
                     Creature* a = Get(g); if (!a) { return; }
                     a->GetMotionMaster()->MovePoint(55, SD.x - 40.0f, SD.y, Ground(SD.x - 40.0f, SD.y, SD.z), true);
                     Log("MoveTo(55) 40 yd west, mt=%s", TypeName(a));
                 });
+                At(1500, [this, g, roamingAtPoint, projectionAtPoint, sampledBefore]()
+                {
+                    // Silent (no Log line added): the record's log for this scenario stays
+                    // byte-identical, and the verdict body itself carries the evidence.
+                    Creature* a = Get(g); if (!a) { return; }
+                    *roamingAtPoint = a->hasUnitState(UNIT_STAT_ROAMING_MOVE);
+                    *projectionAtPoint = Type(a) == POINT_MOTION_TYPE;
+                    *sampledBefore = true;
+                });
                 At(2500, [this, g, h]()
                 {
                     Creature* a = Get(g); Creature* b = Get(h);
                     if (!a || !b) { return; }
                     const float x = a->Where().X(), y = a->Where().Y();
-                    a->Attack(b, true);   // real chase (victim set): interrupts the leg, arrives 8 yd on, stops
-                    a->GetMotionMaster()->MoveChase(b, 0.0f, 0.0f);
+                    a->Attack(b, true);   // a real chase request (victim set), against a still-running point leg:
+                    a->GetMotionMaster()->MoveChase(b, 0.0f, 0.0f);   // does not win the claim here (task 5's roamingBits/projection confirm Type() stays POINT to the Clear() below) -- B4 covers the cut leg regardless
                     Log("MoveChase over the leg at %.1f %.1f (%.1f yd short of point 55) mt=%s", x, y, Dist2(x, y, SD.x - 40.0f, SD.y), TypeName(a));
                 });
                 At(6500, [this, g, h]()
@@ -87,7 +114,13 @@ namespace Harness
                     a->GetMotionMaster()->Clear(false);   // pops chase + point with the spline finalized (chase arrived): Point::Finalize
                     Log("MoveClear at %.1f %.1f (%.1f yd short of point 55, %.1f yd from kobold) mt=%s", x, y, Dist2(x, y, SD.x - 40.0f, SD.y), Dist2(x, y, bx, by), TypeName(a));
                 });
-                At(8000, [this, mark]()
+                At(6500, [this, g, roamingAfterClear, sampledAfter]()   // same world tick, right after Clear() above (Timeline.cpp: same-`at` steps run in registration order within one Advance) -- before Random's own Activate (next tick) can reclaim the bit; silent, same reason as the mid-leg sample
+                {
+                    Creature* a = Get(g); if (!a) { return; }
+                    *roamingAfterClear = a->hasUnitState(UNIT_STAT_ROAMING_MOVE);
+                    *sampledAfter = true;
+                });
+                At(8000, [this, mark, roamingAtPoint, projectionAtPoint, roamingAfterClear, sampledBefore, sampledAfter]()
                 {
                     bool spurious = false;
                     float shortBy = 0.0f;
@@ -111,13 +144,39 @@ namespace Harness
                     {
                         b4 = "OK(no inform for the cut leg)";
                     }
-                    Verdict("B4=" + b4);
+                    std::string roamingBits;
+                    std::string projection;
+                    if (!*sampledBefore || !*sampledAfter)
+                    {
+                        roamingBits = "INVALID(no samples)";
+                        projection = "INVALID(no samples)";
+                    }
+                    else
+                    {
+                        const bool okRoam = *roamingAtPoint && !*roamingAfterClear;
+                        char rtext[130];
+                        snprintf(rtext, sizeof(rtext), "%s(midLeg=%d afterClear=%d)", okRoam ? "OK" : "BUG", *roamingAtPoint ? 1 : 0, *roamingAfterClear ? 1 : 0);
+                        roamingBits = rtext;
+                        projection = *projectionAtPoint ? "OK(POINT while selected)" : "BUG(not POINT while selected)";
+                    }
+                    Verdict("B4=" + b4 + " | roamingBits=" + roamingBits + " | projection=" + projection);
                 });
             }
         };
 
         /// S9: a 372-yard MovePoint must actually reach its real point and inform
         /// there, not truncate the leg and read a partial route as arrival.
+        /// roamingBits and projection (task 5) read the shell's own bookkeeping: the
+        /// "while running" half comes from the same 5 s samples the distance check
+        /// already takes (mt and the roaming bit, side by side); the "after" half
+        /// cannot wait for a later coarse sample -- this wolf's own default motion
+        /// (creature_template.MovementType 1, Random) reclaims UNIT_STAT_ROAMING_MOVE
+        /// for its own wander the moment it is reselected, so a sample taken seconds
+        /// later would read true again for an unrelated reason. OnInform (Scenario.h:105)
+        /// fires synchronously from inside NativeBehaviour::PerformOutcome, which clears
+        /// the roaming pair (Roam(outcome.roaming)) before it walks the effects that
+        /// deliver the inform -- so reading the bit from inside the POINT 88 callback
+        /// catches the point's own release before any later reselect can touch it.
         class LongPoint : public Scenario
         {
         public:
@@ -125,9 +184,11 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; float d; MovementGeneratorType mt; };
+                m_informedAt88 = false;
+                m_roamingAtInform = false;
+                struct Sample { uint32 t; float d; MovementGeneratorType mt; bool roaming; };
                 Creature* a = Spawn(WOLF, A4.x, A4.y, A4.z, 0.0f);
-                if (!a) { Verdict("longMovePoint=INVALID(spawn failed)"); return; }
+                if (!a) { Verdict("longMovePoint=INVALID(spawn failed) | roamingBits=INVALID(spawn failed) | projection=INVALID(spawn failed)"); return; }
                 Load(B4.x, B4.y);
                 Load((A4.x + B4.x) / 2.0f, (A4.y + B4.y) / 2.0f);
                 const size_t mark = Informs().size();
@@ -149,6 +210,7 @@ namespace Harness
                         s.t = i * 5;
                         s.d = Dist2(a->Where().X(), a->Where().Y(), B4.x, B4.y);
                         s.mt = Type(a);
+                        s.roaming = a->hasUnitState(UNIT_STAT_ROAMING_MOVE);   // captured silently: the record's log line for this scenario stays byte-identical
                         samples->push_back(s);
                         Log("+%3us dist=%.1f mt=%s", s.t, s.d, Harness::TypeName(s.mt));
                     });
@@ -192,9 +254,59 @@ namespace Harness
                         snprintf(text, sizeof(text), "BUG(no inform, still %.0f yd away)", f ? f->d : -1.0f);
                         v = text;
                     }
-                    Verdict("longMovePoint=" + v);
+                    bool foundPoint = false;
+                    bool roamingWhilePoint = false;
+                    for (size_t k = 0; k < samples->size(); ++k)
+                    {
+                        Sample const& s = (*samples)[k];
+                        if (s.mt == POINT_MOTION_TYPE)
+                        {
+                            foundPoint = true;
+                            if (s.roaming) { roamingWhilePoint = true; }
+                        }
+                    }
+                    std::string roamingBits;
+                    std::string projection;
+                    if (!foundPoint)
+                    {
+                        roamingBits = "INVALID(no POINT sample)";
+                        projection = "INVALID(no POINT sample)";
+                    }
+                    else
+                    {
+                        projection = "OK(POINT while selected)";
+                        if (!m_informedAt88)
+                        {
+                            roamingBits = "INVALID(never informed)";
+                        }
+                        else
+                        {
+                            const bool ok = roamingWhilePoint && !m_roamingAtInform;
+                            char text[140];
+                            snprintf(text, sizeof(text), "%s(whileRunning=%d atFinish=%d)", ok ? "OK" : "BUG", roamingWhilePoint ? 1 : 0, m_roamingAtInform ? 1 : 0);
+                            roamingBits = text;
+                        }
+                    }
+                    Verdict("longMovePoint=" + v + " | roamingBits=" + roamingBits + " | projection=" + projection);
                 });
             }
+
+            /// The recording hook (Scenario.h:105), fired synchronously from inside
+            /// NativeBehaviour::PerformOutcome for the POINT 88 inform: Roam(outcome.roaming)
+            /// (PerformOutcome, before the effects loop) has already cleared the roaming pair
+            /// by the time this runs, so this is the earliest possible read of the point's own
+            /// release, before the wolf's default Random re-claims the same bit for its own
+            /// wander leg.
+            void OnInform(Creature* creature, uint32 type, uint32 id) override
+            {
+                if (type != POINT_MOTION_TYPE || id != 88 || m_informedAt88) { return; }
+                m_roamingAtInform = creature->hasUnitState(UNIT_STAT_ROAMING_MOVE);
+                m_informedAt88 = true;
+            }
+
+        private:
+            bool m_informedAt88;
+            bool m_roamingAtInform;
         };
 
         /// S15: a point just above the mesh, out of the router's reach: seven

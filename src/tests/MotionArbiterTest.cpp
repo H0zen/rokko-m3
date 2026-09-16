@@ -1178,6 +1178,22 @@ TEST(MotionArbiter_Ring_ExpireSelectedKeepsItsLabel)
     CHECK_EQ(K(d.back().kind), K(Kind::Chase));
 }
 
+/// The shell's own refusal (P5-B family 1: a knockback arc on a rooted unit): the ring
+/// carries the line, the model holds nothing and nothing was stamped.
+TEST(MotionArbiter_RefuseHoldsNothing)
+{
+    Arbiter m;
+    m.EnableRing();
+    m.Refuse(Req(Kind::Effect, 9));
+    CHECK_EQ(Size(m), 0);
+    std::vector<Decision> d = m.Decisions();
+    REQUIRE(static_cast<int>(d.size()) == 1);
+    CHECK_EQ(static_cast<int>(d.back().op), static_cast<int>(Decision::Op::Refused));
+    CHECK_EQ(K(d.back().kind), K(Kind::Effect));
+    CHECK_EQ(static_cast<int>(d.back().id), 9);
+    CHECK(!d.back().hadAfter);
+}
+
 TEST(MotionArbiter_Ring_NotifyRecordsTheEvent)
 {
     Arbiter m;

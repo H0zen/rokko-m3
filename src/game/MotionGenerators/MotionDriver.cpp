@@ -129,6 +129,11 @@ bool MotionDriver::Apply(Unit& owner, Motion::MoveIntent const& intent)
         case Motion::MoveIntent::Act::Hold:
             ReconcileHold(owner, intent);
             return true;
+
+        case Motion::MoveIntent::Act::Launch:
+            // An Effect's arc is launched by the shell adapter itself (NativeBehaviour::Launch,
+            // once, at activation) and never reaches the driver; a Launch here is a caller's error.
+            return false;
     }
 
     return true;
@@ -144,7 +149,8 @@ bool MotionDriver::ReconcileMove(Unit& owner, Motion::MoveIntent const& intent)
     // A speed change re-paces a routed leg, but must NOT re-lay an explicit one: that
     // geometry was built once, from the leg's START, and rebuilding it from a point
     // halfway along would walk the unit back to the beginning of its own path.
-    if (!relay && m_speedChanged && !intent.path)
+    // Nor a leg with its own speed override (the charge): the unit's pace is not what paces it.
+    if (!relay && m_speedChanged && !intent.path && intent.speed <= 0.0f)
     {
         relay = true;
     }
@@ -211,7 +217,7 @@ bool MotionDriver::LayLeg(Unit& owner, Motion::MoveIntent const& intent)
             break;
 
         case Motion::Facing::Mode::Target:
-            if (Unit* target = ObjectLookup::GetUnit(owner, intent.facing.target))
+            if (Unit* target = ObjectLookup::GetUnit(owner, ObjectGuid(intent.facing.target)))
             {
                 init.SetFacing(target);
             }
@@ -231,6 +237,12 @@ bool MotionDriver::LayLeg(Unit& owner, Motion::MoveIntent const& intent)
     // The velocity is left to MoveSplineInit, which resolves the unit's live
     // walk/run/swim/flight speed at Launch -- so a speed change re-paces the next leg
     // instead of a stale value being baked in here.
+    if (intent.speed > 0.0f)
+    {
+        // a behaviour's speed override (the charge); otherwise MoveSplineInit resolves the live speed at Launch
+        init.SetVelocity(intent.speed);
+    }
+
     if (init.Launch() == 0)
     {
         // The spline refused the leg (Validate): nothing is running, and the next tick
@@ -263,7 +275,7 @@ void MotionDriver::ReconcileHold(Unit& owner, Motion::MoveIntent const& intent)
     {
         case Motion::Facing::Mode::Target:
         {
-            Unit* target = ObjectLookup::GetUnit(owner, intent.facing.target);
+            Unit* target = ObjectLookup::GetUnit(owner, ObjectGuid(intent.facing.target));
             if (target && !owner.Where().HasInArc(target->Where(), FACING_EPSILON))
             {
                 owner.SetInFront(target);

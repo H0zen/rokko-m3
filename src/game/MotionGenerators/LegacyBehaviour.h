@@ -27,18 +27,20 @@
 #define MANGOS_LEGACYBEHAVIOUR_H
 
 #include "Behaviour.h"
+#include "MovementGenerator.h"
 
 /**
- * A legacy MovementGenerator as a behaviour (design §4, the hook matrix). Owns the
- * generator unless it is the shared idle singleton. Only the selected behaviour
- * ticks; the hooks map onto Initialize/Interrupt/Reset/Finalize per class, and a
- * replaced or cancelled behaviour gets Interrupt plus the cleanup Interrupt leaves
- * undone, never the full Finalize the stack ran only on completion or Clear.
+ * A legacy MovementGenerator as a behaviour (design §4, the hook matrix), for the eight
+ * kinds families 2-4 still own; the seven simple moves are natives over NativeBehaviour.
+ * Owns the generator when the binding hands ownership over. Only the selected behaviour
+ * ticks; the hooks map onto Initialize/Interrupt/Reset/Finalize per class, and a replaced
+ * or cancelled behaviour gets Interrupt plus the cleanup Interrupt leaves undone, never
+ * the full Finalize the stack ran only on completion or Clear.
  */
 class LegacyBehaviour : public MotionBehaviour
 {
     public:
-        LegacyBehaviour(Motion::Kind kind, MovementGenerator* generator, bool owned, EffectLaunch const& launch = EffectLaunch());
+        LegacyBehaviour(Motion::Kind kind, MovementGenerator* generator, bool owned);
         ~LegacyBehaviour() override;
         LegacyBehaviour(LegacyBehaviour const&) = delete;
         LegacyBehaviour& operator=(LegacyBehaviour const&) = delete;
@@ -55,16 +57,14 @@ class LegacyBehaviour : public MotionBehaviour
         MovementGenerator const* Legacy() const override { return m_generator; }
         void SpeedChanged() override;
         bool GetResetPosition(Unit& owner, float& x, float& y, float& z, float& o) const override;
+        bool Reachable() const override { return m_generator->IsReachable(); }
 
     private:
-        void Launch(Unit& owner);                 ///< the Effect's spline, once, at first selection
         void CleanupAfterInterrupt(Unit& owner);  ///< the state bits Interrupt leaves set
-        bool Landed(Unit const& owner) const;     ///< the Effect's spline ran out, uncut
 
         Motion::Kind       m_kind;
         MovementGenerator* m_generator;
         bool               m_owned;
-        EffectLaunch       m_launch;
         bool               m_suspended;   ///< Suspend ran since the last Activate/Resume: the mover belongs to another behaviour
 };
 

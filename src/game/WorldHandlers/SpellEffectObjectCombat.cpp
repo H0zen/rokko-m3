@@ -1404,18 +1404,11 @@ void Spell::EffectCharge(SpellEffectEntry const* /*effect*/)
         return;
     }
 
-    // TODO: research more ContactPoint/attack distance.
-    // 3.666666 instead of ATTACK_DISTANCE(5.0f) in below seem to give more accurate result.
-    float x, y, z;
-    ContactPointNear(*unitTarget, m_caster, x, y, z, 3.666666f);
-
-    if (unitTarget->GetTypeId() != TYPEID_PLAYER)
-    {
-        ((Creature*)unitTarget)->StopMoving();
-    }
-
-    // Only send MOVEMENTFLAG_WALK_MODE, client has strange issues with other move flags
-    m_caster->MonsterMoveWithSpeed(x, y, z, 24.f, true, true);
+    // The charge is a kernel point that tracks its target (P5-B family 1 section 6): the goal
+    // is the target's contact point, re-laid as the target moves. The creature target is no
+    // longer stopped -- it was stopped only to hold the old fixed destination true -- so it
+    // keeps running and the charge re-targets it, as retail does.
+    m_caster->GetMotionMaster()->MoveCharge(unitTarget, 24.0f);
 
     // not all charge effects used in negative spells
     if (unitTarget != m_caster && !IsPositiveSpell(m_spellInfo->ID))
@@ -1426,27 +1419,22 @@ void Spell::EffectCharge(SpellEffectEntry const* /*effect*/)
 
 void Spell::EffectCharge2(SpellEffectEntry const* /*effect*/)
 {
-    float x, y, z;
     if (m_targets.m_targetMask & TARGET_FLAG_DEST_LOCATION)
     {
+        // The swoop: a fixed goal and no target to track (and none to dereference -- the
+        // destination branch read unitTarget's type before anything checked it).
+        float x, y, z;
         m_targets.getDestination(x, y, z);
-
-        if (unitTarget->GetTypeId() != TYPEID_PLAYER)
-        {
-            ((Creature*)unitTarget)->StopMoving();
-        }
+        m_caster->GetMotionMaster()->MoveCharge(x, y, z, 24.0f);
     }
     else if (unitTarget && unitTarget != m_caster)
     {
-        ContactPointNear(*unitTarget, m_caster, x, y, z, 3.666666f);
+        m_caster->GetMotionMaster()->MoveCharge(unitTarget, 24.0f);
     }
     else
     {
         return;
     }
-
-    // Only send MOVEMENTFLAG_WALK_MODE, client has strange issues with other move flags
-    m_caster->MonsterMoveWithSpeed(x, y, z, 24.f, true, true);
 
     // not all charge effects used in negative spells
     if (unitTarget && unitTarget != m_caster && !IsPositiveSpell(m_spellInfo->ID))

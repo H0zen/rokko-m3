@@ -188,7 +188,7 @@ Motion::MoveIntent TargetedMovementGenerator::Intent(Unit& owner,
     // A chase with no angle ends every leg -- and every idle tick in melee -- turned
     // toward its victim. The driver owns the facing; we only say we want it.
     const Motion::Facing facing = (m_angle == 0.0f)
-        ? Motion::Facing::ToTarget(i_target->GetObjectGuid())
+        ? Motion::FacingTarget(i_target->GetObjectGuid())
         : Motion::Facing{};
 
     // Standing on a spot that is still good: hold. Asking to Move here instead would make

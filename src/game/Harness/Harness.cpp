@@ -50,6 +50,7 @@ namespace Harness
     void RegisterWanderScenarios(Runner& r);
     void RegisterBlockScenarios(Runner& r);
     void RegisterCoverageScenarios(Runner& r);
+    void RegisterSimpleScenarios(Runner& r);
 
     namespace
     {
@@ -65,7 +66,9 @@ namespace Harness
         // S12=11, S13=12, S15=13, S17=14, S19=15, S4=16); Start("all") sorts by it, so
         // the call order here does not matter. Tasks 3-5 add their Register calls.
         // The coverage family (RegisterCoverageScenarios) is orders 32-35: a vehicle
-        // seat, a death and respawn, a possession, two feigns.
+        // seat, a death and respawn, a possession, two feigns. The simple-move family
+        // (RegisterSimpleScenarios) is orders 36-41: the refused arc, the arc under a
+        // stun, and the charge (P5-B family 1).
         RegisterJumpScenarios(*this);
         RegisterPointScenarios(*this);
         RegisterHomeScenarios(*this);
@@ -74,6 +77,7 @@ namespace Harness
         RegisterWanderScenarios(*this);
         RegisterBlockScenarios(*this);
         RegisterCoverageScenarios(*this);
+        RegisterSimpleScenarios(*this);
         RegisterPatrolScenarios(*this);
     }
 

@@ -24,15 +24,12 @@
  */
 
 #include "LegacyBehaviour.h"
-#include "IntentMovementGenerator.h"
 #include "MovementGenerator.h"
 #include "Creature.h"
 #include "Unit.h"
-#include "movement/MoveSpline.h"
-#include "movement/MoveSplineInit.h"
 
-LegacyBehaviour::LegacyBehaviour(Motion::Kind kind, MovementGenerator* generator, bool owned, EffectLaunch const& launch)
-    : m_kind(kind), m_generator(generator), m_owned(owned), m_launch(launch), m_suspended(false)
+LegacyBehaviour::LegacyBehaviour(Motion::Kind kind, MovementGenerator* generator, bool owned)
+    : m_kind(kind), m_generator(generator), m_owned(owned), m_suspended(false)
 {
 }
 
@@ -53,10 +50,6 @@ void LegacyBehaviour::Activate(Unit& owner)
 {
     m_suspended = false;
     m_generator->Initialize(owner);
-    if (m_kind == Motion::Kind::Effect)
-    {
-        Launch(owner);
-    }
 }
 
 void LegacyBehaviour::Suspend(Unit& owner)
@@ -66,17 +59,7 @@ void LegacyBehaviour::Suspend(Unit& owner)
         return;   // a block's Suspended and a mask's Suspended may both arrive; the generator hears one Interrupt
     }
     m_suspended = true;
-    switch (m_kind)
-    {
-        case Motion::Kind::Idle:
-        case Motion::Kind::Distract:
-        case Motion::Kind::AssistDistract:
-        case Motion::Kind::Effect:
-            return;   // inert, a timer, or a spline nothing beneath may touch
-        default:
-            m_generator->Interrupt(owner);
-            return;
-    }
+    m_generator->Interrupt(owner);   // every kind left here travels: none is inert, a timer or a spline
 }
 
 void LegacyBehaviour::Resume(Unit& owner, bool reset)
@@ -95,28 +78,12 @@ void LegacyBehaviour::Finish(Unit& owner, Motion::FinishReason why)
         case Motion::FinishReason::Superseded:
         case Motion::FinishReason::Overridden:
         case Motion::FinishReason::Cancelled:
-            switch (m_kind)
+            if (!m_suspended)
             {
-                case Motion::Kind::Idle:
-                    return;
-                case Motion::Kind::Distract:
-                case Motion::Kind::AssistDistract:
-                    m_generator->Finalize(owner);   // the mirror owns DISTRACTED now; the stack expired these before pushing
-                    return;
-                case Motion::Kind::Effect:
-                    if (Landed(owner))
-                    {
-                        m_generator->Finalize(owner);   // a landing not yet consumed by a tick is the effect having happened
-                    }
-                    return;
-                default:
-                    if (!m_suspended)
-                    {
-                        m_generator->Interrupt(owner);   // a suspended behaviour was interrupted at its Suspend: the mover is another behaviour's now
-                    }
-                    CleanupAfterInterrupt(owner);
-                    return;
+                m_generator->Interrupt(owner);   // a suspended behaviour was interrupted at its Suspend: the mover is another behaviour's now
             }
+            CleanupAfterInterrupt(owner);
+            return;
         default:
             m_generator->Finalize(owner);
             return;
@@ -147,30 +114,10 @@ bool LegacyBehaviour::Tick(Unit& owner, uint32 diff)
     return m_generator->Update(owner, diff);
 }
 
-Motion::FinishReason LegacyBehaviour::EndReason(Unit& owner) const
+Motion::FinishReason LegacyBehaviour::EndReason(Unit& /*owner*/) const
 {
     switch (m_kind)
     {
-        case Motion::Kind::Point:
-        case Motion::Kind::FlyLand:
-        case Motion::Kind::AssistRun:
-        {
-            if (IntentMovementGenerator const* intent = dynamic_cast<IntentMovementGenerator const*>(m_generator))
-            {
-                Motion::MoveStatus const& status = intent->LastStatus();
-                if (status.blocked)
-                {
-                    return Motion::FinishReason::Blocked;
-                }
-                if (status.cut)
-                {
-                    return Motion::FinishReason::Cut;
-                }
-            }
-            return Motion::FinishReason::Arrived;
-        }
-        case Motion::Kind::Effect:
-            return Landed(owner) ? Motion::FinishReason::Arrived : Motion::FinishReason::Cut;
         case Motion::Kind::Chase:
         case Motion::Kind::Follow:
             return Motion::FinishReason::TargetLost;
@@ -178,34 +125,8 @@ Motion::FinishReason LegacyBehaviour::EndReason(Unit& owner) const
         case Motion::Kind::Taxi:
             return Motion::FinishReason::Arrived;
         default:
-            return Motion::FinishReason::Expired;   // Distract, AssistDistract, a timed fear
+            return Motion::FinishReason::Expired;   // a timed fear, and the endless kinds nothing pops
     }
-}
-
-bool LegacyBehaviour::Landed(Unit const& owner) const
-{
-    return owner.movespline->Finalized() && !owner.movespline->Cut();
-}
-
-void LegacyBehaviour::Launch(Unit& owner)
-{
-    if (m_launch.kind == EffectLaunch::None)
-    {
-        return;
-    }
-    Movement::MoveSplineInit init(owner);
-    init.MoveTo(m_launch.x, m_launch.y, m_launch.z);
-    if (m_launch.kind == EffectLaunch::Jump)
-    {
-        init.SetParabolic(m_launch.height, 0);
-        init.SetVelocity(m_launch.speed);
-    }
-    else
-    {
-        init.SetFall();
-    }
-    init.Launch();
-    m_launch.kind = EffectLaunch::None;   // once
 }
 
 void LegacyBehaviour::SpeedChanged()

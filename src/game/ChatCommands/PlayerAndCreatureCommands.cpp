@@ -270,8 +270,10 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
     std::vector<MotionMaster::HeldView> held = mm->Held();
     for (size_t i = 0; i < held.size(); ++i)
     {
+        // The binding answers for itself: a native has no generator, and only the two target
+        // readers below still need one.
         MovementGenerator const* gen = held[i].generator;
-        switch (gen->GetMovementGeneratorType())
+        switch (held[i].type)
         {
             case IDLE_MOTION_TYPE:          SendSysMessage(LANG_MOVEGENS_IDLE);          break;
             case RANDOM_MOTION_TYPE:        SendSysMessage(LANG_MOVEGENS_RANDOM);        break;
@@ -280,15 +282,7 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
 
             case CHASE_MOTION_TYPE:
             {
-                Unit* target;
-                if (unit->GetTypeId() == TYPEID_PLAYER)
-                {
-                    target = static_cast<ChaseMovementGenerator const*>(gen)->GetTarget();
-                }
-                else
-                {
-                    target = static_cast<ChaseMovementGenerator const*>(gen)->GetTarget();
-                }
+                Unit* target = gen ? static_cast<ChaseMovementGenerator const*>(gen)->GetTarget() : NULL;
 
                 if (!target)
                 {
@@ -306,15 +300,7 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
             }
             case FOLLOW_MOTION_TYPE:
             {
-                Unit* target;
-                if (unit->GetTypeId() == TYPEID_PLAYER)
-                {
-                    target = static_cast<FollowMovementGenerator const*>(gen)->GetTarget();
-                }
-                else
-                {
-                    target = static_cast<FollowMovementGenerator const*>(gen)->GetTarget();
-                }
+                Unit* target = gen ? static_cast<FollowMovementGenerator const*>(gen)->GetTarget() : NULL;
 
                 if (!target)
                 {
@@ -350,7 +336,7 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
             case DISTRACT_MOTION_TYPE: SendSysMessage(LANG_MOVEGENS_DISTRACT);  break;
             case EFFECT_MOTION_TYPE: SendSysMessage(LANG_MOVEGENS_EFFECT);  break;
             default:
-                PSendSysMessage(LANG_MOVEGENS_UNKNOWN, gen->GetMovementGeneratorType());
+                PSendSysMessage(LANG_MOVEGENS_UNKNOWN, held[i].type);
                 break;
         }
 

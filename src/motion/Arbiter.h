@@ -185,6 +185,8 @@ namespace Motion
             /// self-expiry (Home/Distract/Effect) and the policy's cancellation effects.
             /// A Control kind adds or updates the claim of `request.claim` (never 0).
             void Request(MoveRequest const& request);
+            /// A request the shell refused before the model saw it (a knockback arc on a rooted unit): recorded as Refused, nothing held.
+            void Refuse(MoveRequest const& request);
             /// The Clear(reset, all) projection: drop every command and the combat entry,
             /// pop a pushed default; `all` takes the default and the Control claims too —
             /// a partial clear leaves the claims, which end only through their identity.

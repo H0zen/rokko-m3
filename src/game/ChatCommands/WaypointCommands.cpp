@@ -38,7 +38,6 @@
 #include <list>
 #include "Chat.h"
 #include "Language.h"
-#include "PointMovementGenerator.h"
 #include "WaypointMovementGenerator.h"
 #include "TemporarySummon.h"
 #include "MoveMap.h"

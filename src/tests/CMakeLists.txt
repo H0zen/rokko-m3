@@ -79,6 +79,7 @@ set(SRC_GRP_TESTS
     MotionAuthorityTest.cpp
     MotionArbiterTest.cpp
     MotionMobilityTest.cpp
+    MotionBehaviourTest.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/TimeSync.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/Walker.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/Control.cpp

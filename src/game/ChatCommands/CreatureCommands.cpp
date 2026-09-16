@@ -58,7 +58,7 @@
  * @brief Moves the selected creature to the handler's location.
  *
  * This command is kept available for external scripting libraries that depend on
- * PointMovementGenerator linkage.
+ * the point move's linkage.
  *
  * @param args Unused command arguments.
  * @return true if the command completed successfully; otherwise false.
