@@ -73,7 +73,9 @@ namespace Motion
             Outcome Finish(FinishReason why, Sight const& sight, Services& svc) override;
             bool TracksTarget() const override { return m_p.target != 0; }
             uint64 Target() const override { return m_p.target; }
-            uint32 Relays() const { return m_relays; }   ///< the charge's re-lay count (the harness reports it)
+            /// The charge's own re-lay count. Named apart from Behaviour::Relays(), which answers
+            /// the by-cause RelayCounts a tracking native keeps; the point family keeps a bare tally.
+            uint32 RelayCount() const { return m_relays; }
         private:
             Params       m_p;
             bool         m_done = false;

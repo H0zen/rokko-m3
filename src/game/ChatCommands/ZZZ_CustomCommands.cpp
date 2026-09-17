@@ -54,7 +54,6 @@
 #include "CellImpl.h"
 #include "Weather.h"
 #include "PathFinder.h"
-#include "TargetedMovementGenerator.h"
 #include "Config/Config.h"
 #include "Mail.h"
 #include "Util.h"

@@ -62,6 +62,9 @@ class MotionBehaviour
         virtual void SpeedChanged() = 0;
         virtual bool GetResetPosition(Unit& owner, float& x, float& y, float& z, float& o) const = 0;
         virtual bool Reachable() const = 0;                         ///< the behaviour can reach its goal (the IsReachable contract)
+        /// The raw guid of the target this behaviour tracks; 0 for one that tracks nothing and
+        /// for every legacy binding, so a listing reads it without downcasting to the adapter.
+        virtual uint64 TrackedTarget() const { return 0; }
 };
 
 #endif

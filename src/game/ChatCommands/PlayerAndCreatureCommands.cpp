@@ -36,9 +36,7 @@
 #include "Chat.h"
 #include "Language.h"
 #include "PathFinder.h"
-#include "TargetedMovementGenerator.h"
-#include "MovementGenerator.h"
-#include "FollowerReference.h"
+#include "ObjectLookup.h"
 #include "Geometry/Vector3.h"
 #include "WorldSession.h"
 #include "Unit.h"
@@ -270,9 +268,8 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
     std::vector<MotionMaster::HeldView> held = mm->Held();
     for (size_t i = 0; i < held.size(); ++i)
     {
-        // The binding answers for itself: a native has no generator, and only the two target
-        // readers below still need one.
-        MovementGenerator const* gen = held[i].generator;
+        // The binding answers for itself: a native has no generator, and nothing below needs
+        // one -- a tracked target is the entry's own guid, resolved here.
         switch (held[i].type)
         {
             case IDLE_MOTION_TYPE:          SendSysMessage(LANG_MOVEGENS_IDLE);          break;
@@ -282,7 +279,7 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
 
             case CHASE_MOTION_TYPE:
             {
-                Unit* target = gen ? static_cast<ChaseMovementGenerator const*>(gen)->GetTarget() : NULL;
+                Unit* target = ObjectLookup::GetUnit(*unit, ObjectGuid(held[i].target));
 
                 if (!target)
                 {
@@ -300,7 +297,7 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
             }
             case FOLLOW_MOTION_TYPE:
             {
-                Unit* target = gen ? static_cast<FollowMovementGenerator const*>(gen)->GetTarget() : NULL;
+                Unit* target = ObjectLookup::GetUnit(*unit, ObjectGuid(held[i].target));
 
                 if (!target)
                 {

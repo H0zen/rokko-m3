@@ -34,16 +34,16 @@
 #include "NativeBehaviour.h"
 #include "SimpleMoves.h"
 #include "DefaultMoves.h"
+#include "TrackingMoves.h"
 #include "MovementIntent.h"
 #include "ConfusedMovementGenerator.h"
 #include "FleeingMovementGenerator.h"
-#include "HomeMovementGenerator.h"
-#include "TargetedMovementGenerator.h"
 #include "FlightPathMovementGenerator.h"
 #include "WaypointManager.h"
 #include "movement/MoveSpline.h"
 #include "movement/MoveSplineInit.h"
 #include "Map.h"
+#include "ObjectLookup.h"
 #include "CreatureAISelector.h"
 #include "Creature.h"
 #include "CreatureLinkingMgr.h"
@@ -78,6 +78,30 @@ namespace
         r.resumeCombat = resumeCombat;
         r.claim = claim;
         return r;
+    }
+
+    /**
+     * @brief The follow native's parameters, as both request sites build them.
+     * @param target The unit to trail.
+     * @param dist The requested distance behind it.
+     * @param angle The requested bearing relative to its facing.
+     * @return The Params, with the state bits, the cadence, the horizon and the config tolerance.
+     */
+    Motion::FollowBehaviour::FollowParams MakeFollowParams(Unit const& target, float dist, float angle)
+    {
+        Motion::FollowBehaviour::FollowParams p;
+        p.target = target.GetObjectGuid().GetRawValue();   // resolved per tick; never a stored pointer (design v2 §3.2)
+        p.offset = dist;
+        p.angle = angle;
+        p.stateSet = UNIT_STAT_FOLLOW;
+        p.stateMove = UNIT_STAT_FOLLOW_MOVE;
+        p.routineMs = 400;    // retail's measured re-lay cluster, in place of the generator's 50 ms poll
+        // One cadence of lead on a trusted velocity by default: the heel point (design §6.3).
+        // Movement.FollowHorizonMs = 0 turns it off, which is retail's own aim and the baseline
+        // the harness's follow-keeps-pace scenario is measured against.
+        p.horizonMs = sWorld.getConfig(CONFIG_UINT32_MOVEMENT_FOLLOW_HORIZON_MS);
+        p.recalcRange = sWorld.getConfig(CONFIG_FLOAT_RATE_TARGET_POS_RECALCULATION_RANGE);
+        return p;
     }
 
     /**
@@ -958,14 +982,21 @@ void MotionMaster::MoveTargetedHome()
             z = home.Z();
             o = home.Facing();
         }
-        Request(R(Motion::Kind::Home), new HomeMovementGenerator(Motion::Vector3(x, y, z), o), true);
+        Motion::HomeBehaviour::Params p;
+        p.home = Motion::Vector3(x, y, z);
+        p.facing = o;
+        // The mask the generator cleared at initialisation; the native clears it on its first
+        // tick instead, which under a block is after the lift (design §6.5).
+        p.stateClear = UNIT_STAT_ALL_DYN_STATES;
+        Request(R(Motion::Kind::Home), std::unique_ptr<Motion::Behaviour>(new Motion::HomeBehaviour(p)));
     }
     else if (m_owner->GetTypeId() == TYPEID_UNIT && ((Creature*)m_owner)->GetCharmerOrOwnerGuid())
     {
         if (Unit* target = ((Creature*)m_owner)->GetCharmerOrOwner())
         {
             DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s follow to %s", m_owner->GetGuidStr().c_str(), target->GetGuidStr().c_str());
-            Request(R(Motion::Kind::Follow), new FollowMovementGenerator(*target, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE), true);
+            Request(R(Motion::Kind::Follow), std::unique_ptr<Motion::Behaviour>(
+                        new Motion::FollowBehaviour(MakeFollowParams(*target, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE))));
         }
         else
         {
@@ -1001,7 +1032,16 @@ void MotionMaster::MoveChase(Unit* target, float dist, float angle)
         return;
     }
     DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s chase to %s", m_owner->GetGuidStr().c_str(), target->GetGuidStr().c_str());
-    Request(R(Motion::Kind::Chase), new ChaseMovementGenerator(*target, dist, angle), true);
+    Motion::ChaseBehaviour::ChaseParams p;
+    p.target = target->GetObjectGuid().GetRawValue();   // resolved per tick; never a stored pointer (design v2 §3.2)
+    p.offset = dist;
+    p.angle = angle;
+    p.stateSet = UNIT_STAT_CHASE;
+    p.stateMove = UNIT_STAT_CHASE_MOVE;
+    p.routineMs = 1000;   // retail's observed ~1 Hz drift re-check, in place of the generator's 100 ms poll
+    p.lead = sWorld.getConfig(CONFIG_BOOL_MOVEMENT_CHASE_LEAD);   // the experiment (Movement.ChaseLead), off by default
+    p.leadMs = 500;
+    Request(R(Motion::Kind::Chase), std::unique_ptr<Motion::Behaviour>(new Motion::ChaseBehaviour(p)));
 }
 
 /**
@@ -1022,7 +1062,8 @@ void MotionMaster::MoveFollow(Unit* target, float dist, float angle)
         return;
     }
     DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s follow to %s", m_owner->GetGuidStr().c_str(), target->GetGuidStr().c_str());
-    Request(R(Motion::Kind::Follow), new FollowMovementGenerator(*target, dist, angle), true);
+    Request(R(Motion::Kind::Follow), std::unique_ptr<Motion::Behaviour>(
+                new Motion::FollowBehaviour(MakeFollowParams(*target, dist, angle))));
 }
 
 /**
@@ -1412,6 +1453,36 @@ FlightPathMovementGenerator* MotionMaster::HeldFlight()
 }
 
 /**
+ * @brief The selected native's re-lay counters, by cause.
+ * @return The counts, or NULL when the selection is a legacy binding or counts nothing
+ *         (only the tracking natives keep them; design v2 §5: GM-dumpable).
+ */
+Motion::RelayCounts const* MotionMaster::SelectedRelays() const
+{
+    Bound const* bound = SelectedBound();
+    if (!bound || bound->behaviour->Legacy())
+    {
+        return NULL;
+    }
+    return static_cast<NativeBehaviour const*>(bound->behaviour.get())->Native()->Relays();
+}
+
+/**
+ * @brief The facing the selected native's driver last asked for.
+ * @return The running leg's facing mode, or the hold's once the leg has finished;
+ *         Motion::Facing::Mode::None when nothing is selected or the entry is a legacy binding.
+ */
+Motion::Facing::Mode MotionMaster::SelectedLegFacingMode() const
+{
+    Bound const* bound = SelectedBound();
+    if (!bound || bound->behaviour->Legacy())
+    {
+        return Motion::Facing::Mode::None;
+    }
+    return static_cast<NativeBehaviour const*>(bound->behaviour.get())->LegFacingMode();
+}
+
+/**
  * @brief Sets the next waypoint for the unit.
  * @param pointId ID of the next waypoint.
  * @return True if the next waypoint was successfully set, false otherwise.
@@ -1776,11 +1847,16 @@ Unit* MotionMaster::ChaseTarget() const
 {
     std::optional<Motion::Held> const& combat = m_arbiter.Combat();
     Bound const* bound = combat ? Find(combat->seq) : NULL;
-    if (!bound || bound->behaviour->LegacyType() != CHASE_MOTION_TYPE)
+    // A legacy binding answers nothing here, as SelectedRelays does: the cast below is a
+    // NativeBehaviour's, and a legacy entry is not one.
+    if (!bound || bound->behaviour->Legacy() || bound->behaviour->Kind() != Motion::Kind::Chase)
     {
         return NULL;
     }
-    return static_cast<ChaseMovementGenerator const*>(bound->behaviour->Legacy())->GetTarget();
+    // The held entry's guid, resolved now: the pointer the generator stored through its
+    // FollowerReference is gone, and a target that has left the world answers NULL here.
+    const uint64 guid = static_cast<NativeBehaviour const*>(bound->behaviour.get())->Native()->Target();
+    return ObjectLookup::GetUnit(*m_owner, ObjectGuid(guid));
 }
 
 /**
@@ -1801,11 +1877,12 @@ Unit* MotionMaster::FollowTarget() const
 {
     std::optional<Motion::Held> const& current = m_arbiter.Default();
     Bound const* bound = (current && current->kind == Motion::Kind::Follow) ? Find(current->seq) : NULL;
-    if (!bound || bound->behaviour->LegacyType() != FOLLOW_MOTION_TYPE)
+    if (!bound || bound->behaviour->Legacy())   // a legacy binding is not the NativeBehaviour the cast below reads
     {
         return NULL;
     }
-    return static_cast<FollowMovementGenerator const*>(bound->behaviour->Legacy())->GetTarget();
+    const uint64 guid = static_cast<NativeBehaviour const*>(bound->behaviour.get())->Native()->Target();
+    return ObjectLookup::GetUnit(*m_owner, ObjectGuid(guid));
 }
 
 /**
@@ -1879,6 +1956,7 @@ std::vector<MotionMaster::HeldView> MotionMaster::Held() const
         view.selected = &m_bound[i] == selected;
         view.reachable = m_bound[i].behaviour->Reachable();
         view.generator = m_bound[i].behaviour->Legacy();
+        view.target = m_bound[i].behaviour->TrackedTarget();
         out.push_back(view);
     }
     return out;

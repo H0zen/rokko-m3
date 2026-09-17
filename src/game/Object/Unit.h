@@ -72,8 +72,6 @@
 #include "SharedDefines.h"
 #include "ThreatManager.h"
 #include "HostileRefManager.h"
-#include "FollowerReference.h"
-#include "FollowerRefManager.h"
 #include "Utilities/EventProcessor.h"
 #include "MotionMaster.h"
 #include "State.h"
@@ -528,9 +526,9 @@ enum UnitState
     UNIT_STAT_CONFUSED_MOVE   = 0x00000400,
     UNIT_STAT_ROAMING         = 0x00000800,                 // the wander native/a point behaviour/the patrol native active (now always set)
     UNIT_STAT_ROAMING_MOVE    = 0x00001000,
-    UNIT_STAT_CHASE           = 0x00002000,                 // ChaseMovementGenerator active
+    UNIT_STAT_CHASE           = 0x00002000,                 // the chase native active
     UNIT_STAT_CHASE_MOVE      = 0x00004000,
-    UNIT_STAT_FOLLOW          = 0x00008000,                 // FollowMovementGenerator active
+    UNIT_STAT_FOLLOW          = 0x00008000,                 // the follow native active
     UNIT_STAT_FOLLOW_MOVE     = 0x00010000,
     UNIT_STAT_FLEEING         = 0x00020000,                 // FleeMovementGenerator/TimedFleeingMovementGenerator active/onstack
     UNIT_STAT_FLEEING_MOVE    = 0x00040000,
@@ -3986,9 +3984,6 @@ class Unit : public WorldObject
 
         float CalculateLevelPenalty(SpellEntry const* spellProto) const;
 
-        void AddFollower(FollowerReference* pRef) { m_FollowingRefManager.insertFirst(pRef); }
-        void RemoveFollower(FollowerReference* /*pRef*/) { /* nothing to do yet */ }
-
         MotionMaster* GetMotionMaster() { return &i_motionMaster; }
         MotionMaster const* GetMotionMaster() const { return &i_motionMaster; }
 
@@ -4184,8 +4179,6 @@ class Unit : public WorldObject
         Motion::Kinematics InitialKinematics() const;
 
     private:
-        FollowerRefManager m_FollowingRefManager;
-
         ComboPointHolderSet m_ComboPointHolders;
 
         GuidSet m_guardianPets;

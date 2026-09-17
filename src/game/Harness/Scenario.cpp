@@ -162,6 +162,31 @@ namespace Harness
         return map ? map->GetCreature(guid) : NULL;
     }
 
+    void Scenario::Silence(Creature* c)
+    {
+        if (!c)
+        {
+            return;
+        }
+        // A Find'd creature is the world's own and the runner hands it back by installing the AI
+        // this decorator was wrapping; deleting that AI here would hand the world a creature with
+        // none at all. Spawned actors only, and the runner despawns those.
+        bool spawned = false;
+        for (size_t i = 0; i < m_spawned.size() && !spawned; ++i)
+        {
+            spawned = m_spawned[i] == c->GetObjectGuid();
+        }
+        if (!spawned)
+        {
+            Log("ERR Silence refused for guid %u: not an actor this scenario spawned", c->GetGUIDLow());
+            return;
+        }
+        if (HarnessAI* recording = dynamic_cast<HarnessAI*>(c->AI()))
+        {
+            delete recording->Release();   // the decorator stays; the AI it forwarded to is gone
+        }
+    }
+
     MovementGeneratorType Scenario::Type(Creature* c) const
     {
         // The binding's projection, not a generator's: the simple moves are natives now.
@@ -171,6 +196,11 @@ namespace Harness
     uint32 Scenario::Node(Creature* c) const
     {
         return c ? c->GetMotionMaster()->SelectedPatrolNode() : 0;
+    }
+
+    Motion::RelayCounts const* Scenario::Relays(Creature* c) const
+    {
+        return c ? c->GetMotionMaster()->SelectedRelays() : NULL;
     }
 
     void Scenario::Log(char const* fmt, ...) const

@@ -46,6 +46,7 @@ namespace
 void MotionDriver::ResetLeg()
 {
     m_legGoal = Motion::Vector3();
+    m_legFacing = Motion::Facing::Mode::None;
     m_haveLeg = false;
     m_partialLeg = false;
     m_blocked = false;
@@ -252,6 +253,7 @@ bool MotionDriver::LayLeg(Unit& owner, Motion::MoveIntent const& intent)
     }
 
     m_legGoal = intent.goal;
+    m_legFacing = intent.facing.mode;   // the leg that was actually launched, for the facade read
     m_haveLeg = true;
     m_blocked = false;
     m_speedChanged = false;
@@ -270,6 +272,12 @@ void MotionDriver::ReconcileHold(Unit& owner, Motion::MoveIntent const& intent)
     {
         return;
     }
+
+    // Past the guard the hold is what the driver is acting on, so its facing is what the facade
+    // reports -- whether or not the switch below has to move anything (a unit already facing the
+    // right way is still being held there). Before the guard nothing happened and the launched
+    // leg's own mode stands.
+    m_legFacing = intent.facing.mode;
 
     switch (intent.facing.mode)
     {

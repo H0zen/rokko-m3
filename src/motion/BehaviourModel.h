@@ -93,7 +93,48 @@ namespace Motion
             /// else; the wander generator re-read it on every tick, since a shapeshift, an aura or
             /// a levitate flips it under a leash that was laid long before.
             virtual bool CanFly() const = 0;
+            /// The frame's free-spot search around an explicit centre: the collision selector
+            /// with the mover's extent as the searcher bounding, dropped onto the frame's ground.
+            /// The centre is the native's -- the target's live position, or a led one -- rather
+            /// than whatever the target object's placement last recorded.
+            virtual bool StandingSpot(Vector3 const& center, float distance2d, float absAngle, Vector3& out) = 0;
     };
+
+    /// One coherent observation of a tracked target in the mover's frame (design §3).
+    struct TargetView
+    {
+        bool    valid = false;       ///< resolved this tick, alive, in the world, sharing the mover's frame
+        Vector3 position;            ///< the live position: the running spline's, else the placement
+        float   facing = 0.0f;       ///< its orientation, in the mover's frame
+        float   extent = 0.0f;       ///< bounding radius
+        float   reachSum = 0.0f;     ///< the two combat reaches, no offset
+        float   meleeRange = 5.0f;   ///< max(reachSum + 4/3, 5): the client's own test
+        bool    walking = false;     ///< it is in walk mode: a follower mirrors the gait
+        bool    isVictim = false;    ///< the mover's current victim
+        Vector3 velocity;            ///< frame yd/s, zero unless trusted
+        bool    velocityTrusted = false;
+    };
+
+    /// Why a tracking native derived a fresh spot (design §3: counted apart, GM-dumpable).
+    enum class RelayCause : uint8 { Routine, Cut, Partial, Blocked, Finished, First };
+    struct RelayCounts
+    {
+        uint32 routine = 0, cut = 0, partial = 0, blocked = 0, finished = 0, first = 0;
+        uint32 Total() const { return routine + cut + partial + blocked + finished + first; }
+        void Count(RelayCause c);
+    };
+    inline void RelayCounts::Count(RelayCause c)
+    {
+        switch (c)
+        {
+            case RelayCause::Routine:  ++routine;  break;
+            case RelayCause::Cut:      ++cut;      break;
+            case RelayCause::Partial:  ++partial;  break;
+            case RelayCause::Blocked:  ++blocked;  break;
+            case RelayCause::Finished: ++finished; break;
+            case RelayCause::First:    ++first;    break;
+        }
+    }
 
     /// What a behaviour may know about its unit this tick.
     struct Sight
@@ -109,6 +150,13 @@ namespace Motion
         Vector3    targetPoint;       ///< its contact point, world
         bool       runningState = false; ///< UNIT_STAT_RUNNING_STATE
         bool       levitating = false;   ///< Unit::IsLevitating()
+        TargetView target;            ///< the tracked target, filled only for a TracksTarget() native
+        float      extent = 0.0f;     ///< the mover's own bounding radius
+        bool       isCreature = false;   ///< TYPEID_UNIT: every Effect is a creature's
+        bool       isPet = false;        ///< Creature::IsPet()
+        bool       combatMovementHeld = false; ///< UNIT_STAT_NO_COMBAT_MOVEMENT
+        bool       swimming = false;     ///< MOVEFLAG_SWIMMING
+        bool       canFlyHint = false;   ///< a creature's Creature::CanFly(): the drift test adds the height term for fliers, as the generator's did
     };
 
     /// The roaming pair the shell mirrors for the point family (UNIT_STAT_ROAMING | ROAMING_MOVE) until a later family retires it.
@@ -136,16 +184,28 @@ namespace Motion
             Say,               ///< creature.MonsterText(sObjectMgr.GetMangosStringLocale(int32(id))) when found, else the DB error as the generator logged it
             ClearEmoteState,   ///< creature.SetUInt32Value(UNIT_NPC_EMOTESTATE, 0)
             SetWalk,           ///< creature.SetWalk(flag, false)
-            ClearWaypointPaused ///< clearUnitState(UNIT_STAT_WAYPOINT_PAUSED)
+            ClearWaypointPaused, ///< clearUnitState(UNIT_STAT_WAYPOINT_PAUSED)
+            StateRaw,          ///< addUnitState(setMask) when non-zero, then clearUnitState(clearMask) when non-zero: the opaque unit-state masks a tracking native carries in its Params.
+                               ///< Performed for creatures only, like every effect (NativeBehaviour::PerformEffects returns early for a non-creature owner): a player owner
+                               ///< would carry the kind's bit in the kernel but never in its unit states. No caller passes a player to MoveChase or MoveFollow today, so the
+                               ///< gap is unreachable; a future one would have to lift the creature-only rule for the whole effects loop, not for this kind alone.
+            SyncSpeed,         ///< a pet whose owner is the native's target: UpdateSpeed(MOVE_RUN/MOVE_WALK/MOVE_SWIM, true), the deleted SyncSpeedWithMaster
+            EngageInReach,     ///< live predicate: the mover's live position against the target view's, 3D, within meleeRange -> Attack(target, true); re-emitted every idle tick, so a stale false never suppresses the attack. It skips only a target already being MELEED, not every victim: a ranged attacker's victim is upgraded to melee here, once (the deleted ReachTarget's own job), and Unit::Attack returns early afterwards
+            RestoreTemporaryFaction, ///< if (GetTemporaryFactionFlags() & TEMPFACTION_RESTORE_REACH_HOME) ClearTemporaryFaction()
+            LoadAddon,         ///< creature.LoadCreatureAddon(true)
+            JustReachedHome    ///< creature.AI()->JustReachedHome()
         };
         Kind         kind;
         Motion::Kind who;
         uint32       id;
         uint32       raw;    ///< InformRaw's type
         bool         flag;   ///< SetWalk's value
-        Effect(Kind k, Motion::Kind w = Motion::Kind::Idle, uint32 i = 0) : kind(k), who(w), id(i), raw(0), flag(false) {}
+        uint32       setMask;   ///< StateRaw: the bits to add
+        uint32       clearMask; ///< StateRaw: the bits to clear
+        Effect(Kind k, Motion::Kind w = Motion::Kind::Idle, uint32 i = 0) : kind(k), who(w), id(i), raw(0), flag(false), setMask(0), clearMask(0) {}
         static Effect Raw(uint32 type, uint32 nodeId) { Effect e(InformRaw); e.raw = type; e.id = nodeId; return e; }
         static Effect Walk(bool walk) { Effect e(SetWalk); e.flag = walk; return e; }
+        static Effect State(uint32 set, uint32 clear) { Effect e(StateRaw); e.setMask = set; e.clearMask = clear; return e; }
     };
 
     /// One tick's or one hook's result: shell operations first, then the intent when `apply`.
@@ -186,8 +246,10 @@ namespace Motion
             virtual Step Tick(Sight const& sight, Services& svc, uint32 diff) = 0;      ///< the selected behaviour's tick
             virtual FinishReason EndReason(Sight const& sight) const = 0; ///< after a Done tick
             virtual Outcome Finish(FinishReason why, Sight const& sight, Services& svc) = 0;
-            virtual bool TracksTarget() const { return false; }         ///< the Sight needs `targetPoint`
+            virtual bool TracksTarget() const { return false; }         ///< the Sight needs `target` (and `targetPoint`, the charge's)
             virtual uint64 Target() const { return 0; }                  ///< the tracked target's raw guid
+            /// A tracking native's re-lay counters, by cause; NULL for one that keeps none.
+            virtual RelayCounts const* Relays() const { return 0; }
             /// The home/reset position a default behaviour answers (the patrol); false when none.
             virtual bool ResetPosition(Sight const& /*sight*/, Services& /*svc*/, Vector3& /*pos*/, float& /*o*/) const { return false; }
     };

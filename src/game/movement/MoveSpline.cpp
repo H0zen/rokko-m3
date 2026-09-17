@@ -226,6 +226,7 @@ namespace Movement
     {
         splineflags = args.flags;
         m_cut = args.flags.done; // a stop spline is born finished: that is a cut, not an arrival
+        m_velocity = args.velocity; // the speed it runs at: MoveSplineInit::Launch defaulted it to the unit's own
         facing = args.facing;
         m_Id = args.splineId;
         point_Idx_offset = args.path_Idx_offset;

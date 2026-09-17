@@ -698,6 +698,8 @@ void World::LoadConfigSettings(bool reload)
 
     setConfig(CONFIG_BOOL_MOVEMENT_DECISION_RING, "Movement.DecisionRing", false);
 
+    setConfig(CONFIG_BOOL_MOVEMENT_CHASE_LEAD, "Movement.ChaseLead", false);
+
     setConfig(CONFIG_BOOL_MOVEMENT_WIRE_PARITY, "Movement.WireParity", false);
     WireParity::Enable(getConfig(CONFIG_BOOL_MOVEMENT_WIRE_PARITY));
     if (WireParity::Enabled())
@@ -713,6 +715,10 @@ void World::LoadConfigSettings(bool reload)
 
     // The map the GM movement harness runs on (P0-D): a live server keeps 0.
     setConfig(CONFIG_UINT32_MOVEMENT_HARNESS_BARE_MAP, "Movement.HarnessBareMap", 0);
+
+    // The follow's extrapolation horizon (design §6.3): how far ahead of a trusted velocity the
+    // heel point is laid. 0 is retail's own aim -- the leader's current position, no lead at all.
+    setConfig(CONFIG_UINT32_MOVEMENT_FOLLOW_HORIZON_MS, "Movement.FollowHorizonMs", 400);
 
     sLog.outString();
 }

@@ -41,7 +41,11 @@
 #include "Utilities/Util.h"
 #include "movement/MoveSpline.h"
 #include "movement/MoveSplineInit.h"
+#include "movement/MoveSplineSpeed.h" // the one speed-mode selector, shared with the spline launch
 #include "PatrolWelding.h"    // the kernel's weld bound (src/motion is on the include path, as BehaviourModel.h is)
+#include "TargetKinematics.h" // the kernel's pure velocity classifier
+
+#include <algorithm>
 
 namespace
 {
@@ -51,6 +55,26 @@ namespace
     /// kernel's WAYPOINT_SMOOTHING_MAX_LOOKAHEAD), plus the patrol's trailing arrival and the
     /// prepare that drains the phase, with room to spare -- one tick drains any weld.
     constexpr uint32 kMaxContinuation = uint32(Motion::WAYPOINT_SMOOTHING_MAX_LOOKAHEAD) + 8;
+
+    /// A unit's LIVE position, in its own coordinate space: the running spline's interpolated
+    /// point, else the placement. Boarded, a spline's coordinates are seat-local
+    /// (Unit::CommitSplinePosition) -- which is exactly what that unit's placement speaks too --
+    /// so one expression covers both and never mixes a deck coordinate with a world one.
+    Geometry::Vector3 LivePosition(Unit const& u)
+    {
+        if (u.movespline->Finalized())
+        {
+            return u.Where().Pos();
+        }
+        const Movement::Location loc = u.movespline->ComputePosition();
+        return Geometry::Vector3(loc.x, loc.y, loc.z);
+    }
+
+    /// The speed a unit travels at right now: the mode its own movement flags select.
+    float SpeedNow(Unit const& u)
+    {
+        return u.GetSpeed(Movement::SelectSpeedType(u.m_movementInfo.GetMovementFlags()));
+    }
 }
 
 /**
@@ -87,11 +111,11 @@ MovementGeneratorType NativeBehaviour::Project(Motion::Kind kind)
         case Motion::Kind::Effect:         return EFFECT_MOTION_TYPE;
         case Motion::Kind::Wander:         return RANDOM_MOTION_TYPE;
         case Motion::Kind::Patrol:         return WAYPOINT_MOTION_TYPE;
-        // The six kinds families 2-4 still own: a native is never one of them, and naming
-        // them here makes a kind added later a compile warning instead of a silent Idle.
-        case Motion::Kind::Follow:
-        case Motion::Kind::Chase:
-        case Motion::Kind::Home:
+        case Motion::Kind::Chase:          return CHASE_MOTION_TYPE;
+        case Motion::Kind::Follow:         return FOLLOW_MOTION_TYPE;
+        case Motion::Kind::Home:           return HOME_MOTION_TYPE;
+        // The three kinds family 4 and the taxi still own: a native is never one of them, and
+        // naming them here makes a kind added later a compile warning instead of a silent Idle.
         case Motion::Kind::Fear:
         case Motion::Kind::Confused:
         case Motion::Kind::Taxi:
@@ -133,20 +157,92 @@ Motion::Sight NativeBehaviour::See(Unit& owner, bool tick)
     s.alive = owner.IsAlive();
     s.runningState = owner.hasUnitState(UNIT_STAT_RUNNING_STATE);
     s.levitating = owner.IsLevitating();
+    s.extent = owner.Where().Extent();
+    s.isCreature = owner.GetTypeId() == TYPEID_UNIT;
+    s.isPet = s.isCreature && static_cast<Creature&>(owner).IsPet();
+    s.combatMovementHeld = owner.hasUnitState(UNIT_STAT_NO_COMBAT_MOVEMENT);
+    s.swimming = owner.m_movementInfo.HasMovementFlag(MOVEFLAG_SWIMMING);
+    s.canFlyHint = s.isCreature && static_cast<Creature&>(owner).CanFly();
     if (m_native->TracksTarget())
     {
         if (Unit* target = ObjectLookup::GetUnit(owner, ObjectGuid(m_native->Target())))
         {
+            SeeTarget(owner, *target, s.target);
             float x, y, z;
             // The charge's contact point, the same call EffectCharge makes, so the native's goal
             // is the spell's own answer (SpellEffectObjectCombat.cpp: the target anchors it and
-            // the mover is the object placed next to it).
-            ContactPointNear(*target, &owner, x, y, z, 3.666666f);
+            // the mover is the object placed next to it) -- now measured from the target's LIVE
+            // position rather than from the placement its last relocation recorded, so a charge
+            // at a walking target aims where it is (design §6.2). The centre is in the target's
+            // own coordinate space, which is what the placement overload reads too.
+            ContactPointNear(*target, LivePosition(*target), &owner, x, y, z, 3.666666f);
             s.hasTarget = true;
             s.targetPoint = Motion::Vector3(x, y, z);
         }
     }
+    m_targetView = s.target;   // the effects decide against the observation the native saw
     return s;
+}
+
+/**
+ * @brief One coherent observation of a tracked target, in the MOVER's frame.
+ * @param owner The moving unit.
+ * @param target The resolved target.
+ * @param view Filled only when the target is alive, in the world and in the mover's frame;
+ *        left invalid otherwise, since a target on another frame is no destination at all.
+ */
+void NativeBehaviour::SeeTarget(Unit& owner, Unit& target, Motion::TargetView& view) const
+{
+    if (!target.IsAlive() || !target.IsInWorld() || !owner.Where().ShareFrame(target.Where()))
+    {
+        return;
+    }
+    Motion::IMotionFrame const& frame = Motion::FrameFor(owner);
+    // A boarded target's spline AND placement are both seat-local, which is already the frame
+    // the mover reads -- the same-frame test above excludes every mixed case. An unboarded
+    // target's are world, so they come through FromWorld like any other anchor (the identity
+    // under the world frame).
+    const bool local = target.IsBoarded();
+    const Geometry::Vector3 live = LivePosition(target);
+    view.valid = true;
+    view.position = local ? live : frame.FromWorld(owner, live);
+    view.facing = frame.ObjectOrientation(owner, target);
+    view.extent = target.Where().Extent();
+    view.reachSum = owner.GetFloatValue(UNIT_FIELD_COMBATREACH) + target.GetFloatValue(UNIT_FIELD_COMBATREACH);
+    view.meleeRange = std::max(view.reachSum + 4.0f / 3.0f, 5.0f);
+    view.walking = target.IsWalking();
+    view.isVictim = owner.getVictim() == &target;
+
+    Motion::TargetMotionInput in;
+    if (!target.movespline->Finalized())
+    {
+        in.splineRunning = true;
+        in.splineLinear = !target.movespline->isSmooth();
+        in.splineCyclic = target.movespline->isCyclic();
+        in.splineAirborne = target.movespline->Airborne();
+        in.splineFrom = view.position;
+        const Geometry::Vector3 dest = target.movespline->CurrentDestination();
+        in.splineTo = local ? dest : frame.FromWorld(owner, dest);
+        // The SPLINE's own speed, not the unit's for its mode: a charge runs at 24 yd/s and a
+        // taxi at the path's, both overrides the movement flags know nothing about.
+        in.speed = target.movespline->Velocity();
+    }
+    else if (target.MoverSession() != NULL)
+    {
+        // Client-driven: the flags of the last movement packet say where it is heading.
+        in.playerMoved = true;
+        in.forward = target.m_movementInfo.HasMovementFlag(MOVEFLAG_FORWARD);
+        in.backward = target.m_movementInfo.HasMovementFlag(MOVEFLAG_BACKWARD);
+        in.strafeLeft = target.m_movementInfo.HasMovementFlag(MOVEFLAG_STRAFE_LEFT);
+        in.strafeRight = target.m_movementInfo.HasMovementFlag(MOVEFLAG_STRAFE_RIGHT);
+        in.falling = target.m_movementInfo.HasMovementFlag(MOVEFLAG_FALLING) ||
+                     target.m_movementInfo.HasMovementFlag(MOVEFLAG_FALLINGFAR);
+        in.facing = view.facing;
+        in.speed = SpeedNow(target);
+    }
+    const Motion::TargetMotion motion = Motion::ClassifyTargetMotion(in);
+    view.velocity = motion.velocity;
+    view.velocityTrusted = motion.trusted;
 }
 
 /**
@@ -555,6 +651,77 @@ void NativeBehaviour::PerformEffects(Unit& owner, std::vector<Motion::Effect> co
             case Motion::Effect::ClearWaypointPaused:
                 creature.clearUnitState(UNIT_STAT_WAYPOINT_PAUSED);
                 break;
+            case Motion::Effect::StateRaw:
+                // Opaque masks: the native carries the generators' own UNIT_STAT bits in its
+                // Params and never interprets them. Set first, then clear, so a recipe that
+                // does both to one bit ends cleared, as the generators' order did.
+                if (e.setMask)
+                {
+                    creature.addUnitState(e.setMask);
+                }
+                if (e.clearMask)
+                {
+                    creature.clearUnitState(e.clearMask);
+                }
+                break;
+            case Motion::Effect::SyncSpeed:
+                // The deleted SyncSpeedWithMaster: only a pet following its OWNER copies its
+                // pace, so the guard is the generator's (a pet chasing something else keeps its own).
+                if (creature.IsPet() && creature.GetOwnerGuid() == ObjectGuid(m_native->Target()))
+                {
+                    creature.UpdateSpeed(MOVE_RUN, true);
+                    creature.UpdateSpeed(MOVE_WALK, true);
+                    creature.UpdateSpeed(MOVE_SWIM, true);
+                }
+                break;
+            case Motion::Effect::EngageInReach:
+            {
+                // The chase's ReachTarget, decided LIVE: the mover's own interpolated position
+                // against the observation the native decided from, in 3D. The native re-emits
+                // this on every idle tick, so a false here is never remembered.
+                if (!m_targetView.valid)
+                {
+                    break;
+                }
+                Unit* target = ObjectLookup::GetUnit(creature, ObjectGuid(m_native->Target()));
+                if (!target || (creature.getVictim() == target && creature.hasUnitState(UNIT_STAT_MELEE_ATTACKING)))
+                {
+                    // Only "already meleeing THIS target" is nothing left to do. Skipping every
+                    // victim, as this guard used to, left the legacy ReachTarget's ranged-to-melee
+                    // upgrade with no live path at all: ChaseBehaviour holds the whole tick while
+                    // the target is NOT the victim (TrackingBehaviour::Tick step 3, LostTarget), so
+                    // the only target this effect can ever see is the victim, and Unit::Attack's
+                    // `m_attacking == victim && !UNIT_STAT_MELEE_ATTACKING` branch (Unit.cpp) --
+                    // which adds the melee bit and sends the attack start -- was unreachable. A
+                    // ranged attacker now closes to reach and upgrades here, once: Unit::Attack
+                    // returns early with no packet on every later idle tick, since the bit is set.
+                    break;
+                }
+                const Geometry::Vector3 mine = LivePosition(creature);
+                const float dx = mine.x - m_targetView.position.x;
+                const float dy = mine.y - m_targetView.position.y;
+                const float dz = mine.z - m_targetView.position.z;
+                if ((dx * dx) + (dy * dy) + (dz * dz) <= m_targetView.meleeRange * m_targetView.meleeRange)
+                {
+                    creature.Attack(target, true);
+                }
+                break;
+            }
+            case Motion::Effect::RestoreTemporaryFaction:
+                if (creature.GetTemporaryFactionFlags() & TEMPFACTION_RESTORE_REACH_HOME)
+                {
+                    creature.ClearTemporaryFaction();
+                }
+                break;
+            case Motion::Effect::LoadAddon:
+                creature.LoadCreatureAddon(true);
+                break;
+            case Motion::Effect::JustReachedHome:
+                if (creature.AI())
+                {
+                    creature.AI()->JustReachedHome();
+                }
+                break;
         }
     }
 }
@@ -636,6 +803,28 @@ bool NativeBehaviour::CanMove() const { return !U().hasUnitState(UNIT_STAT_CAN_N
 bool NativeBehaviour::Casting() const { return U().IsNonMeleeSpellCasted(false, false, true); }
 bool NativeBehaviour::WaypointPaused() const { return U().hasUnitState(UNIT_STAT_WAYPOINT_PAUSED); }
 bool NativeBehaviour::CanFly() const { return U().GetTypeId() == TYPEID_UNIT && static_cast<Creature&>(U()).CanFly(); }
+
+/**
+ * @brief The frame's free-spot search around an explicit centre, with the collision selector.
+ *
+ * The centre is the NATIVE's -- the target's live position, or one it has led -- rather than the
+ * target object's placement, which is what makes a derived spot actually move with its target.
+ * The target still anchors the search (its map, its phase, its frame, the grid area the
+ * neighbours come from), so it is resolved again here and the spot is refused when it is gone.
+ */
+bool NativeBehaviour::StandingSpot(Motion::Vector3 const& center, float distance2d, float absAngle, Motion::Vector3& out)
+{
+    Unit* target = ObjectLookup::GetUnit(U(), ObjectGuid(m_native->Target()));
+    // The same three conditions SeeTarget demands before it fills the view: a dead, unloaded or
+    // differently framed anchor would send the search through another frame's grid and hand back
+    // a point in coordinates the mover does not speak. No spot at all is the honest answer.
+    if (!target || !target->IsAlive() || !target->IsInWorld() || !U().Where().ShareFrame(target->Where()))
+    {
+        return false;
+    }
+    out = Motion::FrameFor(U()).NearPointAt(U(), *target, center, U().Where().Extent(), distance2d, absAngle);
+    return true;
+}
 
 bool NativeBehaviour::Anchor(Motion::Vector3& out) const
 {

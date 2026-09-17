@@ -118,10 +118,6 @@ Motion::FinishReason LegacyBehaviour::EndReason(Unit& /*owner*/) const
 {
     switch (m_kind)
     {
-        case Motion::Kind::Chase:
-        case Motion::Kind::Follow:
-            return Motion::FinishReason::TargetLost;
-        case Motion::Kind::Home:
         case Motion::Kind::Taxi:
             return Motion::FinishReason::Arrived;
         default:

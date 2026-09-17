@@ -52,6 +52,7 @@ namespace Harness
     void RegisterCoverageScenarios(Runner& r);
     void RegisterSimpleScenarios(Runner& r);
     void RegisterDefaultScenarios(Runner& r);
+    void RegisterTrackingScenarios(Runner& r);
 
     namespace
     {
@@ -72,7 +73,10 @@ namespace Harness
         // stun, and the charge (P5-B family 1). The default-moves family
         // (RegisterDefaultScenarios) is orders 45-47: the welded internal patrol, a
         // waiting node's facing versus a pass-through node's travel facing, and a
-        // MOVE_START hook that redirects the next node (P5-B family 2 Task 5).
+        // MOVE_START hook that redirects the next node (P5-B family 2 Task 5). The
+        // tracking family (RegisterTrackingScenarios) is orders 48-53: the chase's re-lay
+        // budget and where it stops, the follow's pace, band and facings, and the evade
+        // that waits under a root (P5-B family 3 Task 5).
         RegisterJumpScenarios(*this);
         RegisterPointScenarios(*this);
         RegisterHomeScenarios(*this);
@@ -84,6 +88,7 @@ namespace Harness
         RegisterSimpleScenarios(*this);
         RegisterPatrolScenarios(*this);
         RegisterDefaultScenarios(*this);
+        RegisterTrackingScenarios(*this);
     }
 
     Runner::~Runner()

@@ -119,6 +119,7 @@ namespace Movement
             int32           point_Idx; /**< Current point index in the spline. */
             int32           point_Idx_offset; /**< Offset for the point index. */
             bool            m_cut = false;    /**< Ended early: interrupted, or initialized already done (a stop). */
+            float           m_velocity = 0.0f;/**< The speed this spline was LAUNCHED at (MoveSplineInitArgs::velocity, already defaulted to the unit's speed for its mode). */
 
             /**
              * @brief Initializes the spline with the given arguments.
@@ -266,6 +267,15 @@ namespace Movement
              * @return bool True if the spline is cyclic, false otherwise.
              */
             bool isCyclic() const { return splineflags.cyclic;}
+
+            /// Catmull-Rom rather than a straight run between its points: the chord to the
+            /// current destination is NOT the direction of travel, so nothing may lead on it.
+            bool isSmooth() const { return splineflags.isSmooth(); }
+
+            /// The speed this spline actually runs at: the launch velocity, which is the unit's
+            /// speed for its mode unless the caller overrode it (the charge's 24 yd/s, the taxi's).
+            /// A watcher classifying a spline-moved target must read this, not the unit's speed.
+            float Velocity() const { return m_velocity; }
 
             /**
              * @brief Gets the final destination of the spline.

@@ -860,9 +860,20 @@ Geometry::Vector3 RandomGroundPointNear(WorldObject const& obj, Geometry::Vector
                                         float distance, float minDist = 0.0f, float const* ori = NULL);
 void FindFreeSpotNear(WorldObject const& anchor, WorldObject const* searcher, float& x, float& y, float& z,
                       float searcher_bounding_radius, float distance2d, float absAngle);
+/// The free-spot search around an explicit centre: the anchor supplies the map, the phase, the
+/// frame, its own extent and the grid area; `center` supplies every position the search is laid
+/// out around, so a live position (a target mid-spline) actually moves the spot. A centre equal
+/// to the anchor's position gives the overload above's answer exactly.
+void FindFreeSpotNear(WorldObject const& anchor, Geometry::Vector3 const& center, WorldObject const* searcher,
+                      float& x, float& y, float& z,
+                      float searcher_bounding_radius, float distance2d, float absAngle);
 void ClosePointNear(WorldObject const& anchor, float& x, float& y, float& z, float bounding_radius,
                     float distance2d = 0.0f, float angle = 0.0f, WorldObject const* searcher = NULL);
 void ContactPointNear(WorldObject const& anchor, WorldObject const* obj, float& x, float& y, float& z,
                       float distance2d = CONTACT_DISTANCE);
+/// The contact point measured from an explicit centre (the same relationship to the overload
+/// above as the free-spot search's centre-taking twin).
+void ContactPointNear(WorldObject const& anchor, Geometry::Vector3 const& center, WorldObject const* obj,
+                      float& x, float& y, float& z, float distance2d = CONTACT_DISTANCE);
 
 #endif

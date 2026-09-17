@@ -115,6 +115,13 @@ namespace Harness
         /// A creature from the world database (S8's patroller), on the harness map.
         Creature* Find(uint32 lowGuid, uint32 entry);
         Creature* Get(ObjectGuid guid) const;
+        /// Drops the factory AI from under the recording decorator: the creature still records
+        /// its informs and its home arrival, but never reacts on its own again - no AttackStart
+        /// when something hits it, no evade when a leg goes unreachable, no threat selection
+        /// turning it to face an attacker. A scenario that SCRIPTS where an actor goes needs
+        /// that, or the AI takes the wheel back the moment a scripted leg ends. Spawned actors
+        /// only: the runner despawns those, and hands a Find'd creature its own AI back.
+        void Silence(Creature* c);
         void Load(float x, float y);
         /// The map's height at (x, y) near z; the caller's z when the map has none.
         float Ground(float x, float y, float z) const;
@@ -122,6 +129,10 @@ namespace Harness
         char const* TypeName(Creature* c) const { return Harness::TypeName(uint32(Type(c))); }
         /// The current waypoint node when the top generator is a patrol, else 0.
         uint32 Node(Creature* c) const;
+        /// The selected tracking native's re-lay counters (routine, cut, partial, blocked,
+        /// finished, first), else NULL: nothing selected, a legacy binding, or a native that
+        /// counts nothing. Only the chase and the follow keep them.
+        Motion::RelayCounts const* Relays(Creature* c) const;
         /// "MVTEST <name> " + the formatted text.
         void Log(char const* fmt, ...) const;
         /// Prints "MVTEST VERDICT <name> <body>" and ends the scenario.

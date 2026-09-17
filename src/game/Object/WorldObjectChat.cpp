@@ -41,7 +41,6 @@
 #include "MapManager.h"
 #include "Log.h"
 #include "Transports.h"
-#include "TargetedMovementGenerator.h"
 #include "CellImpl.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"

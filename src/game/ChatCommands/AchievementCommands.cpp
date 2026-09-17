@@ -49,7 +49,6 @@
 #include "CellImpl.h"
 #include "Weather.h"
 #include "PathFinder.h"
-#include "TargetedMovementGenerator.h"
 #include "SkillDiscovery.h"
 #include "SkillExtraItems.h"
 #include "Config/Config.h"

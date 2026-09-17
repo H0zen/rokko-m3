@@ -24,6 +24,7 @@
  */
 
 #include "MoveSplineInit.h"
+#include "MoveSplineSpeed.h"
 #include "MoveSpline.h"
 #include "packet_builder.h"
 #include "Unit.h"

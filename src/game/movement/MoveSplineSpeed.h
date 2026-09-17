@@ -23,35 +23,24 @@
  * and lore are copyrighted by Blizzard Entertainment, Inc.
  */
 
-#ifndef MANGOS_H_FOLLOWERREFERENCE
-#define MANGOS_H_FOLLOWERREFERENCE
+#ifndef MANGOSSERVER_MOVESPLINESPEED_H
+#define MANGOSSERVER_MOVESPLINESPEED_H
 
-#include "Utilities/LinkedReference/Reference.h"
+// UnitMoveType is declared in Unit.h as an UNSCOPED enum with no fixed underlying type
+// (Unit.h: `enum UnitMoveType { MOVE_WALK = 0, ... }`), and such an enum cannot be
+// opaque-declared: an opaque declaration must carry an enum-base, and a definition without
+// one then contradicts it. So this header includes Unit.h rather than forward-declaring the
+// type. It is the only way the declaration below compiles.
+#include "Unit.h"
 
-class TargetedMovementGeneratorBase;
-class Unit;
-
-/**
- * @brief Follower reference class
- *
- * Manages the reference between a Unit (follower) and a TargetedMovementGeneratorBase.
- */
-class FollowerReference : public Reference<Unit, TargetedMovementGeneratorBase>
+namespace Movement
 {
-    protected:
-        /**
-         * @brief Build link to target object
-         */
-        void targetObjectBuildLink() override;
+    /// Which of a unit's nine speeds the movement flags of the moment name. Defined in
+    /// MoveSplineInit.cpp, beside the launch that applies it, and declared here so every other
+    /// reader -- the movement kernel's shell, which reports a unit's current speed to the
+    /// natives -- shares that one answer instead of copying it. MoveSplineInit.h cannot carry
+    /// this declaration: it does not include Unit.h, and must not start to.
+    UnitMoveType SelectSpeedType(uint32 moveFlags);
+}
 
-        /**
-         * @brief Destroy link to target object
-         */
-        void targetObjectDestroyLink() override;
-
-        /**
-         * @brief Destroy link from source object
-         */
-        void sourceObjectDestroyLink() override;
-};
 #endif

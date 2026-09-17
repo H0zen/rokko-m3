@@ -766,7 +766,7 @@ namespace Harness
                     *lastLifts = text;
                     Log("after the last removal: %s", text);
                 });
-                // The follower matches its leader's own gait (FollowMovementGenerator::EnableWalking),
+                // The follower matches its leader's own gait (the follow native's walk mirror),
                 // and the leader's point leg here runs at its WALK pace, same as the reference
                 // feign-keeps-follow (ScenariosBlock.cpp) shape this scenario borrows: closing a
                 // ~25 yd gap at that pace takes about 5.5 s once the follow resumes, so the window

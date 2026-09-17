@@ -43,7 +43,6 @@
 #include "MapManager.h"
 #include "Log.h"
 #include "Transports.h"
-#include "TargetedMovementGenerator.h"
 #include "CellImpl.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
@@ -254,12 +253,20 @@ namespace MaNGOS
             /**
              * @brief Constructor
              * @param obj Source object
+             * @param center The point the used-position accounting is laid out around; the
+             *        anchor's own placement when the caller has no live centre of its own.
              * @param searcher Object searching for position
              * @param absAngle Absolute angle
              * @param selector Position selector
              */
-            NearUsedPosDo(WorldObject const& obj, WorldObject const* searcher, float absAngle, ObjectPosSelector& selector)
-                : i_object(obj), i_searcher(searcher), i_absAngle(Geometry::Placement::NormalizeOrientation(absAngle)), i_selector(selector) {}
+            NearUsedPosDo(WorldObject const& obj, Geometry::Vector3 const& center, WorldObject const* searcher, float absAngle, ObjectPosSelector& selector)
+                : i_object(obj), i_searcher(searcher), i_absAngle(Geometry::Placement::NormalizeOrientation(absAngle)), i_selector(selector), i_at(obj.Where())
+            {
+                // The anchor's placement moved onto the centre: the frame (and so every
+                // ShareFrame test below) stays the anchor's, only the point the distances and
+                // bearings are measured from is the caller's.
+                i_at.MoveTo(center);
+            }
 
             void operator()(Corpse*) const {}
             void operator()(DynamicObject*) const {}
@@ -318,8 +325,8 @@ namespace MaNGOS
              */
             void add(WorldObject* u, float x, float y) const
             {
-                float dx = i_object.Where().X() - x;
-                float dy = i_object.Where().Y() - y;
+                float dx = i_at.X() - x;
+                float dy = i_at.Y() - y;
                 float dist2d = sqrt((dx * dx) + (dy * dy));
 
                 // It is ok for the objects to require a bit more space
@@ -337,7 +344,7 @@ namespace MaNGOS
                     return;
                 }
 
-                float angle = i_object.Where().BearingTo(u->Where()) - i_absAngle;
+                float angle = i_at.BearingTo(u->Where()) - i_absAngle;
 
                 // move angle to range -pi ... +pi, range before is -2Pi..2Pi
                 if (angle > M_PI_F)
@@ -356,7 +363,30 @@ namespace MaNGOS
             WorldObject const* i_searcher;
             float              i_absAngle;
             ObjectPosSelector& i_selector;
+            Geometry::Placement i_at;   ///< the anchor's placement, moved onto the centre
     };
+}
+
+namespace
+{
+    /// A point the component constructed, pulled back inside the map's coordinate bounds --
+    /// which is the map's business, not the geometry's. The placement-taking form the
+    /// object-anchored PointNear and the centre-taking free-spot search share.
+    Geometry::Vector3 PointNearPlacement(Geometry::Placement const& at, float distance2d, float absAngle)
+    {
+        Geometry::Vector3 point = at.PointAt(distance2d, absAngle);
+        MaNGOS::NormalizeMapCoord(point.x);
+        MaNGOS::NormalizeMapCoord(point.y);
+        return point;
+    }
+
+    /// HasLineOfSight(anchor, point) cast from an explicit centre instead of the anchor's
+    /// placement: the same two-yard eye lift, the anchor's map and phase.
+    bool HasLineOfSightFrom(WorldObject const& anchor, Geometry::Vector3 const& from, Geometry::Vector3 const& point)
+    {
+        return anchor.GetMap()->IsInLineOfSight(from.x, from.y, from.z + 2.0f,
+                                                point.x, point.y, point.z + 2.0f, anchor.GetPhaseMask());
+    }
 }
 
 /**
@@ -369,34 +399,42 @@ namespace MaNGOS
  * Calculates a 2D point at the specified distance and angle
  * from this object.
  */
-// A point the component constructed, pulled back inside the map's coordinate bounds --
-// which is the map's business, not the geometry's.
 Geometry::Vector3 PointNear(WorldObject const& anchor, float distance2d, float absAngle)
 {
-    Geometry::Vector3 point = anchor.Where().PointAt(distance2d, absAngle);
-    MaNGOS::NormalizeMapCoord(point.x);
-    MaNGOS::NormalizeMapCoord(point.y);
-    return point;
+    return PointNearPlacement(anchor.Where(), distance2d, absAngle);
 }
 
 /**
- * @brief Finds a nearby point while accounting for collisions and line of sight.
+ * @brief Finds a point near an explicit centre while accounting for collisions and line of sight.
  *
+ * The anchor still supplies the map, the phase, the frame, its own extent and the grid area the
+ * neighbours are gathered from; `center` supplies every position the search itself is laid out
+ * around, so a caller with a LIVE position (a target mid-spline) gets a spot that has moved with
+ * it. A centre that IS the anchor's position reproduces the object-anchored answer exactly.
+ *
+ * @param anchor The object the search is anchored to.
+ * @param center The point the spot is sought around.
  * @param searcher The object requesting the position.
  * @param x Receives the resulting x coordinate.
  * @param y Receives the resulting y coordinate.
  * @param z Receives the resulting z coordinate.
  * @param searcher_bounding_radius The requester's bounding radius.
- * @param distance2d The desired distance from the anchor.
+ * @param distance2d The desired distance from the centre.
  * @param absAngle The preferred absolute angle.
  */
-void FindFreeSpotNear(WorldObject const& anchor, WorldObject const* searcher, float& x, float& y, float& z,
+void FindFreeSpotNear(WorldObject const& anchor, Geometry::Vector3 const& center, WorldObject const* searcher,
+                      float& x, float& y, float& z,
                       float searcher_bounding_radius, float distance2d, float absAngle)
 {
-    const Geometry::Vector3 first = PointNear(anchor, distance2d, absAngle);
+    // The anchor's placement moved onto the centre: it carries the anchor's frame, so the
+    // bearing below shares one with whatever it is measured against, as it always did.
+    Geometry::Placement at = anchor.Where();
+    at.MoveTo(center);
+
+    const Geometry::Vector3 first = PointNearPlacement(at, distance2d, absAngle);
     x = first.x;
     y = first.y;
-    const float init_z = z = anchor.Where().Z();
+    const float init_z = z = center.z;
 
     // if detection disabled, return first point
     if (!sWorld.getConfig(CONFIG_BOOL_DETECT_POS_COLLISION))
@@ -420,11 +458,18 @@ void FindFreeSpotNear(WorldObject const& anchor, WorldObject const* searcher, fl
     const float dist = distance2d + searcher_bounding_radius + anchor.Where().Extent();
 
     // prepare selector for work
-    ObjectPosSelector selector(anchor.Where().X(), anchor.Where().Y(), distance2d, searcher_bounding_radius, searcher);
+    ObjectPosSelector selector(center.x, center.y, distance2d, searcher_bounding_radius, searcher);
 
-    // adding used positions around object
+    // adding used positions around object. The grid area is still the ANCHOR's -- the same
+    // map cells -- while the angles and distances the selector is fed are measured from the
+    // centre. The two are apart by at most one placement update of the anchor's travel, which
+    // the `dist` radius above does not add: for a fast spline (a charge runs at 24 yd/s, so
+    // ~0.8 yd per 33 ms world tick) the visit can therefore under-cover the far side of the
+    // centre by that much and miss a neighbour whose own body would have blocked the spot.
+    // The cost is a spot that ignores one object, never a bad coordinate: the selector still
+    // works in the centre's own polar space, and the answer is still clamped and grounded.
     {
-        MaNGOS::NearUsedPosDo u_do(anchor, searcher, absAngle, selector);
+        MaNGOS::NearUsedPosDo u_do(anchor, center, searcher, absAngle, selector);
         MaNGOS::WorldObjectWorker<MaNGOS::NearUsedPosDo> worker(&anchor, u_do);
 
         Cell::VisitAllObjects(&anchor, worker, dist);
@@ -442,7 +487,7 @@ void FindFreeSpotNear(WorldObject const& anchor, WorldObject const* searcher, fl
             DropToGround(anchor, x, y, z);
         }
 
-        if (fabs(init_z - z) < dist && HasLineOfSight(anchor, Geometry::Vector3(x, y, z)))
+        if (fabs(init_z - z) < dist && HasLineOfSightFrom(anchor, center, Geometry::Vector3(x, y, z)))
         {
             return;
         }
@@ -458,10 +503,10 @@ void FindFreeSpotNear(WorldObject const& anchor, WorldObject const* searcher, fl
     // select in positions after current nodes (selection one by one)
     while (selector.NextAngle(angle))                       // angle for free pos
     {
-        const Geometry::Vector3 candidate = PointNear(anchor, distance2d, absAngle + angle);
+        const Geometry::Vector3 candidate = PointNearPlacement(at, distance2d, absAngle + angle);
         x = candidate.x;
         y = candidate.y;
-        z = anchor.Where().Z();
+        z = center.z;
 
         if (searcher)
         {
@@ -472,7 +517,7 @@ void FindFreeSpotNear(WorldObject const& anchor, WorldObject const* searcher, fl
             DropToGround(anchor, x, y, z);
         }
 
-        if (fabs(init_z - z) < dist && HasLineOfSight(anchor, Geometry::Vector3(x, y, z)))
+        if (fabs(init_z - z) < dist && HasLineOfSightFrom(anchor, center, Geometry::Vector3(x, y, z)))
         {
             return;
         }
@@ -502,10 +547,10 @@ void FindFreeSpotNear(WorldObject const& anchor, WorldObject const* searcher, fl
     // select in positions after current nodes (selection one by one)
     while (selector.NextUsedAngle(angle))                   // angle for used pos but maybe without LOS problem
     {
-        const Geometry::Vector3 candidate = PointNear(anchor, distance2d, absAngle + angle);
+        const Geometry::Vector3 candidate = PointNearPlacement(at, distance2d, absAngle + angle);
         x = candidate.x;
         y = candidate.y;
-        z = anchor.Where().Z();
+        z = center.z;
 
         if (searcher)
         {
@@ -516,7 +561,7 @@ void FindFreeSpotNear(WorldObject const& anchor, WorldObject const* searcher, fl
             DropToGround(anchor, x, y, z);
         }
 
-        if (fabs(init_z - z) < dist && HasLineOfSight(anchor, Geometry::Vector3(x, y, z)))
+        if (fabs(init_z - z) < dist && HasLineOfSightFrom(anchor, center, Geometry::Vector3(x, y, z)))
         {
             return;
         }
@@ -536,6 +581,25 @@ void FindFreeSpotNear(WorldObject const& anchor, WorldObject const* searcher, fl
     }
 }
 
+/**
+ * @brief Finds a nearby point while accounting for collisions and line of sight.
+ *
+ * @param anchor The object the point is sought around.
+ * @param searcher The object requesting the position.
+ * @param x Receives the resulting x coordinate.
+ * @param y Receives the resulting y coordinate.
+ * @param z Receives the resulting z coordinate.
+ * @param searcher_bounding_radius The requester's bounding radius.
+ * @param distance2d The desired distance from the anchor.
+ * @param absAngle The preferred absolute angle.
+ */
+void FindFreeSpotNear(WorldObject const& anchor, WorldObject const* searcher, float& x, float& y, float& z,
+                      float searcher_bounding_radius, float distance2d, float absAngle)
+{
+    FindFreeSpotNear(anchor, anchor.Where().Pos(), searcher, x, y, z,
+                     searcher_bounding_radius, distance2d, absAngle);
+}
+
 void ClosePointNear(WorldObject const& anchor, float& x, float& y, float& z, float bounding_radius,
                     float distance2d, float angle, WorldObject const* searcher)
 {
@@ -544,13 +608,28 @@ void ClosePointNear(WorldObject const& anchor, float& x, float& y, float& z, flo
                      anchor.Where().Facing() + angle);
 }
 
+/**
+ * @brief The contact point around an explicit centre.
+ *
+ * The object-anchored answer measured from a live position: the bearing to the searcher and the
+ * free-spot layout both start at `center` rather than at whatever the anchor's placement last
+ * recorded. A centre that IS that placement gives the identical point.
+ */
+void ContactPointNear(WorldObject const& anchor, Geometry::Vector3 const& center, WorldObject const* obj,
+                      float& x, float& y, float& z, float distance2d)
+{
+    Geometry::Placement at = anchor.Where();
+    at.MoveTo(center);
+    FindFreeSpotNear(anchor, center, obj, x, y, z, obj->Where().Extent(),
+                     Geometry::Placement::ContactSpread(distance2d, anchor.Where().Extent(),
+                                                        obj->Where().Extent()),
+                     at.BearingTo(obj->Where()));
+}
+
 void ContactPointNear(WorldObject const& anchor, WorldObject const* obj, float& x, float& y, float& z,
                       float distance2d)
 {
-    FindFreeSpotNear(anchor, obj, x, y, z, obj->Where().Extent(),
-                     Geometry::Placement::ContactSpread(distance2d, anchor.Where().Extent(),
-                                                        obj->Where().Extent()),
-                     anchor.Where().BearingTo(obj->Where()));
+    ContactPointNear(anchor, anchor.Where().Pos(), obj, x, y, z, distance2d);
 }
 
 void WorldObject::SetPhaseMask(uint32 newPhaseMask, bool update)

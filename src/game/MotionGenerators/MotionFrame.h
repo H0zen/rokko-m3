@@ -168,6 +168,14 @@ namespace Motion
                                       float searcherBounding, float distance2d,
                                       float absAngle) const = 0;
 
+            /// The same search around an EXPLICIT centre rather than the target's placement:
+            /// the target still supplies the map, the phase, the frame and the grid area, while
+            /// `center` is where the spot is sought -- a tracked target's live position, or one
+            /// a native has led. A centre equal to the target's position answers as NearPoint.
+            virtual Vector3 NearPointAt(Unit const& mover, WorldObject const& target,
+                                        Vector3 const& center, float searcherBounding,
+                                        float distance2d, float absAngle) const = 0;
+
             /// A reachable random point within `radius` of `centre`. Drives wander and
             /// the confused stagger. Nothing when none was found (retry later).
             virtual std::optional<Vector3> RandomPoint(Unit& mover, Vector3 const& centre,
