@@ -162,6 +162,14 @@ namespace Motion
             /// Another object's facing, in the mover's frame.
             virtual float ObjectOrientation(Unit const& mover, WorldObject const& obj) const = 0;
 
+            /// A RAW world facing brought into this frame -- the FromWorld of bearings, for a
+            /// heading that belongs to no object's placement (a running spline's own facing).
+            /// The identity under the world frame; a deck needs none either, because a boarded
+            /// unit's facing is already deck-local, which is why ObjectOrientation reads the
+            /// placement straight for both. It exists so nothing above this interface has to
+            /// assume that, the same reason ObjectOrientation does.
+            virtual float FacingToFrame(Unit const& mover, float worldFacing) const = 0;
+
             /// The point `distance2d` yards from `target` at `absAngle`, dropped onto
             /// this frame's ground. The destination of every chase and follow leg.
             virtual Vector3 NearPoint(Unit const& mover, WorldObject const& target,

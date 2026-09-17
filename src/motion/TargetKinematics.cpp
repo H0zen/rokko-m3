@@ -39,8 +39,10 @@ namespace Motion
         TargetMotion out;
         if (in.splineRunning)
         {
-            Vector3 chord = in.splineTo - in.splineFrom;
-            chord.z = 0.0f;
+            // The chord is taken in 3D: a climbing or diving target (a flyer, a swimmer, a
+            // ramp) travels its vertical too, and flattening it both shortened the velocity
+            // and pointed it the wrong way -- a vertical-only leg read as standing still.
+            const Vector3 chord = in.splineTo - in.splineFrom;
             const float len = chord.length();
             out.moving = len > 0.01f && in.speed > 0.0f;
             if (!out.moving) { return out; }

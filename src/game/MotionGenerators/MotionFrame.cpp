@@ -151,6 +151,12 @@ namespace Motion
                     return obj.Where().Facing();
                 }
 
+                /// The world frame IS world space, so a world bearing is already a frame one.
+                float FacingToFrame(Unit const& /*mover*/, float worldFacing) const override
+                {
+                    return worldFacing;
+                }
+
                 Vector3 NearPoint(Unit const& mover, WorldObject const& target,
                                   float searcherBounding, float distance2d,
                                   float absAngle) const override

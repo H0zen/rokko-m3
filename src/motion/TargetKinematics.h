@@ -38,7 +38,7 @@ namespace Motion
         bool  splineCyclic = false;    ///< isCyclic()
         bool  splineAirborne = false;  ///< Airborne(): a jump, a fall, a knockback
         Vector3 splineFrom;            ///< the live spline position (frame coordinates)
-        Vector3 splineTo;              ///< the spline's current destination (frame coordinates)
+        Vector3 splineTo;              ///< the spline's current destination (frame coordinates, 3D)
         bool  playerMoved = false;     ///< a client-moved unit: the flags below apply
         bool  forward = false, backward = false, strafeLeft = false, strafeRight = false;
         bool  falling = false;         ///< MOVEFLAG_FALLING | FALLING_FAR
@@ -54,8 +54,9 @@ namespace Motion
         bool    moving = false;        ///< the target is in motion (trusted or not)
     };
 
-    /// Design §3: a linear, non-cyclic, non-airborne spline is trusted (the chord to its current
-    /// destination at its speed); a smooth, cyclic or ballistic spline moves but is untrusted; a
+    /// Design §3: a linear, non-cyclic, non-airborne spline is trusted (the 3D chord to its
+    /// current destination at its speed, so a climbing or diving target's vertical is part of
+    /// its velocity); a smooth, cyclic or ballistic spline moves but is untrusted; a
     /// client-moved unit combines its forward/backward and strafe flags, normalised, at its speed,
     /// untrusted while falling; anything else stands.
     TargetMotion ClassifyTargetMotion(TargetMotionInput const& in);

@@ -460,19 +460,27 @@ void FindFreeSpotNear(WorldObject const& anchor, Geometry::Vector3 const& center
     // prepare selector for work
     ObjectPosSelector selector(center.x, center.y, distance2d, searcher_bounding_radius, searcher);
 
-    // adding used positions around object. The grid area is still the ANCHOR's -- the same
-    // map cells -- while the angles and distances the selector is fed are measured from the
-    // centre. The two are apart by at most one placement update of the anchor's travel, which
-    // the `dist` radius above does not add: for a fast spline (a charge runs at 24 yd/s, so
-    // ~0.8 yd per 33 ms world tick) the visit can therefore under-cover the far side of the
-    // centre by that much and miss a neighbour whose own body would have blocked the spot.
-    // The cost is a spot that ignores one object, never a bad coordinate: the selector still
-    // works in the centre's own polar space, and the answer is still clamped and grounded.
+    // adding used positions around object. The grid area is gathered around the ANCHOR's
+    // placement, while every angle and distance the selector is fed is measured from the
+    // CENTRE: the visit radius therefore carries the anchor's own displacement from that
+    // centre on top of its reach, so that what it sweeps covers the live centre's whole
+    // neighbourhood and not a disc offset from it. For the placement-anchored overload the
+    // centre IS the anchor's position, the term is zero, and the visit is the one it always
+    // was; for a live centre (a target mid-spline -- a charge runs at 24 yd/s, so ~0.8 yd per
+    // 33 ms world tick, and a relocation lands only every POSITION_UPDATE_DELAY) it is what
+    // stops a neighbour standing on the far side of the live centre from going unseen and its
+    // body from failing to block the spot. Only the visit widens: the z tolerance below stays
+    // the plain reach, being a question about the drop rather than about who is standing near.
     {
+        const Geometry::Vector3 anchorPos = anchor.Where().Pos();
+        const float offX = anchorPos.x - center.x;
+        const float offY = anchorPos.y - center.y;
+        const float visitDist = dist + std::sqrt(offX * offX + offY * offY);
+
         MaNGOS::NearUsedPosDo u_do(anchor, center, searcher, absAngle, selector);
         MaNGOS::WorldObjectWorker<MaNGOS::NearUsedPosDo> worker(&anchor, u_do);
 
-        Cell::VisitAllObjects(&anchor, worker, dist);
+        Cell::VisitAllObjects(&anchor, worker, visitDist);
     }
 
     // maybe can just place in primary position

@@ -56,17 +56,25 @@ namespace
     /// prepare that drains the phase, with room to spare -- one tick drains any weld.
     constexpr uint32 kMaxContinuation = uint32(Motion::WAYPOINT_SMOOTHING_MAX_LOOKAHEAD) + 8;
 
-    /// A unit's LIVE position, in its own coordinate space: the running spline's interpolated
-    /// point, else the placement. Boarded, a spline's coordinates are seat-local
-    /// (Unit::CommitSplinePosition) -- which is exactly what that unit's placement speaks too --
-    /// so one expression covers both and never mixes a deck coordinate with a world one.
-    Geometry::Vector3 LivePosition(Unit const& u)
+    /// A unit's LIVE placement -- position AND facing -- in its own coordinate space: the
+    /// running spline's interpolated point and the heading it carries there, else the placement.
+    /// Boarded, a spline's coordinates are seat-local (Unit::CommitSplinePosition) -- which is
+    /// exactly what that unit's placement speaks too -- so one expression covers both and never
+    /// mixes a deck coordinate with a world one.
+    Movement::Location LiveLocation(Unit const& u)
     {
         if (u.movespline->Finalized())
         {
-            return u.Where().Pos();
+            const Geometry::Vector3 p = u.Where().Pos();
+            return Movement::Location(p.x, p.y, p.z, u.Where().Facing());
         }
-        const Movement::Location loc = u.movespline->ComputePosition();
+        return u.movespline->ComputePosition();
+    }
+
+    /// Just the point of that placement, for the callers a heading says nothing to.
+    Geometry::Vector3 LivePosition(Unit const& u)
+    {
+        const Movement::Location loc = LiveLocation(u);
         return Geometry::Vector3(loc.x, loc.y, loc.z);
     }
 
@@ -203,10 +211,23 @@ void NativeBehaviour::SeeTarget(Unit& owner, Unit& target, Motion::TargetView& v
     // target's are world, so they come through FromWorld like any other anchor (the identity
     // under the world frame).
     const bool local = target.IsBoarded();
-    const Geometry::Vector3 live = LivePosition(target);
+    const bool splineRunning = !target.movespline->Finalized();
+    const Movement::Location live = LiveLocation(target);
+    const Geometry::Vector3 livePoint(live.x, live.y, live.z);
     view.valid = true;
-    view.position = local ? live : frame.FromWorld(owner, live);
-    view.facing = frame.ObjectOrientation(owner, target);
+    view.position = local ? livePoint : frame.FromWorld(owner, livePoint);
+    // The facing comes from the same live placement the position did, so the two never
+    // disagree: while a spline runs, the heading it carries at that point (its direction of
+    // travel, or the facing it was launched with). The PLACEMENT's orientation is only
+    // relocated once per POSITION_UPDATE_DELAY, so an angled chase or a follow -- both take
+    // their bearing from the leader's facing (TrackingBehaviour::Bearing), which is how a pet
+    // holds its follow angle -- aimed at a heading up to 400 ms old, and a leader mid-turn was
+    // followed around a corner it had already left. A world facing comes into the frame the
+    // way ObjectOrientation brings a placement's; a boarded target's spline facing is already
+    // seat-local, exactly as its coordinates are.
+    view.facing = splineRunning
+                      ? (local ? live.orientation : frame.FacingToFrame(owner, live.orientation))
+                      : frame.ObjectOrientation(owner, target);
     view.extent = target.Where().Extent();
     view.reachSum = owner.GetFloatValue(UNIT_FIELD_COMBATREACH) + target.GetFloatValue(UNIT_FIELD_COMBATREACH);
     view.meleeRange = std::max(view.reachSum + 4.0f / 3.0f, 5.0f);
@@ -214,7 +235,7 @@ void NativeBehaviour::SeeTarget(Unit& owner, Unit& target, Motion::TargetView& v
     view.isVictim = owner.getVictim() == &target;
 
     Motion::TargetMotionInput in;
-    if (!target.movespline->Finalized())
+    if (splineRunning)
     {
         in.splineRunning = true;
         in.splineLinear = !target.movespline->isSmooth();

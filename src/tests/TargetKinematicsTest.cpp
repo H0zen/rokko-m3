@@ -75,6 +75,21 @@ TEST(TargetKinematics_LinearSplineIsTrustedAlongItsChord)
     CHECK(Near(m.velocity.length(), 7.0f));
 }
 
+TEST(TargetKinematics_AscendingSplineKeepsItsVertical)
+{
+    // A 3-4-12 chord is 13 long, walked at 13 yd/s: the velocity IS the chord, climb and all.
+    // Flattening the chord would have handed back (3, 4, 0) scaled to 13 -- a velocity 2.6
+    // times too fast across the ground and blind to the climb, which is what a follower
+    // extrapolating a flying or swimming leader leads with.
+    const TargetMotion m = ClassifyTargetMotion(Spline(Vector3(0.0f, 0.0f, 0.0f), Vector3(3.0f, 4.0f, 12.0f), 13.0f));
+    CHECK(m.moving);
+    CHECK(m.trusted);
+    CHECK(Near(m.velocity.x, 3.0f));
+    CHECK(Near(m.velocity.y, 4.0f));
+    CHECK(Near(m.velocity.z, 12.0f));
+    CHECK(Near(m.velocity.length(), 13.0f));
+}
+
 TEST(TargetKinematics_SmoothSplineMovesButIsNotTrusted)
 {
     // A Catmull-Rom leg curves between its points, so the chord to the current destination is
