@@ -38,7 +38,7 @@
 #include <list>
 #include "Chat.h"
 #include "Language.h"
-#include "WaypointMovementGenerator.h"
+#include "WaypointManager.h"
 #include "TemporarySummon.h"
 #include "MoveMap.h"
 #include "PathFinder.h" // for mmap manager
@@ -225,10 +225,7 @@ bool ChatHandler::HandleWpAddCommand(char* args)
 
         if (wpDestination == PATH_NO_PATH)                  // No overwrite params. Do best estimate
         {
-            if (WaypointMovementGenerator const* wpMMGen = wpOwner->GetMotionMaster()->HeldWaypoint())   // the creature's patrol, masked or not
-            {
-                wpMMGen->GetPathInformation(wpPathId, wpDestination);
-            }
+            wpOwner->GetMotionMaster()->GetWaypointPathInformation(wpPathId, wpDestination);   // the creature's patrol, masked or not
             // Get information about default path if no current path. If no default path, prepare data dependendy on uniqueness
             if (wpDestination == PATH_NO_PATH && !sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), &wpDestination))
             {
@@ -421,10 +418,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
 
     if (wpSource == PATH_NO_PATH)                           // No waypoint selected
     {
-        if (WaypointMovementGenerator const* wpMMGen = wpOwner->GetMotionMaster()->HeldWaypoint())   // the creature's patrol, masked or not
-        {
-            wpMMGen->GetPathInformation(wpPathId, wpSource);
-        }
+        wpOwner->GetMotionMaster()->GetWaypointPathInformation(wpPathId, wpSource);   // the creature's patrol, masked or not
         if (wpSource == PATH_NO_PATH)
         {
             sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), &wpSource);
@@ -673,9 +667,8 @@ bool ChatHandler::HandleWpShowCommand(char* args)
     }
     else
     {
-        if (WaypointMovementGenerator const* wpMMGen = wpOwner->GetMotionMaster()->HeldWaypoint())   // the creature's patrol, masked or not
+        if (wpOwner->GetMotionMaster()->GetWaypointPathInformation(wpPathId, wpOrigin))   // the creature's patrol, masked or not
         {
-            wpMMGen->GetPathInformation(wpPathId, wpOrigin);
             wpPath = sWaypointMgr.GetPathFromOrigin(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpPathId, wpOrigin);
         }
         if (wpOrigin == PATH_NO_PATH)
@@ -888,10 +881,7 @@ bool ChatHandler::HandleWpExportCommand(char* args)
 
         if (wpOrigin == PATH_NO_PATH)
         {
-            if (WaypointMovementGenerator const* wpMMGen = wpOwner->GetMotionMaster()->HeldWaypoint())   // the creature's patrol, masked or not
-            {
-                wpMMGen->GetPathInformation(wpPathId, wpOrigin);
-            }
+            wpOwner->GetMotionMaster()->GetWaypointPathInformation(wpPathId, wpOrigin);   // the creature's patrol, masked or not
             if (wpOrigin == PATH_NO_PATH)
             {
                 sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), &wpOrigin);

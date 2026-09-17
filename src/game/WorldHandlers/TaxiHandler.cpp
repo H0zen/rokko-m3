@@ -34,7 +34,7 @@
 #include "Player.h"
 #include "UpdateMask.h"
 #include "Path.h"
-#include "WaypointMovementGenerator.h"
+#include "FlightPathMovementGenerator.h"
 
 /**
  * @brief Handles a client request for the known status of a taxi node.

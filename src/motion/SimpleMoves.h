@@ -39,12 +39,12 @@ namespace Motion
     {
         public:
             Motion::Kind Kind() const override { return Motion::Kind::Idle; }
-            Step Activate(Sight const&) override { return Step::None(); }
+            Step Activate(Sight const&, Services&) override { return Step::None(); }
             Step Suspend() override { return Step::None(); }
-            Step Resume(Sight const&, bool) override { return Step::None(); }
-            Step Tick(Sight const&, uint32) override { return Step::None(); }
+            Step Resume(Sight const&, Services&, bool) override { return Step::None(); }
+            Step Tick(Sight const&, Services&, uint32) override { return Step::None(); }
             FinishReason EndReason(Sight const&) const override { return FinishReason::Expired; }
-            Outcome Finish(FinishReason, Sight const&) override { return Outcome(); }
+            Outcome Finish(FinishReason, Sight const&, Services&) override { return Outcome(); }
     };
 
     /// The point family: a one-shot leg to a goal (Point, FlyLand by flags, AssistRun by flags and a finisher, the charge by a tracked target and a speed).
@@ -65,12 +65,12 @@ namespace Motion
             };
             explicit PointBehaviour(Params const& p);
             Motion::Kind Kind() const override { return m_p.kind; }
-            Step Activate(Sight const& sight) override;
+            Step Activate(Sight const& sight, Services& svc) override;
             Step Suspend() override;
-            Step Resume(Sight const& sight, bool reset) override;
-            Step Tick(Sight const& sight, uint32 diff) override;
+            Step Resume(Sight const& sight, Services& svc, bool reset) override;
+            Step Tick(Sight const& sight, Services& svc, uint32 diff) override;
             FinishReason EndReason(Sight const&) const override { return m_end; }
-            Outcome Finish(FinishReason why, Sight const& sight) override;
+            Outcome Finish(FinishReason why, Sight const& sight, Services& svc) override;
             bool TracksTarget() const override { return m_p.target != 0; }
             uint64 Target() const override { return m_p.target; }
             uint32 Relays() const { return m_relays; }   ///< the charge's re-lay count (the harness reports it)
@@ -90,12 +90,12 @@ namespace Motion
         public:
             DistractBehaviour(Motion::Kind kind, uint32 ms) : m_kind(kind), m_timer(ms) {}
             Motion::Kind Kind() const override { return m_kind; }
-            Step Activate(Sight const&) override { return Step::None(); }
+            Step Activate(Sight const&, Services&) override { return Step::None(); }
             Step Suspend() override { return Step::None(); }
-            Step Resume(Sight const&, bool) override { return Step::None(); }
-            Step Tick(Sight const&, uint32 diff) override;
+            Step Resume(Sight const&, Services&, bool) override { return Step::None(); }
+            Step Tick(Sight const&, Services&, uint32 diff) override;
             FinishReason EndReason(Sight const&) const override { return FinishReason::Expired; }
-            Outcome Finish(FinishReason why, Sight const& sight) override;
+            Outcome Finish(FinishReason why, Sight const& sight, Services& svc) override;
         private:
             Motion::Kind m_kind;
             uint32       m_timer;
@@ -107,12 +107,12 @@ namespace Motion
         public:
             EffectBehaviour(uint32 id, EffectLaunch const& launch) : m_id(id), m_launch(launch) {}
             Motion::Kind Kind() const override { return Motion::Kind::Effect; }
-            Step Activate(Sight const& sight) override;
+            Step Activate(Sight const& sight, Services& svc) override;
             Step Suspend() override { return Step::None(); }
-            Step Resume(Sight const&, bool) override { return Step::None(); }
-            Step Tick(Sight const& sight, uint32 diff) override;
+            Step Resume(Sight const&, Services&, bool) override { return Step::None(); }
+            Step Tick(Sight const& sight, Services& svc, uint32 diff) override;
             FinishReason EndReason(Sight const& sight) const override { return sight.landed ? FinishReason::Arrived : FinishReason::Cut; }
-            Outcome Finish(FinishReason why, Sight const& sight) override;
+            Outcome Finish(FinishReason why, Sight const& sight, Services& svc) override;
         private:
             uint32       m_id;
             EffectLaunch m_launch;

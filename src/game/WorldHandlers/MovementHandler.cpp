@@ -70,7 +70,7 @@
 #include "TransportMap.h"
 #include <cmath>
 #include "BattleGround/BattleGround.h"
-#include "WaypointMovementGenerator.h"
+#include "FlightPathMovementGenerator.h"
 #include "MapPersistentStateMgr.h"
 #include "ObjectMgr.h"
 #include "ObjectLookup.h"

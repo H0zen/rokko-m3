@@ -51,6 +51,7 @@ namespace Harness
     void RegisterBlockScenarios(Runner& r);
     void RegisterCoverageScenarios(Runner& r);
     void RegisterSimpleScenarios(Runner& r);
+    void RegisterDefaultScenarios(Runner& r);
 
     namespace
     {
@@ -68,7 +69,10 @@ namespace Harness
         // The coverage family (RegisterCoverageScenarios) is orders 32-35: a vehicle
         // seat, a death and respawn, a possession, two feigns. The simple-move family
         // (RegisterSimpleScenarios) is orders 36-41: the refused arc, the arc under a
-        // stun, and the charge (P5-B family 1).
+        // stun, and the charge (P5-B family 1). The default-moves family
+        // (RegisterDefaultScenarios) is orders 45-47: the welded internal patrol, a
+        // waiting node's facing versus a pass-through node's travel facing, and a
+        // MOVE_START hook that redirects the next node (P5-B family 2 Task 5).
         RegisterJumpScenarios(*this);
         RegisterPointScenarios(*this);
         RegisterHomeScenarios(*this);
@@ -79,6 +83,7 @@ namespace Harness
         RegisterCoverageScenarios(*this);
         RegisterSimpleScenarios(*this);
         RegisterPatrolScenarios(*this);
+        RegisterDefaultScenarios(*this);
     }
 
     Runner::~Runner()
@@ -208,6 +213,24 @@ namespace Harness
             if (!sWaypointMgr.AddExternalNode(6271, kMousePath, 2, -2985.8f, -329.178f, 54.0748f, 0.0f, 0)) { sLog.outString("MVTEST %s", "ERR mouse node 2 not added"); }
             if (!sWaypointMgr.AddExternalNode(6271, kMousePath, 3, -2995.64f, -338.986f, 53.5518f, 0.0f, 0)) { sLog.outString("MVTEST %s", "ERR mouse node 3 not added"); }
             if (!sWaypointMgr.AddExternalNode(6271, kMousePath, 4, -2995.64f, -338.986f, 53.5518f, 0.0f, 0)) { sLog.outString("MVTEST %s", "ERR mouse node 4 not added"); }
+            // The chicken's square again, but an entry-origin path (P5-B family 2 Task 5,
+            // patrol-welded): PatrolBehaviour only welds an internal-origin leg, never an
+            // external one, so this scenario needs its own in-memory path.
+            if (!sWaypointMgr.AddEntryNode(621, kWeldPath, 1, -3122.6f, -261.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR weld node 1 not added"); }
+            if (!sWaypointMgr.AddEntryNode(621, kWeldPath, 2, -3152.6f, -261.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR weld node 2 not added"); }
+            if (!sWaypointMgr.AddEntryNode(621, kWeldPath, 3, -3152.6f, -231.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR weld node 3 not added"); }
+            if (!sWaypointMgr.AddEntryNode(621, kWeldPath, 4, -3122.6f, -231.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR weld node 4 not added"); }
+            // The chicken's square, external, with node 2 waiting (faces 1.5 rad) and node 3
+            // passed through (faces 4.7 rad, ignored: patrol-orients-at-a-waiting-node).
+            if (!sWaypointMgr.AddExternalNode(621, kFacePath, 1, -3122.6f, -261.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR face node 1 not added"); }
+            if (!sWaypointMgr.AddExternalNode(621, kFacePath, 2, -3152.6f, -261.3f, 46.0f, 1.5f, 3000)) { sLog.outString("MVTEST %s", "ERR face node 2 not added"); }
+            if (!sWaypointMgr.AddExternalNode(621, kFacePath, 3, -3152.6f, -231.3f, 46.0f, 4.7f, 0)) { sLog.outString("MVTEST %s", "ERR face node 3 not added"); }
+            if (!sWaypointMgr.AddExternalNode(621, kFacePath, 4, -3122.6f, -231.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR face node 4 not added"); }
+            // The chicken's plain square again, external (patrol-hook-sets-next-node).
+            if (!sWaypointMgr.AddExternalNode(621, kHookPath, 1, -3122.6f, -261.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR hook node 1 not added"); }
+            if (!sWaypointMgr.AddExternalNode(621, kHookPath, 2, -3152.6f, -261.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR hook node 2 not added"); }
+            if (!sWaypointMgr.AddExternalNode(621, kHookPath, 3, -3152.6f, -231.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR hook node 3 not added"); }
+            if (!sWaypointMgr.AddExternalNode(621, kHookPath, 4, -3122.6f, -231.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR hook node 4 not added"); }
             pathAdded = true;
         }
         sLog.outString("MVTEST start: %u scenario(s) on map %u", uint32(m_queue.size()), kMapId);

@@ -44,7 +44,6 @@
 #include "CellImpl.h"
 #include "Mail.h"
 #include "WaypointManager.h"
-#include "WaypointMovementGenerator.h"
 #include "CorpseManager.h"
 
 // /////////////////////////////////////////////////////////
@@ -1133,13 +1132,7 @@ bool ScriptAction::HandleScriptStep()
                 if (m_script->textId[0] && !LogIfNotCreature(pSource))
                 {
                     Creature* cSource = static_cast<Creature*>(pSource);
-                    if (WaypointMovementGenerator* waypoint = cSource->GetMotionMaster()->HeldWaypoint())
-                    {
-                        if (cSource->GetMotionMaster()->IsSelected(waypoint))
-                        {
-                            waypoint->AddToWaypointPauseTime(m_script->textId[0]);
-                        }
-                    }
+                    cSource->GetMotionMaster()->AddToSelectedPatrolPause(m_script->textId[0]);
                 }
 
                 return true;

@@ -31,7 +31,6 @@
 #include "CreatureAIImpl.h"
 #include "NullCreatureAI.h"
 #include "Policies/Singleton.h"
-#include "MovementGenerator.h"
 #include "ScriptMgr.h"
 #include "Pet.h"
 #include "Log.h"
@@ -121,40 +120,5 @@ namespace FactorySelector
 
         DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Creature %u used AI is %s.", creature->GetGUIDLow(), ainame.c_str());
         return (ai_factory == NULL ? new NullCreatureAI(creature) : ai_factory->Create(creature));
-    }
-
-    /**
-     * @brief Selects the default movement generator for a creature.
-     *
-     * @param creature The creature requiring a movement generator.
-     * @return The selected movement generator, or null if none is registered.
-     */
-    MovementGenerator* selectMovementGenerator(Creature* creature)
-    {
-        MovementGeneratorRegistry& mv_registry(MovementGeneratorRepository::Instance());
-        MANGOS_ASSERT(creature->GetCreatureInfo() != NULL);
-        MovementGeneratorCreator const* mv_factory = mv_registry.GetRegistryItem(
-                    creature->GetOwnerGuid().IsPlayer() ? FOLLOW_MOTION_TYPE : creature->GetDefaultMovementType());
-
-        /* if ( mv_factory == NULL  )
-        {
-            int best_val = -1;
-            std::vector<std::string> l;
-            mv_registry.GetRegisteredItems(l);
-            for( std::vector<std::string>::iterator iter = l.begin(); iter != l.end(); ++iter)
-            {
-            const MovementGeneratorCreator *factory = mv_registry.GetRegistryItem((*iter).c_str());
-            const SelectableMovement *p = dynamic_cast<const SelectableMovement *>(factory);
-            ASSERT( p != NULL );
-            int val = p->Permit(creature);
-            if ( val > best_val )
-            {
-                best_val = val;
-                mv_factory = p;
-            }
-            }
-        }*/
-
-        return (mv_factory == NULL ? NULL : mv_factory->Create(creature));
     }
 }

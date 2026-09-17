@@ -61,7 +61,6 @@
 #include "SQLStorages.h"
 #include "BattleGround/BattleGround.h"
 #include "OutdoorPvP/OutdoorPvP.h"
-#include "WaypointMovementGenerator.h"
 #include "Mail.h"
 
 #ifdef ENABLE_SD3

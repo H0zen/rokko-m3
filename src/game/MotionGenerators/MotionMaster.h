@@ -28,6 +28,7 @@
 
 #include "Platform/Define.h"
 #include "Arbiter.h"
+#include "WaypointManager.h"
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -38,7 +39,6 @@ struct Position;
 class Unit;
 class MovementGenerator;
 class MotionBehaviour;
-class WaypointMovementGenerator;
 class FlightPathMovementGenerator;
 
 // Creature Entry ID used for waypoints show, visible only for GMs
@@ -53,14 +53,14 @@ class FlightPathMovementGenerator;
 enum MovementGeneratorType
 {
     IDLE_MOTION_TYPE = 0,                  ///< Idle movement (Motion::IdleBehaviour)
-    RANDOM_MOTION_TYPE = 1,                ///< Random movement (RandomMovementGenerator.h)
-    WAYPOINT_MOTION_TYPE = 2,              ///< Waypoint movement (WaypointMovementGenerator.h)
+    RANDOM_MOTION_TYPE = 1,                ///< Random movement (Motion::WanderBehaviour)
+    WAYPOINT_MOTION_TYPE = 2,              ///< Waypoint movement (Motion::PatrolBehaviour)
     MAX_DB_MOTION_TYPE = 3,                ///< Maximum database motion type (values below this can be set in DB)
 
     CONFUSED_MOTION_TYPE = 4,              ///< Confused movement (ConfusedMovementGenerator.h)
     CHASE_MOTION_TYPE = 5,                 ///< Chase movement (TargetedMovementGenerator.h)
     HOME_MOTION_TYPE = 6,                  ///< Return home movement (HomeMovementGenerator.h)
-    FLIGHT_MOTION_TYPE = 7,                ///< Flight movement (WaypointMovementGenerator.h)
+    FLIGHT_MOTION_TYPE = 7,                ///< Flight movement (FlightPathMovementGenerator.h)
     POINT_MOTION_TYPE = 8,                 ///< Point movement (Motion::PointBehaviour; fly/land projects here too)
     FLEEING_MOTION_TYPE = 9,               ///< Fleeing movement (FleeingMovementGenerator.h)
     DISTRACT_MOTION_TYPE = 10,             ///< Distract movement (Motion::DistractBehaviour)
@@ -78,6 +78,7 @@ enum MovementGeneratorType
 namespace Motion
 {
     class Behaviour;      ///< a native kernel behaviour (src/motion/BehaviourModel.h); the .cpp has the definition
+    class PatrolBehaviour; ///< the waypoint patrol native (src/motion/DefaultMoves.h)
     struct EffectLaunch;   ///< a jump, a knockback arc or a fall (src/motion/MoveIntent.h); the .cpp has the definition
 
     /**
@@ -158,9 +159,19 @@ class MotionMaster
 
         MovementGeneratorType GetCurrentMovementGeneratorType() const;
         void PropagateSpeedChange();
+        /// Jumps the held patrol to a given node; it moves there on the next tick. @return False when the node does not exist.
         bool SetNextWaypoint(uint32 pointId);
+        /// The last waypoint node the held patrol reached; 0 before the first one.
         uint32 getLastReachedWaypoint() const;
         void GetWaypointPathInformation(std::ostringstream& oss) const;
+        /// The held patrol's loaded path id and origin. @return False when no patrol is held.
+        bool GetWaypointPathInformation(int32& pathId, WaypointPathOrigin& origin) const;
+        /// Extends (or cuts short) the selected patrol's pause at its current node. @return False when the selection is not a patrol.
+        bool AddToSelectedPatrolPause(int32 ms);
+        /// The selected patrol's current node; 0 when the selection is not a patrol.
+        uint32 SelectedPatrolNode() const;
+        /// The selected patrol's welded leg's point count (the harness's welding measurement); 0 when the selection is not a patrol.
+        size_t SelectedPatrolLegPoints() const;
         bool GetDestination(float& x, float& y, float& z);
 
         /// Death: every behaviour finishes Died while the unit still reads alive, then the idle default.
@@ -180,6 +191,8 @@ class MotionMaster
         void RelocateSelected(float x, float y, float z, float o);
         /// True iff this generator belongs to the selected behaviour (replaces MovementGenerator::IsActive).
         bool IsSelected(MovementGenerator const* generator) const;
+        /// True iff this arbiter sequence is the one selected right now (the native shell's per-round re-check).
+        bool IsSelectedSequence(uint32 seq) const;
         // ---- typed queries (P3-C) -------------------------------------------------------
         /// The selected entry's kind: what runs now (the stack's "current type"); Idle when nothing is held.
         Motion::Kind ActiveKind() const;
@@ -202,9 +215,9 @@ class MotionMaster
         void CombatStarted();
         /// True when this sequence has a binding and that binding has been activated.
         bool IsActivated(uint32 seq) const;
-        /// The held patrol generator wherever it sits (default slot, masked or not), else NULL.
-        WaypointMovementGenerator* HeldWaypoint();
-        WaypointMovementGenerator const* HeldWaypoint() const;
+        /// The held patrol native wherever it sits (default slot, masked or not), else NULL.
+        Motion::PatrolBehaviour* HeldPatrol();
+        Motion::PatrolBehaviour const* HeldPatrol() const;
         /// The held taxi flight, else NULL.
         FlightPathMovementGenerator* HeldFlight();
 
@@ -247,7 +260,6 @@ class MotionMaster
         /// One Effect request, through the shell's own gate: a Jump on a rooted unit is refused.
         /// @return False when it was refused; nothing was bound and nothing will inform.
         bool RequestEffect(uint32 id, Motion::EffectLaunch const& launch);
-        void InstallFactory(Motion::Kind kind, MovementGenerator* generator, bool owned);
         void InstallFactoryNative(Motion::Kind kind, std::unique_ptr<Motion::Behaviour> native);
         bool Bind(Motion::Kind kind, uint32 seqBefore, MovementGenerator* generator, bool owned);
         bool BindNative(uint32 seqBefore, std::unique_ptr<Motion::Behaviour> native);

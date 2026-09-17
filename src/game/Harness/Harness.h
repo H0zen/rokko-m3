@@ -55,6 +55,22 @@ namespace Harness
     /// with no world creature to find). Same id scheme as kExternalPath, one slot up.
     static const int32 kMousePath = 251;
 
+    /// The chicken's square again, but an ENTRY path (WaypointManager::AddEntryNode, no
+    /// database row): the welding only runs for an internal-origin patrol (an external
+    /// path's script may replace it under us at any node, so PatrolBehaviour never welds
+    /// one), so patrol-welded loads this one instead of kExternalPath.
+    static const int32 kWeldPath = 252;
+
+    /// The chicken's square as an external path with two of its four nodes' orientation set:
+    /// node 2 has a 3 s delay and faces 1.5 rad (a waiting node's orientation is honoured);
+    /// node 3 has no delay and faces 4.7 rad (a pass-through node's orientation is ignored,
+    /// so the chicken keeps its travel facing there instead). patrol-orients-at-a-waiting-node.
+    static const int32 kFacePath = 253;
+
+    /// The chicken's plain square again, external, for patrol-hook-sets-next-node's
+    /// MOVE_START hook (SetNextWaypoint from inside the inform).
+    static const int32 kHookPath = 254;
+
     /// A scenario still running after this much virtual time is abandoned, so
     /// MVTEST DONE always comes (long-follow needs about four).
     static const uint32 kScenarioMaxMs = 300000;

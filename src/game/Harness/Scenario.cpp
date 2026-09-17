@@ -31,7 +31,6 @@
 #include "ObjectMgr.h"
 #include "Map.h"
 #include "GridMap.h"
-#include "WaypointMovementGenerator.h"
 #include "Log.h"
 
 #include <cstdarg>
@@ -171,13 +170,7 @@ namespace Harness
 
     uint32 Scenario::Node(Creature* c) const
     {
-        if (!c)
-        {
-            return 0;
-        }
-        MotionMaster const* mm = c->GetMotionMaster();
-        WaypointMovementGenerator const* patrol = mm->HeldWaypoint();
-        return (patrol && mm->IsSelected(patrol)) ? patrol->GetCurrentNode() : 0;
+        return c ? c->GetMotionMaster()->SelectedPatrolNode() : 0;
     }
 
     void Scenario::Log(char const* fmt, ...) const

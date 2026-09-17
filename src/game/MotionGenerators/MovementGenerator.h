@@ -27,9 +27,6 @@
 #define MANGOS_MOVEMENTGENERATOR_H
 
 #include "Platform/Define.h"
-#include "Policies/Singleton.h"
-#include "Dynamic/ObjectRegistry.h"
-#include "Dynamic/FactoryHolder.h"
 #include "MotionMaster.h"
 #include "Timer.h"
 
@@ -131,42 +128,5 @@ class MovementGenerator
          */
         virtual bool IsReachable() const { return true; }
 };
-
-/**
- * @brief SelectableMovement is a factory holder for movement generators.
- */
-struct SelectableMovement : public FactoryHolder<MovementGenerator, MovementGeneratorType>
-{
-    /**
-     * @brief Constructor for SelectableMovement.
-     * @param mgt Type of the movement generator.
-     */
-    SelectableMovement(MovementGeneratorType mgt) : FactoryHolder<MovementGenerator, MovementGeneratorType>(mgt) {}
-};
-
-/**
- * @brief Template class for movement generator factories.
- * @tparam REAL_MOVEMENT Type of the real movement generator.
- */
-template<class REAL_MOVEMENT>
-struct MovementGeneratorFactory : public SelectableMovement
-{
-    /**
-     * @brief Constructor for MovementGeneratorFactory.
-     * @param mgt Type of the movement generator.
-     */
-    MovementGeneratorFactory(MovementGeneratorType mgt) : SelectableMovement(mgt) {}
-
-    /**
-     * @brief Creates a new movement generator.
-     * @param data Pointer to the data.
-     * @return Pointer to the created movement generator.
-     */
-    MovementGenerator* Create(void*) const override;
-};
-
-typedef FactoryHolder<MovementGenerator, MovementGeneratorType> MovementGeneratorCreator;
-typedef FactoryHolder<MovementGenerator, MovementGeneratorType>::FactoryHolderRegistry MovementGeneratorRegistry;
-typedef FactoryHolder<MovementGenerator, MovementGeneratorType>::FactoryHolderRepository MovementGeneratorRepository;
 
 #endif // MANGOS_MOVEMENTGENERATOR_H

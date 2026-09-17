@@ -169,6 +169,10 @@ class WaypointManager
         std::string GetExternalWPTable() const { return m_externalTable; }
         /// Add Nodes from external sources
         bool AddExternalNode(uint32 entry, int32 pathId, uint32 pointId, float x, float y, float z, float o, uint32 waittime);
+        /// An in-memory entry path for the harness: no database row (mirrors AddExternalNode,
+        /// but into the entry-origin template map -- PATH_FROM_ENTRY, so a patrol loaded from
+        /// it welds its legs, which an external path never does).
+        bool AddEntryNode(uint32 entry, int32 pathId, uint32 pointId, float x, float y, float z, float o, uint32 waittime);
 
         // Toolbox for .wp add command
         /// Add a node as position pointId. If pointId == 0 then as last point
@@ -180,6 +184,10 @@ class WaypointManager
         void SetNodeWaittime(uint32 entry, uint32 dbGuid, uint32 point, int32 pathId, WaypointPathOrigin wpOrigin, uint32 waittime);
         void SetNodeOrientation(uint32 entry, uint32 dbGuid, uint32 point, int32 pathId, WaypointPathOrigin wpOrigin, float orientation);
         bool SetNodeScriptId(uint32 entry, uint32 dbGuid, uint32 point, int32 pathId, WaypointPathOrigin wpOrigin, uint32 scriptId);
+
+        /// The node maps' revision: bumped by every node mutation; a running patrol compares it
+        /// before each tick and re-reads its path on a change, as the generator's live path view did.
+        uint32 Revision() const { return m_revision; }
 
         // Small Helper for nice output
         static std::string GetOriginString(WaypointPathOrigin origin)
@@ -214,6 +222,7 @@ class WaypointManager
         WaypointPathMap m_pathTemplateMap;
         WaypointPathMap m_externalPathTemplateMap;
         std::string m_externalTable;
+        uint32 m_revision = 0;   ///< see Revision(): every node mutation below bumps it
 };
 
 #define sWaypointMgr MaNGOS::Singleton<WaypointManager>::Instance()

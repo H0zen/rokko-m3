@@ -44,7 +44,6 @@
 #include "Transports.h"
 #include "TransportMap.h"
 #include "TargetedMovementGenerator.h"
-#include "WaypointMovementGenerator.h"
 #include "CellImpl.h"
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
