@@ -517,12 +517,12 @@ enum UnitState
 
     // persistent movement generator state (all time while movement generator applied to unit (independent from top state of movegen)
     UNIT_STAT_TAXI_FLIGHT     = 0x00000080,                 // player is in flight mode; the bit follows the Taxi entry and is continuous across a far teleport
-    UNIT_STAT_DISTRACTED      = 0x00000100,                 // DistractedMovementGenerator active
+    UNIT_STAT_DISTRACTED      = 0x00000100,                 // the distract native active
 
     // persistent movement generator state with non-persistent mirror states for stop support
     // (can be removed temporary by stop command or another movement generator apply)
     // not use _MOVE versions for generic movegen state, it can be removed temporary for unit stop and etc
-    UNIT_STAT_CONFUSED        = 0x00000200,                 // ConfusedMovementGenerator active/onstack
+    UNIT_STAT_CONFUSED        = 0x00000200,                 // the confused native active/onstack
     UNIT_STAT_CONFUSED_MOVE   = 0x00000400,
     UNIT_STAT_ROAMING         = 0x00000800,                 // the wander native/a point behaviour/the patrol native active (now always set)
     UNIT_STAT_ROAMING_MOVE    = 0x00001000,
@@ -530,7 +530,7 @@ enum UnitState
     UNIT_STAT_CHASE_MOVE      = 0x00004000,
     UNIT_STAT_FOLLOW          = 0x00008000,                 // the follow native active
     UNIT_STAT_FOLLOW_MOVE     = 0x00010000,
-    UNIT_STAT_FLEEING         = 0x00020000,                 // FleeMovementGenerator/TimedFleeingMovementGenerator active/onstack
+    UNIT_STAT_FLEEING         = 0x00020000,                 // the fear native active/onstack
     UNIT_STAT_FLEEING_MOVE    = 0x00040000,
     // More room for other MMGens
 

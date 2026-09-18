@@ -25,7 +25,6 @@
 
 #include "LegacyBehaviour.h"
 #include "MovementGenerator.h"
-#include "Creature.h"
 #include "Unit.h"
 
 LegacyBehaviour::LegacyBehaviour(Motion::Kind kind, MovementGenerator* generator, bool owned)
@@ -82,29 +81,9 @@ void LegacyBehaviour::Finish(Unit& owner, Motion::FinishReason why)
             {
                 m_generator->Interrupt(owner);   // a suspended behaviour was interrupted at its Suspend: the mover is another behaviour's now
             }
-            CleanupAfterInterrupt(owner);
             return;
         default:
             m_generator->Finalize(owner);
-            return;
-    }
-}
-
-void LegacyBehaviour::CleanupAfterInterrupt(Unit& owner)
-{
-    switch (m_kind)
-    {
-        case Motion::Kind::Fear:
-            // The arbiter has already erased the finished claim by the time this hook runs, so
-            // HoldsControl(Fear) answers for the survivor: a fear that outlives this one keeps its run.
-            if (owner.GetTypeId() == TYPEID_UNIT && !owner.GetMotionMaster()->HoldsControl(Motion::Kind::Fear))
-            {
-                static_cast<Creature&>(owner).SetWalk(!owner.hasUnitState(UNIT_STAT_RUNNING_STATE), false);
-            }
-            return;
-        case Motion::Kind::Confused:
-            return;
-        default:
             return;
     }
 }
@@ -121,7 +100,7 @@ Motion::FinishReason LegacyBehaviour::EndReason(Unit& /*owner*/) const
         case Motion::Kind::Taxi:
             return Motion::FinishReason::Arrived;
         default:
-            return Motion::FinishReason::Expired;   // a timed fear, and the endless kinds nothing pops
+            return Motion::FinishReason::Expired;   // no legacy kind left ends itself but the taxi
     }
 }
 

@@ -287,6 +287,14 @@ Redirect.Stream1Crypt        = 1
 #        Default: 400 (one cadence)
 #                 0   (retail's current-position heel point)
 #
+#    Movement.ConfuseRadius
+#        The confuse's stagger envelope, in yards: how far from the spot it was confused at a
+#        unit may lurch. TC's mechanism is a 2 yd offset and the measured stagger legs end
+#        within 0.6-5 yd of the application point; 10 was the unsourced value the server
+#        carried before the movement kernel's control moves.
+#        Bounds: 0.1 to 50.
+#        Default: 2
+#
 #    Movement.CaptureFile
 #        Path of a text file that receives every packet the movement-status handler
 #        sees (every opcode the wire registry has a layout for, in both directions --
@@ -385,6 +393,7 @@ mmap.ignoreMapIds                 = ""
 Movement.DecisionRing             = 0
 Movement.ChaseLead                = 0
 Movement.FollowHorizonMs          = 400
+Movement.ConfuseRadius            = 2
 Movement.CaptureFile              = ""
 Movement.WireParity               = 0
 Movement.AckTimeout               = 0

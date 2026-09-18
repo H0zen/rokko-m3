@@ -30,12 +30,11 @@
 #include "MovementGenerator.h"
 
 /**
- * A legacy MovementGenerator as a behaviour (design §4, the hook matrix), for the eight
- * kinds families 2-4 still own; the seven simple moves are natives over NativeBehaviour.
+ * A legacy MovementGenerator as a behaviour (design §4, the hook matrix), for the one kind
+ * still adapted: the taxi. Every other kind is a native of the kernel over NativeBehaviour.
  * Owns the generator when the binding hands ownership over. Only the selected behaviour
- * ticks; the hooks map onto Initialize/Interrupt/Reset/Finalize per class, and a replaced
- * or cancelled behaviour gets Interrupt plus the cleanup Interrupt leaves undone, never
- * the full Finalize the stack ran only on completion or Clear.
+ * ticks; the hooks map onto Initialize/Interrupt/Reset/Finalize, and a replaced or cancelled
+ * behaviour gets Interrupt, never the full Finalize the stack ran only on completion or Clear.
  */
 class LegacyBehaviour : public MotionBehaviour
 {
@@ -60,8 +59,6 @@ class LegacyBehaviour : public MotionBehaviour
         bool Reachable() const override { return m_generator->IsReachable(); }
 
     private:
-        void CleanupAfterInterrupt(Unit& owner);  ///< the state bits Interrupt leaves set
-
         Motion::Kind       m_kind;
         MovementGenerator* m_generator;
         bool               m_owned;

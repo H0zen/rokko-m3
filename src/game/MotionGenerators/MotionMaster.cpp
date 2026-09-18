@@ -36,8 +36,7 @@
 #include "DefaultMoves.h"
 #include "TrackingMoves.h"
 #include "MovementIntent.h"
-#include "ConfusedMovementGenerator.h"
-#include "FleeingMovementGenerator.h"
+#include "ControlMoves.h"
 #include "FlightPathMovementGenerator.h"
 #include "WaypointManager.h"
 #include "movement/MoveSpline.h"
@@ -1016,7 +1015,10 @@ void MotionMaster::MoveTargetedHome()
 void MotionMaster::MoveConfused(uint64 claim)
 {
     DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s move confused", m_owner->GetGuidStr().c_str());
-    Request(R(Motion::Kind::Confused, 0, false, claim ? claim : kScriptConfuse), new ConfusedMovementGenerator(), true);
+    Motion::ConfusedBehaviour::Params p;
+    p.stateConfusedMove = UNIT_STAT_CONFUSED_MOVE;
+    p.radius = sWorld.getConfig(CONFIG_FLOAT_MOVEMENT_CONFUSE_RADIUS);
+    Request(R(Motion::Kind::Confused, 0, false, claim ? claim : kScriptConfuse), std::unique_ptr<Motion::Behaviour>(new Motion::ConfusedBehaviour(p)));
 }
 
 /**
@@ -1125,7 +1127,7 @@ void MotionMaster::MoveSeekAssistanceDistract(uint32 time)
 /**
  * @brief Makes the unit flee from an enemy.
  * @param enemy Pointer to the enemy unit.
- * @param time Time limit for the fleeing movement.
+ * @param time Time limit for the fleeing movement (a creature's low-health runner); a player's is always unbounded.
  * @param claim The claim's identity (Motion::ControlClaim); 0 derives a script identity from the enemy.
  */
 void MotionMaster::MoveFleeing(Unit* enemy, uint32 time, uint64 claim)
@@ -1135,11 +1137,14 @@ void MotionMaster::MoveFleeing(Unit* enemy, uint32 time, uint64 claim)
         return;
     }
     DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s flee from %s", m_owner->GetGuidStr().c_str(), enemy->GetGuidStr().c_str());
-    MovementGenerator* generator = (m_owner->GetTypeId() != TYPEID_PLAYER && time)
-        ? static_cast<MovementGenerator*>(new TimedFleeingMovementGenerator(enemy->GetObjectGuid(), time))
-        : static_cast<MovementGenerator*>(new FleeingMovementGenerator(enemy->GetObjectGuid()));
+    Motion::FearBehaviour::Params p;
+    p.fright = enemy->GetObjectGuid().GetRawValue();   // resolved at each pick through the port; never a stored pointer
+    p.timeLimitMs = m_owner->GetTypeId() != TYPEID_PLAYER ? time : 0;   // the generator chose its timed class by the same test
+    p.stateFleeingMove = UNIT_STAT_FLEEING_MOVE;
     const uint64 identity = claim ? claim : Motion::ControlClaim(0, 1, enemy->GetObjectGuid().GetCounter());
-    Request(R(Motion::Kind::Fear, 0, false, identity), generator, true);
+    // A refreshed aura of the same identity binds this fresh native and retires the running
+    // one (the arbiter's in-place update, design fact 5): a fresh pick, a fresh rest, a fresh clock.
+    Request(R(Motion::Kind::Fear, 0, false, identity), std::unique_ptr<Motion::Behaviour>(new Motion::FearBehaviour(p)));
 }
 
 /**

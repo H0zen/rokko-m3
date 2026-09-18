@@ -36,13 +36,6 @@ namespace Motion
         constexpr float FOLLOW_RECALCULATE_FACTOR = 1.0f;   ///< how much of the two radii counts toward "the follow spot is stale"
         constexpr float FOLLOW_DIST_GAP_FOR_DIST_FACTOR = 3.0f;///< a follow distance beyond this gets extra slop
         constexpr float FOLLOW_DIST_RECALCULATE_FACTOR = 1.0f; ///< how much of it
-
-        /// The world bearing from one point to another, normalised to [0, 2pi).
-        float AngleFromTo(Vector3 const& from, Vector3 const& to)
-        {
-            const float a = std::atan2(to.y - from.y, to.x - from.x);
-            return a >= 0.0f ? a : 2 * M_PI_F + a;
-        }
     }
 
     // ---- TrackingBehaviour ----------------------------------------------------------

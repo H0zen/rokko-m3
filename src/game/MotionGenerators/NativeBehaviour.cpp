@@ -104,9 +104,10 @@ NativeBehaviour::~NativeBehaviour()
 /**
  * @brief The legacy movement generator type a kind projects onto.
  * @param kind The kernel kind.
+ * @param variant The native's Behaviour::Variant(): the timed flee's 1, every other native's 0.
  * @return The type the facade, the scripts and the informs still speak.
  */
-MovementGeneratorType NativeBehaviour::Project(Motion::Kind kind)
+MovementGeneratorType NativeBehaviour::Project(Motion::Kind kind, uint32 variant)
 {
     switch (kind)
     {
@@ -122,10 +123,10 @@ MovementGeneratorType NativeBehaviour::Project(Motion::Kind kind)
         case Motion::Kind::Chase:          return CHASE_MOTION_TYPE;
         case Motion::Kind::Follow:         return FOLLOW_MOTION_TYPE;
         case Motion::Kind::Home:           return HOME_MOTION_TYPE;
-        // The three kinds family 4 and the taxi still own: a native is never one of them, and
-        // naming them here makes a kind added later a compile warning instead of a silent Idle.
-        case Motion::Kind::Fear:
-        case Motion::Kind::Confused:
+        case Motion::Kind::Fear:           return variant ? TIMED_FLEEING_MOTION_TYPE : FLEEING_MOTION_TYPE;   // the low-health runner kept its own type
+        case Motion::Kind::Confused:       return CONFUSED_MOTION_TYPE;
+        // The one kind the taxi still owns: a native is never it, and naming it here makes a
+        // kind added later a compile warning instead of a silent Idle.
         case Motion::Kind::Taxi:
         case Motion::Kind::Count:
             break;
@@ -139,7 +140,7 @@ MovementGeneratorType NativeBehaviour::Project(Motion::Kind kind)
  */
 MovementGeneratorType NativeBehaviour::LegacyType() const
 {
-    return Project(m_native->Kind());
+    return Project(m_native->Kind(), m_native->Variant());
 }
 
 /**
@@ -151,6 +152,7 @@ MovementGeneratorType NativeBehaviour::LegacyType() const
 Motion::Sight NativeBehaviour::See(Unit& owner, bool tick)
 {
     Motion::Sight s;
+    s.suspended = m_suspended;
     if (tick)
     {
         m_last = m_driver.BeginTick(owner);   // consumes the edges: once per tick
@@ -161,6 +163,7 @@ Motion::Sight NativeBehaviour::See(Unit& owner, bool tick)
     s.facing = owner.Where().Facing();
     s.canReact = !owner.hasUnitState(UNIT_STAT_CAN_NOT_REACT | UNIT_STAT_NOT_MOVE);
     s.canMove = !owner.hasUnitState(UNIT_STAT_CAN_NOT_MOVE);
+    s.notMove = owner.hasUnitState(UNIT_STAT_NOT_MOVE);
     s.landed = owner.movespline->Finalized() && !owner.movespline->Cut();
     s.alive = owner.IsAlive();
     s.runningState = owner.hasUnitState(UNIT_STAT_RUNNING_STATE);
@@ -176,16 +179,20 @@ Motion::Sight NativeBehaviour::See(Unit& owner, bool tick)
         if (Unit* target = ObjectLookup::GetUnit(owner, ObjectGuid(m_native->Target())))
         {
             SeeTarget(owner, *target, s.target);
-            float x, y, z;
-            // The charge's contact point, the same call EffectCharge makes, so the native's goal
-            // is the spell's own answer (SpellEffectObjectCombat.cpp: the target anchors it and
-            // the mover is the object placed next to it) -- now measured from the target's LIVE
-            // position rather than from the placement its last relocation recorded, so a charge
-            // at a walking target aims where it is (design §6.2). The centre is in the target's
-            // own coordinate space, which is what the placement overload reads too.
-            ContactPointNear(*target, LivePosition(*target), &owner, x, y, z, 3.666666f);
-            s.hasTarget = true;
-            s.targetPoint = Motion::Vector3(x, y, z);
+            if (m_native->NeedsContactPoint())
+            {
+                float x, y, z;
+                // The charge's contact point, the same call EffectCharge makes, so the native's goal
+                // is the spell's own answer (SpellEffectObjectCombat.cpp: the target anchors it and
+                // the mover is the object placed next to it) -- now measured from the target's LIVE
+                // position rather than from the placement its last relocation recorded, so a charge
+                // at a walking target aims where it is (design §6.2). The centre is in the target's
+                // own coordinate space, which is what the placement overload reads too. Only the
+                // charge reads it, so only the charge pays the free-spot search per tick.
+                ContactPointNear(*target, LivePosition(*target), &owner, x, y, z, 3.666666f);
+                s.hasTarget = true;
+                s.targetPoint = Motion::Vector3(x, y, z);
+            }
         }
     }
     m_targetView = s.target;   // the effects decide against the observation the native saw
@@ -456,7 +463,7 @@ bool NativeBehaviour::Tick(Unit& owner, uint32 diff)
             return false;
         }
         PerformOps(owner, step);
-        // IntentMovementGenerator::Update re-checked IsSelected(this) after EVERY Intent before
+        // The deleted IntentMovementGenerator::Update re-checked IsSelected(this) after EVERY Intent before
         // applying it, because a hook fired from inside (a waypoint inform) may have replaced the
         // generator. The same check, after every round's effects: a leg laid now would belong to
         // a behaviour that is no longer selected.
@@ -532,7 +539,8 @@ bool NativeBehaviour::GetResetPosition(Unit& owner, float& x, float& y, float& z
 }
 
 /**
- * @brief Performs an Outcome in order, its predicates read live.
+ * @brief Performs an Outcome in order, its predicates read live: the roaming write, the
+ *        interrupt (unless this behaviour was already suspended), the stop, the effects.
  * @param owner The moving unit.
  * @param outcome The recipe the native returned.
  */
@@ -543,12 +551,18 @@ void NativeBehaviour::PerformOutcome(Unit& owner, Motion::Outcome const& outcome
     {
         owner.InterruptMoving();   // a suspended behaviour was interrupted at its Suspend
     }
+    if (outcome.stop || outcome.stopForced)
+    {
+        owner.StopMoving(outcome.stopForced);   // every owner's: the two players' finishes ask for it
+    }
     PerformEffects(owner, outcome.effects);
 }
 
 /**
- * @brief The effects loop, creature-only, in the order given: an Outcome's finishing recipe
- *        or a Step's mid-tick set (the shell performs these before the intent).
+ * @brief The effects loop, in the order given: an Outcome's finishing recipe or a Step's
+ *        mid-tick set (the shell performs these before the intent). A creature's effect is
+ *        skipped for a player owner, per kind (Effect::AnyOwner): a feared or confused player
+ *        carries its state mirror exactly as a creature does, and nothing else of the recipe.
  * @param owner The moving unit.
  * @param effects The effects to perform, in order.
  */
@@ -558,14 +572,30 @@ void NativeBehaviour::PerformEffects(Unit& owner, std::vector<Motion::Effect> co
     {
         return;
     }
-    if (owner.GetTypeId() != TYPEID_UNIT)
-    {
-        return;   // every effect below is a creature's (the generators returned here too)
-    }
-    Creature& creature = static_cast<Creature&>(owner);
+    Creature* creaturePtr = owner.GetTypeId() == TYPEID_UNIT ? static_cast<Creature*>(&owner) : NULL;
     for (size_t i = 0; i < effects.size(); ++i)
     {
         Motion::Effect const& e = effects[i];
+        if (Motion::Effect::AnyOwner(e.kind))
+        {
+            // Opaque masks: the native carries the generators' own UNIT_STAT bits in its
+            // Params and never interprets them. Set first, then clear, so a recipe that
+            // does both to one bit ends cleared, as the generators' order did.
+            if (e.setMask)
+            {
+                owner.addUnitState(e.setMask);
+            }
+            if (e.clearMask)
+            {
+                owner.clearUnitState(e.clearMask);
+            }
+            continue;
+        }
+        if (!creaturePtr)
+        {
+            continue;   // a creature's effect on a player owner: skipped, as the generators returned before their informs and re-engages
+        }
+        Creature& creature = *creaturePtr;
         switch (e.kind)
         {
             case Motion::Effect::Inform:
@@ -673,18 +703,7 @@ void NativeBehaviour::PerformEffects(Unit& owner, std::vector<Motion::Effect> co
                 creature.clearUnitState(UNIT_STAT_WAYPOINT_PAUSED);
                 break;
             case Motion::Effect::StateRaw:
-                // Opaque masks: the native carries the generators' own UNIT_STAT bits in its
-                // Params and never interprets them. Set first, then clear, so a recipe that
-                // does both to one bit ends cleared, as the generators' order did.
-                if (e.setMask)
-                {
-                    creature.addUnitState(e.setMask);
-                }
-                if (e.clearMask)
-                {
-                    creature.clearUnitState(e.clearMask);
-                }
-                break;
+                break;   // performed above, for every owner
             case Motion::Effect::SyncSpeed:
                 // The deleted SyncSpeedWithMaster: only a pet following its OWNER copies its
                 // pace, so the guard is the generator's (a pet chasing something else keeps its own).
@@ -743,6 +762,17 @@ void NativeBehaviour::PerformEffects(Unit& owner, std::vector<Motion::Effect> co
                     creature.AI()->JustReachedHome();
                 }
                 break;
+            case Motion::Effect::ClearTarget:
+                creature.SetTargetGuid(ObjectGuid());   // the flee's creature initialisation: a panicking creature faces no one
+                break;
+            case Motion::Effect::ClearFleeingFlag:
+                creature.RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);   // the timed flee's: it has no aura to clear the client-visible flag
+                break;
+            case Motion::Effect::RestoreGait:
+                // Read LIVE, at this place in the recipe: after the interrupt's clear on a
+                // displacing finish, before the native's own clear on the untimed Finalize.
+                creature.SetWalk(!creature.hasUnitState(UNIT_STAT_RUNNING_STATE), false);
+                break;
         }
     }
 }
@@ -768,13 +798,12 @@ bool NativeBehaviour::RandomPoint(Motion::Vector3 const& centre, float radius, M
  */
 bool NativeBehaviour::Ground(Motion::Vector3 const& at, float& z)
 {
-    Motion::IMotionFrame const& frame = Motion::FrameFor(U());
-    const std::optional<Motion::Vector3> floor = frame.GroundPoint(U(), frame.MoverPosition(U()), at);
-    if (!floor)
+    Motion::Vector3 p;
+    if (!GroundPoint(at, p))
     {
         return false;
     }
-    z = floor->z;
+    z = p.z;
     return true;
 }
 
@@ -846,6 +875,43 @@ bool NativeBehaviour::StandingSpot(Motion::Vector3 const& center, float distance
     out = Motion::FrameFor(U()).NearPointAt(U(), *target, center, U().Where().Extent(), distance2d, absAngle);
     return true;
 }
+
+/**
+ * @brief The fear source, resolved on demand at the pick: the generator's two reads.
+ * @param rawGuid The fright's raw guid.
+ * @param position Its placement in the mover's frame (the frame's ObjectPosition).
+ * @param distance The distance between the two placements.
+ * @return False when it cannot be found. A corpse resolves (the generator's GetUnit had no
+ *         alive test); a fright on another frame is read exactly as the generator read it.
+ */
+bool NativeBehaviour::Fright(uint64 rawGuid, Motion::Vector3& position, float& distance)
+{
+    Unit const* fright = ObjectLookup::GetUnit(U(), ObjectGuid(rawGuid));
+    if (!fright)
+    {
+        return false;
+    }
+    distance = fright->Where().DistanceTo(U().Where());
+    position = Motion::FrameFor(U()).ObjectPosition(U(), *fright);
+    return true;
+}
+
+/**
+ * @brief The frame's floor under a guess reached from the mover's own position, the whole point.
+ */
+bool NativeBehaviour::GroundPoint(Motion::Vector3 const& guess, Motion::Vector3& out)
+{
+    Motion::IMotionFrame const& frame = Motion::FrameFor(U());
+    const std::optional<Motion::Vector3> point = frame.GroundPoint(U(), frame.MoverPosition(U()), guess);
+    if (!point)
+    {
+        return false;
+    }
+    out = *point;
+    return true;
+}
+
+bool NativeBehaviour::ClaimHeld(Motion::Kind kind) const { return U().GetMotionMaster()->HoldsControl(kind); }
 
 bool NativeBehaviour::Anchor(Motion::Vector3& out) const
 {

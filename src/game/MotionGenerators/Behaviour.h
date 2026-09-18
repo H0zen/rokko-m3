@@ -41,9 +41,9 @@ using Motion::EffectLaunch;
 /**
  * One held behaviour of the movement kernel's shell (design §3-§4). The arbiter
  * decides which one is selected; the shell calls these hooks in the order the
- * arbiter's events dictate and ticks the selected one. Since P5-B family 1 the seven
- * simple moves are natives of the kernel over the per-unit driver (NativeBehaviour);
- * the eight kinds families 2-4 own still adapt a legacy MovementGenerator.
+ * arbiter's events dictate and ticks the selected one. Since P5-B family 4 every kind
+ * but the taxi is a native of the kernel over the per-unit driver (NativeBehaviour);
+ * the taxi still adapts its legacy MovementGenerator.
  */
 class MotionBehaviour
 {

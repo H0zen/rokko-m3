@@ -28,7 +28,9 @@
 
 #include "Platform/Define.h"
 #include "Geometry/Vector3.h"
+#include "Utilities/MathDefines.h"
 
+#include <cmath>
 #include <vector>
 
 /**
@@ -40,6 +42,14 @@ namespace Motion
 {
     using Vector3 = Geometry::Vector3;
     using PointsArray = std::vector<Vector3>;
+
+    /// The 2D bearing from one frame point to another, normalised to [0, 2*PI) as
+    /// WorldObject::GetAngle normalises; distances survive a change of frame, angles do not.
+    inline float AngleFromTo(Vector3 const& from, Vector3 const& to)
+    {
+        const float a = std::atan2(to.y - from.y, to.x - from.x);
+        return (a >= 0.0f) ? a : (2 * M_PI_F + a);
+    }
 
     /// The orientation a leg ends in (the client faces the travel direction while moving).
     struct Facing

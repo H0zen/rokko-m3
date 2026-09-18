@@ -73,6 +73,7 @@ namespace Motion
             Outcome Finish(FinishReason why, Sight const& sight, Services& svc) override;
             bool TracksTarget() const override { return m_p.target != 0; }
             uint64 Target() const override { return m_p.target; }
+            bool NeedsContactPoint() const override { return m_p.target != 0; }   ///< the charge's goal is the target's contact point
             /// The charge's own re-lay count. Named apart from Behaviour::Relays(), which answers
             /// the by-cause RelayCounts a tracking native keeps; the point family keeps a bare tally.
             uint32 RelayCount() const { return m_relays; }

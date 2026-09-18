@@ -98,6 +98,17 @@ namespace Motion
             /// The centre is the native's -- the target's live position, or a led one -- rather
             /// than whatever the target object's placement last recorded.
             virtual bool StandingSpot(Vector3 const& center, float distance2d, float absAngle, Vector3& out) = 0;
+            /// The fear source, resolved on demand at the pick (the generator's own schedule, not per
+            /// tick): `position` is its placement in the mover's frame, `distance` the distance between
+            /// the two placements. False when it cannot be found. A corpse resolves: it still frightens.
+            virtual bool Fright(uint64 rawGuid, Vector3& position, float& distance) = 0;
+            /// The frame's floor under a guess reached from the mover's own position, the WHOLE point:
+            /// for a player the guess is pulled back to the first obstruction on the way, which moves
+            /// x and y as well as z (the flee's wall rule); Ground() keeps only z and cannot carry it.
+            virtual bool GroundPoint(Vector3 const& guess, Vector3& out) = 0;
+            /// Live: a Control claim of this kind is held (HoldsControl). Read inside a finish, the
+            /// arbiter has erased the finishing claim already, so it answers for a survivor.
+            virtual bool ClaimHeld(Motion::Kind kind) const = 0;
     };
 
     /// One coherent observation of a tracked target in the mover's frame (design §3).
@@ -144,6 +155,7 @@ namespace Motion
         float      facing = 0.0f;
         bool       canReact = true;  ///< !(CAN_NOT_REACT | NOT_MOVE): the generators' Initialize guard
         bool       canMove = true;   ///< !CAN_NOT_MOVE
+        bool       notMove = false;  ///< UNIT_STAT_NOT_MOVE: root, stun, death or a distract's stand (the confuse's activation guard; one bit more than !canMove)
         bool       landed = false;   ///< the Effect's spline ran out uncut (Finalized && !Cut)
         bool       alive = true;
         bool       hasTarget = false; ///< a tracked target exists (the charge)
@@ -157,15 +169,16 @@ namespace Motion
         bool       combatMovementHeld = false; ///< UNIT_STAT_NO_COMBAT_MOVEMENT
         bool       swimming = false;     ///< MOVEFLAG_SWIMMING
         bool       canFlyHint = false;   ///< a creature's Creature::CanFly(): the drift test adds the height term for fliers, as the generator's did
+        bool       suspended = false;   ///< Suspend() ran since the last Activate/Resume: the shell skips a finish's interrupt, and a native's displacing clear along with it (the generators' Interrupt carried the clear)
     };
 
     /// The roaming pair the shell mirrors for the point family (UNIT_STAT_ROAMING | ROAMING_MOVE) until a later family retires it.
     /// SetRoam/SetMove are the generators' single-bit writes (Initialize/Reset, and the hop or the leg).
     enum class Roaming : uint8 { Keep, SetBoth, ClearMove, ClearBoth, SetRoam, SetMove };
 
-    /// One shell operation of a Step or an Outcome, performed in order. Every effect is a
-    /// creature's: the shell performs none of the recipe for a player (the generators
-    /// returned before the inform and the re-engage for a non-creature).
+    /// One shell operation of a Step or an Outcome, performed in order. An effect is a creature's
+    /// unless Effect::AnyOwner says otherwise: the shell skips a creature's effect for a player
+    /// owner (the generators returned before the inform and the re-engage for a non-creature).
     struct Effect
     {
         enum Kind : uint8
@@ -186,14 +199,16 @@ namespace Motion
             SetWalk,           ///< creature.SetWalk(flag, false)
             ClearWaypointPaused, ///< clearUnitState(UNIT_STAT_WAYPOINT_PAUSED)
             StateRaw,          ///< addUnitState(setMask) when non-zero, then clearUnitState(clearMask) when non-zero: the opaque unit-state masks a tracking native carries in its Params.
-                               ///< Performed for creatures only, like every effect (NativeBehaviour::PerformEffects returns early for a non-creature owner): a player owner
-                               ///< would carry the kind's bit in the kernel but never in its unit states. No caller passes a player to MoveChase or MoveFollow today, so the
-                               ///< gap is unreachable; a future one would have to lift the creature-only rule for the whole effects loop, not for this kind alone.
+                               ///< Performed for EVERY owner (Effect::AnyOwner): a feared or confused player carries its move bit exactly as the generators wrote it; the
+                               ///< shell's loop lifts the creature-only rule for this kind since P5-B family 4.
             SyncSpeed,         ///< a pet whose owner is the native's target: UpdateSpeed(MOVE_RUN/MOVE_WALK/MOVE_SWIM, true), the deleted SyncSpeedWithMaster
             EngageInReach,     ///< live predicate: the mover's live position against the target view's, 3D, within meleeRange -> Attack(target, true); re-emitted every idle tick, so a stale false never suppresses the attack. It skips only a target already being MELEED, not every victim: a ranged attacker's victim is upgraded to melee here, once (the deleted ReachTarget's own job), and Unit::Attack returns early afterwards
             RestoreTemporaryFaction, ///< if (GetTemporaryFactionFlags() & TEMPFACTION_RESTORE_REACH_HOME) ClearTemporaryFaction()
             LoadAddon,         ///< creature.LoadCreatureAddon(true)
-            JustReachedHome    ///< creature.AI()->JustReachedHome()
+            JustReachedHome,   ///< creature.AI()->JustReachedHome()
+            ClearTarget,       ///< creature.SetTargetGuid(ObjectGuid()): the flee's creature initialisation
+            ClearFleeingFlag,  ///< creature.RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING): the timed flee's end, when the native found no surviving fear claim
+            RestoreGait        ///< creature.SetWalk(!hasUnitState(UNIT_STAT_RUNNING_STATE), false), the mask read LIVE at the effect's place in the recipe: the generators' cleanup read it after the interrupt's clear and their Finalize before its own, and a Sight value sampled before the recipe would carry the finishing leg's own move bit and choose the run
         };
         Kind         kind;
         Motion::Kind who;
@@ -206,6 +221,10 @@ namespace Motion
         static Effect Raw(uint32 type, uint32 nodeId) { Effect e(InformRaw); e.raw = type; e.id = nodeId; return e; }
         static Effect Walk(bool walk) { Effect e(SetWalk); e.flag = walk; return e; }
         static Effect State(uint32 set, uint32 clear) { Effect e(StateRaw); e.setMask = set; e.clearMask = clear; return e; }
+        /// True for a kind the shell performs for EVERY owner: the unit-state mirror is a player's
+        /// as much as a creature's (a feared player carries UNIT_STAT_FLEEING_MOVE exactly as the
+        /// generators wrote it). Every other kind is a creature's, and the loop skips it for a player.
+        static bool AnyOwner(Kind k) { return k == StateRaw; }
     };
 
     /// One tick's or one hook's result: shell operations first, then the intent when `apply`.
@@ -220,18 +239,20 @@ namespace Motion
         Roaming    roaming = Roaming::Keep;
         bool       apply = false;     ///< hand `intent` to the driver (Move/Hold) or the launcher (Launch)
         MoveIntent intent;
-        std::vector<Effect> effects;  ///< performed by the shell after the stop/interrupt/roaming writes and before the intent, in order; creatures only
+        std::vector<Effect> effects;  ///< performed by the shell after the stop/interrupt/roaming writes and before the intent, in order; a creature's unless Effect::AnyOwner says otherwise
         bool       again = false;     ///< call Tick again at once (no elapsed time) instead of applying the intent; the round's Sight is one snapshot shared by every round of one Tick, but the Services reads (CanMove, Casting, WaypointPaused, Anchor) are live -- a native observes its own ClearWaypointPaused through the port, not the Sight
 
         static Step None() { return Step(); }
         static Step Of(MoveIntent const& i) { Step s; s.apply = true; s.intent = i; return s; }
     };
 
-    /// A finish's recipe: the roaming write, an interrupt if the leg still runs, then the effects in order.
+    /// A finish's recipe: the roaming write, an interrupt if the leg still runs, a stop, then the effects in order.
     struct Outcome
     {
         Roaming             roaming = Roaming::Keep;
         bool                interrupt = false; ///< performed by the shell only when it did not already suspend this behaviour; a suspended one was interrupted at its Suspend
+        bool                stop = false;       ///< Unit::StopMoving(): the flee's player finish (nothing sent when no spline runs; an airborne one is left alone)
+        bool                stopForced = false; ///< Unit::StopMoving(true): the confuse's player finish (the stop always sent). Both performed for every owner, after the interrupt and before the effects; when both are set the forced stop is performed (one StopMoving(true))
         std::vector<Effect> effects;
     };
 
@@ -248,6 +269,12 @@ namespace Motion
             virtual Outcome Finish(FinishReason why, Sight const& sight, Services& svc) = 0;
             virtual bool TracksTarget() const { return false; }         ///< the Sight needs `target` (and `targetPoint`, the charge's)
             virtual uint64 Target() const { return 0; }                  ///< the tracked target's raw guid
+            /// A sub-type of the kind the shell's projection distinguishes and nothing else reads:
+            /// 0 for every native but the timed flee, whose legacy type was TIMED_FLEEING.
+            virtual uint32 Variant() const { return 0; }
+            /// The Sight needs `targetPoint`, the charge's contact point: a free-spot search per tick
+            /// that only the point native's charge reads, so only it pays for it.
+            virtual bool NeedsContactPoint() const { return false; }
             /// A tracking native's re-lay counters, by cause; NULL for one that keeps none.
             virtual RelayCounts const* Relays() const { return 0; }
             /// The home/reset position a default behaviour answers (the patrol); false when none.

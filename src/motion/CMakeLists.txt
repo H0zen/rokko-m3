@@ -53,6 +53,8 @@ set(SRC_GRP_MOTION
     TargetKinematics.cpp
     TrackingMoves.h
     TrackingMoves.cpp
+    ControlMoves.h
+    ControlMoves.cpp
 )
 source_group("motion" FILES ${SRC_GRP_MOTION})
 

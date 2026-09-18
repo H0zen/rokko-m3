@@ -329,7 +329,7 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
                 PSendSysMessage(LANG_MOVEGENS_POINT, x, y, z);
                 break;
             }
-            case FLEEING_MOTION_TYPE:  SendSysMessage(LANG_MOVEGENS_FEAR);    break;
+            case FLEEING_MOTION_TYPE: case TIMED_FLEEING_MOTION_TYPE: SendSysMessage(LANG_MOVEGENS_FEAR); break;   // the timed flee is a fear with a clock
             case DISTRACT_MOTION_TYPE: SendSysMessage(LANG_MOVEGENS_DISTRACT);  break;
             case EFFECT_MOTION_TYPE: SendSysMessage(LANG_MOVEGENS_EFFECT);  break;
             default:

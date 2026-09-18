@@ -29,6 +29,7 @@
 #include "Platform/Define.h"
 #include "Utilities/MathDefines.h"
 #include "movement/MoveSplineInitArgs.h"
+#include "MoveIntent.h"   // the kernel's Motion::AngleFromTo (src/motion is on the include path)
 
 #include <cmath>
 #include <memory>
@@ -75,11 +76,12 @@ namespace Motion
      *
      * Generators need this because GetAngle itself reads world positions. Distances
      * survive a change of frame (a rigid transform preserves them); ANGLES do not.
+     * The kernel's Motion::AngleFromTo (MoveIntent.h) is the same expression; this keeps
+     * the shell's callers their own name.
      */
     inline float AngleBetween(Vector3 const& from, Vector3 const& to)
     {
-        const float a = std::atan2(to.y - from.y, to.x - from.x);
-        return (a >= 0.0f) ? a : (2 * M_PI_F + a);
+        return AngleFromTo(from, to);
     }
 
     /**

@@ -62,10 +62,13 @@ class NativeBehaviour : public MotionBehaviour, private Motion::Services
         void SpeedChanged() override { m_driver.OnSpeedChanged(); }
         bool GetResetPosition(Unit& owner, float& x, float& y, float& z, float& o) const override;
         bool Reachable() const override { return m_driver.Reachable(); }
-        uint64 TrackedTarget() const override { return m_native->TracksTarget() ? m_native->Target() : 0; }
+        /// Every native's Target(): a tracked one's, or the fear's fright, which it resolves at
+        /// the pick rather than per tick and still names for the listing.
+        uint64 TrackedTarget() const override { return m_native->Target(); }
 
-        /// The projection of a kind (the facade's legacy type answer).
-        static MovementGeneratorType Project(Motion::Kind kind);
+        /// The projection of a kind (the facade's legacy type answer); `variant` is the native's
+        /// Behaviour::Variant(), which only the timed flee sets (TIMED_FLEEING_MOTION_TYPE).
+        static MovementGeneratorType Project(Motion::Kind kind, uint32 variant = 0);
 
         /// The arbiter sequence this binding was given, set once by MotionMaster::BindNative
         /// right after construction: what the tick's per-round IsSelectedSequence re-check reads.
@@ -101,6 +104,9 @@ class NativeBehaviour : public MotionBehaviour, private Motion::Services
         bool Anchor(Motion::Vector3& out) const override;
         bool CanFly() const override;
         bool StandingSpot(Motion::Vector3 const& center, float distance2d, float absAngle, Motion::Vector3& out) override;
+        bool Fright(uint64 rawGuid, Motion::Vector3& position, float& distance) override;
+        bool GroundPoint(Motion::Vector3 const& guess, Motion::Vector3& out) override;
+        bool ClaimHeld(Motion::Kind kind) const override;
 
         /// The owner of the moment, for the Services implementations below: asserts m_unit was
         /// set (every hook sets it before the native can call back through the port).
@@ -117,7 +123,8 @@ class NativeBehaviour : public MotionBehaviour, private Motion::Services
         /// Both halves, for the hooks that have no selection to re-check between them.
         void Perform(Unit& owner, Motion::Step const& step);
         void PerformOutcome(Unit& owner, Motion::Outcome const& outcome);
-        /// The effects loop, creature-only, in order: an Outcome's recipe or a Step's mid-tick set.
+        /// The effects loop, in order: an Outcome's recipe or a Step's mid-tick set. A creature's
+        /// effects are skipped for a player owner; Effect::AnyOwner names the ones every owner gets.
         void PerformEffects(Unit& owner, std::vector<Motion::Effect> const& effects);
         void Launch(Unit& owner, Motion::EffectLaunch const& launch);
         void Roam(Unit& owner, Motion::Roaming what);

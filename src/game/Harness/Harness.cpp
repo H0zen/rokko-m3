@@ -53,6 +53,7 @@ namespace Harness
     void RegisterSimpleScenarios(Runner& r);
     void RegisterDefaultScenarios(Runner& r);
     void RegisterTrackingScenarios(Runner& r);
+    void RegisterControlScenarios(Runner& r);
 
     namespace
     {
@@ -66,7 +67,7 @@ namespace Harness
         // Every family registers its scenarios with their place in the old harness's
         // run order (S1=1, S2=2, S3=3, S5=4, S6=5, S7=6, S8=7, S9=8, S10=9, S11=10,
         // S12=11, S13=12, S15=13, S17=14, S19=15, S4=16); Start("all") sorts by it, so
-        // the call order here does not matter. Tasks 3-5 add their Register calls.
+        // the call order here does not matter.
         // The coverage family (RegisterCoverageScenarios) is orders 32-35: a vehicle
         // seat, a death and respawn, a possession, two feigns. The simple-move family
         // (RegisterSimpleScenarios) is orders 36-41: the refused arc, the arc under a
@@ -76,7 +77,10 @@ namespace Harness
         // MOVE_START hook that redirects the next node (P5-B family 2 Task 5). The
         // tracking family (RegisterTrackingScenarios) is orders 48-53: the chase's re-lay
         // budget and where it stops, the follow's pace, band and facings, and the evade
-        // that waits under a root (P5-B family 3 Task 5).
+        // that waits under a root (P5-B family 3 Task 5). The control family
+        // (RegisterControlScenarios) is orders 54-58: the flee's first bolt and its rest,
+        // the stagger's envelope and gait, a corpse as a fright, a refreshed aura restarting
+        // the flee, and the stagger in the air (P5-B family 4 Task 5).
         RegisterJumpScenarios(*this);
         RegisterPointScenarios(*this);
         RegisterHomeScenarios(*this);
@@ -89,6 +93,7 @@ namespace Harness
         RegisterPatrolScenarios(*this);
         RegisterDefaultScenarios(*this);
         RegisterTrackingScenarios(*this);
+        RegisterControlScenarios(*this);
     }
 
     Runner::~Runner()
