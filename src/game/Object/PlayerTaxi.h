@@ -31,6 +31,7 @@
 #include <string>
 #include <sstream>
 #include <cstring>
+#include <vector>
 #include "DBCEnums.h"
 #include "DBCStructure.h"
 #include "SharedDefines.h"
@@ -114,6 +115,12 @@ class PlayerTaxi
         bool empty() const
         {
             return m_TaxiDestinations.empty();
+        }
+
+        /// The route as the facade takes it: the source first, then every remaining destination.
+        std::vector<uint32> GetTaxiDestinations() const
+        {
+            return std::vector<uint32>(m_TaxiDestinations.begin(), m_TaxiDestinations.end());
         }
 
         FactionTemplateEntry const* GetFlightMasterFactionTemplate() const;

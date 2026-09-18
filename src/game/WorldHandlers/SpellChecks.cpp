@@ -529,8 +529,9 @@ SpellCastResult Spell::CheckCast(bool strict)
         return locRes;
     }
 
-    // not let players cast spells at mount (and let do it to creatures)
-    if (m_caster->IsMounted() && m_caster->GetTypeId() == TYPEID_PLAYER && !m_IsTriggeredSpell &&
+    // not let players cast spells at mount or on a taxi (and let do it to creatures): a passenger
+    // carries no UNIT_FLAG_MOUNT since P5-B family 5, so the flight is tested by its own state
+    if ((m_caster->IsMounted() || m_caster->IsTaxiFlying()) && m_caster->GetTypeId() == TYPEID_PLAYER && !m_IsTriggeredSpell &&
         !IsPassiveSpell(m_spellInfo) && !m_spellInfo->HasAttribute(SPELL_ATTR_CASTABLE_WHILE_MOUNTED))
     {
         if (m_caster->IsTaxiFlying())

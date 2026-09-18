@@ -34,7 +34,6 @@
 #include "Player.h"
 #include "UpdateMask.h"
 #include "Path.h"
-#include "FlightPathMovementGenerator.h"
 
 /**
  * @brief Handles a client request for the known status of a taxi node.
@@ -148,13 +147,13 @@ void WorldSession::SendTaxiMenu(Creature* unit)
 }
 
 /**
- * @brief Starts taxi flight movement for the player.
+ * @brief Starts taxi flight movement for the player over the whole route.
  *
- * @param mountDisplayId The taxi mount display id.
- * @param path The taxi path id.
- * @param pathNode The starting node index.
+ * @param mountDisplayId The taxi mount display id, written at the takeoff without UNIT_FLAG_MOUNT.
+ * @param route The node ids, the source first.
+ * @param startNode The first hop's path node the flight starts toward.
  */
-void WorldSession::SendDoFlight(uint32 mountDisplayId, uint32 path, uint32 pathNode)
+void WorldSession::SendDoFlight(uint32 mountDisplayId, std::vector<uint32> const& route, uint32 startNode)
 {
     // remove fake death
     if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
@@ -163,14 +162,11 @@ void WorldSession::SendDoFlight(uint32 mountDisplayId, uint32 path, uint32 pathN
     }
 
     while (GetPlayer()->GetMotionMaster()->IsOnTaxi())
-        GetPlayer()->GetMotionMaster()->MovementExpired(false);
-
-    if (mountDisplayId)
     {
-        GetPlayer()->Mount(mountDisplayId);
+        GetPlayer()->GetMotionMaster()->MovementExpired(false);
     }
 
-    GetPlayer()->GetMotionMaster()->MoveTaxiFlight(path, pathNode);
+    GetPlayer()->GetMotionMaster()->MoveTaxiFlight(route, startNode, mountDisplayId);
 }
 
 /**
@@ -269,7 +265,7 @@ void WorldSession::HandleActivateTaxiExpressOpcode(WorldPacket& recv_data)
 }
 
 /**
- * @brief Handles taxi spline completion, including map changes and chained destinations.
+ * @brief The client's spline-done ack: read for its shape, nothing acts on it.
  *
  * @param recv_data The incoming move-spline-done packet.
  */
@@ -277,80 +273,12 @@ void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
 {
     DEBUG_LOG("WORLD: Received opcode CMSG_MOVE_SPLINE_DONE");
 
-    MovementInfo movementInfo;                              // used only for proper packet read
+    // The client sends it only as the active mover, so a taxi passenger -- its mover revoked at
+    // the takeoff -- acks the landing's stop with it and never the flight spline's end. The
+    // flight, its seams, its map crossings and its landing are the server's clock (P5-B family 5,
+    // design §6.2); the hop chaining and the crossing that ran here are the kernel's TaxiBehaviour.
+    MovementInfo movementInfo;
     recv_data >> movementInfo;
-
-    // in taxi flight packet received in 2 case:
-    // 1) end taxi path in far (multi-node) flight
-    // 2) switch from one map to other in case multi-map taxi path
-    // we need process only (1)
-    uint32 curDest = GetPlayer()->m_taxi.GetTaxiDestination();
-    if (!curDest)
-    {
-        return;
-    }
-
-    TaxiNodesEntry const* curDestNode = sTaxiNodesStore.LookupEntry(curDest);
-
-    // far teleport case
-    if (curDestNode && curDestNode->ContinentID != GetPlayer()->GetMapId())
-    {
-        if (GetPlayer()->GetMotionMaster()->IsOnTaxi())
-        {
-            // short preparations to continue flight
-            FlightPathMovementGenerator* flight = GetPlayer()->GetMotionMaster()->HeldFlight();
-            if (!flight)
-            {
-                return;
-            }
-
-            flight->Interrupt(*GetPlayer());                // will reset at map landing
-
-            flight->SetCurrentNodeAfterTeleport();
-            TaxiPathNodeEntry const& node = flight->GetPath()[flight->GetCurrentNode()];
-            flight->SkipCurrentNode();
-
-            GetPlayer()->TeleportTo(curDestNode->ContinentID, node.Loc_0, node.Loc_1, node.Loc_2, GetPlayer()->Where().Facing());
-        }
-        return;
-    }
-
-    uint32 destinationnode = GetPlayer()->m_taxi.NextTaxiDestination();
-    if (destinationnode > 0)                                // if more destinations to go
-    {
-        // current source node for next destination
-        uint32 sourcenode = GetPlayer()->m_taxi.GetTaxiSource();
-
-        // Add to taximask middle hubs in taxicheat mode (to prevent having player with disabled taxicheat and not having back flight path)
-        if (GetPlayer()->IsTaxiCheater())
-        {
-            if (GetPlayer()->m_taxi.SetTaximaskNode(sourcenode))
-            {
-                WorldPacket data(SMSG_NEW_TAXI_PATH, 0);
-                _player->GetSession()->SendPacket(&data);
-            }
-        }
-
-        DEBUG_LOG("WORLD: Taxi has to go from %u to %u", sourcenode, destinationnode);
-
-        uint32 mountDisplayId = sObjectMgr.GetTaxiMountDisplayId(sourcenode, GetPlayer()->GetTeam());
-
-        uint32 path, cost;
-        sObjectMgr.GetTaxiPath(sourcenode, destinationnode, path, cost);
-
-        if (path && mountDisplayId)
-        {
-            SendDoFlight(mountDisplayId, path, 1);          // skip start fly node
-        }
-        else
-        {
-            GetPlayer()->m_taxi.ClearTaxiDestinations();    // clear problematic path and next
-        }
-    }
-    else
-    {
-        GetPlayer()->m_taxi.ClearTaxiDestinations();        // not destinations, clear source node
-    }
 }
 
 /**

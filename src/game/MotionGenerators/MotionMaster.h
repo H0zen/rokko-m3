@@ -38,9 +38,7 @@
 struct Position;
 
 class Unit;
-class MovementGenerator;
 class MotionBehaviour;
-class FlightPathMovementGenerator;
 
 // Creature Entry ID used for waypoints show, visible only for GMs
 #define VISUAL_WAYPOINT 1
@@ -61,7 +59,7 @@ enum MovementGeneratorType
     CONFUSED_MOTION_TYPE = 4,              ///< Confused movement (Motion::ConfusedBehaviour)
     CHASE_MOTION_TYPE = 5,                 ///< Chase movement (Motion::ChaseBehaviour)
     HOME_MOTION_TYPE = 6,                  ///< Return home movement (Motion::HomeBehaviour)
-    FLIGHT_MOTION_TYPE = 7,                ///< Flight movement (FlightPathMovementGenerator.h)
+    FLIGHT_MOTION_TYPE = 7,                ///< Flight movement (the kernel's TaxiBehaviour, src/motion/TaxiMove.h)
     POINT_MOTION_TYPE = 8,                 ///< Point movement (Motion::PointBehaviour; fly/land projects here too)
     FLEEING_MOTION_TYPE = 9,               ///< Fleeing movement (Motion::FearBehaviour)
     DISTRACT_MOTION_TYPE = 10,             ///< Distract movement (Motion::DistractBehaviour)
@@ -99,7 +97,7 @@ namespace Motion
 /**
  * The movement facade and, since P3-B, the kernel's Controller shell (design
  * 2026-09-13-movement-p3b-controller-design.md): one Motion::Arbiter decides which
- * held behaviour runs, one adapted legacy generator behaves per held entry, and
+ * held behaviour runs, one adapted native (NativeBehaviour) behaves per held entry, and
  * every public call is an arbiter transaction whose events reach the behaviours
  * through the hook matrix when the outermost call ends. Only the selected
  * behaviour ticks. The entry points the vendored scripts call are the ones the
@@ -113,8 +111,6 @@ class MotionMaster
 
         /// The factory default: clear everything, install the creature's default movement (idle for players).
         void Initialize();
-        /// The selected behaviour's generator; NULL before Initialize and NULL for a native.
-        MovementGenerator const* GetCurrent() const;
         /// One tick of the selected behaviour; nothing while the block's decision withholds it (Evaluate().ticks).
         void UpdateMotion(uint32 diff);
         /// Every command and combat finish; the pushed default too when `all`; the survivor resets when `reset && !all`. A Control claim is left alone: it ends with its aura.
@@ -135,7 +131,13 @@ class MotionMaster
         void MoveWaypoint(int32 id = 0, uint32 source = 0, uint32 initialDelay = 0, uint32 overwriteEntry = 0);
         /// Holds a waypoint patrol where it stands; true when the selected behaviour was a patrol and took the pause.
         bool PauseWaypoints(int32 ms);
-        void MoveTaxiFlight(uint32 path, uint32 pathnode);
+        /// A player's taxi flight over the whole resolved route (the node ids, the source first):
+        /// the hops welded into one native flight. startNode indexes the first hop's path nodes
+        /// (the closest segment on a resume); the mount display is written at the takeoff.
+        void MoveTaxiFlight(std::vector<uint32> const& route, uint32 startNode, uint32 mountDisplayId);
+        /// The worldport ack of a flight's map crossing: the next map's leg when this is the map the
+        /// crossing aimed at, else the flight expires where the mover stands.
+        void TaxiContinue();
         void MoveDistract(uint32 timeLimit);
         /// A jump or a knockback arc. @return False when it was refused: a rooted unit is never displaced by an arc.
         bool MoveJump(float x, float y, float z, float horizontalSpeed, float max_height, uint32 id = 0);
@@ -191,8 +193,6 @@ class MotionMaster
         bool HoldsControl(Motion::Kind kind) const;
         /// A near teleport: suspend the selection, relocate, resume it with a reset.
         void RelocateSelected(float x, float y, float z, float o);
-        /// True iff this generator belongs to the selected behaviour (replaces MovementGenerator::IsActive).
-        bool IsSelected(MovementGenerator const* generator) const;
         /// True iff this arbiter sequence is the one selected right now (the native shell's per-round re-check).
         bool IsSelectedSequence(uint32 seq) const;
         // ---- typed queries (P3-C) -------------------------------------------------------
@@ -200,19 +200,19 @@ class MotionMaster
         Motion::Kind ActiveKind() const;
         /// A chase is held (the Combat entry), selected or masked.
         bool IsChasing() const;
-        /// The held chase's target, or NULL: no chase is held, the entry is a legacy binding,
-        /// or the target has left the world (the guid is resolved now, not a stored pointer).
+        /// The held chase's target, or NULL: no chase is held, or the target has left the
+        /// world (the guid is resolved now, not a stored pointer).
         Unit* ChaseTarget() const;
         /// The current default is a follow (the parked fallback does not count), selected or masked.
         bool IsFollowing() const;
-        /// The held follow's target, or NULL: no follow is the default, the entry is a legacy
-        /// binding, or the target has left the world (the guid is resolved now).
+        /// The held follow's target, or NULL: no follow is the default, or the target has
+        /// left the world (the guid is resolved now).
         Unit* FollowTarget() const;
         /// The current default is a patrol, selected or masked.
         bool IsPatrolling() const;
         /// A taxi flight is held.
         bool IsOnTaxi() const;
-        /// The selected behaviour's generator can reach its goal; true when nothing is selected
+        /// The selected behaviour can reach its goal; true when nothing is selected
         /// (nothing could have reported a failed path: taunts stay where they are).
         bool IsReachable() const;
         /// The combat-started event row (design v2 §4.2): a new combat cancels the Distract layer; ignored from inside a movement operation.
@@ -222,13 +222,11 @@ class MotionMaster
         /// The held patrol native wherever it sits (default slot, masked or not), else NULL.
         Motion::PatrolBehaviour* HeldPatrol();
         Motion::PatrolBehaviour const* HeldPatrol() const;
-        /// The held taxi flight, else NULL.
-        FlightPathMovementGenerator* HeldFlight();
-        /// The selected native's re-lay counters by cause (design v2 §5), else NULL: a legacy
-        /// binding and a native that counts nothing both answer NULL.
+        /// The selected native's re-lay counters by cause (design v2 §5), else NULL: a native
+        /// that counts nothing answers NULL.
         Motion::RelayCounts const* SelectedRelays() const;
         /// The facing the selected native's driver last asked for: the running leg's, or the
-        /// hold's once it has finished. None when nothing is selected or the entry is legacy.
+        /// hold's once it has finished. None when nothing is selected.
         /// A read for the GM harness, not a script entry point.
         Motion::Facing::Mode SelectedLegFacingMode() const;
 
@@ -239,8 +237,7 @@ class MotionMaster
             MovementGeneratorType type;          ///< its projection, the type the commands print
             bool selected;                       ///< this is the one that ticks
             bool reachable;                      ///< it can still reach its goal
-            MovementGenerator const* generator;  ///< the adapted generator, NULL for a native
-            uint64 target;                       ///< the raw guid it tracks, 0 for a non-tracking native or a legacy binding
+            uint64 target;                       ///< the raw guid it tracks, 0 for a non-tracking native
         };
         /// Every held behaviour in arrival order, the selected one marked.
         std::vector<HeldView> Held() const;
@@ -266,14 +263,12 @@ class MotionMaster
 
         class Scope;   ///< the transaction guard (MotionMaster.cpp)
 
-        void Request(Motion::MoveRequest const& request, MovementGenerator* generator, bool owned);
         /// One facade request whose behaviour is a native of the kernel.
         void Request(Motion::MoveRequest const& request, std::unique_ptr<Motion::Behaviour> native);
         /// One Effect request, through the shell's own gate: a Jump on a rooted unit is refused.
         /// @return False when it was refused; nothing was bound and nothing will inform.
         bool RequestEffect(uint32 id, Motion::EffectLaunch const& launch);
         void InstallFactoryNative(Motion::Kind kind, std::unique_ptr<Motion::Behaviour> native);
-        bool Bind(Motion::Kind kind, uint32 seqBefore, MovementGenerator* generator, bool owned);
         bool BindNative(uint32 seqBefore, std::unique_ptr<Motion::Behaviour> native);
         void SweepStale(Motion::Kind kind);
         void Commit(std::optional<Motion::Transaction>& transaction);

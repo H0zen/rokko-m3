@@ -727,6 +727,11 @@ void World::LoadConfigSettings(bool reload)
     // measure the envelope live against a capture and set it here.
     setConfigMinMax(CONFIG_FLOAT_MOVEMENT_CONFUSE_RADIUS, "Movement.ConfuseRadius", 2.0f, 0.1f, 50.0f);
 
+    // The taxi's flight speed in yards per second (P5-B family 5 design §6.10): the sniffed
+    // flight covered 1,808.77 yd in 60,299 ms, 30.0 yd/s (the family's retail notes A.1); the
+    // 32 the tree carried was TC's, without a source. Every leg is 6.7 % longer in time than at 32.
+    setConfigMinMax(CONFIG_FLOAT_MOVEMENT_TAXI_SPEED, "Movement.TaxiSpeed", 30.0f, 1.0f, 100.0f);
+
     sLog.outString();
 }
 

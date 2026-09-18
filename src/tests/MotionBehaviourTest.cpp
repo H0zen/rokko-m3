@@ -2468,12 +2468,12 @@ TEST(MotionBehaviour_HomeEndsOnArrivalOrBlockAndRestoresOnlyThen)
 TEST(MotionBehaviour_ModelGrowsForTheControlMoves)
 {
     // The per-effect owner rule: the state mirror is every owner's, the rest a creature's.
-    CHECK(Effect::AnyOwner(Effect::StateRaw));
-    CHECK(!Effect::AnyOwner(Effect::SetWalk));
-    CHECK(!Effect::AnyOwner(Effect::ClearTarget));
-    CHECK(!Effect::AnyOwner(Effect::ClearFleeingFlag));
-    CHECK(!Effect::AnyOwner(Effect::RestoreGait));
-    CHECK(!Effect::AnyOwner(Effect::AttackVictim));
+    CHECK_EQ(Effect::Owners(Effect::StateRaw), uint8(Effect::OwnerAny));
+    CHECK_EQ(Effect::Owners(Effect::SetWalk), uint8(Effect::OwnerCreature));
+    CHECK_EQ(Effect::Owners(Effect::ClearTarget), uint8(Effect::OwnerCreature));
+    CHECK_EQ(Effect::Owners(Effect::ClearFleeingFlag), uint8(Effect::OwnerCreature));
+    CHECK_EQ(Effect::Owners(Effect::RestoreGait), uint8(Effect::OwnerCreature));
+    CHECK_EQ(Effect::Owners(Effect::AttackVictim), uint8(Effect::OwnerCreature));
     Outcome o;
     CHECK(!o.stop && !o.stopForced);
     Sight s;
@@ -2485,6 +2485,53 @@ TEST(MotionBehaviour_ModelGrowsForTheControlMoves)
     CHECK(!PointBehaviour(PointTo(1.0f, 2.0f, 3.0f)).NeedsContactPoint());
     CHECK_EQ(PointBehaviour(charge).Variant(), 0u);
     CHECK(!IdleBehaviour().NeedsContactPoint());
+}
+
+TEST(MotionBehaviour_ModelGrowsForTheTaxi)
+{
+    // The six taxi operations are a player's alone (no creature ever holds a taxi); the state
+    // mirror stays every owner's.
+    CHECK_EQ(Effect::Owners(Effect::TaxiTakeoff), uint8(Effect::OwnerPlayer));
+    CHECK_EQ(Effect::Owners(Effect::TaxiEvent), uint8(Effect::OwnerPlayer));
+    CHECK_EQ(Effect::Owners(Effect::TaxiSeam), uint8(Effect::OwnerPlayer));
+    CHECK_EQ(Effect::Owners(Effect::TaxiCross), uint8(Effect::OwnerPlayer));
+    CHECK_EQ(Effect::Owners(Effect::TaxiLand), uint8(Effect::OwnerPlayer));
+    CHECK_EQ(Effect::Owners(Effect::TaxiAbort), uint8(Effect::OwnerPlayer));
+    CHECK_EQ(Effect::Owners(Effect::Inform), uint8(Effect::OwnerCreature));
+    // MOVE_SMOOTH is a bit of its own beside the five flags the driver already reads.
+    CHECK_EQ(uint32(MOVE_SMOOTH), 0x20u);
+    CHECK_EQ(uint32(MOVE_SMOOTH) & uint32(MOVE_WALK | MOVE_FLY | MOVE_STRAIGHT | MOVE_FORCE_DEST | MOVE_REQUIRE_PATH), 0u);
+    MoveIntent m = MoveIntent::Move(Vector3(1.0f, 2.0f, 3.0f), MOVE_FLY | MOVE_SMOOTH);
+    CHECK(m.Has(MOVE_SMOOTH));
+    CHECK(m.Has(MOVE_FLY));
+    // The factories set only their fields.
+    Effect k = Effect::Takeoff(77);
+    CHECK(k.kind == Effect::TaxiTakeoff);
+    CHECK_EQ(k.id, 77u);
+    Effect d = Effect::NodeEvent(5, true);
+    CHECK(d.kind == Effect::TaxiEvent);
+    CHECK_EQ(d.id, 5u);
+    CHECK(d.flag);
+    Effect a = Effect::NodeEvent(6, false);
+    CHECK(!a.flag);
+    Effect s = Effect::Seam();
+    CHECK(s.kind == Effect::TaxiSeam);
+    Effect c = Effect::Cross(571, Vector3(1.0f, 2.0f, 3.0f), 0.5f);
+    CHECK(c.kind == Effect::TaxiCross);
+    CHECK_EQ(c.raw, 571u);
+    CHECK_EQ(c.point.y, 2.0f);
+    CHECK_EQ(c.angle, 0.5f);
+    Effect l = Effect::Land(true, Vector3(4.0f, 5.0f, 6.0f), 0.25f);
+    CHECK(l.kind == Effect::TaxiLand);
+    CHECK(l.flag);
+    CHECK_EQ(l.point.z, 6.0f);
+    CHECK_EQ(l.angle, 0.25f);
+    Effect ab = Effect::Abort(FinishReason::Died);
+    CHECK(ab.kind == Effect::TaxiAbort);
+    CHECK(ab.reason == FinishReason::Died);
+    Effect plain(Effect::Inform);
+    CHECK(plain.reason == FinishReason::Arrived);
+    CHECK_EQ(plain.angle, 0.0f);
 }
 
 namespace

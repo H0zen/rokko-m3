@@ -1683,16 +1683,18 @@ void WorldSession::HandleCancelMountAuraOpcode(WorldPacket& /*recv_data*/)
 {
     DEBUG_LOG("WORLD: Received opcode CMSG_CANCEL_MOUNT_AURA");
 
+    // The flight first: a taxi passenger carries no UNIT_FLAG_MOUNT (P5-B family 5), so the
+    // mounted test below would answer "not mounted" to one.
+    if (_player->IsTaxiFlying())                            // not blizz like; no any messages on blizz
+    {
+        ChatHandler(this).SendSysMessage(LANG_YOU_IN_FLIGHT);
+        return;
+    }
+
     // If player is not mounted, so go out :)
     if (!_player->IsMounted())                              // not blizz like; no any messages on blizz
     {
         ChatHandler(this).SendSysMessage(LANG_CHAR_NON_MOUNTED);
-        return;
-    }
-
-    if (_player->IsTaxiFlying())                            // not blizz like; no any messages on blizz
-    {
-        ChatHandler(this).SendSysMessage(LANG_YOU_IN_FLIGHT);
         return;
     }
 

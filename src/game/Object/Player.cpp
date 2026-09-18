@@ -398,6 +398,9 @@ Player::Player(WorldSession* session): Unit(), m_currencyMgr(this), m_honorMgr(t
     m_bHasBeenAliveAtDelayedTeleport = true;                // overwrite always at setup teleport data, so not used infact
     m_teleport_options = 0;
 
+    m_taxiLandingPending = false;
+    m_taxiLandingSnap = false;
+
     m_trade = NULL;
 
     m_cinematic = 0;
@@ -1008,6 +1011,15 @@ void Player::Update(uint32 update_diff, uint32 p_time)
     SetCanDelayTeleport(true);
     Unit::Update(update_diff, p_time);
     SetCanDelayTeleport(false);
+
+    // The taxi landing the flight's finish scheduled inside the motion update (P5-B family 5):
+    // performed here, past the deferral window, so its teleport executes at once and the
+    // sequence keeps retail's order. Not a DELAYED_* operation: that drain runs on a teleport
+    // ack alone and clears every bit.
+    if (m_taxiLandingPending)
+    {
+        PerformTaxiLanding();
+    }
 
     // Periodic observer-side visibility maintenance.
     // The owner's visible set is otherwise refreshed only when the player moves
@@ -4475,8 +4487,14 @@ void Player::SendInitialPacketsBeforeAddToMap()
     // Login and every worldport open with the grant of the player to its own client:
     // SMSG_CLIENT_CONTROL_UPDATE(self, 1) and SMSG_MOVE_SET_ACTIVE_MOVER(self) before
     // the create block, as the reference core sends them (spec §5). Idempotent on a
-    // worldport: the membership is kept across the transfer.
-    SetClientControl(this, 1);
+    // worldport: the membership is kept across the transfer. Not while a taxi flight is
+    // held (P5-B family 5, design §6.3): a map crossing keeps the passenger's control
+    // revoked until the landing; a login mid-flight has no flight yet and takes the grant,
+    // and the fresh flight ContinueTaxiFlight starts after it revokes it again.
+    if (!IsTaxiFlying())
+    {
+        SetClientControl(this, 1);
+    }
 
     GetSocial()->SendSocialList();
 
@@ -5276,7 +5294,12 @@ void Player::Uncharm()
             GetCamera().ResetView();
             RemoveSpellsCausingAura(SPELL_AURA_MOD_INVISIBILITY);
             SetCharm(NULL);
-            SetClientControl(this, 1);
+            // Not while flying (a far crossing's RemoveFromWorld reaches here while the charm
+            // is held): the landing or the abort grants (P5-B family 5).
+            if (!IsTaxiFlying())
+            {
+                SetClientControl(this, 1);
+            }
         }
     }
 }

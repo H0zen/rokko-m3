@@ -32,7 +32,6 @@
 #include "MoveIntent.h"
 
 class Unit;
-class MovementGenerator;
 
 /// The kernel's Effect launch (design §4): the parameters MoveJump/MoveFall hand to the
 /// Effect native, which asks the adapter to launch the spline once at its activation.
@@ -41,9 +40,8 @@ using Motion::EffectLaunch;
 /**
  * One held behaviour of the movement kernel's shell (design §3-§4). The arbiter
  * decides which one is selected; the shell calls these hooks in the order the
- * arbiter's events dictate and ticks the selected one. Since P5-B family 4 every kind
- * but the taxi is a native of the kernel over the per-unit driver (NativeBehaviour);
- * the taxi still adapts its legacy MovementGenerator.
+ * arbiter's events dictate and ticks the selected one. Since P5-B family 5 every kind
+ * is a native of the kernel over the per-unit driver (NativeBehaviour).
  */
 class MotionBehaviour
 {
@@ -57,13 +55,11 @@ class MotionBehaviour
         virtual void Finish(Unit& owner, Motion::FinishReason why) = 0;
         virtual bool Tick(Unit& owner, uint32 diff) = 0;            ///< false: the behaviour ended itself
         virtual Motion::FinishReason EndReason(Unit& owner) const = 0; ///< why, after a false Tick
-        virtual MovementGenerator* Legacy() = 0;                    ///< the adapted generator
-        virtual MovementGenerator const* Legacy() const = 0;
         virtual void SpeedChanged() = 0;
         virtual bool GetResetPosition(Unit& owner, float& x, float& y, float& z, float& o) const = 0;
         virtual bool Reachable() const = 0;                         ///< the behaviour can reach its goal (the IsReachable contract)
-        /// The raw guid of the target this behaviour tracks; 0 for one that tracks nothing and
-        /// for every legacy binding, so a listing reads it without downcasting to the adapter.
+        /// The raw guid of the target this behaviour tracks; 0 for one that tracks nothing,
+        /// so a listing reads it without downcasting to the adapter.
         virtual uint64 TrackedTarget() const { return 0; }
 };
 

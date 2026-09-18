@@ -539,7 +539,7 @@ enum UnitState
     UNIT_STAT_RUNNING               = 0x02000000,           // SetRun for waypoints and such
     UNIT_STAT_WAYPOINT_PAUSED       = 0x04000000,           // Waypoint-Movement paused genericly (ie by script)
 
-    UNIT_STAT_IGNORE_PATHFINDING    = 0x10000000,           // do not use pathfinding in any MovementGenerator
+    UNIT_STAT_IGNORE_PATHFINDING    = 0x10000000,           // do not use pathfinding in any movement behaviour
 
     // masks (only for check)
 
@@ -3107,9 +3107,9 @@ class Unit : public WorldObject
 
         /**
          * Teleports a \ref Creature or \ref Player to some coordinates within the same \ref Map,
-         * hence the name. If it's a \ref Creature that's being teleported it needs to have it's
-         * \ref MovementGenerator interrupted before the teleport and then reset afterwards. See
-         * \ref MovementGenerator::Reset and \ref MovementGenerator::Interrupt. Also, after moving
+         * hence the name. If it's a \ref Creature that's being teleported its selected behaviour
+         * is suspended before the teleport and resumed with a reset afterwards
+         * (\ref MotionMaster::RelocateSelected). Also, after moving
          * a \ref Creature a hearbeat needs to be sent to inform the clients about the new location,
          * this is done using \ref Unit::SendHeartBeat and the actual move of the \ref Creature is
          * done with \ref Map::CreatureRelocation

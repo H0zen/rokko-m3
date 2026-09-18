@@ -176,9 +176,10 @@ namespace Motion
     /// SetRoam/SetMove are the generators' single-bit writes (Initialize/Reset, and the hop or the leg).
     enum class Roaming : uint8 { Keep, SetBoth, ClearMove, ClearBoth, SetRoam, SetMove };
 
-    /// One shell operation of a Step or an Outcome, performed in order. An effect is a creature's
-    /// unless Effect::AnyOwner says otherwise: the shell skips a creature's effect for a player
-    /// owner (the generators returned before the inform and the re-engage for a non-creature).
+    /// One shell operation of a Step or an Outcome, performed in order. Every kind names its
+    /// owners (Effect::Owners): a creature's kinds are skipped for a player owner (the generators
+    /// returned before the inform and the re-engage for a non-creature), a player's for a
+    /// creature, and the unit-state mirror is every owner's.
     struct Effect
     {
         enum Kind : uint8
@@ -199,7 +200,7 @@ namespace Motion
             SetWalk,           ///< creature.SetWalk(flag, false)
             ClearWaypointPaused, ///< clearUnitState(UNIT_STAT_WAYPOINT_PAUSED)
             StateRaw,          ///< addUnitState(setMask) when non-zero, then clearUnitState(clearMask) when non-zero: the opaque unit-state masks a tracking native carries in its Params.
-                               ///< Performed for EVERY owner (Effect::AnyOwner): a feared or confused player carries its move bit exactly as the generators wrote it; the
+                               ///< Performed for EVERY owner (Effect::Owners: OwnerAny): a feared or confused player carries its move bit exactly as the generators wrote it; the
                                ///< shell's loop lifts the creature-only rule for this kind since P5-B family 4.
             SyncSpeed,         ///< a pet whose owner is the native's target: UpdateSpeed(MOVE_RUN/MOVE_WALK/MOVE_SWIM, true), the deleted SyncSpeedWithMaster
             EngageInReach,     ///< live predicate: the mover's live position against the target view's, 3D, within meleeRange -> Attack(target, true); re-emitted every idle tick, so a stale false never suppresses the attack. It skips only a target already being MELEED, not every victim: a ranged attacker's victim is upgraded to melee here, once (the deleted ReachTarget's own job), and Unit::Attack returns early afterwards
@@ -208,23 +209,80 @@ namespace Motion
             JustReachedHome,   ///< creature.AI()->JustReachedHome()
             ClearTarget,       ///< creature.SetTargetGuid(ObjectGuid()): the flee's creature initialisation
             ClearFleeingFlag,  ///< creature.RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING): the timed flee's end, when the native found no surviving fear claim
-            RestoreGait        ///< creature.SetWalk(!hasUnitState(UNIT_STAT_RUNNING_STATE), false), the mask read LIVE at the effect's place in the recipe: the generators' cleanup read it after the interrupt's clear and their Finalize before its own, and a Sight value sampled before the recipe would carry the finishing leg's own move bit and choose the run
+            RestoreGait,       ///< creature.SetWalk(!hasUnitState(UNIT_STAT_RUNNING_STATE), false), the mask read LIVE at the effect's place in the recipe: the generators' cleanup read it after the interrupt's clear and their Finalize before its own, and a Sight value sampled before the recipe would carry the finishing leg's own move bit and choose the run
+            // ---- the taxi's six operations (P5-B family 5): a player's alone. The native says WHEN; the shell's Player::Taxi* say HOW, each in one place, in retail's order. ----
+            TaxiTakeoff,       ///< Player::TaxiTakeoff(id = the mount display id): the stop, the client control revoked, the hostile references offline, the pet unsummoned, the mount display written without UNIT_FLAG_MOUNT, DISABLE_MOVE | TAXI_FLIGHT set
+            TaxiEvent,         ///< StartEvents_Event(map, id, player, player, flag = departure): a path node's DBC event, in the generator's alternation
+            TaxiSeam,          ///< Player::TaxiSeamPassed(): a route hop's shared node was left; the route advances (m_taxi.NextTaxiDestination) and a taxi cheater learns the hub
+            TaxiCross,         ///< Player::TaxiCross(raw = the map id, point, angle): the far teleport onto the next map's first path node; refused -> the flight is expired (TaxiAbort)
+            TaxiLand,          ///< Player::ScheduleTaxiLanding(flag = snap onto point, angle): performed by Player::Update once the teleport-deferral window has closed, in retail's order (design §6.4)
+            TaxiAbort          ///< Player::TaxiAbort(): every non-landing end (reason names it): the flags and the mount display cleared, the pet back, the hostile references online, the route cleared, the client control returned
         };
+        /// Who performs a kind: a creature, a player, or both (a mask).
+        enum Owner : uint8 { OwnerCreature = 1, OwnerPlayer = 2, OwnerAny = 3 };
         Kind         kind;
         Motion::Kind who;
         uint32       id;
-        uint32       raw;    ///< InformRaw's type
-        bool         flag;   ///< SetWalk's value
+        uint32       raw;    ///< InformRaw's type; TaxiCross's map id
+        bool         flag;   ///< SetWalk's value; TaxiEvent's departure; TaxiLand's snap
         uint32       setMask;   ///< StateRaw: the bits to add
         uint32       clearMask; ///< StateRaw: the bits to clear
-        Effect(Kind k, Motion::Kind w = Motion::Kind::Idle, uint32 i = 0) : kind(k), who(w), id(i), raw(0), flag(false), setMask(0), clearMask(0) {}
+        Vector3      point;     ///< TaxiCross: the node teleported onto; TaxiLand: the TaxiNodes position (world)
+        float        angle;     ///< TaxiCross/TaxiLand: the facing the teleport keeps
+        FinishReason reason;    ///< TaxiAbort: why the flight ended
+        Effect(Kind k, Motion::Kind w = Motion::Kind::Idle, uint32 i = 0) : kind(k), who(w), id(i), raw(0), flag(false), setMask(0), clearMask(0), angle(0.0f), reason(FinishReason::Arrived) {}
         static Effect Raw(uint32 type, uint32 nodeId) { Effect e(InformRaw); e.raw = type; e.id = nodeId; return e; }
         static Effect Walk(bool walk) { Effect e(SetWalk); e.flag = walk; return e; }
         static Effect State(uint32 set, uint32 clear) { Effect e(StateRaw); e.setMask = set; e.clearMask = clear; return e; }
-        /// True for a kind the shell performs for EVERY owner: the unit-state mirror is a player's
-        /// as much as a creature's (a feared player carries UNIT_STAT_FLEEING_MOVE exactly as the
-        /// generators wrote it). Every other kind is a creature's, and the loop skips it for a player.
-        static bool AnyOwner(Kind k) { return k == StateRaw; }
+        static Effect Takeoff(uint32 mountDisplayId) { Effect e(TaxiTakeoff); e.id = mountDisplayId; return e; }
+        static Effect NodeEvent(uint32 eventId, bool departure) { Effect e(TaxiEvent); e.id = eventId; e.flag = departure; return e; }
+        static Effect Seam() { return Effect(TaxiSeam); }
+        static Effect Cross(uint32 mapId, Vector3 const& pos, float facing) { Effect e(TaxiCross); e.raw = mapId; e.point = pos; e.angle = facing; return e; }
+        static Effect Land(bool snap, Vector3 const& pos, float facing) { Effect e(TaxiLand); e.flag = snap; e.point = pos; e.angle = facing; return e; }
+        static Effect Abort(FinishReason why) { Effect e(TaxiAbort); e.reason = why; return e; }
+        /// The owners of a kind. The unit-state mirror is a player's as much as a creature's (a
+        /// feared player carries UNIT_STAT_FLEEING_MOVE exactly as the generators wrote it); the
+        /// taxi's six are a player's alone; every other kind is a creature's.
+        static uint8 Owners(Kind k)
+        {
+            switch (k)
+            {
+                case StateRaw:
+                    return OwnerAny;
+                case TaxiTakeoff:
+                case TaxiEvent:
+                case TaxiSeam:
+                case TaxiCross:
+                case TaxiLand:
+                case TaxiAbort:
+                    return OwnerPlayer;
+                case Inform:
+                case SummonedInform:
+                case ReengageVictim:
+                case CallAssistance:
+                case SeekAssistDistract:
+                case AttackVictim:
+                case InformRaw:
+                case RunScript:
+                case Emote:
+                case CastSpell:
+                case SetDisplay:
+                case Say:
+                case ClearEmoteState:
+                case SetWalk:
+                case ClearWaypointPaused:
+                case SyncSpeed:
+                case EngageInReach:
+                case RestoreTemporaryFaction:
+                case LoadAddon:
+                case JustReachedHome:
+                case ClearTarget:
+                case ClearFleeingFlag:
+                case RestoreGait:
+                    return OwnerCreature;
+            }
+            return OwnerCreature;
+        }
     };
 
     /// One tick's or one hook's result: shell operations first, then the intent when `apply`.
@@ -239,7 +297,7 @@ namespace Motion
         Roaming    roaming = Roaming::Keep;
         bool       apply = false;     ///< hand `intent` to the driver (Move/Hold) or the launcher (Launch)
         MoveIntent intent;
-        std::vector<Effect> effects;  ///< performed by the shell after the stop/interrupt/roaming writes and before the intent, in order; a creature's unless Effect::AnyOwner says otherwise
+        std::vector<Effect> effects;  ///< performed by the shell after the stop/interrupt/roaming writes and before the intent, in order; each kind's owners per Effect::Owners
         bool       again = false;     ///< call Tick again at once (no elapsed time) instead of applying the intent; the round's Sight is one snapshot shared by every round of one Tick, but the Services reads (CanMove, Casting, WaypointPaused, Anchor) are live -- a native observes its own ClearWaypointPaused through the port, not the Sight
 
         static Step None() { return Step(); }

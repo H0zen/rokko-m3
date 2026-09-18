@@ -52,7 +52,6 @@
 #include "MapPersistentStateMgr.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
-#include "MovementGenerator.h"
 #include "movement/MoveSplineInit.h"
 #include "movement/MoveSpline.h"
 #include "CreatureLinkingMgr.h"
@@ -356,8 +355,10 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
 
         // Control returns with the last control aura (P2-D's rule): the last claim's finish
         // cleared UNIT_STAT_FLEEING inside ReleaseControl, so the grant passes; a remaining
-        // confuse keeps control until its own removal.
-        if (GetTypeId() == TYPEID_PLAYER && !GetMotionMaster()->HoldsControl(Motion::Kind::Confused))
+        // confuse keeps control until its own removal. Not under a taxi: a claim refused under a
+        // flight has nothing to give back, and the flight keeps the control until its landing or
+        // abort, which grant (P5-B family 5).
+        if (GetTypeId() == TYPEID_PLAYER && !GetMotionMaster()->HoldsControl(Motion::Kind::Confused) && !IsTaxiFlying())
         {
             ((Player*)this)->SetClientControl(this, 1);
         }
@@ -429,7 +430,8 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 
             }
         }
 
-        if (GetTypeId() == TYPEID_PLAYER && !GetMotionMaster()->HoldsControl(Motion::Kind::Fear))
+        // As for a fear: not under a taxi, whose landing or abort grants.
+        if (GetTypeId() == TYPEID_PLAYER && !GetMotionMaster()->HoldsControl(Motion::Kind::Fear) && !IsTaxiFlying())
         {
             ((Player*)this)->SetClientControl(this, 1);
         }

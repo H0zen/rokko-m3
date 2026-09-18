@@ -28,6 +28,7 @@
 #include "MotionFrame.h"
 #include "Unit.h"
 #include "Creature.h"
+#include "Player.h"
 #include "CreatureAI.h"
 #include "TemporarySummon.h"
 #include "Map.h"
@@ -125,9 +126,8 @@ MovementGeneratorType NativeBehaviour::Project(Motion::Kind kind, uint32 variant
         case Motion::Kind::Home:           return HOME_MOTION_TYPE;
         case Motion::Kind::Fear:           return variant ? TIMED_FLEEING_MOTION_TYPE : FLEEING_MOTION_TYPE;   // the low-health runner kept its own type
         case Motion::Kind::Confused:       return CONFUSED_MOTION_TYPE;
-        // The one kind the taxi still owns: a native is never it, and naming it here makes a
-        // kind added later a compile warning instead of a silent Idle.
-        case Motion::Kind::Taxi:
+        case Motion::Kind::Taxi:           return FLIGHT_MOTION_TYPE;
+        // Naming the count makes a kind added later a compile warning instead of a silent Idle.
         case Motion::Kind::Count:
             break;
     }
@@ -561,7 +561,7 @@ void NativeBehaviour::PerformOutcome(Unit& owner, Motion::Outcome const& outcome
 /**
  * @brief The effects loop, in the order given: an Outcome's finishing recipe or a Step's
  *        mid-tick set (the shell performs these before the intent). A creature's effect is
- *        skipped for a player owner, per kind (Effect::AnyOwner): a feared or confused player
+ *        skipped for a player owner, per kind (Effect::Owners): a feared or confused player
  *        carries its state mirror exactly as a creature does, and nothing else of the recipe.
  * @param owner The moving unit.
  * @param effects The effects to perform, in order.
@@ -573,10 +573,15 @@ void NativeBehaviour::PerformEffects(Unit& owner, std::vector<Motion::Effect> co
         return;
     }
     Creature* creaturePtr = owner.GetTypeId() == TYPEID_UNIT ? static_cast<Creature*>(&owner) : NULL;
+    const uint8 mine = creaturePtr ? Motion::Effect::OwnerCreature : Motion::Effect::OwnerPlayer;
     for (size_t i = 0; i < effects.size(); ++i)
     {
         Motion::Effect const& e = effects[i];
-        if (Motion::Effect::AnyOwner(e.kind))
+        if (!(Motion::Effect::Owners(e.kind) & mine))
+        {
+            continue;   // a creature's effect on a player owner, or a player's on a creature: skipped, as the generators returned before their informs and re-engages
+        }
+        if (e.kind == Motion::Effect::StateRaw)
         {
             // Opaque masks: the native carries the generators' own UNIT_STAT bits in its
             // Params and never interprets them. Set first, then clear, so a recipe that
@@ -593,7 +598,12 @@ void NativeBehaviour::PerformEffects(Unit& owner, std::vector<Motion::Effect> co
         }
         if (!creaturePtr)
         {
-            continue;   // a creature's effect on a player owner: skipped, as the generators returned before their informs and re-engages
+            // A player's kinds (Effect::Owners passed it): the taxi's six.
+            if (owner.GetTypeId() == TYPEID_PLAYER)
+            {
+                PerformTaxi(static_cast<Player&>(owner), e);
+            }
+            continue;
         }
         Creature& creature = *creaturePtr;
         switch (e.kind)
@@ -773,7 +783,53 @@ void NativeBehaviour::PerformEffects(Unit& owner, std::vector<Motion::Effect> co
                 // displacing finish, before the native's own clear on the untimed Finalize.
                 creature.SetWalk(!creature.hasUnitState(UNIT_STAT_RUNNING_STATE), false);
                 break;
+            case Motion::Effect::TaxiTakeoff:
+            case Motion::Effect::TaxiEvent:
+            case Motion::Effect::TaxiSeam:
+            case Motion::Effect::TaxiCross:
+            case Motion::Effect::TaxiLand:
+            case Motion::Effect::TaxiAbort:
+                break;   // a player's kinds: never reach a creature (Effect::Owners)
         }
+    }
+}
+
+/**
+ * @brief The taxi's six operations, a player's alone: the native says when, Player::Taxi* say how.
+ * @param player The passenger.
+ * @param e The effect; a kind that is not the taxi's is nothing here (the owner rule passed it,
+ *        so only the six reach this; the default names that subset on purpose).
+ */
+void NativeBehaviour::PerformTaxi(Player& player, Motion::Effect const& e)
+{
+    switch (e.kind)
+    {
+        case Motion::Effect::TaxiTakeoff:
+            player.TaxiTakeoff(e.id);
+            break;
+        case Motion::Effect::TaxiEvent:
+            DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Taxi %s event %u for player %s",
+                             e.flag ? "departure" : "arrival", e.id, player.GetName());
+            StartEvents_Event(player.GetMap(), e.id, &player, &player, e.flag);
+            break;
+        case Motion::Effect::TaxiSeam:
+            player.TaxiSeamPassed();
+            break;
+        case Motion::Effect::TaxiCross:
+            if (!player.TaxiCross(e.raw, e.point.x, e.point.y, e.point.z, e.angle))
+            {
+                // The map cannot be entered: the flight ends where the mover is (TaxiAbort).
+                player.GetMotionMaster()->MovementExpired(false);
+            }
+            break;
+        case Motion::Effect::TaxiLand:
+            player.ScheduleTaxiLanding(e.flag, e.point.x, e.point.y, e.point.z, e.angle);
+            break;
+        case Motion::Effect::TaxiAbort:
+            player.TaxiAbort();
+            break;
+        default:
+            break;   // a dispatcher over the six: every other kind is a creature's and never reaches it
     }
 }
 

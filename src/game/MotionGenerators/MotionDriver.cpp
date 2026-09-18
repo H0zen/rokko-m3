@@ -235,6 +235,14 @@ bool MotionDriver::LayLeg(Unit& owner, Motion::MoveIntent const& intent)
         init.SetFly();
     }
 
+    if (intent.Has(Motion::MOVE_SMOOTH))
+    {
+        // An uncompressed Catmull-Rom path: 4.3.4 reads float path points only with
+        // UncompressedPath (SetSmooth sets it); the packed linear path wraps at +-255 yd,
+        // which every taxi route exceeds (design v2 §5).
+        init.SetSmooth();
+    }
+
     // The velocity is left to MoveSplineInit, which resolves the unit's live
     // walk/run/swim/flight speed at Launch -- so a speed change re-paces the next leg
     // instead of a stale value being baked in here.

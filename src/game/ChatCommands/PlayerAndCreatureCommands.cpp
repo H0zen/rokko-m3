@@ -268,8 +268,7 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
     std::vector<MotionMaster::HeldView> held = mm->Held();
     for (size_t i = 0; i < held.size(); ++i)
     {
-        // The binding answers for itself: a native has no generator, and nothing below needs
-        // one -- a tracked target is the entry's own guid, resolved here.
+        // The binding answers for itself: a tracked target is the entry's own guid, resolved here.
         switch (held[i].type)
         {
             case IDLE_MOTION_TYPE:          SendSysMessage(LANG_MOVEGENS_IDLE);          break;

@@ -33,6 +33,8 @@
 
 #include <memory>
 
+class Player;
+
 /**
  * A native kernel behaviour as a shell behaviour (P5-B family 1 design section 3): owns the
  * native and a MotionDriver, fills the Sight, applies the Step's intent through the driver
@@ -57,8 +59,6 @@ class NativeBehaviour : public MotionBehaviour, private Motion::Services
         void Finish(Unit& owner, Motion::FinishReason why) override;
         bool Tick(Unit& owner, uint32 diff) override;
         Motion::FinishReason EndReason(Unit& owner) const override;
-        MovementGenerator* Legacy() override { return NULL; }
-        MovementGenerator const* Legacy() const override { return NULL; }
         void SpeedChanged() override { m_driver.OnSpeedChanged(); }
         bool GetResetPosition(Unit& owner, float& x, float& y, float& z, float& o) const override;
         bool Reachable() const override { return m_driver.Reachable(); }
@@ -124,10 +124,12 @@ class NativeBehaviour : public MotionBehaviour, private Motion::Services
         void Perform(Unit& owner, Motion::Step const& step);
         void PerformOutcome(Unit& owner, Motion::Outcome const& outcome);
         /// The effects loop, in order: an Outcome's recipe or a Step's mid-tick set. A creature's
-        /// effects are skipped for a player owner; Effect::AnyOwner names the ones every owner gets.
+        /// effects are skipped for a player owner; Effect::Owners names each kind's owners.
         void PerformEffects(Unit& owner, std::vector<Motion::Effect> const& effects);
         void Launch(Unit& owner, Motion::EffectLaunch const& launch);
         void Roam(Unit& owner, Motion::Roaming what);
+        /// The taxi's six kinds, a player's alone (Effect::Owners): dispatched to Player::Taxi*.
+        void PerformTaxi(Player& player, Motion::Effect const& e);
 
         std::unique_ptr<Motion::Behaviour> m_native;
         MotionDriver       m_driver;

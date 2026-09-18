@@ -1014,7 +1014,7 @@ enum OpcodesList
     SMSG_SPLINE_SET_FLIGHT_SPEED                          = 0x1386,
     SMSG_SPLINE_SET_FLIGHT_BACK_SPEED                     = 0x1387,
     CMSG_MAELSTROM_INVALIDATE_CACHE                       = 0x1388,
-    SMSG_FLIGHT_SPLINE_SYNC                               = 0x1389,
+    SMSG_FLIGHT_SPLINE_SYNC                               = 0x0924, // 4.3.4 15595: the client's dispatch value (the taxi retail notes, item 15); the tree carried 0x1389 with no verification. The sender is off.
     CMSG_SET_TAXI_BENCHMARK_MODE                          = 0x4314, // 4.3.4 15595
     SMSG_JOINED_BATTLEGROUND_QUEUE                        = 0x138B,
     SMSG_REALM_SPLIT                                      = 0x2714, // 4.3.4 15595

@@ -30,14 +30,13 @@
 #include <sstream>
 #include "MotionMaster.h"
 #include "Behaviour.h"
-#include "LegacyBehaviour.h"
 #include "NativeBehaviour.h"
 #include "SimpleMoves.h"
 #include "DefaultMoves.h"
 #include "TrackingMoves.h"
 #include "MovementIntent.h"
 #include "ControlMoves.h"
-#include "FlightPathMovementGenerator.h"
+#include "TaxiMove.h"
 #include "WaypointManager.h"
 #include "movement/MoveSpline.h"
 #include "movement/MoveSplineInit.h"
@@ -47,8 +46,10 @@
 #include "Creature.h"
 #include "CreatureLinkingMgr.h"
 #include "Pet.h"
+#include "Player.h"
 #include "World.h"
 #include "DBCStores.h"
+#include "ObjectMgr.h"
 
 namespace
 {
@@ -118,7 +119,7 @@ namespace
                            uint32 initialDelay, uint32 overwriteEntry,
                            Motion::PatrolBehaviour::Params& out)
     {
-        DETAIL_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "LoadPath: loading waypoint path for %s", creature.GetGuidStr().c_str());
+        DETAIL_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "BuildPatrolParams: loading waypoint path for %s", creature.GetGuidStr().c_str());
         if (!overwriteEntry)
         {
             overwriteEntry = creature.GetEntry();
@@ -155,11 +156,11 @@ namespace
         {
             if (resolvedOrigin == PATH_FROM_EXTERNAL)
             {
-                sLog.outErrorScriptLib("WaypointMovementGenerator::LoadPath: %s doesn't have waypoint path %i", creature.GetGuidStr().c_str(), pathId);
+                sLog.outErrorScriptLib("BuildPatrolParams: %s doesn't have waypoint path %i", creature.GetGuidStr().c_str(), pathId);
             }
             else
             {
-                sLog.outErrorDb("WaypointMovementGenerator::LoadPath: %s doesn't have waypoint path %i", creature.GetGuidStr().c_str(), pathId);
+                sLog.outErrorDb("BuildPatrolParams: %s doesn't have waypoint path %i", creature.GetGuidStr().c_str(), pathId);
             }
             return false;
         }
@@ -614,33 +615,7 @@ void MotionMaster::Retire(size_t index, Motion::FinishReason reason)
     {
         gone->Finish(*m_owner, reason);
     }
-    m_retired.push_back(std::move(gone));   // a generator whose own Update fired this hook must outlive it
-}
-
-/**
- * @brief Binds the generator to the entry the request just produced.
- * @param kind The kind the request asked for.
- * @param seqBefore The arbiter's newest sequence before the request.
- * @param generator The legacy generator to adapt.
- * @param owned True when the behaviour owns (and deletes) the generator.
- * @return True when the model kept the entry and it now has a behaviour.
- */
-bool MotionMaster::Bind(Motion::Kind kind, uint32 seqBefore, MovementGenerator* generator, bool owned)
-{
-    // The arbiter stamps exactly once per Request/InstallDefault, so the entry this call
-    // produced -- when the model kept it -- is exactly seqBefore + 1. A refusal (a control
-    // with no identity: never stamped; an Idle default over an Idle command: stamped and
-    // dropped) leaves nothing holding that sequence.
-    if (!IsHeld(seqBefore + 1))
-    {
-        if (owned)
-        {
-            delete generator;
-        }
-        return false;
-    }
-    m_bound.push_back(Bound(seqBefore + 1, std::unique_ptr<MotionBehaviour>(new LegacyBehaviour(kind, generator, owned))));
-    return true;
+    m_retired.push_back(std::move(gone));   // a behaviour whose own Tick fired this hook must outlive it
 }
 
 /**
@@ -689,32 +664,6 @@ void MotionMaster::SweepStale(Motion::Kind kind)
 }
 
 /**
- * @brief One facade request: a transaction, the model, the hooks, the binding.
- * @param request The move request.
- * @param generator The legacy generator to adapt.
- * @param owned True when the behaviour owns the generator.
- */
-void MotionMaster::Request(Motion::MoveRequest const& request, MovementGenerator* generator, bool owned)
-{
-    Scope scope(*this, Motion::TransactionKind::Normal);
-    const uint32 before = m_arbiter.LastSeq();
-    m_arbiter.Request(request);
-    // The entry this request stamped is bound before any hook runs: a hook may issue a
-    // request of its own (a finalizer re-engaging combat), and that nested entry must not
-    // be able to claim this generator -- nor may a hook see the facade empty over a model
-    // that already holds the new selection.
-    const bool bound = Bind(request.kind, before, generator, owned);
-    // What the request finished (superseded, overridden, cancelled, a swapped default) is
-    // delivered now, with their own reasons and inside this transaction, as Mutate ran the
-    // displaced generator's hooks synchronously.
-    DeliverEvents();
-    if (bound)
-    {
-        SweepStale(request.kind);
-    }
-}
-
-/**
  * @brief One facade request whose behaviour is a native of the kernel.
  * @param request The move request.
  * @param native The kernel behaviour the adapter drives.
@@ -724,7 +673,10 @@ void MotionMaster::Request(Motion::MoveRequest const& request, std::unique_ptr<M
     Scope scope(*this, Motion::TransactionKind::Normal);
     const uint32 before = m_arbiter.LastSeq();
     m_arbiter.Request(request);
-    const bool bound = BindNative(before, std::move(native));   // before any hook runs, as the legacy path
+    // The entry this request stamped is bound before any hook runs: a hook may issue a
+    // request of its own, and that nested entry must not see the facade empty over a model
+    // that already holds the new selection.
+    const bool bound = BindNative(before, std::move(native));
     DeliverEvents();
     if (bound)
     {
@@ -812,16 +764,6 @@ void MotionMaster::Initialize()
     // default -- it never had a registered factory either): the idle native is the default,
     // as the shared idle singleton used to be.
     InstallFactoryNative(Motion::Kind::Idle, std::unique_ptr<Motion::Behaviour>(new Motion::IdleBehaviour()));
-}
-
-/**
- * @brief Gets the current movement generator.
- * @return Pointer to the selected behaviour's generator, or NULL (a native has none).
- */
-MovementGenerator const* MotionMaster::GetCurrent() const
-{
-    Bound const* bound = SelectedBound();
-    return bound ? bound->behaviour->Legacy() : NULL;
 }
 
 /**
@@ -1192,24 +1134,100 @@ bool MotionMaster::PauseWaypoints(int32 ms)
 }
 
 /**
- * @brief Moves the unit along a taxi flight path.
- * @param path ID of the flight path.
- * @param pathnode Node of the flight path.
+ * @brief A player's taxi flight over the whole route, as one native.
+ * @param route The node ids in order, the source first (PlayerTaxi::GetTaxiDestinations).
+ * @param startNode The first hop's path node the flight starts toward.
+ * @param mountDisplayId The taxi mount's display id.
  */
-void MotionMaster::MoveTaxiFlight(uint32 path, uint32 pathnode)
+void MotionMaster::MoveTaxiFlight(std::vector<uint32> const& route, uint32 startNode, uint32 mountDisplayId)
 {
     if (m_owner->GetTypeId() != TYPEID_PLAYER)
     {
-        sLog.outError("%s attempt taxi to (Path %u node %u)", m_owner->GetGuidStr().c_str(), path, pathnode);
+        sLog.outError("%s attempt taxi over %u nodes", m_owner->GetGuidStr().c_str(), uint32(route.size()));
         return;
     }
-    if (path >= sTaxiPathNodesByPath.size())
+    Motion::TaxiBehaviour::Params p;
+    p.speed = sWorld.getConfig(CONFIG_FLOAT_MOVEMENT_TAXI_SPEED);
+    p.mountDisplayId = mountDisplayId;
+    p.startNode = startNode;
+    // The hops welded into one node array (design §5): the seam node once -- the incoming hop's
+    // last row, kept and marked -- and the outgoing hop's node 0 dropped, as the hop chaining's
+    // pathNode = 1 skipped it.
+    for (size_t hop = 1; hop < route.size(); ++hop)
     {
-        sLog.outError("%s attempt taxi to (nonexistent Path %u node %u)", m_owner->GetGuidStr().c_str(), path, pathnode);
+        uint32 path = 0;
+        uint32 cost = 0;
+        sObjectMgr.GetTaxiPath(route[hop - 1], route[hop], path, cost);
+        if (!path || path >= sTaxiPathNodesByPath.size() || sTaxiPathNodesByPath[path].size() < (hop == 1 ? 1u : 2u))
+        {
+            sLog.outError("%s attempt taxi over a missing or degenerate path from node %u to node %u", m_owner->GetGuidStr().c_str(), route[hop - 1], route[hop]);
+            static_cast<Player*>(m_owner)->m_taxi.ClearTaxiDestinations();
+            return;
+        }
+        TaxiPathNodeList const& rows = sTaxiPathNodesByPath[path];
+        for (size_t i = (hop == 1 ? 0 : 1); i < rows.size(); ++i)
+        {
+            TaxiPathNodeEntry const& row = rows[i];
+            Motion::TaxiBehaviour::Node node;
+            node.mapId = row.ContinentID;
+            node.pos = Motion::Vector3(row.Loc_0, row.Loc_1, row.Loc_2);
+            node.arrivalEvent = row.ArrivalEventID;
+            node.departureEvent = row.DepartureEventID;
+            p.nodes.push_back(node);
+        }
+        if (hop + 1 < route.size())
+        {
+            p.nodes.back().seam = true;
+        }
+    }
+    if (p.nodes.empty() || startNode >= p.nodes.size())
+    {
+        sLog.outError("%s attempt taxi from node %u of a route of %u path nodes", m_owner->GetGuidStr().c_str(), startNode, uint32(p.nodes.size()));
+        static_cast<Player*>(m_owner)->m_taxi.ClearTaxiDestinations();
         return;
     }
-    DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s taxi to (Path %u node %u)", m_owner->GetGuidStr().c_str(), path, pathnode);
-    Request(R(Motion::Kind::Taxi), new FlightPathMovementGenerator(sTaxiPathNodesByPath[path], pathnode), true);
+    // The landing snaps onto the destination's TaxiNodes position when it has one (a spell
+    // taxi's node may not): the notes' SMSG_MOVE_TELEPORT 2.19 yd below the last path node.
+    if (TaxiNodesEntry const* destination = sTaxiNodesStore.LookupEntry(route.back()))
+    {
+        if (destination->Pos_0 != 0.0f || destination->Pos_1 != 0.0f || destination->Pos_2 != 0.0f)
+        {
+            p.hasLanding = true;
+            p.landing = Motion::Vector3(destination->Pos_0, destination->Pos_1, destination->Pos_2);
+        }
+    }
+    DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s taxi from node %u to node %u (%u path nodes, from %u)",
+                     m_owner->GetGuidStr().c_str(), route.front(), route.back(), uint32(p.nodes.size()), startNode);
+    Request(R(Motion::Kind::Taxi), std::unique_ptr<Motion::Behaviour>(new Motion::TaxiBehaviour(p)));
+}
+
+/**
+ * @brief The worldport ack of a flight's map crossing: the next leg, or the end of the flight.
+ */
+void MotionMaster::TaxiContinue()
+{
+    Scope scope(*this, Motion::TransactionKind::Normal);
+    std::optional<Motion::Held> taxi = m_arbiter.Command(Motion::Layer::Taxi);
+    Bound* bound = taxi ? Find(taxi->seq) : NULL;
+    if (!bound || !bound->activated)
+    {
+        return;
+    }
+    NativeBehaviour* adapter = static_cast<NativeBehaviour*>(bound->behaviour.get());
+    Motion::TaxiBehaviour* flight = static_cast<Motion::TaxiBehaviour*>(adapter->Native());
+    if (!flight->CrossingLandedOn(m_owner->GetMapId()))
+    {
+        // Not the map the crossing aimed at (the transfer bounced back), or no crossing was
+        // pending: the flight ends where the mover stands (TaxiAbort).
+        // reset = false as SendDoFlight's expiry: nothing lies under a taxi to re-lay; the
+        // battleground pop keeps the handler's MovementExpired() as the tree had it.
+        MovementExpired(false);
+        return;
+    }
+    // No Evaluate().ticks gate as the other direct resumes carry: a taxi is never blocked by a
+    // stun, a root or a possession (Mobility::Decide returns before them for Selected::Taxi);
+    // only death precedes it, and a dead passenger's flight is finished, never resumed.
+    bound->behaviour->Resume(*m_owner, true);   // the next map's leg; the flags and the revoke are still in place
 }
 
 /**
@@ -1389,8 +1407,9 @@ void MotionMaster::MoveCharge(float x, float y, float z, float speed)
 }
 
 /**
- * @brief Gets the type of the current movement generator.
- * @return The type of the selected behaviour's generator.
+ * @brief The legacy type the selected behaviour projects onto (the GM prints and the harness
+ *        labels, until P5-C retires the enum).
+ * @return The selected behaviour's projection, IDLE_MOTION_TYPE when nothing is selected.
  */
 MovementGeneratorType MotionMaster::GetCurrentMovementGeneratorType() const
 {
@@ -1442,30 +1461,14 @@ Motion::PatrolBehaviour const* MotionMaster::HeldPatrol() const
 }
 
 /**
- * @brief The held taxi flight.
- * @return The flight generator, or NULL.
- */
-FlightPathMovementGenerator* MotionMaster::HeldFlight()
-{
-    for (size_t i = 0; i < m_bound.size(); ++i)
-    {
-        if (m_bound[i].behaviour->LegacyType() == FLIGHT_MOTION_TYPE)
-        {
-            return static_cast<FlightPathMovementGenerator*>(m_bound[i].behaviour->Legacy());
-        }
-    }
-    return NULL;
-}
-
-/**
  * @brief The selected native's re-lay counters, by cause.
- * @return The counts, or NULL when the selection is a legacy binding or counts nothing
- *         (only the tracking natives keep them; design v2 §5: GM-dumpable).
+ * @return The counts, or NULL when the selection counts nothing (only the tracking
+ *         natives keep them; design v2 §5: GM-dumpable).
  */
 Motion::RelayCounts const* MotionMaster::SelectedRelays() const
 {
     Bound const* bound = SelectedBound();
-    if (!bound || bound->behaviour->Legacy())
+    if (!bound)
     {
         return NULL;
     }
@@ -1475,12 +1478,12 @@ Motion::RelayCounts const* MotionMaster::SelectedRelays() const
 /**
  * @brief The facing the selected native's driver last asked for.
  * @return The running leg's facing mode, or the hold's once the leg has finished;
- *         Motion::Facing::Mode::None when nothing is selected or the entry is a legacy binding.
+ *         Motion::Facing::Mode::None when nothing is selected.
  */
 Motion::Facing::Mode MotionMaster::SelectedLegFacingMode() const
 {
     Bound const* bound = SelectedBound();
-    if (!bound || bound->behaviour->Legacy())
+    if (!bound)
     {
         return Motion::Facing::Mode::None;
     }
@@ -1799,21 +1802,6 @@ void MotionMaster::RelocateSelected(float x, float y, float z, float o)
 }
 
 /**
- * @brief Whether this generator belongs to the selected behaviour.
- * @param generator The generator to test.
- * @return True when it is the selected behaviour's generator.
- */
-bool MotionMaster::IsSelected(MovementGenerator const* generator) const
-{
-    if (!generator)
-    {
-        return false;   // a native answers NULL for its generator: no caller owns that
-    }
-    Bound const* bound = SelectedBound();
-    return bound && bound->behaviour->Legacy() == generator;
-}
-
-/**
  * @brief Whether this arbiter sequence is the one selected right now.
  * @param seq The sequence to test (a native binding's own, from BindNative).
  * @return True when it is the current selection: a native's shell reads this after every
@@ -1852,9 +1840,7 @@ Unit* MotionMaster::ChaseTarget() const
 {
     std::optional<Motion::Held> const& combat = m_arbiter.Combat();
     Bound const* bound = combat ? Find(combat->seq) : NULL;
-    // A legacy binding answers nothing here, as SelectedRelays does: the cast below is a
-    // NativeBehaviour's, and a legacy entry is not one.
-    if (!bound || bound->behaviour->Legacy() || bound->behaviour->Kind() != Motion::Kind::Chase)
+    if (!bound || bound->behaviour->Kind() != Motion::Kind::Chase)
     {
         return NULL;
     }
@@ -1882,7 +1868,7 @@ Unit* MotionMaster::FollowTarget() const
 {
     std::optional<Motion::Held> const& current = m_arbiter.Default();
     Bound const* bound = (current && current->kind == Motion::Kind::Follow) ? Find(current->seq) : NULL;
-    if (!bound || bound->behaviour->Legacy())   // a legacy binding is not the NativeBehaviour the cast below reads
+    if (!bound)
     {
         return NULL;
     }
@@ -1960,7 +1946,6 @@ std::vector<MotionMaster::HeldView> MotionMaster::Held() const
         view.type = m_bound[i].behaviour->LegacyType();
         view.selected = &m_bound[i] == selected;
         view.reachable = m_bound[i].behaviour->Reachable();
-        view.generator = m_bound[i].behaviour->Legacy();
         view.target = m_bound[i].behaviour->TrackedTarget();
         out.push_back(view);
     }

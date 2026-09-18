@@ -70,7 +70,6 @@
 #include "TransportMap.h"
 #include <cmath>
 #include "BattleGround/BattleGround.h"
-#include "FlightPathMovementGenerator.h"
 #include "MapPersistentStateMgr.h"
 #include "ObjectMgr.h"
 #include "ObjectLookup.h"
@@ -238,20 +237,15 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     {
         if (!_player->InBattleGround())
         {
-            // short preparations to continue flight
-            FlightPathMovementGenerator* flight = GetPlayer()->GetMotionMaster()->HeldFlight();
-            if (!flight)
-            {
-                return;
-            }
-
-            flight->Reset(*GetPlayer());
+            // The crossing's ack: the next map's leg, or the flight's end when this is not the
+            // map it aimed at (P5-B family 5). The control stays revoked across the crossing:
+            // SendInitialPacketsBeforeAddToMap skipped its grant.
+            GetPlayer()->GetMotionMaster()->TaxiContinue();
             return;
         }
 
-        // battleground state prepare, stop flight
+        // battleground state prepare, stop flight (the abort clears the route and returns the control)
         GetPlayer()->GetMotionMaster()->MovementExpired();
-        GetPlayer()->m_taxi.ClearTaxiDestinations();
     }
 
     if (mInstance)

@@ -1190,6 +1190,32 @@ class Player : public Unit
         // Continue the taxi flight
         void ContinueTaxiFlight();
 
+        // ---- the taxi's six operations (P5-B family 5): the kernel's TaxiBehaviour says when, these say how ----
+        /// The takeoff in retail's order (the family's notes A.6-A.7, A.11): the stop, the client
+        /// control revoked, the hostile references offline, the pet unsummoned, the mount display
+        /// written WITHOUT UNIT_FLAG_MOUNT (0x10000C on the wire), DISABLE_MOVE | TAXI_FLIGHT set.
+        void TaxiTakeoff(uint32 mountDisplayId);
+        /// A route hop's seam left in flight: the route advances to its next hop (the persistence and
+        /// the battleground save read the current hop) and a taxi cheater learns the hub.
+        void TaxiSeamPassed();
+        /// The map crossing: the far teleport onto the next map's first path node. Asked from inside
+        /// the motion update it is deferred to the end of Update() and the Taxi binding survives it;
+        /// the worldport ack resumes the flight (MotionMaster::TaxiContinue). False when refused.
+        bool TaxiCross(uint32 mapId, float x, float y, float z, float o);
+        /// The landing, scheduled by the flight's finish and performed by Update() once the
+        /// teleport-deferral window has closed; `snap` when the destination node carries a position.
+        void ScheduleTaxiLanding(bool snap, float x, float y, float z, float o);
+        /// Retail's landing order (the notes A.10-A.12): the control back, the stop, the teleport
+        /// onto the TaxiNodes position with the fall reference reset, the flags and the mount display
+        /// cleared, the pet back; then the hostile references online, the hostile-area spell, the
+        /// route cleared. Taken and cleared before its first step: runs once or never.
+        void PerformTaxiLanding();
+        /// Every non-landing end of a flight (death, a summon, a battleground, a cut leg, a replaced
+        /// flight): the flags and the mount display cleared, the pet back, the hostile references
+        /// online, the route cleared, a pending landing dropped, and the client control returned on
+        /// every reason, death included (no death or repop path grants it; design §6.6).
+        void TaxiAbort();
+
         // Check if the player accepts tickets
         bool isAcceptTickets() const { return GetSession()->GetSecurity() >= SEC_GAMEMASTER && (m_ExtraFlags & PLAYER_EXTRA_GM_ACCEPT_TICKETS); }
 
@@ -3654,7 +3680,7 @@ class Player : public Unit
         void ResummonPetTemporaryUnSummonedIfAny() { m_petMgr.ResummonTemporaryUnsummonedIfAny(); }
         uint32 GetStableSlots() const { return m_petMgr.GetStableSlots(); }
         void SetStableSlots(uint32 slots) { m_petMgr.SetStableSlots(slots); }
-        bool IsPetNeedBeTemporaryUnsummoned() const { return !IsInWorld() || !IsAlive() || IsMounted() /*+in flight*/; }
+        bool IsPetNeedBeTemporaryUnsummoned() const { return !IsInWorld() || !IsAlive() || IsMounted() || IsTaxiFlying(); }
 
         // Send cinematic start to the client
         void SendCinematicStart(uint32 CinematicSequenceId);
@@ -4228,6 +4254,12 @@ class Player : public Unit
         bool m_bCanDelayTeleport; // Can delay teleport flag
         bool m_bHasDelayedTeleport; // Has delayed teleport flag
         bool m_bHasBeenAliveAtDelayedTeleport; // Has been alive at delayed teleport flag
+
+        // The taxi landing pending for Update() (P5-B family 5): the flight's finish runs inside the
+        // motion update, where a teleport is deferred; the landing runs after that window closes.
+        bool m_taxiLandingPending;
+        bool m_taxiLandingSnap;
+        WorldLocation m_taxiLanding;
 
         // Detect invisibility timer
         uint32 m_DetectInvTimer;

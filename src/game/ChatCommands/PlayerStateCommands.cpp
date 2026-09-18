@@ -76,17 +76,18 @@ bool ChatHandler::HandleDismountCommand(char* /*args*/)
 {
     Player* player = m_session->GetPlayer();
 
-    // If player is not mounted, so go out :)
-    if (!player->IsMounted())
+    // The flight first: a taxi passenger carries no UNIT_FLAG_MOUNT (P5-B family 5).
+    if (player->IsTaxiFlying())
     {
-        SendSysMessage(LANG_CHAR_NON_MOUNTED);
+        SendSysMessage(LANG_YOU_IN_FLIGHT);
         SetSentErrorMessage(true);
         return false;
     }
 
-    if (player->IsTaxiFlying())
+    // If player is not mounted, so go out :)
+    if (!player->IsMounted())
     {
-        SendSysMessage(LANG_YOU_IN_FLIGHT);
+        SendSysMessage(LANG_CHAR_NON_MOUNTED);
         SetSentErrorMessage(true);
         return false;
     }

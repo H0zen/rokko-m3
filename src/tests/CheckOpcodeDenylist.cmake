@@ -18,7 +18,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
-# 38 opcode names whose value disagrees with every independent 4.3.4 source and
+# 37 opcode names whose value disagrees with every independent 4.3.4 source and
 # which nothing currently builds or dispatches. They are inert TODAY. Adopting
 # one without correcting its value ships a silent no-op -- an SMSG the client
 # discards, or a CMSG handler that never runs.
@@ -38,8 +38,8 @@
 # is wired up and simply never runs, which is the exact failure this gate
 # exists to catch.
 #
-# One alternation regex is built from all 41 names and matched once per line,
-# rather than 41 names times two hand-written patterns times every line. The
+# One alternation regex is built from all 37 names and matched once per line,
+# rather than 37 names times two hand-written patterns times every line. The
 # per-name loop cost 235 seconds over src/game -- as much as a warm build --
 # for a gate meant to run on every configure.
 

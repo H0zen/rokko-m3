@@ -295,6 +295,13 @@ Redirect.Stream1Crypt        = 1
 #        Bounds: 0.1 to 50.
 #        Default: 2
 #
+#    Movement.TaxiSpeed
+#        The taxi flight's speed in yards per second. Measured on a retail flight at 30.0
+#        (1,808.77 yd in 60,299 ms); 32 was the unsourced value the server carried before the
+#        movement kernel's taxi.
+#        Bounds: 1 to 100.
+#        Default: 30
+#
 #    Movement.CaptureFile
 #        Path of a text file that receives every packet the movement-status handler
 #        sees (every opcode the wire registry has a layout for, in both directions --
@@ -394,6 +401,7 @@ Movement.DecisionRing             = 0
 Movement.ChaseLead                = 0
 Movement.FollowHorizonMs          = 400
 Movement.ConfuseRadius            = 2
+Movement.TaxiSpeed                = 30
 Movement.CaptureFile              = ""
 Movement.WireParity               = 0
 Movement.AckTimeout               = 0

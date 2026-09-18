@@ -1,6 +1,6 @@
 # Opcode denylist -- generated 2026-08-31
 #
-# 38 opcode names whose value disagrees with every independent 4.3.4
+# 37 opcode names whose value disagrees with every independent 4.3.4
 # source, and which nothing currently builds or dispatches. They are inert
 # TODAY. Adopting one without correcting its value ships a silent no-op:
 # an SMSG the client discards, or a CMSG handler that never runs.
@@ -34,7 +34,6 @@ SMSG_WARDEN_DATA                               0x12E7  0x31A0
 SMSG_PLAY_TIME_WARNING                         0x12F6  0x4814
 SMSG_MINIGAME_SETUP                            0x12F7  0x6727
 SMSG_MINIGAME_STATE                            0x12F8  0x2E17
-SMSG_FLIGHT_SPLINE_SYNC                        0x1389  0x0924
 SMSG_VOICE_SESSION_ROSTER_UPDATE               0x139F  0x2A17
 SMSG_VOICE_SESSION_LEAVE                       0x13A0  0x2A24
 SMSG_VOICE_SET_TALKER_MUTED                    0x13A3  0x6E35

@@ -192,6 +192,11 @@ TEST(OpcodeValues_movement_changes_match_the_client)
     CHECK_EQ(int(SMSG_MOVE_UNSET_CAN_TRANSITION_BETWEEN_SWIM_AND_FLY),   0x7DB2);   // reader sub_140382D00
     CHECK_EQ(int(CMSG_MOVE_SET_CAN_TRANSITION_BETWEEN_SWIM_AND_FLY_ACK), 0x3014);   // SLOT(0x3014, 1, 0)
 
+    // Off the denylist: the flight spline sync, at the client's dispatch value (the taxi retail
+    // notes, item 15: reader sub_14021FA60; OpcodeSlots.inc carries the same slot). The sender
+    // stays off; the tree carried 0x1389 with no verification.
+    CHECK_EQ(int(SMSG_FLIGHT_SPLINE_SYNC),            0x0924);
+
     // The observer-side speed updates this server has never sent (§7's per-change
     // matrix names them), the collision-height update, and the mover handover.
     // 0x14A6 was carried as CMSG_QUERY_VEHICLE_STATUS, a name no 4.3.4 source

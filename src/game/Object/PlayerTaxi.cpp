@@ -27,6 +27,7 @@
 #include <string>
 #include <vector>
 #include "PlayerTaxi.h"
+#include "TaxiDestinationsString.h"
 #include "Player.h"
 #include "Language.h"
 #include "Database/DatabaseEnv.h"
@@ -190,16 +191,19 @@ bool PlayerTaxi::LoadTaxiDestinationsFromString(const std::string& values, Team 
 {
     ClearTaxiDestinations();
 
-    Tokens tokens = StrSplit(values, " ");
-    for (auto iter = tokens.begin(); iter != tokens.end(); ++iter)
+    // The faction first, then the nodes (the saver's order). The loader read every token as the
+    // faction and then every token, the faction included, as a node, so the integrity check
+    // below always failed and a login mid-flight never resumed (P5-B family 5, design §6.7).
+    std::vector<uint32> nodes;
+    uint32 faction = 0;
+    if (!TaxiDestinationsString::Parse(values, faction, nodes))
     {
-        m_flightMasterFactionId = stoul(*iter);
+        return false;
     }
-
-    for (Tokens::iterator iter = tokens.begin(); iter != tokens.end(); ++iter)
+    m_flightMasterFactionId = faction;
+    for (size_t i = 0; i < nodes.size(); ++i)
     {
-        uint32 node = std::stoul(iter->c_str());
-        AddTaxiDestination(node);
+        AddTaxiDestination(nodes[i]);
     }
 
     if (m_TaxiDestinations.empty())
@@ -242,15 +246,7 @@ std::string PlayerTaxi::SaveTaxiDestinationsToString()
 
     MANGOS_ASSERT(m_TaxiDestinations.size() >= 2);
 
-    std::ostringstream ss;
-    ss << m_flightMasterFactionId << ' ';
-
-    for (size_t i = 0; i < m_TaxiDestinations.size(); ++i)
-    {
-        ss << m_TaxiDestinations[i] << " ";
-    }
-
-    return ss.str();
+    return TaxiDestinationsString::Format(m_flightMasterFactionId, GetTaxiDestinations());
 }
 
 uint32 PlayerTaxi::GetCurrentTaxiPath() const
@@ -305,14 +301,32 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
         return false;
     }
 
-    if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE))
+    // A flight in progress, or a passenger whose Control claim the flight would mask and whose
+    // landing grant would be refused under it (design §6.9): feared, confused or possessed. Both
+    // origins, since the mover argument holds for a scripted flight too; the reply is the flight
+    // master's alone (a spell taxi has no taxi window open to show it).
+    if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE) ||
+        hasUnitState(UNIT_STAT_FLEEING | UNIT_STAT_CONFUSED | UNIT_STAT_CONTROLLED))
     {
+        if (npc)
+        {
+            GetSession()->SendActivateTaxiReply(ERR_TAXIPLAYERBUSY);
+        }
         return false;
     }
 
     // taximaster case
     if (npc)
     {
+        // Stunned or rooted: retail's flight master answers "busy" (the reference §15.6, the taxi
+        // notes E.34). A scripted or spell flight on a stunned player is admitted: the kernel
+        // flies it (Mobility::Decide returns before the stun and the root for a taxi).
+        if (hasUnitState(UNIT_STAT_STUNNED | UNIT_STAT_ROOT))
+        {
+            GetSession()->SendActivateTaxiReply(ERR_TAXIPLAYERBUSY);
+            return false;
+        }
+
         // not let cheating with start flight mounted
         if (IsMounted())
         {
@@ -417,7 +431,9 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
         lastnode = nodes[i];
         sObjectMgr.GetTaxiPath(prevnode, lastnode, path, cost);
 
-        if (!path)
+        // A path with no rows (6 of 1,601) or a later hop with a single row cannot be flown:
+        // refused here, before the fare is charged (the weld would refuse it after).
+        if (!path || path >= sTaxiPathNodesByPath.size() || sTaxiPathNodesByPath[path].size() < (i == 1 ? 1u : 2u))
         {
             m_taxi.ClearTaxiDestinations();
             return false;
@@ -485,7 +501,7 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
     RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
 
     GetSession()->SendActivateTaxiReply(ERR_TAXIOK);
-    GetSession()->SendDoFlight(mount_display_id, sourcepath);
+    GetSession()->SendDoFlight(mount_display_id, m_taxi.GetTaxiDestinations(), 0);
 
     return true;
 }
@@ -529,37 +545,60 @@ void Player::ContinueTaxiFlight()
 
     uint32 mountDisplayId = sObjectMgr.GetTaxiMountDisplayId(sourceNode, GetTeam(), true);
     uint32 path = m_taxi.GetCurrentTaxiPath();
+    if (!path || path >= sTaxiPathNodesByPath.size() || sTaxiPathNodesByPath[path].empty())
+    {
+        sLog.outError("Character %u resumes a taxi flight over a missing path from node %u; the route is dropped", GetGUIDLow(), sourceNode);
+        m_taxi.ClearTaxiDestinations();
+        return;
+    }
 
-    // search appropriate start path node
-    uint32 startNode = 0;
-
+    // The closest segment among the rows on THIS map. A saved route may begin on another map (a
+    // logout right after a crossing: the deque's front is still the hop's old-map source), and a
+    // foreign row must neither seed the distances nor be compared against, or the search falls
+    // back to row 0 and the old map's leg is laid here. A player standing exactly on a node (the
+    // sum equals the segment) falls back to the range's first row, whose zero-length first
+    // segment the spline skips.
     TaxiPathNodeList const& nodeList = sTaxiPathNodesByPath[path];
+    uint32 rangeBegin = 0;
+    uint32 rangeEnd = 0;
+    for (uint32 i = 0; i < nodeList.size(); ++i)
+    {
+        if (nodeList[i].ContinentID == GetMapId())
+        {
+            rangeBegin = i;
+            rangeEnd = i + 1;
+            while (rangeEnd < nodeList.size() && nodeList[rangeEnd].ContinentID == GetMapId())
+            {
+                ++rangeEnd;
+            }
+            break;
+        }
+    }
+    if (rangeEnd == 0)
+    {
+        sLog.outError("Character %u resumes a taxi flight over path %u with no node on map %u; the route is dropped", GetGUIDLow(), path, GetMapId());
+        m_taxi.ClearTaxiDestinations();
+        return;
+    }
 
-    float distPrev = MAP_SIZE * MAP_SIZE;
-    float distNext =
-        (nodeList[0].Loc_0 - Where().X()) * (nodeList[0].Loc_0 - Where().X()) +
-        (nodeList[0].Loc_1 - Where().Y()) * (nodeList[0].Loc_1 - Where().Y()) +
-        (nodeList[0].Loc_2 - Where().Z()) * (nodeList[0].Loc_2 - Where().Z());
+    auto distanceSquaredTo = [this](TaxiPathNodeEntry const& n)
+    {
+        return (n.Loc_0 - Where().X()) * (n.Loc_0 - Where().X()) +
+               (n.Loc_1 - Where().Y()) * (n.Loc_1 - Where().Y()) +
+               (n.Loc_2 - Where().Z()) * (n.Loc_2 - Where().Z());
+    };
 
-    for (uint32 i = 1; i < nodeList.size(); ++i)
+    uint32 startNode = rangeBegin;
+    float distNext = distanceSquaredTo(nodeList[rangeBegin]);
+    for (uint32 i = rangeBegin + 1; i < rangeEnd; ++i)
     {
         TaxiPathNodeEntry const& node = nodeList[i];
         TaxiPathNodeEntry const& prevNode = nodeList[i - 1];
 
-        // skip nodes at another map
-        if (node.ContinentID != GetMapId())
-        {
-            continue;
-        }
+        const float distPrev = distNext;
+        distNext = distanceSquaredTo(node);
 
-        distPrev = distNext;
-
-        distNext =
-            (node.Loc_0 - Where().X()) * (node.Loc_0 - Where().X()) +
-            (node.Loc_1 - Where().Y()) * (node.Loc_1 - Where().Y()) +
-            (node.Loc_2 - Where().Z()) * (node.Loc_2 - Where().Z());
-
-        float distNodes =
+        const float distNodes =
             (node.Loc_0 - prevNode.Loc_0) * (node.Loc_0 - prevNode.Loc_0) +
             (node.Loc_1 - prevNode.Loc_1) * (node.Loc_1 - prevNode.Loc_1) +
             (node.Loc_2 - prevNode.Loc_2) * (node.Loc_2 - prevNode.Loc_2);
@@ -571,5 +610,136 @@ void Player::ContinueTaxiFlight()
         }
     }
 
-    GetSession()->SendDoFlight(mountDisplayId, path, startNode);
+    GetSession()->SendDoFlight(mountDisplayId, m_taxi.GetTaxiDestinations(), startNode);
+}
+
+// ---- the taxi's six operations (P5-B family 5) ----------------------------------------------
+// The kernel's TaxiBehaviour (src/motion/TaxiMove.cpp) says WHEN; these say HOW, each in one
+// place and in retail's order (design/2026-09-18-movement-p5b5-taxi-design.md §5).
+
+/**
+ * @brief The takeoff: the stop, the control taken, the hostile references offline, the pet
+ *        unsummoned, the mount display written without UNIT_FLAG_MOUNT, the flight flags set.
+ * @param mountDisplayId The taxi mount's display id (0 for a spell taxi without one).
+ */
+void Player::TaxiTakeoff(uint32 mountDisplayId)
+{
+    // Retail's order (the family's notes A.6-A.7, A.11): a stop, the control update with
+    // AllowMove = 0, then UNIT_FIELD_FLAGS and the mount display in one update. UNIT_FLAG_MOUNT
+    // is not set on a taxi (0x10000C on the wire), so Unit::Mount is not used; what it did
+    // beside the flag is done here.
+    StopMoving();
+    SetClientControl(this, 0);
+    GetHostileRefManager().setOnlineOfflineState(false);
+    UnsummonPetTemporaryIfAny();
+    RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_MOUNTING);
+    SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID, mountDisplayId);
+    SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE | UNIT_FLAG_TAXI_FLIGHT);
+}
+
+/**
+ * @brief A route hop's seam was left: the route advances; a taxi cheater learns the hub.
+ */
+void Player::TaxiSeamPassed()
+{
+    if (m_taxi.empty())
+    {
+        return;   // a route cleared under a flight (a replaced flight's abort): nothing to advance
+    }
+    m_taxi.NextTaxiDestination();
+    // The hub joins a taxi cheater's mask, as the hop chaining did: a cheater who lands with
+    // the cheat off must still have a flight back.
+    const uint32 hub = m_taxi.GetTaxiSource();
+    if (hub && IsTaxiCheater() && m_taxi.SetTaximaskNode(hub))
+    {
+        WorldPacket data(SMSG_NEW_TAXI_PATH, 0);
+        GetSession()->SendPacket(&data);
+    }
+}
+
+/**
+ * @brief The map crossing: the far teleport onto the next map's first path node.
+ * @return False when the teleport was refused (the map cannot be entered).
+ */
+bool Player::TaxiCross(uint32 mapId, float x, float y, float z, float o)
+{
+    // Inside the motion update the teleport is deferred (SetDelayedTeleportFlagIfCan) and runs
+    // at the end of Update(); the Taxi binding survives the map change and
+    // WorldSession::HandleMoveWorldportAckOpcode resumes it through MotionMaster::TaxiContinue.
+    return TeleportTo(mapId, x, y, z, o);
+}
+
+/**
+ * @brief Stores the landing for Update() to perform once the teleport-deferral window has closed.
+ */
+void Player::ScheduleTaxiLanding(bool snap, float x, float y, float z, float o)
+{
+    m_taxiLandingPending = true;
+    m_taxiLandingSnap = snap;
+    m_taxiLanding = WorldLocation(GetMapId(), x, y, z, o);
+}
+
+/**
+ * @brief The landing, in retail's order: control on, the stop, the teleport onto the TaxiNodes
+ *        position, the flags and the mount display cleared, the pet back; then the server's own
+ *        bookkeeping (the hostile references, the hostile-area spell, the route).
+ */
+void Player::PerformTaxiLanding()
+{
+    if (!m_taxiLandingPending)
+    {
+        return;
+    }
+    // Taken before the first step: a re-entry from a hook below finds nothing pending, and an
+    // abort in between (TaxiAbort) clears the slot, so a landing runs once or never.
+    m_taxiLandingPending = false;
+    const bool snap = m_taxiLandingSnap;
+    const WorldLocation where = m_taxiLanding;
+
+    // The sniffed flight (the notes A.10-A.12): AllowMove = 1 first, a stop spline at the last
+    // path node, SMSG_MOVE_TELEPORT onto the node's TaxiNodes position (2.19 yd below the path,
+    // a 1 ms fall, no damage: the near teleport resets the fall reference), the flags cleared and
+    // the mount display zeroed in one update, the pet resummoned.
+    SetClientControl(this, 1);
+    StopMoving(true);
+    // A teleport deferred earlier in this update (an aura's) wins over the snap: the near
+    // teleport below would overwrite its destination and clear its flag.
+    if (snap && !IsHasDelayedTeleport())
+    {
+        TeleportTo(where, TELE_TO_NOT_LEAVE_COMBAT | TELE_TO_NOT_UNSUMMON_PET);
+    }
+    RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE | UNIT_FLAG_TAXI_FLIGHT);
+    RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_NOT_MOUNTED);
+    SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID, 0);
+    ResummonPetTemporaryUnSummonedIfAny();
+    // The generator's Finalize, which ran these only when the client's spline-done packet had
+    // already emptied the route (the race, design fact 5): now every landing runs them.
+    GetHostileRefManager().setOnlineOfflineState(true);
+    if (pvpInfo.inHostileArea)
+    {
+        CastSpell(this, 2479, true);
+    }
+    m_taxi.ClearTaxiDestinations();
+}
+
+/**
+ * @brief Every non-landing end of a flight: the flags and the mount display cleared, the pet
+ *        back, the hostile references online, the route cleared, the control returned.
+ */
+void Player::TaxiAbort()
+{
+    // The one deliberate second writer of a mirrored bit (the mirror agrees at the commit's end):
+    // the pet's resummon and the hostile-state change below must not see a flight in progress.
+    clearUnitState(UNIT_STAT_TAXI_FLIGHT);
+    m_taxiLandingPending = false;
+    RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE | UNIT_FLAG_TAXI_FLIGHT);
+    RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_NOT_MOUNTED);
+    SetUInt32Value(UNIT_FIELD_MOUNTDISPLAYID, 0);
+    ResummonPetTemporaryUnSummonedIfAny();
+    GetHostileRefManager().setOnlineOfflineState(true);
+    m_taxi.ClearTaxiDestinations();
+    // Every abort returns the client its mover, death included: no death or repop path grants
+    // it, and a ghost whose mover the takeoff revoked could not move (design §6.6). The grant
+    // is refused on its own while fleeing or confused, states the boarding refuses.
+    SetClientControl(this, 1);
 }
