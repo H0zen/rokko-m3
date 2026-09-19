@@ -771,6 +771,7 @@ void Creature::Update(uint32 update_diff, uint32 diff)
                     SetHealth(0);
                     i_motionMaster.Clear();
                     clearUnitState(UNIT_STAT_ALL_STATE);
+                    i_motionMaster.ClearPublished();   // the wipe takes the published state with the bits (P5-C2)
                     LoadCreatureAddon(true);
                 }
                 else
@@ -2049,6 +2050,7 @@ void Creature::SetDeathState(DeathState s)
     if (s == JUST_ALIVED)
     {
         clearUnitState(UNIT_STAT_ALL_STATE);
+        i_motionMaster.ClearPublished();   // the wipe takes the published state with the bits (P5-C2)
 
         Unit::SetDeathState(ALIVE);
 
@@ -2574,7 +2576,7 @@ bool Creature::CanAssistTo(const Unit* u, const Unit* enemy, bool checkfaction /
  */
 bool Creature::CanInitiateAttack()
 {
-    if (hasUnitState(UNIT_STAT_STUNNED | UNIT_STAT_DIED))
+    if (Blocked(Motion::ReasonStunned) || IsFeigningDeath())
     {
         return false;
     }

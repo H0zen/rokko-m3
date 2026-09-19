@@ -502,27 +502,21 @@ enum DeathState
 };
 
 /**
- * internal state flags for some auras and the movement behaviours, other.
+ * internal state flags for some auras and the movement behaviours, other. The kernel's block
+ * (rooted, stunned, a feign, possessed, feared, confused, distracted, on a taxi) is not here: the
+ * facade publishes it (MotionMaster::Published) and Unit reads it through Blocked,
+ * IsFeigningDeath, CannotMove, CannotReact, LostControl and IsTaxiFlying (P5-C2).
  */
 enum UnitState
 {
     // persistent state (applied by aura/etc until expire)
     UNIT_STAT_MELEE_ATTACKING = 0x00000001,                 // unit is melee attacking someone Unit::Attack
     UNIT_STAT_ATTACK_PLAYER   = 0x00000002,                 // unit attack player or player's controlled unit and have contested pvpv timer setup, until timer expire, combat end and etc
-    UNIT_STAT_DIED            = 0x00000004,                 // Unit::SetFeignDeath
-    UNIT_STAT_STUNNED         = 0x00000008,                 // Aura::HandleAuraModStun
-    UNIT_STAT_ROOT            = 0x00000010,                 // Aura::HandleAuraModRoot
     UNIT_STAT_ISOLATED        = 0x00000020,                 // area auras do not affect other players, Aura::HandleAuraModSchoolImmunity
-    UNIT_STAT_CONTROLLED      = 0x00000040,                 // Aura::HandleAuraModPossess
 
-    // a behaviour's presence: held all the time a behaviour of the kind is held, independent of its leg
-    UNIT_STAT_TAXI_FLIGHT     = 0x00000080,                 // player is in flight mode; the bit follows the Taxi entry and is continuous across a far teleport
-    UNIT_STAT_DISTRACTED      = 0x00000100,                 // the distract native active
-
-    // a behaviour's presence, with non-persistent mirror states for stop support
+    // a behaviour's presence and its leg, written by the natives (StateRaw effects; the roaming pair through Step::roaming)
     // (can be cleared temporarily by a stop command or another behaviour taking hold)
     // the _MOVE bits are a leg's, not the behaviour's: a stop from outside clears them
-    UNIT_STAT_CONFUSED        = 0x00000200,                 // the confused native active/onstack
     UNIT_STAT_CONFUSED_MOVE   = 0x00000400,
     UNIT_STAT_ROAMING         = 0x00000800,                 // the wander native/a point behaviour/the patrol native active (now always set)
     UNIT_STAT_ROAMING_MOVE    = 0x00001000,
@@ -530,7 +524,6 @@ enum UnitState
     UNIT_STAT_CHASE_MOVE      = 0x00004000,
     UNIT_STAT_FOLLOW          = 0x00008000,                 // the follow native active
     UNIT_STAT_FOLLOW_MOVE     = 0x00010000,
-    UNIT_STAT_FLEEING         = 0x00020000,                 // the fear native active/onstack
     UNIT_STAT_FLEEING_MOVE    = 0x00040000,
     // More room for other MMGens
 
@@ -540,30 +533,6 @@ enum UnitState
     UNIT_STAT_WAYPOINT_PAUSED       = 0x04000000,           // Waypoint-Movement paused genericly (ie by script)
 
     UNIT_STAT_IGNORE_PATHFINDING    = 0x10000000,           // do not use pathfinding in any movement behaviour
-
-    // masks (only for check)
-
-    // can't move currently
-    UNIT_STAT_CAN_NOT_MOVE    = UNIT_STAT_ROOT | UNIT_STAT_STUNNED | UNIT_STAT_DIED,
-
-    // stay by different reasons
-    UNIT_STAT_NOT_MOVE        = UNIT_STAT_ROOT | UNIT_STAT_STUNNED | UNIT_STAT_DIED |
-                                UNIT_STAT_DISTRACTED,
-
-    // stay or scripted movement for effect( = in player case you can't move by client command)
-    UNIT_STAT_NO_FREE_MOVE    = UNIT_STAT_ROOT | UNIT_STAT_STUNNED | UNIT_STAT_DIED |
-                                UNIT_STAT_TAXI_FLIGHT |
-                                UNIT_STAT_CONFUSED | UNIT_STAT_FLEEING,
-
-    // not react at move in sight or other
-    UNIT_STAT_CAN_NOT_REACT   = UNIT_STAT_STUNNED | UNIT_STAT_DIED |
-                                UNIT_STAT_CONFUSED | UNIT_STAT_FLEEING,
-
-    // AI disabled by some reason
-    UNIT_STAT_LOST_CONTROL    = UNIT_STAT_FLEEING | UNIT_STAT_CONTROLLED,
-
-    // above 2 state cases
-    UNIT_STAT_CAN_NOT_REACT_OR_LOST_CONTROL  = UNIT_STAT_CAN_NOT_REACT | UNIT_STAT_LOST_CONTROL,
 
     // masks (for check or reset)
 
@@ -1734,8 +1703,6 @@ class Unit : public WorldObject
          * \see UnitState
          */
         bool hasUnitState(uint32 f) const { return (m_state & f); }
-        /// The raw state bits, for the movement mirror's changed-bits write.
-        uint32 GetUnitState() const { return m_state; }
         /**
          * Unsets a certain unit state
          * @param f the state to remove
@@ -1750,11 +1717,31 @@ class Unit : public WorldObject
         bool CanFreeMove() const
         {
             // kNoFreeMoveReasons is the old UNIT_STAT_NO_FREE_MOVE less its feign bit, which the
-            // mirror carries as UNIT_STAT_DIED: a real death does not deny free movement, as on
-            // master, only a feign does.
+            // published state carries apart (IsFeigningDeath): a real death does not deny free
+            // movement, only a feign does.
             return !(GetMotionMaster()->Mobility().reasons & Motion::kNoFreeMoveReasons) &&
-                   !hasUnitState(UNIT_STAT_DIED) && !GetOwnerGuid();
+                   !IsFeigningDeath() && !GetOwnerGuid();
         }
+
+        /**
+         * The shell's view of the kernel's block (P5-C2): whether any of these Motion::Reason bits
+         * was held at the end of the last movement commit (MotionMaster::Published). A
+         * reader inside a nested facade call sees the previous commit's answer, as the unit-state
+         * bits it replaces did; the kernel's live state is MotionMaster::Inhibited/HoldsControl.
+         * @param reasons Motion::Reason bits (Motion::ReasonStunned, ...) or a named mask
+         * @return true if any of them was held
+         */
+        bool Blocked(uint32 reasons) const { return (i_motionMaster.Published().reasons & reasons) != 0; }
+        /// A UnitState passed here would be read as reason bits (UNIT_STAT_ISOLATED is ReasonConfused's bit): refused at compile time.
+        bool Blocked(UnitState) const = delete;
+        /// Feigning death, as of the last movement commit: the old UNIT_STAT_DIED (a feign alone; a real death is IsAlive()'s).
+        bool IsFeigningDeath() const { return i_motionMaster.Published().feign; }
+        /// Rooted, stunned or feigning death: the old UNIT_STAT_CAN_NOT_MOVE.
+        bool CannotMove() const { return Blocked(Motion::kCannotMoveReasons) || IsFeigningDeath(); }
+        /// Stunned, feared, confused or feigning death: the old UNIT_STAT_CAN_NOT_REACT.
+        bool CannotReact() const { return Blocked(Motion::kCannotReactReasons) || IsFeigningDeath(); }
+        /// Feared or possessed: the old UNIT_STAT_LOST_CONTROL.
+        bool LostControl() const { return Blocked(Motion::kLostControlReasons); }
 
         /**
          * Gets the level for this unit
@@ -2613,10 +2600,11 @@ class Unit : public WorldObject
 
         /**
          * Is this unit flying in taxi?
-         * @return true if the Unit has the state \ref UNIT_STAT_TAXI_FLIGHT (is flying in taxi), false otherwise
-         * \see hasUnitState
+         * @return true if a taxi flight was held at the last movement commit (and its
+         *         abort has not published its end early, Player::TaxiAbort), false otherwise
+         * \see Blocked
          */
-        bool IsTaxiFlying()  const { return hasUnitState(UNIT_STAT_TAXI_FLIGHT); }
+        bool IsTaxiFlying()  const { return Blocked(Motion::ReasonOnTaxi); }
 
         /**
          * Checks to see if a creature, whilst moving along a path, has reached a specific waypoint, or near to
@@ -2806,7 +2794,7 @@ class Unit : public WorldObject
          * flag will be removed when the creature for some reason enters combat
          * - \ref Unit::IsAlive is equal to inverseAlive
          * - \ref Unit::IsInWorld is false
-         * - the \ref Unit has the state (\ref Unit::hasUnitState) \ref  UnitState::UNIT_STAT_DIED
+         * - the \ref Unit is feigning death (\ref Unit::IsFeigningDeath)
          * - the \ref Unit is flying in a taxi (\ref Unit::IsTaxiFlying)
          * @param inverseAlive This is needed for some spells which need
          * to be casted at dead targets (aoe) (Taken from source comment)

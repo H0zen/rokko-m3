@@ -892,7 +892,7 @@ uint32 Unit::DealDamage(Unit* pVictim, uint32 damage, CleanDamage const* cleanDa
         }
         RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
 
-        if (pVictim->GetTypeId() == TYPEID_PLAYER && !pVictim->IsStandState() && !pVictim->hasUnitState(UNIT_STAT_STUNNED))
+        if (pVictim->GetTypeId() == TYPEID_PLAYER && !pVictim->IsStandState() && !pVictim->Blocked(Motion::ReasonStunned))
         {
             pVictim->SetStandState(UNIT_STAND_STATE_STAND);
         }
@@ -4383,7 +4383,7 @@ bool Unit::IsTargetableForAttack(bool inverseAlive /*=false*/) const
         return false;
     }
 
-    return IsInWorld() && !hasUnitState(UNIT_STAT_DIED) && !IsTaxiFlying();
+    return IsInWorld() && !IsFeigningDeath() && !IsTaxiFlying();
 }
 
 /**

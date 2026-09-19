@@ -353,9 +353,9 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
             }
         }
 
-        // Control returns with the last control aura (P2-D's rule): the last claim's finish
-        // cleared UNIT_STAT_FLEEING inside ReleaseControl, so the grant passes; a remaining
-        // confuse keeps control until its own removal. Not under a taxi: a claim refused under a
+        // Control returns with the last control aura (P2-D's rule): ReleaseControl's commit
+        // published the last claim's end, so the grant passes; a remaining confuse keeps
+        // control until its own removal. Not under a taxi: a claim refused under a
         // flight has nothing to give back, and the flight keeps the control until its landing or
         // abort, which grant (P5-B family 5).
         if (GetTypeId() == TYPEID_PLAYER && !GetMotionMaster()->HoldsControl(Motion::Kind::Confused) && !IsTaxiFlying())

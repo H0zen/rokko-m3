@@ -289,7 +289,7 @@ bool Unit::IsVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, boo
     }
 
     // If a mob or player is stunned he will not be able to detect stealth
-    if (u->hasUnitState(UNIT_STAT_STUNNED) && (u != this))
+    if (u->Blocked(Motion::ReasonStunned) && (u != this))
     {
         return false;
     }

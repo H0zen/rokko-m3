@@ -102,8 +102,8 @@ namespace Harness
                     At(t, [this, ga, gb, sa, sb, t]()
                     {
                         Creature* a = Get(ga); Creature* b = Get(gb); if (!a || !b) { return; }
-                        RootSample ra = { t, a->IsRooted(), a->m_movementInfo.HasMovementFlag(MOVEFLAG_ROOT), a->hasUnitState(UNIT_STAT_STUNNED) };
-                        RootSample rb = { t, b->IsRooted(), b->m_movementInfo.HasMovementFlag(MOVEFLAG_ROOT), b->hasUnitState(UNIT_STAT_STUNNED) };
+                        RootSample ra = { t, a->IsRooted(), a->m_movementInfo.HasMovementFlag(MOVEFLAG_ROOT), a->Blocked(Motion::ReasonStunned) };
+                        RootSample rb = { t, b->IsRooted(), b->m_movementInfo.HasMovementFlag(MOVEFLAG_ROOT), b->Blocked(Motion::ReasonStunned) };
                         sa->push_back(ra);
                         sb->push_back(rb);
                         char line[160];
@@ -243,7 +243,7 @@ namespace Harness
                         Pt p = { a->Where().X(), a->Where().Y(), a->Where().Z() };
                         stunned->push_back(p);
                         if (Type(a) != Motion::Kind::Confused) { *stunKind = false; }
-                        Log("stunned +%4ums mt=%s stun=%d at %.1f %.1f", i * 500, TypeName(a), a->hasUnitState(UNIT_STAT_STUNNED) ? 1 : 0, p.x, p.y);
+                        Log("stunned +%4ums mt=%s stun=%d at %.1f %.1f", i * 500, TypeName(a), a->Blocked(Motion::ReasonStunned) ? 1 : 0, p.x, p.y);
                     });
                 }
                 At(5500, [this, g]() { if (Creature* a = Get(g)) { a->RemoveAurasDueToSpell(STUN); Log("stun removed, mt=%s", TypeName(a)); } });

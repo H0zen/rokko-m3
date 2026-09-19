@@ -120,9 +120,9 @@ Motion::Sight NativeBehaviour::See(Unit& owner, bool tick)
     s.status.traveling = !owner.movespline->Finalized();   // live, for the hooks between ticks
     s.position = Motion::Vector3(owner.Where().X(), owner.Where().Y(), owner.Where().Z());
     s.facing = owner.Where().Facing();
-    s.canReact = !owner.hasUnitState(UNIT_STAT_CAN_NOT_REACT | UNIT_STAT_NOT_MOVE);
-    s.canMove = !owner.hasUnitState(UNIT_STAT_CAN_NOT_MOVE);
-    s.notMove = owner.hasUnitState(UNIT_STAT_NOT_MOVE);
+    s.canReact = !owner.Blocked(Motion::kCannotReactReasons | Motion::kNotMoveReasons) && !owner.IsFeigningDeath();   // the old CAN_NOT_REACT | NOT_MOVE
+    s.canMove = !owner.CannotMove();
+    s.notMove = owner.Blocked(Motion::kNotMoveReasons) || owner.IsFeigningDeath();   // the old NOT_MOVE
     s.landed = owner.movespline->Finalized() && !owner.movespline->Cut();
     s.alive = owner.IsAlive();
     s.runningState = owner.hasUnitState(UNIT_STAT_RUNNING_STATE);
@@ -552,6 +552,12 @@ void NativeBehaviour::PerformEffects(Unit& owner, std::vector<Motion::Effect> co
             if (e.clearMask)
             {
                 owner.clearUnitState(e.clearMask);
+                if (e.clearMask == UNIT_STAT_ALL_DYN_STATES)
+                {
+                    // The Home native's first-tick wipe takes the published state with it, as it
+                    // took the old mirrored bits; the commit's end publishes again (P5-C2).
+                    owner.GetMotionMaster()->ClearPublished();
+                }
             }
             continue;
         }
@@ -595,8 +601,11 @@ void NativeBehaviour::PerformEffects(Unit& owner, std::vector<Motion::Effect> co
             }
             case Motion::Effect::ReengageVictim:
             {
-                // Read live, after the inform ran: its AI callback may have installed a chase or a follow.
-                if (!owner.IsAlive() || owner.hasUnitState(UNIT_STAT_CONFUSED | UNIT_STAT_FLEEING | UNIT_STAT_NO_COMBAT_MOVEMENT))
+                // The installs are read live, after the inform ran (its AI callback may have installed
+                // a chase or a follow); the control state is read as of the last commit, as the old
+                // mirrored bits were: a fear the inform applied is not yet seen (inform-fears-mid-outcome).
+                if (!owner.IsAlive() || owner.Blocked(Motion::ReasonConfused | Motion::ReasonFeared) ||
+                    owner.hasUnitState(UNIT_STAT_NO_COMBAT_MOVEMENT))
                 {
                     break;
                 }
@@ -864,7 +873,7 @@ Motion::RouteResult NativeBehaviour::Route(Motion::Vector3 const& from, Motion::
  */
 void NativeBehaviour::ResetRoute() { m_query.reset(); }
 
-bool NativeBehaviour::CanMove() const { return !U().hasUnitState(UNIT_STAT_CAN_NOT_MOVE); }
+bool NativeBehaviour::CanMove() const { return !U().CannotMove(); }
 bool NativeBehaviour::Casting() const { return U().IsNonMeleeSpellCasted(false, false, true); }
 bool NativeBehaviour::WaypointPaused() const { return U().hasUnitState(UNIT_STAT_WAYPOINT_PAUSED); }
 bool NativeBehaviour::CanFly() const { return U().GetTypeId() == TYPEID_UNIT && static_cast<Creature&>(U()).CanFly(); }

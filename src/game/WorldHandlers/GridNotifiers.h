@@ -906,7 +906,7 @@ namespace MaNGOS
             bool operator()(Unit* u)
             {
                 if (u->IsAlive() && u->IsInCombat() && !i_obj->IsHostileTo(u) && InReach(*i_obj, *u, i_range) &&
-                        (u->IsCharmed() || u->IsFrozen() || u->hasUnitState(UNIT_STAT_CAN_NOT_REACT)))
+                        (u->IsCharmed() || u->IsFrozen() || u->CannotReact()))
                 {
                     return true;
                 }

@@ -68,7 +68,7 @@ inline void MaNGOS::ObjectUpdater::Visit(CreatureMapType& m)
 inline void PlayerCreatureRelocationWorker(Player* pl, Creature* c)
 {
     // Creature AI reaction
-    if (!c->hasUnitState(UNIT_STAT_LOST_CONTROL))
+    if (!c->LostControl())
     {
         // Cheap evade + fast-reject checks run BEFORE the expensive IsVisible()/detection call so
         // non-aggroable candidates are skipped early.
@@ -81,7 +81,7 @@ inline void PlayerCreatureRelocationWorker(Player* pl, Creature* c)
 
 inline void CreatureCreatureRelocationWorker(Creature* c1, Creature* c2)
 {
-    if (!c1->hasUnitState(UNIT_STAT_LOST_CONTROL))
+    if (!c1->LostControl())
     {
         if (c1->AI() && !c1->IsInEvadeMode() && !c1->AI()->CanIgnoreForRelocationNotify(c2) && c1->AI()->IsVisible(c2))
         {
@@ -89,7 +89,7 @@ inline void CreatureCreatureRelocationWorker(Creature* c1, Creature* c2)
         }
     }
 
-    if (!c2->hasUnitState(UNIT_STAT_LOST_CONTROL))
+    if (!c2->LostControl())
     {
         if (c2->AI() && !c2->IsInEvadeMode() && !c2->AI()->CanIgnoreForRelocationNotify(c1) && c2->AI()->IsVisible(c1))
         {

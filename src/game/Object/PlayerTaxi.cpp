@@ -306,7 +306,7 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
     // origins, since the mover argument holds for a scripted flight too; the reply is the flight
     // master's alone (a spell taxi has no taxi window open to show it).
     if (HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE) ||
-        hasUnitState(UNIT_STAT_FLEEING | UNIT_STAT_CONFUSED | UNIT_STAT_CONTROLLED))
+        Blocked(Motion::ReasonFeared | Motion::ReasonConfused | Motion::ReasonPossessed))
     {
         if (npc)
         {
@@ -321,7 +321,7 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
         // Stunned or rooted: retail's flight master answers "busy" (the reference §15.6, the taxi
         // notes E.34). A scripted or spell flight on a stunned player is admitted: the kernel
         // flies it (Mobility::Decide returns before the stun and the root for a taxi).
-        if (hasUnitState(UNIT_STAT_STUNNED | UNIT_STAT_ROOT))
+        if (Blocked(Motion::ReasonStunned | Motion::ReasonRooted))
         {
             GetSession()->SendActivateTaxiReply(ERR_TAXIPLAYERBUSY);
             return false;
@@ -728,9 +728,9 @@ void Player::PerformTaxiLanding()
  */
 void Player::TaxiAbort()
 {
-    // The one deliberate second writer of a mirrored bit (the mirror agrees at the commit's end):
-    // the pet's resummon and the hostile-state change below must not see a flight in progress.
-    clearUnitState(UNIT_STAT_TAXI_FLIGHT);
+    // The flight's end published early (the commit that finishes it agrees at its end): the pet's
+    // resummon and the hostile-state change below must not see a flight in progress.
+    GetMotionMaster()->PublishTaxiEnded();
     m_taxiLandingPending = false;
     RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE | UNIT_FLAG_TAXI_FLIGHT);
     RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_NOT_MOUNTED);

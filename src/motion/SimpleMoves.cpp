@@ -216,7 +216,7 @@ namespace Motion
         {
             o.effects.push_back(Effect(Effect::Inform, Motion::Kind::Effect, m_id));
         }
-        o.effects.push_back(Effect(Effect::ReengageVictim));   // independent of the inform; the shell reads its predicate live, after the inform
+        o.effects.push_back(Effect(Effect::ReengageVictim));   // independent of the inform; the shell reads the installs and the victim live, after the inform, and the block as of the last commit
         return o;
     }
 }

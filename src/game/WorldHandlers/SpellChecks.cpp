@@ -1162,7 +1162,7 @@ SpellCastResult Spell::CheckCast(bool strict)
             }
             case SPELL_EFFECT_CHARGE:
             {
-                if (m_caster->hasUnitState(UNIT_STAT_ROOT))
+                if (m_caster->Blocked(Motion::ReasonRooted))
                 {
                     return SPELL_FAILED_ROOTED;
                 }
@@ -1503,7 +1503,7 @@ SpellCastResult Spell::CheckCast(bool strict)
 
                 if (spellEffect->Effect != SPELL_EFFECT_LEAP)
                 {
-                    if (m_caster->hasUnitState(UNIT_STAT_ROOT))
+                    if (m_caster->Blocked(Motion::ReasonRooted))
                     {
                         return SPELL_FAILED_ROOTED;
                     }

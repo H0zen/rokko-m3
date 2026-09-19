@@ -301,7 +301,7 @@ struct boss_priestess_delrissa : public CreatureScript
             // Use the Medallion if CC - only on heroic. Not sure how many times they are allowed to use it.
             if (!m_bIsRegularMode && m_uiMedallionTimer)
             {
-                if (m_creature->IsFrozen() || m_creature->hasUnitState(UNIT_STAT_CAN_NOT_REACT))
+                if (m_creature->IsFrozen() || m_creature->CannotReact())
                 {
                     if (m_uiMedallionTimer <= uiDiff)
                     {
@@ -441,7 +441,7 @@ struct priestess_companion_commonAI : public ScriptedAI
         // Use the Medallion if CC - only on heroic. Not sure how many times they are allowed to use it.
         if (!m_bIsRegularMode && m_uiMedallionTimer)
         {
-            if (m_creature->IsFrozen() || m_creature->hasUnitState(UNIT_STAT_CAN_NOT_REACT))
+            if (m_creature->IsFrozen() || m_creature->CannotReact())
             {
                 if (m_uiMedallionTimer <= uiDiff)
                 {

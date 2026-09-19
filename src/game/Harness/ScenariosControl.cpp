@@ -512,7 +512,7 @@ namespace Harness
                     {
                         Creature* a = Get(g); if (!a) { return; }
                         st->sampledEnd = true;
-                        if (Type(a) == Motion::Kind::Fear || a->hasUnitState(UNIT_STAT_FLEEING)) { st->endedClean = false; }
+                        if (Type(a) == Motion::Kind::Fear || a->Blocked(Motion::ReasonFeared)) { st->endedClean = false; }
                     });
                 }
                 At(5600, [this, st]()

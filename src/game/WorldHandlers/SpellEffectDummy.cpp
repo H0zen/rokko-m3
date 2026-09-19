@@ -2066,7 +2066,7 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                     }
 
                     // This means we already set state (see below) and need to wait.
-                    if (unitTarget->hasUnitState(UNIT_STAT_ROOT))
+                    if (unitTarget->Blocked(Motion::ReasonRooted))
                     {
                         return;
                     }
@@ -3300,10 +3300,10 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
 
                 // Any effect which causes you to lose control of your character will supress the starfall effect.
                 // The same two-part test CanFreeMove() runs (Unit.h): kNoFreeMoveReasons plus the
-                // mirror's feign-only DIED bit; CanFreeMove() itself does not apply here, as its
+                // published feign (IsFeigningDeath); CanFreeMove() itself does not apply here, as its
                 // extra owner-guid check has no place in this caster-state test.
                 if ((m_caster->GetMotionMaster()->Mobility().reasons & Motion::kNoFreeMoveReasons) ||
-                    m_caster->hasUnitState(UNIT_STAT_DIED))
+                    m_caster->IsFeigningDeath())
                 {
                     return;
                 }

@@ -182,7 +182,7 @@ bool Creature::CanSwim() const
 void Creature::UpdateSwimmingState()
 {
     // client-moved creatures (possess) own their movement flags
-    if (hasUnitState(UNIT_STAT_CONTROLLED))
+    if (Blocked(Motion::ReasonPossessed))
     {
         return;
     }

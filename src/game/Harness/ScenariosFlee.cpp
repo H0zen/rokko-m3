@@ -414,7 +414,7 @@ namespace Harness
                     Sample s;
                     s.t = t;
                     s.mt = Type(a);
-                    s.state = a->hasUnitState(UNIT_STAT_FLEEING);
+                    s.state = a->Blocked(Motion::ReasonFeared);
                     s.move = a->hasUnitState(UNIT_STAT_FLEEING_MOVE);
                     s.flag = a->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
                     Unit* v = a->getVictim() ? a->getVictim() : b;
@@ -701,7 +701,7 @@ namespace Harness
                         s.mt = Type(a);
                         s.timed = a->GetMotionMaster()->SelectedVariant() == 1;
                         s.flag = a->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
-                        s.state = a->hasUnitState(UNIT_STAT_FLEEING | UNIT_STAT_FLEEING_MOVE);
+                        s.state = a->Blocked(Motion::ReasonFeared) || a->hasUnitState(UNIT_STAT_FLEEING_MOVE);
                         samples->push_back(s);
                         Log("+%4ums mt=%s flag=%d state=%d", s.t, Motion::KindName(s.mt), s.flag ? 1 : 0, s.state ? 1 : 0);
                     });

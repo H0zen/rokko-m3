@@ -70,7 +70,7 @@
  */
 void Unit::AttackerStateUpdate(Unit* pVictim, WeaponAttackType attType, bool extra)
 {
-    if (hasUnitState(UNIT_STAT_CAN_NOT_REACT) || HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED))
+    if (CannotReact() || HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PACIFIED))
     {
         return;
     }
@@ -1072,7 +1072,7 @@ float Unit::MeleeMissChanceCalc(const Unit* pVictim, WeaponAttackType attType) c
  */
 float Unit::GetUnitDodgeChance() const
 {
-    if (hasUnitState(UNIT_STAT_STUNNED))
+    if (Blocked(Motion::ReasonStunned))
     {
         return 0.0f;
     }
@@ -1102,7 +1102,7 @@ float Unit::GetUnitDodgeChance() const
  */
 float Unit::GetUnitParryChance() const
 {
-    if (IsNonMeleeSpellCasted(false) || hasUnitState(UNIT_STAT_STUNNED))
+    if (IsNonMeleeSpellCasted(false) || Blocked(Motion::ReasonStunned))
     {
         return 0.0f;
     }
@@ -1145,7 +1145,7 @@ float Unit::GetUnitParryChance() const
  */
 float Unit::GetUnitBlockChance() const
 {
-    if (IsNonMeleeSpellCasted(false) || hasUnitState(UNIT_STAT_STUNNED))
+    if (IsNonMeleeSpellCasted(false) || Blocked(Motion::ReasonStunned))
     {
         return 0.0f;
     }

@@ -83,7 +83,7 @@ namespace Motion
             /// generator built one router per pass; the mesh router is stateful and reuses a
             /// previous poly path.
             virtual void ResetRoute() = 0;
-            /// Live: the unit may move (`!UNIT_STAT_CAN_NOT_MOVE`); the generator re-read it
+            /// Re-read at every call: the unit may move (the shell's `!Unit::CannotMove()`, the block as of the last commit); the generator re-read it
             /// after a node's effects, which may have rooted or stunned the unit.
             virtual bool CanMove() const = 0;
             virtual bool Casting() const = 0;          ///< a non-melee spell in progress (the patrol holds)
@@ -153,9 +153,9 @@ namespace Motion
         MoveStatus status;           ///< the driver's view of the live leg
         Vector3    position;         ///< world
         float      facing = 0.0f;
-        bool       canReact = true;  ///< !(CAN_NOT_REACT | NOT_MOVE): the generators' Initialize guard
-        bool       canMove = true;   ///< !CAN_NOT_MOVE
-        bool       notMove = false;  ///< UNIT_STAT_NOT_MOVE: root, stun, death or a distract's stand (the confuse's activation guard; one bit more than !canMove)
+        bool       canReact = true;  ///< not stunned, feared, confused, rooted, distracted or feigning (the old !(CAN_NOT_REACT | NOT_MOVE)): the generators' Initialize guard
+        bool       canMove = true;   ///< !Unit::CannotMove() (the old !CAN_NOT_MOVE)
+        bool       notMove = false;  ///< root, stun, a feign or a distract's stand (the old UNIT_STAT_NOT_MOVE): the confuse's activation guard, one bit more than !canMove
         bool       landed = false;   ///< the Effect's spline ran out uncut (Finalized && !Cut)
         bool       alive = true;
         bool       hasTarget = false; ///< a tracked target exists (the charge)
@@ -179,14 +179,14 @@ namespace Motion
     /// One shell operation of a Step or an Outcome, performed in order. Every kind names its
     /// owners (Effect::Owners): a creature's kinds are skipped for a player owner (the generators
     /// returned before the inform and the re-engage for a non-creature), a player's for a
-    /// creature, and the unit-state mirror is every owner's.
+    /// creature, and the StateRaw masks are every owner's.
     struct Effect
     {
         enum Kind : uint8
         {
             Inform,            ///< creature.AI()->MovementInform(who, id)
             SummonedInform,    ///< a temporary summon's creature summoner: SummonedMovementInform(the summon, who, id)
-            ReengageVictim,    ///< live predicate: creature, alive, not confused/fleeing/no-combat-movement, not chasing/following, has a victim -> MoveChase(victim)
+            ReengageVictim,    ///< creature, alive, not confused/fleeing (the block as of the last commit: a fear the inform just applied is not yet seen) nor no-combat-movement, not chasing/following and with a victim (read live, after the inform) -> MoveChase(victim)
             CallAssistance,    ///< SetNoCallAssistance(false); CallAssistance()
             SeekAssistDistract,///< if alive: MoveSeekAssistanceDistract(the configured delay)
             AttackVictim,      ///< if a victim and alive: AttackStop(true); AI()->AttackStart(victim)
@@ -241,7 +241,7 @@ namespace Motion
         static Effect Cross(uint32 mapId, Vector3 const& pos, float facing) { Effect e(TaxiCross); e.raw = mapId; e.point = pos; e.angle = facing; return e; }
         static Effect Land(bool snap, Vector3 const& pos, float facing) { Effect e(TaxiLand); e.flag = snap; e.point = pos; e.angle = facing; return e; }
         static Effect Abort(FinishReason why) { Effect e(TaxiAbort); e.reason = why; return e; }
-        /// The owners of a kind. The unit-state mirror is a player's as much as a creature's (a
+        /// The owners of a kind. The StateRaw masks are a player's as much as a creature's (a
         /// feared player carries UNIT_STAT_FLEEING_MOVE exactly as the generators wrote it); the
         /// taxi's six are a player's alone; every other kind is a creature's.
         static uint8 Owners(Kind k)

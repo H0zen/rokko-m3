@@ -416,7 +416,7 @@ void Spell::DoSpellHitOnUnit(Unit* unit, uint32 effectMask)
                 // caster can be detected but have stealth aura
                 m_caster->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
 
-                if (!unit->IsStandState() && !unit->hasUnitState(UNIT_STAT_STUNNED))
+                if (!unit->IsStandState() && !unit->Blocked(Motion::ReasonStunned))
                 {
                     unit->SetStandState(UNIT_STAND_STATE_STAND);
                 }

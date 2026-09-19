@@ -56,9 +56,17 @@ namespace Motion
     };
 
     /// The reasons that deny a player free movement for the client's own requests (a logout, a
-    /// chain target): the old UNIT_STAT_NO_FREE_MOVE less its feign bit, which the mirror carries
-    /// as UNIT_STAT_DIED.
+    /// chain target): the old UNIT_STAT_NO_FREE_MOVE less its feign bit, which the shell's
+    /// published state carries apart (MotionMaster::PublishedState::feign).
     const uint8 kNoFreeMoveReasons = ReasonRooted | ReasonStunned | ReasonFeared | ReasonConfused | ReasonOnTaxi;
+
+    /// The shell's old unit-state composites as reasons (P5-C2), each less its feign bit, which
+    /// the published state carries apart. None names ReasonDead: the published state never
+    /// carries it (a real death is IsAlive()'s answer and never set a unit-state bit).
+    const uint8 kCannotMoveReasons  = ReasonRooted | ReasonStunned;                   ///< UNIT_STAT_CAN_NOT_MOVE
+    const uint8 kNotMoveReasons     = ReasonRooted | ReasonStunned | ReasonDistracted; ///< UNIT_STAT_NOT_MOVE
+    const uint8 kCannotReactReasons = ReasonStunned | ReasonFeared | ReasonConfused;   ///< UNIT_STAT_CAN_NOT_REACT
+    const uint8 kLostControlReasons = ReasonFeared | ReasonPossessed;                  ///< UNIT_STAT_LOST_CONTROL
 
     /// The class of the selected entry, for the table.
     enum class Selected : uint8 { None, Ordinary, Distract, Control, Taxi };

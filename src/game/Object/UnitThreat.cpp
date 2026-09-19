@@ -179,7 +179,7 @@ void Unit::TauntApply(Unit* taunter)
     }
 
     // Only attack taunter if this is a valid target
-    if (!hasUnitState(UNIT_STAT_STUNNED | UNIT_STAT_DIED) && !IsSecondChoiceTarget(taunter, true))
+    if (!(Blocked(Motion::ReasonStunned) || IsFeigningDeath()) && !IsSecondChoiceTarget(taunter, true))
     {
         if (GetTargetGuid() || !target)
         {
@@ -354,7 +354,7 @@ bool Unit::SelectHostileTarget()
 
     if (target)
     {
-        if (!hasUnitState(UNIT_STAT_STUNNED | UNIT_STAT_DIED))
+        if (!(Blocked(Motion::ReasonStunned) || IsFeigningDeath()))
         {
             // PACIFIED creatures (training dummies, etc.) keep their spawn
             // orientation. PACIFIED already gates attack initiation, so visual

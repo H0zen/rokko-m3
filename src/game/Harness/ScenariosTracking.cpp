@@ -1216,7 +1216,7 @@ namespace Harness
                                     c->GetMotionMaster()->MoveTargetedHome();
                                     Log("+%5ums %s arrived %.1f yd out: Web cast and MoveTargetedHome in the same step (rooted=%d, mt=%s)",
                                         t, pairs[p].name, Dist2(c->Where().X(), c->Where().Y(), c->Spawn().X(), c->Spawn().Y()),
-                                        c->hasUnitState(UNIT_STAT_ROOT) ? 1 : 0, TypeName(c));
+                                        c->Blocked(Motion::ReasonRooted) ? 1 : 0, TypeName(c));
                                 }
                                 s.wasRunning = running;
                                 continue;
@@ -1226,9 +1226,9 @@ namespace Harness
                                 s.idled = true;
                                 c->GetMotionMaster()->MoveIdle();
                                 Log("+%5ums B goes idle under the root: its home is displaced, never arrived (rooted=%d, mt=%s)",
-                                    t, c->hasUnitState(UNIT_STAT_ROOT) ? 1 : 0, TypeName(c));
+                                    t, c->Blocked(Motion::ReasonRooted) ? 1 : 0, TypeName(c));
                             }
-                            const bool rooted = c->hasUnitState(UNIT_STAT_ROOT);
+                            const bool rooted = c->Blocked(Motion::ReasonRooted);
                             const bool aura = c->HasAura(ROOT);
                             if (aura)
                             {

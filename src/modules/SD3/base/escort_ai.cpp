@@ -145,7 +145,7 @@ bool npc_escortAI::AssistPlayerInCombat(Unit* pWho)
     }
 
     // unit state prevents (similar check is done in CanInitiateAttack which also include checking unit_flags. We skip those here)
-    if (m_creature->hasUnitState(UNIT_STAT_STUNNED | UNIT_STAT_DIED))
+    if (m_creature->Blocked(Motion::ReasonStunned) || m_creature->IsFeigningDeath())
     {
         return false;
     }

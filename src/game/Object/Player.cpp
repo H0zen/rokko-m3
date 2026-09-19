@@ -2110,7 +2110,7 @@ Creature* Player::GetNPCIfCanInteractWith(ObjectGuid guid, uint32 NpcFlagsmask)
     DoInteraction(guid);
 
     // not in interactive state
-    if (hasUnitState(UNIT_STAT_CAN_NOT_REACT_OR_LOST_CONTROL))
+    if (CannotReact() || LostControl())
     {
         return NULL;
     }
@@ -2187,7 +2187,7 @@ GameObject* Player::GetGameObjectIfCanInteractWith(ObjectGuid guid, uint32 gameo
     DoInteraction(guid);
 
     // not in interactive state
-    if (hasUnitState(UNIT_STAT_CAN_NOT_REACT_OR_LOST_CONTROL))
+    if (CannotReact() || LostControl())
     {
         return NULL;
     }
@@ -5205,7 +5205,7 @@ void Player::SetClientControl(Unit* target, uint8 allowMove)
     // a second, invisible revoke: the take already happened when the fear or
     // confuse applied, and control returns with the last such aura's own removal
     // (CPP's rule), not with an interleaved release.
-    if (allowMove && target->hasUnitState(UNIT_STAT_FLEEING | UNIT_STAT_CONFUSED))
+    if (allowMove && target->Blocked(Motion::ReasonFeared | Motion::ReasonConfused))
     {
         sLog.outError("Player::SetClientControl: %s: the grant of %s waits, it is still fleeing or confused (control returns with the last such aura)",
                       GetGuidStr().c_str(), target->GetGuidStr().c_str());

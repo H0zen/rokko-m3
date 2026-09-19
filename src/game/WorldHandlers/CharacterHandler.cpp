@@ -1124,7 +1124,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
                  GetAccountId(), IP_str.c_str(), pCurrChar->GetName(), pCurrChar->GetGUIDLow());
 
     /* Make player stand up if they're not already stood up and not stunned */
-    if (!pCurrChar->IsStandState() && !pCurrChar->hasUnitState(UNIT_STAT_STUNNED))
+    if (!pCurrChar->IsStandState() && !pCurrChar->Blocked(Motion::ReasonStunned))
     {
         pCurrChar->SetStandState(UNIT_STAND_STATE_STAND);
     }

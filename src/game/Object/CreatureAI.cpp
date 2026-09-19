@@ -70,7 +70,7 @@ CanCastResult CreatureAI::CanCastSpell(Unit* pTarget, const SpellEntry* pSpell, 
     if (!isTriggered)
     {
         // State does not allow
-        if (m_creature->hasUnitState(UNIT_STAT_CAN_NOT_REACT_OR_LOST_CONTROL))
+        if (m_creature->CannotReact() || m_creature->LostControl())
         {
             return CAST_FAIL_STATE;
         }

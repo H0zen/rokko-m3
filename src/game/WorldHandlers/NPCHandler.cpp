@@ -100,7 +100,7 @@ void WorldSession::HandleTabardVendorActivateOpcode(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -139,7 +139,7 @@ void WorldSession::HandleBankerActivateOpcode(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -238,7 +238,7 @@ void WorldSession::SendTrainerList(ObjectGuid guid, const std::string& strTitle)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -352,7 +352,7 @@ void WorldSession::HandleTrainerBuySpellOpcode(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -470,7 +470,7 @@ void WorldSession::HandleGossipHelloOpcode(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -512,7 +512,7 @@ void WorldSession::HandleGossipSelectOptionOpcode(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -573,7 +573,7 @@ void WorldSession::HandleSpiritHealerActivateOpcode(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -666,7 +666,7 @@ void WorldSession::HandleBinderActivateOpcode(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -718,7 +718,7 @@ void WorldSession::HandleListStabledPetsOpcode(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -938,7 +938,7 @@ void WorldSession::HandleStablePet(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -1089,7 +1089,7 @@ void WorldSession::HandleUnstablePet(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -1172,7 +1172,7 @@ void WorldSession::HandleBuyStableSlot(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -1232,7 +1232,7 @@ void WorldSession::HandleStableSwapPet(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -1320,7 +1320,7 @@ void WorldSession::HandleRepairItemOpcode(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }

@@ -835,7 +835,7 @@ void WorldSession::HandleAddonMessagechatOpcode(WorldPacket& recv_data)
  */
 void WorldSession::HandleEmoteOpcode(WorldPacket& recv_data)
 {
-    if (!GetPlayer()->IsAlive() || GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (!GetPlayer()->IsAlive() || GetPlayer()->IsFeigningDeath())
     {
         return;
     }
@@ -932,7 +932,7 @@ void WorldSession::HandleTextEmoteOpcode(WorldPacket& recv_data)
         default:
         {
             // in feign death state allowed only text emotes.
-            if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+            if (GetPlayer()->IsFeigningDeath())
             {
                 break;
             }

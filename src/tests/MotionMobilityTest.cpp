@@ -153,3 +153,18 @@ TEST(MotionMobility_SourcesAndNames)
     CHECK_STR(InhibitionName(Inhibition::Possessed), "Possessed");
     CHECK_STR(InhibitionName(Inhibition::Count), "none");
 }
+
+TEST(MotionMobility_ShellMasksAreTheCompositesAndNameNoDeath)
+{
+    // Each mask is its old unit-state composite's reasons, feign excluded.
+    CHECK_EQ(int(kCannotMoveReasons), int(ReasonRooted | ReasonStunned));
+    CHECK_EQ(int(kNotMoveReasons), int(ReasonRooted | ReasonStunned | ReasonDistracted));
+    CHECK_EQ(int(kCannotReactReasons), int(ReasonStunned | ReasonFeared | ReasonConfused));
+    CHECK_EQ(int(kLostControlReasons), int(ReasonFeared | ReasonPossessed));
+    // The published state never carries ReasonDead: a mask naming it would never match.
+    CHECK_EQ(int(kCannotMoveReasons & ReasonDead), 0);
+    CHECK_EQ(int(kNotMoveReasons & ReasonDead), 0);
+    CHECK_EQ(int(kCannotReactReasons & ReasonDead), 0);
+    CHECK_EQ(int(kLostControlReasons & ReasonDead), 0);
+    CHECK_EQ(int(kNoFreeMoveReasons & ReasonDead), 0);
+}

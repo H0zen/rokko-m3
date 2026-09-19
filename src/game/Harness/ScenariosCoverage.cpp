@@ -182,10 +182,10 @@ namespace Harness
                     std::vector<uint64> const& src = w->GetMotionMaster()->Arbiter().Sources(Motion::Inhibition::Rooted);
                     const uint64 want = Motion::InhibitSource(Motion::SourceDomain::Seat, v->GetObjectGuid().GetCounter(), uint32(*seat));
                     const bool noCharm = !r.possessed && v->GetCharmerGuid().IsEmpty();
-                    const bool ok = w->IsRooted() && r.rooted && w->hasUnitState(UNIT_STAT_ROOT) && src.size() == 1 && src[0] == want && noCharm;
+                    const bool ok = w->IsRooted() && r.rooted && w->Blocked(Motion::ReasonRooted) && src.size() == 1 && src[0] == want && noCharm;
                     char text[200];
                     snprintf(text, sizeof(text), "%s(rooted=%d state=%d sources=%u possessed=%d charmer=%d)", ok ? "OK" : "BUG",
-                             w->IsRooted() ? 1 : 0, w->hasUnitState(UNIT_STAT_ROOT) ? 1 : 0, uint32(src.size()), r.possessed ? 1 : 0, v->GetCharmerGuid().IsEmpty() ? 0 : 1);
+                             w->IsRooted() ? 1 : 0, w->Blocked(Motion::ReasonRooted) ? 1 : 0, uint32(src.size()), r.possessed ? 1 : 0, v->GetCharmerGuid().IsEmpty() ? 0 : 1);
                     *seatRoots = text;
                     Log("seated: %s", text);
                 });
@@ -288,10 +288,10 @@ namespace Harness
                 {
                     Creature* w = Get(gw); if (!w || *seat < 0) { return; }
                     const BlockRead r = ReadBlock(w);
-                    const bool ok = !r.rooted && !w->IsRooted() && !w->hasUnitState(UNIT_STAT_ROOT) && r.rootSources == 0;
+                    const bool ok = !r.rooted && !w->IsRooted() && !w->Blocked(Motion::ReasonRooted) && r.rootSources == 0;
                     char text[120];
                     snprintf(text, sizeof(text), "%s(rooted=%d state=%d sources=%u mt=%s)", ok ? "OK" : "BUG",
-                             w->IsRooted() ? 1 : 0, w->hasUnitState(UNIT_STAT_ROOT) ? 1 : 0, uint32(r.rootSources), TypeName(w));
+                             w->IsRooted() ? 1 : 0, w->Blocked(Motion::ReasonRooted) ? 1 : 0, uint32(r.rootSources), TypeName(w));
                     *unboardReleases = text;
                     Log("after the unboard: %s", text);
                 });
@@ -485,7 +485,7 @@ namespace Harness
                     MotionMaster* mm = w->GetMotionMaster();
                     const bool noSources = mm->Arbiter().Sources(Motion::Inhibition::Rooted).empty() && mm->Arbiter().Sources(Motion::Inhibition::Stunned).empty() &&
                                            mm->Arbiter().Sources(Motion::Inhibition::Dead).empty() && mm->Arbiter().Sources(Motion::Inhibition::Possessed).empty();
-                    const bool noState = (w->GetUnitState() & (UNIT_STAT_ROOT | UNIT_STAT_STUNNED | UNIT_STAT_DIED)) == 0;
+                    const bool noState = !w->CannotMove();
                     const bool ok = !r.dead && r.reasons == 0 && noSources && noState;
                     char text[160];
                     snprintf(text, sizeof(text), "%s(alive dead=%d reasons=%u sources=%d state=%d mt=%s)", ok ? "OK" : "BUG",

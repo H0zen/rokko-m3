@@ -3898,7 +3898,7 @@ void Aura::PeriodicDummyTick()
                 // Killing Spree
                 case 51690:
                 {
-                    if (target->hasUnitState(UNIT_STAT_STUNNED) || target->isFeared())
+                    if (target->Blocked(Motion::ReasonStunned) || target->isFeared())
                     {
                         return;
                     }

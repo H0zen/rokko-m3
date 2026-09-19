@@ -104,7 +104,7 @@ void WorldSession::HandleTaxiQueryAvailableNodes(WorldPacket& recv_data)
     }
 
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
@@ -156,7 +156,7 @@ void WorldSession::SendTaxiMenu(Creature* unit)
 void WorldSession::SendDoFlight(uint32 mountDisplayId, std::vector<uint32> const& route, uint32 startNode)
 {
     // remove fake death
-    if (GetPlayer()->hasUnitState(UNIT_STAT_DIED))
+    if (GetPlayer()->IsFeigningDeath())
     {
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }

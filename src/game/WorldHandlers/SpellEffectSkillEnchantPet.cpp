@@ -307,7 +307,7 @@ void Spell::EffectDistract(SpellEffectEntry const* /*effect*/)
     }
 
     // target must be OK to do this
-    if (unitTarget->hasUnitState(UNIT_STAT_CAN_NOT_REACT))
+    if (unitTarget->CannotReact())
     {
         return;
     }
