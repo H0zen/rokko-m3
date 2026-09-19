@@ -93,7 +93,7 @@ namespace Harness
                     // byte-identical, and the verdict body itself carries the evidence.
                     Creature* a = Get(g); if (!a) { return; }
                     *roamingAtPoint = a->hasUnitState(UNIT_STAT_ROAMING_MOVE);
-                    *projectionAtPoint = Type(a) == POINT_MOTION_TYPE;
+                    *projectionAtPoint = Type(a) == Motion::Kind::Point;
                     *sampledBefore = true;
                 });
                 At(2500, [this, g, h]()
@@ -127,7 +127,7 @@ namespace Harness
                     for (size_t k = mark; k < Informs().size(); ++k)
                     {
                         Inform const& r = Informs()[k];
-                        if (r.type == POINT_MOTION_TYPE && r.id == 55)
+                        if (r.kind == Motion::Kind::Point && r.id == 55)
                         {
                             spurious = true;
                             shortBy = Dist2(r.x, r.y, SD.x - 40.0f, SD.y);
@@ -186,7 +186,7 @@ namespace Harness
             {
                 m_informedAt88 = false;
                 m_roamingAtInform = false;
-                struct Sample { uint32 t; float d; MovementGeneratorType mt; bool roaming; };
+                struct Sample { uint32 t; float d; Motion::Kind mt; bool roaming; };
                 Creature* a = Spawn(WOLF, A4.x, A4.y, A4.z, 0.0f);
                 if (!a) { Verdict("longMovePoint=INVALID(spawn failed) | roamingBits=INVALID(spawn failed) | projection=INVALID(spawn failed)"); return; }
                 Load(B4.x, B4.y);
@@ -212,7 +212,7 @@ namespace Harness
                         s.mt = Type(a);
                         s.roaming = a->hasUnitState(UNIT_STAT_ROAMING_MOVE);   // captured silently: the record's log line for this scenario stays byte-identical
                         samples->push_back(s);
-                        Log("+%3us dist=%.1f mt=%s", s.t, s.d, Harness::TypeName(s.mt));
+                        Log("+%3us dist=%.1f mt=%s", s.t, s.d, Motion::KindName(s.mt));
                     });
                 }
                 At(500 + 21 * 5000, [this, low, samples, mark]()
@@ -222,7 +222,7 @@ namespace Harness
                     for (size_t k = mark; k < Informs().size(); ++k)
                     {
                         Inform const& r = Informs()[k];
-                        if (r.guidLow == low && r.type == POINT_MOTION_TYPE && r.id == 88)
+                        if (r.guidLow == low && r.kind == Motion::Kind::Point && r.id == 88)
                         {
                             lastInform = r;
                             haveInform = true;
@@ -259,7 +259,7 @@ namespace Harness
                     for (size_t k = 0; k < samples->size(); ++k)
                     {
                         Sample const& s = (*samples)[k];
-                        if (s.mt == POINT_MOTION_TYPE)
+                        if (s.mt == Motion::Kind::Point)
                         {
                             foundPoint = true;
                             if (s.roaming) { roamingWhilePoint = true; }
@@ -297,9 +297,9 @@ namespace Harness
             /// by the time this runs, so this is the earliest possible read of the point's own
             /// release, before the wolf's default Random re-claims the same bit for its own
             /// wander leg.
-            void OnInform(Creature* creature, uint32 type, uint32 id) override
+            void OnInform(Creature* creature, Motion::Kind kind, uint32 id) override
             {
-                if (type != POINT_MOTION_TYPE || id != 88 || m_informedAt88) { return; }
+                if (kind != Motion::Kind::Point || id != 88 || m_informedAt88) { return; }
                 m_roamingAtInform = creature->hasUnitState(UNIT_STAT_ROAMING_MOVE);
                 m_informedAt88 = true;
             }
@@ -358,7 +358,7 @@ namespace Harness
                         for (size_t idx = pr.mark; idx < Informs().size(); ++idx)
                         {
                             Inform const& r = Informs()[idx];
-                            if (r.guidLow == low && r.type == POINT_MOTION_TYPE && r.id == pr.id) { pr.informed = true; }
+                            if (r.guidLow == low && r.kind == Motion::Kind::Point && r.id == pr.id) { pr.informed = true; }
                         }
                         pr.d = Dist2(a->Where().X(), a->Where().Y(), pr.gx, A4.y);
                         pr.mt = TypeName(a);

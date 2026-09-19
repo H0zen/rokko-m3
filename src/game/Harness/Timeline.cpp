@@ -80,31 +80,6 @@ namespace Harness
         return std::string("VERDICT ") + scenario + " " + body;
     }
 
-    char const* TypeName(uint32 movementGeneratorType)
-    {
-        switch (movementGeneratorType)
-        {
-            case 0:  return "IDLE";
-            case 1:  return "RANDOM";
-            case 2:  return "WAYPOINT";
-            case 4:  return "CONFUSED";
-            case 5:  return "CHASE";
-            case 6:  return "HOME";
-            case 7:  return "FLIGHT";
-            case 8:  return "POINT";
-            case 9:  return "FLEEING";
-            case 10: return "DISTRACT";
-            case 11: return "ASSIST";
-            case 12: return "ASSIST_DISTRACT";
-            case 13: return "TIMED_FLEE";
-            case 14: return "FOLLOW";
-            case 15: return "EFFECT";
-            case 16: return "PATH";
-            case 17: return "FORMATION";
-            default: return "?";
-        }
-    }
-
     float Dist2(float x1, float y1, float x2, float y2)
     {
         const float dx = x1 - x2;

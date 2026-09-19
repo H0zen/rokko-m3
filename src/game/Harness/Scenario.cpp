@@ -117,7 +117,7 @@ namespace Harness
         c->SetSpawn(pos);
         // No player stands on the harness map, and Map::Update ticks only the cells
         // around players plus the active objects: without this the actor is in the
-        // world but never updated, so its movement generators never run at all. The
+        // world but never updated, so its movement behaviours never run at all. The
         // flag is set before the add because Map::Add is the single registration
         // point for a new object; setting it afterwards would register through the
         // setter instead - either works, one is enough.
@@ -187,10 +187,10 @@ namespace Harness
         }
     }
 
-    MovementGeneratorType Scenario::Type(Creature* c) const
+    Motion::Kind Scenario::Type(Creature* c) const
     {
-        // The binding's projection, not a generator's: the simple moves are natives now.
-        return c ? c->GetMotionMaster()->GetCurrentMovementGeneratorType() : IDLE_MOTION_TYPE;
+        // The selected kind: the kernel's own answer, the label the verdicts print.
+        return c ? c->GetMotionMaster()->ActiveKind() : Motion::Kind::Idle;
     }
 
     uint32 Scenario::Node(Creature* c) const

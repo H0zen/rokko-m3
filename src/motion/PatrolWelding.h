@@ -83,15 +83,6 @@ namespace Motion
     };
 
     /**
-     * @brief Decision for how an in-progress waypoint segment should be updated.
-     */
-    enum class WaypointSegmentUpdateState
-    {
-        Moving,   ///< Spline still running normally
-        Finalized ///< Spline has completed
-    };
-
-    /**
      * @brief Running axis-aligned bounding box of a candidate smoothed path.
      *
      * Used to keep the path within the packable offset budget, see
@@ -122,13 +113,6 @@ namespace Motion
      * @return True once the spline index has reached or passed the endpoint.
      */
     bool HasReachedWaypointEndpoint(int32 currentPathIdx, size_t endpointPathIndex);
-
-    /**
-     * @brief Classifies an in-progress segment by whether its spline has completed.
-     * @param splineFinalized Whether the spline has completed.
-     * @return The resulting WaypointSegmentUpdateState.
-     */
-    WaypointSegmentUpdateState GetWaypointSegmentUpdateState(bool splineFinalized);
 
     /**
      * @brief Expands the bounding box to include the given point.

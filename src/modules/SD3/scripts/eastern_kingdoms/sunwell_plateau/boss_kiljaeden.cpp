@@ -343,9 +343,9 @@ struct npc_kiljaeden_controller : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE)
+            if (uiType != Motion::Kind::Point)
             {
                 return;
             }
@@ -864,9 +864,9 @@ struct npc_shield_orb : public CreatureScript
         ScriptedInstance* m_pInstance;
 
         // Handle circel movement around the boss
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !uiPointId || !m_pInstance)
+            if (uiMoveType != Motion::Kind::Point || !uiPointId || !m_pInstance)
             {
                 return;
             }

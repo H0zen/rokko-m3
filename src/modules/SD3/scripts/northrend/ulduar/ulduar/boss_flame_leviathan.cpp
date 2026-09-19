@@ -301,9 +301,9 @@ struct boss_flame_leviathan : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiMoveType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMoveType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }
@@ -330,9 +330,9 @@ struct boss_flame_leviathan : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMoveType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }
@@ -682,9 +682,9 @@ struct npc_hodir_fury_reticle : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMoveType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }

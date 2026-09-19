@@ -59,7 +59,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; float d; MovementGeneratorType mt; };
+                struct Sample { uint32 t; float d; Motion::Kind mt; };
                 const float fx = SA.x + 25.0f, fy = SA.y;
                 Creature* a = Spawn(WOLF, SA.x, SA.y, SA.z, 0.0f);
                 Creature* b = Spawn(KOBOLD, fx, fy, Ground(fx, fy, SA.z), 3.1f);
@@ -94,7 +94,7 @@ namespace Harness
                         s.d = Dist2(x, y, bx, by);
                         s.mt = Type(a);
                         samples->push_back(s);
-                        Log("+%2us dTarget=%.1f mt=%s", s.t, s.d, Harness::TypeName(s.mt));
+                        Log("+%2us dTarget=%.1f mt=%s", s.t, s.d, Motion::KindName(s.mt));
                     });
                 }
                 At(12500, [this, samples]()
@@ -103,7 +103,7 @@ namespace Harness
                     Sample const& f = samples->back();
                     Sample const& first = (*samples)[0];
                     std::string v;
-                    if (f.mt == FOLLOW_MOTION_TYPE && f.d < first.d - 6.0f)
+                    if (f.mt == Motion::Kind::Follow && f.d < first.d - 6.0f)
                     {
                         char text[96];
                         snprintf(text, sizeof(text), "OK(follow survived the effect and closed in %.0f -> %.0f yd)", first.d, f.d);
@@ -112,7 +112,7 @@ namespace Harness
                     else
                     {
                         char text[128];
-                        snprintf(text, sizeof(text), "BUG(follow lost or stalled: mt=%s, %.1f -> %.1f yd from target)", Harness::TypeName(f.mt), first.d, f.d);
+                        snprintf(text, sizeof(text), "BUG(follow lost or stalled: mt=%s, %.1f -> %.1f yd from target)", Motion::KindName(f.mt), first.d, f.d);
                         v = text;
                     }
                     Verdict("followKnockback=" + v);
@@ -129,7 +129,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; float d4, m4, d5, m5; MovementGeneratorType mt4, mt5; };
+                struct Sample { uint32 t; float d4, m4, d5, m5; Motion::Kind mt4, mt5; };
                 const float mx = (A4.x + B4.x) / 2.0f, my = (A4.y + B4.y) / 2.0f;
                 Load(A4.x, A4.y);
                 Load(B4.x, B4.y);
@@ -173,7 +173,7 @@ namespace Harness
                         s.mt4 = Type(a4); s.mt5 = Type(a5);
                         samples->push_back(s);
                         Log("+%3us long: dist=%.1f moved=%.1f mt=%s | control: dist=%.1f moved=%.1f mt=%s",
-                            s.t, s.d4, s.m4, Harness::TypeName(s.mt4), s.d5, s.m5, Harness::TypeName(s.mt5));
+                            s.t, s.d4, s.m4, Motion::KindName(s.mt4), s.d5, s.m5, Motion::KindName(s.mt5));
                     });
                 }
                 At(500 + 81 * 3000, [this, samples]()

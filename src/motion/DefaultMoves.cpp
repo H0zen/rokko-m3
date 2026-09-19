@@ -346,7 +346,8 @@ namespace Motion
             }
             s.effects.push_back(Effect(Effect::Say, Motion::Kind::Patrol, uint32(textId)));
         }
-        s.effects.push_back(Effect::Raw(m_p.external ? m_p.inform.externalMove : m_p.inform.waypoint, m_currentNode));
+        s.effects.push_back(m_p.external ? Effect::Path(uint32(m_p.pathId), PathEvent::NodeReached, m_currentNode)
+                                         : Effect(Effect::Inform, Motion::Kind::Patrol, m_currentNode));
         // The generator's Stop(node.delay) was OnArrived's last line -- it ran AFTER the inform
         // hook, so it overwrote whatever that hook installed (a SetNextWaypoint's 1 ms, a Pause's
         // own timer). The shell performs this step's effects only after it returns, so the Stop
@@ -398,7 +399,7 @@ namespace Motion
                 // next node, which the PrepareInform continuation below honours.
                 m_nodeBeforeInform = m_currentNode;
                 m_nextAfterInform = m_p.nodes[next].id;
-                s.effects.push_back(Effect::Raw(m_reachedLast ? m_p.inform.externalLast : m_p.inform.externalStart, m_p.nodes[next].id));
+                s.effects.push_back(Effect::Path(uint32(m_p.pathId), m_reachedLast ? PathEvent::LastWaitEnded : PathEvent::NodeLeft, m_p.nodes[next].id));
                 s.again = true;
                 m_phase = Phase::PrepareInform;
                 return s;

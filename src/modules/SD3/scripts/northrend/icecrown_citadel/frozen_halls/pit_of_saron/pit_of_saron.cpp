@@ -68,9 +68,9 @@ struct npc_ymirjar_deathbringer : public CreatureScript
             m_uiShadowBoltTimer = urand(1000, 3000);
         }
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMotionType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }

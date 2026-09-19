@@ -183,7 +183,7 @@ namespace Harness
                         Creature* a = Get(g); if (!a) { return; }
                         Pt p = { a->Where().X(), a->Where().Y(), a->Where().Z() };
                         rooted->push_back(p);
-                        if (Type(a) == FLEEING_MOTION_TYPE) { *fearGone = false; }
+                        if (Type(a) == Motion::Kind::Fear) { *fearGone = false; }
                         Log("rooted +%4ums mt=%s rooted=%d at %.1f %.1f", i * 500, TypeName(a), a->IsRooted() ? 1 : 0, p.x, p.y);
                     });
                 }
@@ -242,7 +242,7 @@ namespace Harness
                         Creature* a = Get(g); if (!a) { return; }
                         Pt p = { a->Where().X(), a->Where().Y(), a->Where().Z() };
                         stunned->push_back(p);
-                        if (Type(a) != CONFUSED_MOTION_TYPE) { *stunKind = false; }
+                        if (Type(a) != Motion::Kind::Confused) { *stunKind = false; }
                         Log("stunned +%4ums mt=%s stun=%d at %.1f %.1f", i * 500, TypeName(a), a->hasUnitState(UNIT_STAT_STUNNED) ? 1 : 0, p.x, p.y);
                     });
                 }
@@ -252,7 +252,7 @@ namespace Harness
                     At(5500 + i * 500, [this, g, wanderKind, wanderMoved, i]()
                     {
                         Creature* a = Get(g); if (!a) { return; }
-                        if (Type(a) != CONFUSED_MOTION_TYPE) { *wanderKind = false; }
+                        if (Type(a) != Motion::Kind::Confused) { *wanderKind = false; }
                         if (a->hasUnitState(UNIT_STAT_CONFUSED_MOVE)) { *wanderMoved = true; }
                         Log("wander +%4ums mt=%s move=%d", i * 500, TypeName(a), a->hasUnitState(UNIT_STAT_CONFUSED_MOVE) ? 1 : 0);
                     });
@@ -263,7 +263,7 @@ namespace Harness
                     At(9000 + i * 500, [this, g, fleeKind, fleeMoved, i]()
                     {
                         Creature* a = Get(g); if (!a) { return; }
-                        if (Type(a) != FLEEING_MOTION_TYPE) { *fleeKind = false; }
+                        if (Type(a) != Motion::Kind::Fear) { *fleeKind = false; }
                         if (a->hasUnitState(UNIT_STAT_FLEEING_MOVE)) { *fleeMoved = true; }
                         Log("flee +%4ums mt=%s move=%d", i * 500, TypeName(a), a->hasUnitState(UNIT_STAT_FLEEING_MOVE) ? 1 : 0);
                     });
@@ -308,7 +308,7 @@ namespace Harness
                         Pt p = { a->Where().X(), a->Where().Y(), a->Where().Z() };
                         pts->push_back(p);
                         facing->push_back(a->Where().Facing());
-                        if (Type(a) != DISTRACT_MOTION_TYPE) { *distractKind = false; }
+                        if (Type(a) != Motion::Kind::Distract) { *distractKind = false; }
                         Log("stunned +%4ums mt=%s facing=%.2f at %.1f %.1f", i * 500, TypeName(a), a->Where().Facing(), p.x, p.y);
                     });
                 }
@@ -318,7 +318,7 @@ namespace Harness
                     const float held = Spread(*pts);
                     float turned = 0.0f;
                     for (size_t i = 1; i < facing->size(); ++i) { turned = std::max(turned, std::fabs((*facing)[i] - (*facing)[0])); }
-                    const bool over = Type(a) != DISTRACT_MOTION_TYPE;
+                    const bool over = Type(a) != Motion::Kind::Distract;
                     char text[220];
                     snprintf(text, sizeof(text), "standsUnderStun=%s | distractRunsOut=%s",
                              (held < 1.0f && turned < 0.05f) ? "OK(stood, facing kept)" : "BUG(moved or turned under the stun)",
@@ -356,7 +356,7 @@ namespace Harness
                         Creature* a = Get(g); if (!a) { return; }
                         Pt p = { a->Where().X(), a->Where().Y(), a->Where().Z() };
                         pts->push_back(p);
-                        if (Type(a) != FOLLOW_MOTION_TYPE) { *followKind = false; }
+                        if (Type(a) != Motion::Kind::Follow) { *followKind = false; }
                         Log("feigning +%4ums mt=%s at %.1f %.1f", i * 500, TypeName(a), p.x, p.y);
                     });
                 }

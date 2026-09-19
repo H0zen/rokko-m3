@@ -105,9 +105,9 @@ struct mob_mature_netherwing_drake : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE)
+            if (uiMoveType != Motion::Kind::Point)
             {
                 return;
             }
@@ -251,9 +251,9 @@ struct mob_enslaved_netherwing_drake : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE)
+            if (uiMoveType != Motion::Kind::Point)
             {
                 return;
             }
@@ -383,9 +383,9 @@ struct npc_dragonmaw_peon : public CreatureScript
             // Check if event already started
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE)
+            if (uiType != Motion::Kind::Point)
             {
                 return;
             }
@@ -1924,9 +1924,9 @@ struct npc_spawned_oronok_tornheart : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE)
+            if (uiMotionType != Motion::Kind::Point)
             {
                 return;
             }
@@ -2093,9 +2093,9 @@ struct npc_domesticated_felboar : public CreatureScript
             m_uiTuberStage = 0;
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMoveType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }

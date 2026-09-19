@@ -187,10 +187,10 @@ struct boss_hadronox : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
             // Mark as failed if evaded while upstairs
-            if (uiMoveType == POINT_MOTION_TYPE && uiPointId)
+            if (uiMoveType == Motion::Kind::Point && uiPointId)
             {
                 if (m_pInstance)
                 {
@@ -198,7 +198,7 @@ struct boss_hadronox : public CreatureScript
                 }
             }
             // Web the doors when upstairs
-            else if (uiMoveType == WAYPOINT_MOTION_TYPE && uiPointId == 10)
+            else if (uiMoveType == Motion::Kind::Patrol && uiPointId == 10)
             {
                 if (DoCastSpellIfCan(m_creature, SPELL_WEB_FRONT_DOORS, CAST_TRIGGERED) == CAST_OK)
                 {

@@ -54,7 +54,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; float x, y, z; bool dead; MovementGeneratorType mt; float moved; };
+                struct Sample { uint32 t; float x, y, z; bool dead; Motion::Kind mt; float moved; };
                 Creature* a = Spawn(WOLF, SC.x, SC.y, SC.z, 0.0f);
                 if (!a) { Verdict("B6=INVALID(spawn failed)"); return; }
                 const ObjectGuid g = a->GetObjectGuid();
@@ -93,7 +93,7 @@ namespace Harness
                         s.moved = Dist2(s.x, s.y, killAt->x, killAt->y);
                         samples->push_back(s);
                         Log("+%4ums %.2f %.2f %.2f dead=%s mt=%s movedSinceKill=%.2f dHome=%.2f",
-                            s.t, s.x, s.y, s.z, s.dead ? "true" : "false", Harness::TypeName(s.mt), s.moved, Dist2(s.x, s.y, SC.x, SC.y));
+                            s.t, s.x, s.y, s.z, s.dead ? "true" : "false", Motion::KindName(s.mt), s.moved, Dist2(s.x, s.y, SC.x, SC.y));
                     });
                 }
                 At(13000, [this, samples]()
@@ -129,7 +129,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; float dHome; MovementGeneratorType mt; };
+                struct Sample { uint32 t; float dHome; Motion::Kind mt; };
                 Creature* a = Spawn(WOLF, SC.x, SC.y, SC.z, 0.0f);
                 if (!a) { Verdict("stunMidHome=INVALID(spawn failed)"); return; }
                 const ObjectGuid g = a->GetObjectGuid();
@@ -166,7 +166,7 @@ namespace Harness
                         samples->push_back(s);
                         if (i % 2 == 0)
                         {
-                            Log("+%5ums dHome=%.1f mt=%s", s.t, s.dHome, Harness::TypeName(s.mt));
+                            Log("+%5ums dHome=%.1f mt=%s", s.t, s.dHome, Motion::KindName(s.mt));
                         }
                     });
                 }
@@ -180,7 +180,7 @@ namespace Harness
                         if ((*samples)[k].dHome < closest) { closest = (*samples)[k].dHome; }
                     }
                     std::string v;
-                    if (closest < 4.0f && f.mt != HOME_MOTION_TYPE)
+                    if (closest < 4.0f && f.mt != Motion::Kind::Home)
                     {
                         char text[128];
                         snprintf(text, sizeof(text), "OK(resumed after the stop, reached home (closest %.1f yd) and finished homing)", closest);
@@ -190,10 +190,10 @@ namespace Harness
                     {
                         v = "BUG(at home but the home leg never finished: arrival not recognised)";
                     }
-                    else if (f.mt != HOME_MOTION_TYPE)
+                    else if (f.mt != Motion::Kind::Home)
                     {
                         char text[128];
-                        snprintf(text, sizeof(text), "BUG(home leg ended by the stop: closest %.1f yd from home, mt=%s)", closest, Harness::TypeName(f.mt));
+                        snprintf(text, sizeof(text), "BUG(home leg ended by the stop: closest %.1f yd from home, mt=%s)", closest, Motion::KindName(f.mt));
                         v = text;
                     }
                     else

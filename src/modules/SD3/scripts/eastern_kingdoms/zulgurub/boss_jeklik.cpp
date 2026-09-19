@@ -187,9 +187,9 @@ struct boss_jeklik : public CreatureScript
             ScriptedAI::EnterEvadeMode();
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMoveType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }

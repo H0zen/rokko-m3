@@ -171,11 +171,11 @@ struct boss_warchief_kargath_bladefist : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
             if (m_bInBlade)
             {
-                if (uiType != POINT_MOTION_TYPE)
+                if (uiType != Motion::Kind::Point)
                 {
                     return;
                 }

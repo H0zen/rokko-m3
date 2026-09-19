@@ -530,9 +530,9 @@ struct npc_fel_guard_hound : public CreatureScript
             m_bIsPooActive = false;
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMoveType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }
@@ -769,9 +769,9 @@ struct npc_anchorite_barada : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != WAYPOINT_MOTION_TYPE)
+            if (uiType != Motion::Kind::Patrol)
             {
                 return;
             }

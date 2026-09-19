@@ -148,9 +148,9 @@ struct boss_selin_fireheart : public CreatureScript
             DoScriptText(urand(0, 1) ? SAY_KILL_1 : SAY_KILL_2, m_creature);
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }

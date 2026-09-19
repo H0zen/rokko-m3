@@ -103,47 +103,6 @@ NativeBehaviour::~NativeBehaviour()
 }
 
 /**
- * @brief The legacy movement generator type a kind projects onto.
- * @param kind The kernel kind.
- * @param variant The native's Behaviour::Variant(): the timed flee's 1, every other native's 0.
- * @return The type the facade, the scripts and the informs still speak.
- */
-MovementGeneratorType NativeBehaviour::Project(Motion::Kind kind, uint32 variant)
-{
-    switch (kind)
-    {
-        case Motion::Kind::Idle:           return IDLE_MOTION_TYPE;
-        case Motion::Kind::Point:          return POINT_MOTION_TYPE;
-        case Motion::Kind::FlyLand:        return POINT_MOTION_TYPE;   // the fly/land generator never had a type of its own
-        case Motion::Kind::AssistRun:      return ASSISTANCE_MOTION_TYPE;
-        case Motion::Kind::Distract:       return DISTRACT_MOTION_TYPE;
-        case Motion::Kind::AssistDistract: return ASSISTANCE_DISTRACT_MOTION_TYPE;
-        case Motion::Kind::Effect:         return EFFECT_MOTION_TYPE;
-        case Motion::Kind::Wander:         return RANDOM_MOTION_TYPE;
-        case Motion::Kind::Patrol:         return WAYPOINT_MOTION_TYPE;
-        case Motion::Kind::Chase:          return CHASE_MOTION_TYPE;
-        case Motion::Kind::Follow:         return FOLLOW_MOTION_TYPE;
-        case Motion::Kind::Home:           return HOME_MOTION_TYPE;
-        case Motion::Kind::Fear:           return variant ? TIMED_FLEEING_MOTION_TYPE : FLEEING_MOTION_TYPE;   // the low-health runner kept its own type
-        case Motion::Kind::Confused:       return CONFUSED_MOTION_TYPE;
-        case Motion::Kind::Taxi:           return FLIGHT_MOTION_TYPE;
-        // Naming the count makes a kind added later a compile warning instead of a silent Idle.
-        case Motion::Kind::Count:
-            break;
-    }
-    return IDLE_MOTION_TYPE;
-}
-
-/**
- * @brief The projection the facade reports for this behaviour.
- * @return The legacy type of the native's kind.
- */
-MovementGeneratorType NativeBehaviour::LegacyType() const
-{
-    return Project(m_native->Kind(), m_native->Variant());
-}
-
-/**
  * @brief Everything the native may know about its unit right now.
  * @param owner The moving unit.
  * @param tick True on the behaviour's own tick: the driver's edges are consumed there, once.
@@ -611,7 +570,7 @@ void NativeBehaviour::PerformEffects(Unit& owner, std::vector<Motion::Effect> co
             case Motion::Effect::Inform:
                 if (creature.AI())
                 {
-                    creature.AI()->MovementInform(Project(e.who), e.id);
+                    creature.AI()->MovementInform(e.who, e.id);
                 }
                 break;
             case Motion::Effect::SummonedInform:
@@ -629,7 +588,7 @@ void NativeBehaviour::PerformEffects(Unit& owner, std::vector<Motion::Effect> co
                 {
                     if (summoner->AI())
                     {
-                        summoner->AI()->SummonedMovementInform(&creature, Project(e.who), e.id);
+                        summoner->AI()->SummonedMovementInform(&creature, e.who, e.id);
                     }
                 }
                 break;
@@ -674,10 +633,10 @@ void NativeBehaviour::PerformEffects(Unit& owner, std::vector<Motion::Effect> co
                     }
                 }
                 break;
-            case Motion::Effect::InformRaw:
+            case Motion::Effect::PathInform:
                 if (creature.AI())
                 {
-                    creature.AI()->MovementInform(e.raw, e.id);
+                    creature.AI()->WaypointPathInform(e.raw, e.event, e.id);
                 }
                 break;
             case Motion::Effect::RunScript:

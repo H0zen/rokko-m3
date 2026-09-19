@@ -569,7 +569,7 @@ TEST(MotionBehaviour_IdleDoesNothingAndFinishesSilently)
     CHECK(i.Finish(FinishReason::Superseded, Free(), g_svc).effects.empty());
 }
 
-TEST(MotionBehaviour_FlyLandLaysAStraightFlyingLegAndInformsAsAPoint)
+TEST(MotionBehaviour_FlyLandLaysAStraightFlyingLegAndInformsAsFlyLand)
 {
     PointBehaviour::Params p = PointTo(4.0f, 5.0f, 6.0f, 5);
     p.kind = Kind::FlyLand;
@@ -590,12 +590,13 @@ TEST(MotionBehaviour_FlyLandLaysAStraightFlyingLegAndInformsAsAPoint)
 
 TEST(MotionBehaviour_EffectFactoriesSetOnlyTheirFields)
 {
-    Effect raw = Effect::Raw(7, 3);
-    CHECK(raw.kind == Effect::InformRaw);
-    CHECK_EQ(raw.raw, 7u);
-    CHECK_EQ(raw.id, 3u);
-    CHECK(!raw.flag);
-    CHECK(raw.who == Kind::Idle);
+    Effect path = Effect::Path(7, PathEvent::NodeLeft, 3);
+    CHECK(path.kind == Effect::PathInform);
+    CHECK_EQ(path.raw, 7u);
+    CHECK(path.event == PathEvent::NodeLeft);
+    CHECK_EQ(path.id, 3u);
+    CHECK(!path.flag);
+    CHECK(path.who == Kind::Idle);
 
     Effect walk = Effect::Walk(true);
     CHECK(walk.kind == Effect::SetWalk);
@@ -775,7 +776,6 @@ TEST(MotionBehaviour_PatrolArrivesInTheGeneratorsOrder)
 
     PatrolBehaviour::Params p;
     p.nodes = { n1, n2, n3 };
-    p.inform.waypoint = 411;
 
     PatrolBehaviour b(p);
     b.Activate(Free(), svc);
@@ -820,8 +820,8 @@ TEST(MotionBehaviour_PatrolArrivesInTheGeneratorsOrder)
     CHECK(atNode1.again);
     CHECK(atNode1.roaming == Roaming::ClearMove);
     CHECK_EQ(atNode1.effects.size(), size_t(1));
-    CHECK(atNode1.effects[0].kind == Effect::InformRaw);
-    CHECK_EQ(atNode1.effects[0].raw, 411u);
+    CHECK(atNode1.effects[0].kind == Effect::Inform);
+    CHECK(atNode1.effects[0].who == Kind::Patrol);
     CHECK_EQ(atNode1.effects[0].id, 1u);
 
     Step atNode2 = b.Tick(finalized, svc, 0);
@@ -834,8 +834,8 @@ TEST(MotionBehaviour_PatrolArrivesInTheGeneratorsOrder)
     CHECK_EQ(atNode2.effects[1].id, 6u);
     CHECK(atNode2.effects[2].kind == Effect::Say);
     CHECK_EQ(atNode2.effects[2].id, 100u);   // Urand(0, 1) answers min = 0 -> textIds[0]
-    CHECK(atNode2.effects[3].kind == Effect::InformRaw);
-    CHECK_EQ(atNode2.effects[3].raw, 411u);
+    CHECK(atNode2.effects[3].kind == Effect::Inform);
+    CHECK(atNode2.effects[3].who == Kind::Patrol);
     CHECK_EQ(atNode2.effects[3].id, 2u);
 
     // Node 2's two text ids draw exactly one Urand pick and touch no other RNG method: the
@@ -892,7 +892,8 @@ TEST(MotionBehaviour_PatrolArrivesInTheGeneratorsOrder)
         CHECK_EQ(arrived.effects.size(), size_t(2));
         CHECK(arrived.effects[0].kind == Effect::Say);
         CHECK_EQ(arrived.effects[0].id, 200u);
-        CHECK(arrived.effects[1].kind == Effect::InformRaw);
+        CHECK(arrived.effects[1].kind == Effect::Inform);
+        CHECK(arrived.effects[1].who == Kind::Patrol);
         bool sawUrand = false;
         for (std::string const& c : oneText.calls) { if (c == "urand") { sawUrand = true; } }
         CHECK(!sawUrand);
@@ -907,9 +908,7 @@ TEST(MotionBehaviour_PatrolExternalPrepareInformEndsTheRoundAndHonoursSetNextWay
     p.nodes = { MakeNode(1, 0.0f, 0.0f, 0.0f), MakeNode(2, 10.0f, 0.0f, 0.0f), MakeNode(3, 20.0f, 0.0f, 0.0f) };
     p.external = true;
     p.externalOrigin = true;
-    p.inform.externalMove = 700;
-    p.inform.externalStart = 701;
-    p.inform.externalLast = 702;
+    p.pathId = 7;
 
     PatrolBehaviour b(p);
     b.Activate(Free(), svc);
@@ -917,14 +916,15 @@ TEST(MotionBehaviour_PatrolExternalPrepareInformEndsTheRoundAndHonoursSetNextWay
 
     Sight finalized = Free();
     finalized.status.traveling = false;
-    b.Tick(finalized, svc, 0);                  // arrives at node 1: Raw(externalMove, 1), consumed
+    b.Tick(finalized, svc, 0);                  // arrives at node 1: Path(7, NodeReached, 1), consumed
 
     Step informed = b.Tick(finalized, svc, 0);   // the arrivals phase drains; StartPrepare's external inform fires
     CHECK(informed.again);                       // the round ends on the inform; the shell re-checks the selection
     CHECK(!informed.apply);                      // and nothing is laid before the hook has run
     CHECK_EQ(informed.effects.size(), size_t(1));
-    CHECK(informed.effects[0].kind == Effect::InformRaw);
-    CHECK_EQ(informed.effects[0].raw, 701u);      // externalStart: node 2 was next
+    CHECK(informed.effects[0].kind == Effect::PathInform);
+    CHECK_EQ(informed.effects[0].raw, 7u);
+    CHECK(informed.effects[0].event == PathEvent::NodeLeft);   // node 2 was next
     CHECK_EQ(informed.effects[0].id, 2u);
 
     CHECK(b.SetNextWaypoint(3));                 // the hook retargets the patrol, as it may
@@ -943,12 +943,13 @@ TEST(MotionBehaviour_PatrolExternalPrepareInformEndsTheRoundAndHonoursSetNextWay
     CHECK(rebuilt.intent.act == MoveIntent::Act::Move);
     CHECK_EQ(rebuilt.intent.goal.x, 20.0f);
 
-    b.Tick(finalized, svc, 0);                   // arrives at node 3: Raw(externalMove, 3), consumed
+    b.Tick(finalized, svc, 0);                   // arrives at node 3: Path(7, NodeReached, 3), consumed
     Step wrap = b.Tick(finalized, svc, 0);       // node 3 is last: the wrap uses externalLast, naming node 1
     CHECK(wrap.again);
     CHECK_EQ(wrap.effects.size(), size_t(1));
-    CHECK(wrap.effects[0].kind == Effect::InformRaw);
-    CHECK_EQ(wrap.effects[0].raw, 702u);          // externalLast
+    CHECK(wrap.effects[0].kind == Effect::PathInform);
+    CHECK_EQ(wrap.effects[0].raw, 7u);
+    CHECK(wrap.effects[0].event == PathEvent::LastWaitEnded);
     CHECK_EQ(wrap.effects[0].id, 1u);             // wrapped back to node 1
 }
 
@@ -1278,7 +1279,8 @@ TEST(MotionBehaviour_PatrolArrivesMidSplineAndKeepsRoaming)
     CHECK(arriveNode1.again);
     CHECK(arriveNode1.roaming == Roaming::ClearMove);
     CHECK_EQ(arriveNode1.effects.size(), size_t(1));
-    CHECK(arriveNode1.effects[0].kind == Effect::InformRaw);
+    CHECK(arriveNode1.effects[0].kind == Effect::Inform);
+    CHECK(arriveNode1.effects[0].who == Kind::Patrol);
     CHECK_EQ(arriveNode1.effects[0].id, 1u);
     CHECK_EQ(b.CurrentNode(), 1u);
     CHECK_EQ(b.LastReached(), 1u);
@@ -1308,13 +1310,15 @@ TEST(MotionBehaviour_PatrolArrivesMidSplineAndKeepsRoaming)
     Step arriveNode2 = b.Tick(blockedFinal, svc, 0);
     CHECK(arriveNode2.again);
     CHECK_EQ(arriveNode2.effects.size(), size_t(1));
-    CHECK(arriveNode2.effects[0].kind == Effect::InformRaw);
+    CHECK(arriveNode2.effects[0].kind == Effect::Inform);
+    CHECK(arriveNode2.effects[0].who == Kind::Patrol);
     CHECK_EQ(arriveNode2.effects[0].id, 2u);
 
     Step arriveNode3 = b.Tick(blockedFinal, svc, 0);
     CHECK(arriveNode3.again);
     CHECK_EQ(arriveNode3.effects.size(), size_t(1));
-    CHECK(arriveNode3.effects[0].kind == Effect::InformRaw);
+    CHECK(arriveNode3.effects[0].kind == Effect::Inform);
+    CHECK(arriveNode3.effects[0].who == Kind::Patrol);
     CHECK_EQ(arriveNode3.effects[0].id, 3u);
 
     Step guardedTrailing = b.Tick(blockedFinal, svc, 0);
@@ -1386,7 +1390,6 @@ TEST(MotionBehaviour_PatrolSetNextWaypointInsideAnArrivalDropsTheQueuedArrivals)
         svc.routeRouted = true;
         PatrolBehaviour::Params p;
         p.nodes = { MakeNode(1, 10.0f, 0.0f, 0.0f), MakeNode(2, 20.0f, 0.0f, 0.0f), n3 };
-        p.inform.waypoint = 411;
         PatrolBehaviour b(p);
         b.Activate(start, svc);
         b.Tick(start, svc, 100);
@@ -1395,8 +1398,8 @@ TEST(MotionBehaviour_PatrolSetNextWaypointInsideAnArrivalDropsTheQueuedArrivals)
         Step atNode1 = b.Tick(finalized, svc, 100);   // nodes 1, 2 and 3 queue, plus the trailing entry
         CHECK(atNode1.again);
         CHECK_EQ(atNode1.effects.size(), size_t(1));
-        CHECK(atNode1.effects[0].kind == Effect::InformRaw);
-        CHECK_EQ(atNode1.effects[0].raw, 411u);
+        CHECK(atNode1.effects[0].kind == Effect::Inform);
+        CHECK(atNode1.effects[0].who == Kind::Patrol);
         CHECK_EQ(atNode1.effects[0].id, 1u);
 
         CHECK(b.SetNextWaypoint(3));
@@ -1407,8 +1410,8 @@ TEST(MotionBehaviour_PatrolSetNextWaypointInsideAnArrivalDropsTheQueuedArrivals)
         Step trailing = b.Tick(finalized, svc, 0);
         CHECK(trailing.again);
         CHECK_EQ(trailing.effects.size(), size_t(1));
-        CHECK(trailing.effects[0].kind == Effect::InformRaw);
-        CHECK_EQ(trailing.effects[0].raw, 411u);
+        CHECK(trailing.effects[0].kind == Effect::Inform);
+        CHECK(trailing.effects[0].who == Kind::Patrol);
         CHECK_EQ(trailing.effects[0].id, 3u);
         CHECK_EQ(b.LastReached(), 3u);
 
@@ -1425,7 +1428,6 @@ TEST(MotionBehaviour_PatrolSetNextWaypointInsideAnArrivalDropsTheQueuedArrivals)
         svc.routeRouted = true;
         PatrolBehaviour::Params p;
         p.nodes = { MakeNode(1, 10.0f, 0.0f, 0.0f), MakeNode(2, 20.0f, 0.0f, 0.0f), n3 };
-        p.inform.waypoint = 411;
         PatrolBehaviour b(p);
         b.Activate(start, svc);
         b.Tick(start, svc, 100);
@@ -1475,7 +1477,6 @@ TEST(MotionBehaviour_PatrolNodeDelayOutlivesAHooksSetNextWaypoint)
 
     PatrolBehaviour::Params p;
     p.nodes = { MakeNode(1, 10.0f, 0.0f, 0.0f), n2, n3 };
-    p.inform.waypoint = 411;
     PatrolBehaviour b(p);
     b.Activate(Free(), svc);
 
@@ -1528,7 +1529,6 @@ TEST(MotionBehaviour_PatrolAZeroDelayNodeDropsAHooksPause)
 
     PatrolBehaviour::Params p;
     p.nodes = { MakeNode(1, 10.0f, 0.0f, 0.0f), n2, MakeNode(3, 30.0f, 0.0f, 0.0f) };
-    p.inform.waypoint = 411;
     PatrolBehaviour b(p);
     b.Activate(Free(), svc);
 
@@ -1569,7 +1569,6 @@ TEST(MotionBehaviour_PatrolReplaceNodesTakesEffectAtTheNextPrepare)
 
     PatrolBehaviour::Params p;
     p.nodes = { MakeNode(1, 10.0f, 0.0f, 0.0f), MakeNode(2, 20.0f, 0.0f, 0.0f), MakeNode(3, 30.0f, 0.0f, 0.0f) };
-    p.inform.waypoint = 411;
     p.revision = 3;
     PatrolBehaviour b(p);
     b.Activate(Free(), svc);
@@ -1617,7 +1616,6 @@ TEST(MotionBehaviour_PatrolPrepareRereadsCanMoveAfterTheNodesEffects)
     n1.spell = 4444;    // the arrival casts, and a cast may root or stun the caster
     PatrolBehaviour::Params p;
     p.nodes = { n1, MakeNode(2, 20.0f, 0.0f, 0.0f) };
-    p.inform.waypoint = 411;
     PatrolBehaviour b(p);
     b.Activate(Free(), svc);
     b.Tick(Free(), svc, 0);                      // the leg toward node 1

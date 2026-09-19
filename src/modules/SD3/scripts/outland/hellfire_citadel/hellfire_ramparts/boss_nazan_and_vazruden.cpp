@@ -159,14 +159,14 @@ struct boss_vazruden_herald : public CreatureScript
             ScriptedAI::AttackStart(pWho);
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
             if (!m_pInstance)
             {
                 return;
             }
 
-            if (uiType == WAYPOINT_MOTION_TYPE)
+            if (uiType == Motion::Kind::Patrol)
             {
                 if (m_uiMovementTimer || m_bIsEventInProgress)
                 {
@@ -181,7 +181,7 @@ struct boss_vazruden_herald : public CreatureScript
                 }
             }
 
-            if (uiType == POINT_MOTION_TYPE)
+            if (uiType == Motion::Kind::Point)
             {
                 switch (uiPointId)
                 {

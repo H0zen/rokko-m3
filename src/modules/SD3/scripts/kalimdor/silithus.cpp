@@ -592,9 +592,9 @@ struct npc_anachronos_the_ancient : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE)
+            if (uiType != Motion::Kind::Point)
             {
                 return;
             }
@@ -626,9 +626,9 @@ struct npc_anachronos_the_ancient : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE)
+            if (uiType != Motion::Kind::Point)
             {
                 return;
             }
@@ -848,7 +848,7 @@ struct npc_solenor_the_slayer : public CreatureScript
                     m_creature->NearTeleportTo(-7724.21f, 1676.43f, 7.0571f, 4.80044f);
                     if (!m_creature->GetMotionMaster()->IsPatrolling())
                     {
-                        m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
+                        m_creature->SetDefaultMovementType(CREATURE_MOVEMENT_WAYPOINT);
                         m_creature->GetMotionMaster()->Initialize();
                     }
 

@@ -26,9 +26,10 @@
 #ifndef MANGOS_NATIVEBEHAVIOUR_H
 #define MANGOS_NATIVEBEHAVIOUR_H
 
-#include "Behaviour.h"        // the shell's MotionBehaviour
+#include "Arbiter.h"          // Motion::Kind
 #include "MotionDriver.h"
 #include "BehaviourModel.h"   // the kernel's (src/motion is on the include path, as Arbiter.h is)
+#include "MoveIntent.h"       // Motion::EffectLaunch, Motion::Facing
 #include "Utilities/Errors.h" // MANGOS_ASSERT, for U()
 
 #include <memory>
@@ -36,39 +37,37 @@
 class Player;
 
 /**
- * A native kernel behaviour as a shell behaviour (P5-B family 1 design section 3): owns the
- * native and a MotionDriver, fills the Sight, applies the Step's intent through the driver
- * or the launcher, writes the roaming pair, and performs an Outcome's recipe in order with
- * its predicates read live. The projection (the legacy type) is mapped here from the kind.
- * Since P5-B family 2 it is also the native's Motion::Services port: every draw and every
- * route the native asks for runs here, over the unit and the adapter's own path query.
+ * One held behaviour of the movement kernel's shell (design v2 §3-§4): a native of the kernel
+ * (src/motion) over the per-unit driver. The arbiter decides which one is selected; the shell
+ * calls these hooks in the order the arbiter's events dictate and ticks the selected one. The
+ * adapter owns the native and a MotionDriver, fills the Sight, applies the Step's intent through
+ * the driver or the launcher, writes the roaming pair, and performs an Outcome's recipe in order
+ * with its predicates read live. Since P5-B family 2 it is also the native's Motion::Services
+ * port: every draw and every route the native asks for runs here, over the unit and the
+ * adapter's own path query. Since P5-C nothing else implements a shell behaviour: the name says
+ * what it holds, a native of the kernel.
  */
-class NativeBehaviour : public MotionBehaviour, private Motion::Services
+class NativeBehaviour : private Motion::Services
 {
     public:
         explicit NativeBehaviour(std::unique_ptr<Motion::Behaviour> native);
-        ~NativeBehaviour() override;
+        ~NativeBehaviour() override; ///< Motion::Services' destructor is virtual: this one overrides it; the adapter is owned through unique_ptr<NativeBehaviour>
         NativeBehaviour(NativeBehaviour const&) = delete;
         NativeBehaviour& operator=(NativeBehaviour const&) = delete;
 
-        Motion::Kind Kind() const override { return m_native->Kind(); }
-        MovementGeneratorType LegacyType() const override;
-        void Activate(Unit& owner) override;
-        void Suspend(Unit& owner) override;
-        void Resume(Unit& owner, bool reset) override;
-        void Finish(Unit& owner, Motion::FinishReason why) override;
-        bool Tick(Unit& owner, uint32 diff) override;
-        Motion::FinishReason EndReason(Unit& owner) const override;
-        void SpeedChanged() override { m_driver.OnSpeedChanged(); }
-        bool GetResetPosition(Unit& owner, float& x, float& y, float& z, float& o) const override;
-        bool Reachable() const override { return m_driver.Reachable(); }
+        Motion::Kind Kind() const { return m_native->Kind(); }
+        void Activate(Unit& owner);           ///< first selection
+        void Suspend(Unit& owner);            ///< masked by a higher layer, or paused by the block
+        void Resume(Unit& owner, bool reset); ///< the selection, at every commit; reset = the stack's Reset (a suspended behaviour clears its flag here)
+        void Finish(Unit& owner, Motion::FinishReason why);
+        bool Tick(Unit& owner, uint32 diff);  ///< false: the behaviour ended itself
+        Motion::FinishReason EndReason(Unit& owner) const; ///< why, after a false Tick
+        void SpeedChanged() { m_driver.OnSpeedChanged(); }
+        bool GetResetPosition(Unit& owner, float& x, float& y, float& z, float& o) const;
+        bool Reachable() const { return m_driver.Reachable(); } ///< the behaviour can reach its goal (the IsReachable contract)
         /// Every native's Target(): a tracked one's, or the fear's fright, which it resolves at
         /// the pick rather than per tick and still names for the listing.
-        uint64 TrackedTarget() const override { return m_native->Target(); }
-
-        /// The projection of a kind (the facade's legacy type answer); `variant` is the native's
-        /// Behaviour::Variant(), which only the timed flee sets (TIMED_FLEEING_MOTION_TYPE).
-        static MovementGeneratorType Project(Motion::Kind kind, uint32 variant = 0);
+        uint64 TrackedTarget() const { return m_native->Target(); }
 
         /// The arbiter sequence this binding was given, set once by MotionMaster::BindNative
         /// right after construction: what the tick's per-round IsSelectedSequence re-check reads.

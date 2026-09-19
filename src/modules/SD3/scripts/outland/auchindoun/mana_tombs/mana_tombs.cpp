@@ -149,9 +149,9 @@ struct npc_shaheen : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiMotionType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (pSummoned->GetEntry() == NPC_SHADOW_LORD_XIRAXIS && uiMotionType == POINT_MOTION_TYPE && uiPointId == 1)
+            if (pSummoned->GetEntry() == NPC_SHADOW_LORD_XIRAXIS && uiMotionType == Motion::Kind::Point && uiPointId == 1)
             {
                 StartNextDialogueText(SAY_FINAL_STOP_1);
             }

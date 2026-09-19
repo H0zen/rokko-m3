@@ -423,9 +423,9 @@ struct npc_image_of_medivh : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiMotionType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || pSummoned->GetEntry() != NPC_IMAGE_OF_ARCANAGOS)
+            if (uiMotionType != Motion::Kind::Point || pSummoned->GetEntry() != NPC_IMAGE_OF_ARCANAGOS)
             {
                 return;
             }

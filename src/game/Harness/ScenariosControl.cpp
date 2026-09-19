@@ -317,7 +317,7 @@ namespace Harness
                     bool  haveFirst, legRan, haveEnd, haveSecond;
                     float bx0, by0, bx1, by1;               // the wolf's position when each bolt was first seen running
                     Movement::Vector3 goal0, goal1;
-                    MovementGeneratorType mtAfter;
+                    Motion::Kind mtAfter;
                 };
                 Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
                 Creature* k = Spawn(KOBOLD, SE.x + 6.0f, SE.y, Ground(SE.x + 6.0f, SE.y, SE.z), 3.1f);
@@ -327,7 +327,7 @@ namespace Harness
                 const ObjectGuid g = a->GetObjectGuid(), gk = k->GetObjectGuid();
                 auto st = std::make_shared<St>();
                 st->haveFirst = st->legRan = st->haveEnd = st->haveSecond = false;
-                st->mtAfter = IDLE_MOTION_TYPE;
+                st->mtAfter = Motion::Kind::Idle;
                 At(300, [this, gk, st]()
                 {
                     Creature* k = Get(gk); if (!k) { return; }
@@ -384,7 +384,7 @@ namespace Harness
                 At(4600, [this, st]()
                 {
                     char starts[96], bolt[220];
-                    snprintf(starts, sizeof(starts), "%s(mt=%s 200 ms after the fear)", st->mtAfter == FLEEING_MOTION_TYPE ? "OK" : "BUG", Harness::TypeName(uint32(st->mtAfter)));
+                    snprintf(starts, sizeof(starts), "%s(mt=%s 200 ms after the fear)", st->mtAfter == Motion::Kind::Fear ? "OK" : "BUG", Motion::KindName(st->mtAfter));
                     if (!st->haveFirst || !st->haveSecond)
                     {
                         snprintf(bolt, sizeof(bolt), "INVALID(%s within 4 s)", st->haveFirst ? "only one bolt ran" : "no bolt ran");
@@ -488,7 +488,7 @@ namespace Harness
                     {
                         Creature* a = Get(g); if (!a) { return; }
                         const uint32 t = 500 + i * 100;
-                        if (Type(a) != FLEEING_MOTION_TYPE) { st->typeHeld = false; Log("+%4ums mt=%s", t, TypeName(a)); }
+                        if (Type(a) != Motion::Kind::Fear) { st->typeHeld = false; Log("+%4ums mt=%s", t, TypeName(a)); }
                         if (st->refreshAt && t > st->refreshAt && t <= st->refreshAt + 400 && st->refreshes <= 2 && !st->freshAfter[st->refreshes - 1])
                         {
                             Movement::Vector3 goal;
@@ -512,7 +512,7 @@ namespace Harness
                     {
                         Creature* a = Get(g); if (!a) { return; }
                         st->sampledEnd = true;
-                        if (Type(a) == FLEEING_MOTION_TYPE || a->hasUnitState(UNIT_STAT_FLEEING)) { st->endedClean = false; }
+                        if (Type(a) == Motion::Kind::Fear || a->hasUnitState(UNIT_STAT_FLEEING)) { st->endedClean = false; }
                     });
                 }
                 At(5600, [this, st]()
@@ -566,7 +566,7 @@ namespace Harness
                     At(500 + i * 100, [this, g, st, i]()
                     {
                         Creature* w = Get(g); if (!w) { return; }
-                        if (Type(w) != CONFUSED_MOTION_TYPE) { st->typeHeld = false; }
+                        if (Type(w) != Motion::Kind::Confused) { st->typeHeld = false; }
                         Movement::Vector3 goal;
                         if (!RunningGoal(w, goal)) { return; }
                         if (st->haveGoal && SameGoal(goal, st->lastGoal)) { return; }

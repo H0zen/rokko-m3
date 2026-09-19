@@ -222,7 +222,7 @@ Creature::Creature(CreatureSubtype subtype) : Unit(),
     m_lootMoney(0), m_lootGroupRecipientId(0),
     m_corpseDecayTimer(0), m_respawnTime(0), m_respawnDelay(25), m_corpseDelay(60), m_aggroDelay(0),
     m_cannotReachTarget(false), m_cannotReachTimer(0), m_ignoreCorpseDecayRatio(false),
-    m_respawnradius(5.0f), m_subtype(subtype), m_defaultMovementType(IDLE_MOTION_TYPE), m_equipmentId(0),
+    m_respawnradius(5.0f), m_subtype(subtype), m_defaultMovementType(CREATURE_MOVEMENT_IDLE), m_equipmentId(0),
     m_AlreadyCallAssistance(false), m_AlreadySearchedAssistance(false),
     m_AI_locked(false), m_IsDeadByDefault(false), m_temporaryFactionFlags(TEMPFACTION_NONE),
     m_meleeDamageSchoolMask(SPELL_SCHOOL_MASK_NORMAL), m_originalEntry(0),
@@ -289,7 +289,7 @@ void Creature::AddToWorld()
         IsLivingWorldAnchor(GetCreatureInfo(), sMapStore.LookupEntry(GetMapId()),
                             sWorld.getConfig(CONFIG_UINT32_LIVINGWORLD_ANCHOR_MASK)) ||
         (GetLivingWorldDefenderCategory(GetCreatureInfo(), sMapStore.LookupEntry(GetMapId()),
-                                        GetDefaultMovementType() == WAYPOINT_MOTION_TYPE)
+                                        GetDefaultMovementType() == CREATURE_MOVEMENT_WAYPOINT)
             & sWorld.getConfig(CONFIG_UINT32_LIVINGWORLD_ANCHOR_MASK)))
     {
         SetActiveObjectState(true);
@@ -526,7 +526,7 @@ bool Creature::InitEntry(uint32 Entry, CreatureData const* data /*=NULL*/, GameE
         m_movementInfo.AddMovementFlag(MOVEFLAG_SWIMMING);                      // add swimming movement
 
     // checked at loading
-    m_defaultMovementType = MovementGeneratorType(cinfo->MovementType);
+    m_defaultMovementType = CreatureMovementType(cinfo->MovementType);
 
     return true;
 }
@@ -1626,14 +1626,14 @@ void Creature::SaveToDB(uint32 mapid, uint8 spawnMask, uint32 phaseMask)
     data.orientation = Where().Facing();
     data.spawntimesecs = m_respawnDelay;
     // prevent add data integrity problems
-    data.spawndist = GetDefaultMovementType() == IDLE_MOTION_TYPE ? 0 : m_respawnradius;
+    data.spawndist = GetDefaultMovementType() == CREATURE_MOVEMENT_IDLE ? 0 : m_respawnradius;
     data.currentwaypoint = 0;
     data.curhealth = GetHealth();
     data.curmana = GetPower(POWER_MANA);
     data.is_dead = m_IsDeadByDefault;
     // prevent add data integrity problems
-    data.movementType = !m_respawnradius && GetDefaultMovementType() == RANDOM_MOTION_TYPE
-                        ? IDLE_MOTION_TYPE : GetDefaultMovementType();
+    data.movementType = !m_respawnradius && GetDefaultMovementType() == CREATURE_MOVEMENT_RANDOM
+                        ? CREATURE_MOVEMENT_IDLE : GetDefaultMovementType();
 
     // updated in DB
     WorldDatabase.BeginTransaction();
@@ -1795,7 +1795,7 @@ bool Creature::LoadFromDB(uint32 guidlow, Map* map)
     SetMeleeDamageSchool(SpellSchools(GetCreatureInfo()->DamageSchool));
 
     // checked at creature_template loading
-    m_defaultMovementType = MovementGeneratorType(data->movementType);
+    m_defaultMovementType = CreatureMovementType(data->movementType);
 
     AIM_Initialize();
 

@@ -855,9 +855,9 @@ struct npc_captive_child : public CreatureScript
     {
         npc_captive_childAI(Creature* pCreature) : ScriptedAI(pCreature) {}
 
-        void MovementInform(uint32 uiMotionType, uint32 /*uiPointId*/) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 /*uiPointId*/) override
         {
-            if (uiMotionType == POINT_MOTION_TYPE)
+            if (uiMotionType == Motion::Kind::Point)
             {
                 m_creature->ForcedDespawn();
             }                    // we only have one waypoint
@@ -1227,9 +1227,9 @@ struct npc_cenarion_sparrowhawk : public CreatureScript
             DoScriptText(EMOTE_FOLLOW, m_creature);
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMoveType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }

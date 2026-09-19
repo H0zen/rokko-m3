@@ -440,9 +440,9 @@ void npc_escortAI::UpdateEscortAI(const uint32 /*uiDiff*/)
     DoMeleeAttackIfReady();
 }
 
-void npc_escortAI::MovementInform(uint32 uiMoveType, uint32 uiPointId)
+void npc_escortAI::MovementInform(Motion::Kind uiMoveType, uint32 uiPointId)
 {
-    if (uiMoveType != POINT_MOTION_TYPE || !HasEscortState(STATE_ESCORT_ESCORTING))
+    if (uiMoveType != Motion::Kind::Point || !HasEscortState(STATE_ESCORT_ESCORTING))
     {
         return;
     }
@@ -630,7 +630,7 @@ void npc_escortAI::Start(bool bRun, const Player* pPlayer, const Quest* pQuest, 
     {
         m_creature->GetMotionMaster()->MovementExpired();
         m_creature->GetMotionMaster()->MoveIdle();
-        debug_log("SD3: EscortAI start with WAYPOINT_MOTION_TYPE, changed to MoveIdle.");
+        debug_log("SD3: EscortAI start with a waypoint default, changed to MoveIdle.");
     }
 
     // disable npcflags

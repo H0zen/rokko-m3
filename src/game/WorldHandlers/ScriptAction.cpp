@@ -855,10 +855,10 @@ bool ScriptAction::HandleScriptStep()
 
             switch (m_script->movement.movementType)
             {
-                case IDLE_MOTION_TYPE:
+                case CREATURE_MOVEMENT_IDLE:
                     ((Creature*)pSource)->GetMotionMaster()->MoveIdle();
                     break;
-                case RANDOM_MOTION_TYPE:
+                case CREATURE_MOVEMENT_RANDOM:
                     if (m_script->data_flags & SCRIPT_FLAG_COMMAND_ADDITIONAL)
                     {
                         ((Creature*)pSource)->GetMotionMaster()->MoveRandomAroundPoint(pSource->Where().X(), pSource->Where().Y(), pSource->Where().Z(), float(m_script->movement.wanderDistance));
@@ -876,7 +876,7 @@ bool ScriptAction::HandleScriptStep()
                         ((Creature*)pSource)->GetMotionMaster()->MoveRandomAroundPoint(respX, respY, respZ, wander_distance);
                     }
                     break;
-                case WAYPOINT_MOTION_TYPE:
+                case CREATURE_MOVEMENT_WAYPOINT:
                     ((Creature*)pSource)->GetMotionMaster()->MoveWaypoint();
                     break;
             }

@@ -57,7 +57,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; float d; MovementGeneratorType mt; };
+                struct Sample { uint32 t; float d; Motion::Kind mt; };
                 const float ex = SE.x + 60.0f;   // source 60 yd east: caster->mover bearing = pi, the axis where a reflection is a no-op
                 const float d0 = 60.0f;
                 Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
@@ -86,7 +86,7 @@ namespace Harness
                         s.d = Dist2(x, y, bx, by);
                         s.mt = Type(a);
                         samples->push_back(s);
-                        Log("+%4ums %.1f %.1f mt=%s dSource=%.1f", s.t, x, y, Harness::TypeName(s.mt), s.d);
+                        Log("+%4ums %.1f %.1f mt=%s dSource=%.1f", s.t, x, y, Motion::KindName(s.mt), s.d);
                     });
                 }
                 At(7500, [this, samples, d0]()
@@ -126,7 +126,7 @@ namespace Harness
         /// creature that has a victim.
         ///
         /// 1. A distract superseding an assistance distract runs the displaced
-        ///    generator's finalizer, which re-engages combat (AttackStart ->
+        ///    behaviour's finalizer, which re-engages combat (AttackStart ->
         ///    MoveChase) from inside the request that displaced it. The nested
         ///    chase must not take the binding the outer request stamped, or the
         ///    new distract is selected with no behaviour at all and the creature
@@ -144,7 +144,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; float dVictim; MovementGeneratorType mt; };
+                struct Sample { uint32 t; float dVictim; Motion::Kind mt; };
                 struct Corpse { uint32 t; float moved; bool dead; uint32 held; bool idleOnly; };
                 const float kx = SE.x + 25.0f;
                 Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
@@ -196,7 +196,7 @@ namespace Harness
                         s.dVictim = Dist2(a->Where().X(), a->Where().Y(), b->Where().X(), b->Where().Y());
                         s.mt = Type(a);
                         chase->push_back(s);
-                        Log("+%4ums mt=%s dVictim=%.1f victim=%s", s.t, Harness::TypeName(s.mt), s.dVictim, a->getVictim() ? "true" : "false");
+                        Log("+%4ums mt=%s dVictim=%.1f victim=%s", s.t, Motion::KindName(s.mt), s.dVictim, a->getVictim() ? "true" : "false");
                     });
                 }
                 At(10000, [this, g, chase, atDistract, reengage]()
@@ -214,18 +214,18 @@ namespace Harness
                         Sample const& f = chase->back();
                         Sample const& first = chase->front();
                         char text[128];
-                        if (first.mt != ASSISTANCE_DISTRACT_MOTION_TYPE)
+                        if (first.mt != Motion::Kind::AssistDistract)
                         {
-                            snprintf(text, sizeof(text), "BUG(%s at +400 ms: the replacement distract did not dwell)", Harness::TypeName(first.mt));
+                            snprintf(text, sizeof(text), "BUG(%s at +400 ms: the replacement distract did not dwell)", Motion::KindName(first.mt));
                         }
-                        else if (f.mt == CHASE_MOTION_TYPE && (f.dVictim < *atDistract - 2.0f || f.dVictim < 5.0f))
+                        else if (f.mt == Motion::Kind::Chase && (f.dVictim < *atDistract - 2.0f || f.dVictim < 5.0f))
                         {
                             snprintf(text, sizeof(text), "OK(the replacement distract dwelt, then re-engaged through the supersede, %.1f -> %.1f yd)", *atDistract, f.dVictim);
                         }
                         else
                         {
                             snprintf(text, sizeof(text), "BUG(%s %.1f yd from the victim, %.1f yd at the distract)",
-                                     Harness::TypeName(f.mt), f.dVictim, *atDistract);
+                                     Motion::KindName(f.mt), f.dVictim, *atDistract);
                         }
                         *reengage = text;
                     }
@@ -315,7 +315,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; float dVictim; MovementGeneratorType mt; };
+                struct Sample { uint32 t; float dVictim; Motion::Kind mt; };
                 const float kx = SE.x + 20.0f;
                 Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
                 Creature* b = Spawn(KOBOLD, kx, SE.y, Ground(kx, SE.y, SE.z), 3.1f);
@@ -352,7 +352,7 @@ namespace Harness
                         s.dVictim = Dist2(a->Where().X(), a->Where().Y(), b->Where().X(), b->Where().Y());
                         s.mt = Type(a);
                         samples->push_back(s);
-                        Log("+%4ums mt=%s dVictim=%.1f", s.t, Harness::TypeName(s.mt), s.dVictim);
+                        Log("+%4ums mt=%s dVictim=%.1f", s.t, Motion::KindName(s.mt), s.dVictim);
                     });
                 }
                 At(6000, [this, samples, atAttack]()
@@ -368,14 +368,14 @@ namespace Harness
                         Sample const& first = (*samples)[2];   // +900 ms
                         Sample const& last = samples->back();
                         char text[160];
-                        if (first.mt == CHASE_MOTION_TYPE && last.dVictim < *atAttack - 2.0f)
+                        if (first.mt == Motion::Kind::Chase && last.dVictim < *atAttack - 2.0f)
                         {
                             snprintf(text, sizeof(text), "combatDropsDistract=OK(chasing within a second, %.1f -> %.1f yd)", *atAttack, last.dVictim);
                         }
                         else
                         {
                             snprintf(text, sizeof(text), "combatDropsDistract=BUG(%s at +%ums, %.1f -> %.1f yd)",
-                                     Harness::TypeName(first.mt), first.t, *atAttack, last.dVictim);
+                                     Motion::KindName(first.mt), first.t, *atAttack, last.dVictim);
                         }
                         body = text;
                     }
@@ -395,7 +395,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; MovementGeneratorType mt; bool state; bool move; bool flag; float dVictim; };
+                struct Sample { uint32 t; Motion::Kind mt; bool state; bool move; bool flag; float dVictim; };
                 Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
                 Creature* b = Spawn(KOBOLD, SE.x + 20.0f, SE.y, Ground(SE.x + 20.0f, SE.y, SE.z), 3.1f);
                 Creature* c = Spawn(KOBOLD, SE.x + 25.0f, SE.y + 15.0f, Ground(SE.x + 25.0f, SE.y + 15.0f, SE.z), 3.1f);
@@ -420,7 +420,7 @@ namespace Harness
                     Unit* v = a->getVictim() ? a->getVictim() : b;
                     s.dVictim = Dist2(a->Where().X(), a->Where().Y(), v->Where().X(), v->Where().Y());
                     into.push_back(s);
-                    Log("+%5ums mt=%s state=%d move=%d flag=%d dVictim=%.1f", t, Harness::TypeName(s.mt), s.state ? 1 : 0, s.move ? 1 : 0, s.flag ? 1 : 0, s.dVictim);
+                    Log("+%5ums mt=%s state=%d move=%d flag=%d dVictim=%.1f", t, Motion::KindName(s.mt), s.state ? 1 : 0, s.move ? 1 : 0, s.flag ? 1 : 0, s.dVictim);
                 };
                 At(500, [this, g, h]()
                 {
@@ -474,7 +474,7 @@ namespace Harness
                     for (size_t k = 0; k < afterFirst->size(); ++k)
                     {
                         Sample const& s = (*afterFirst)[k];
-                        if (s.mt != FLEEING_MOTION_TYPE || !s.state || !s.flag) { keptFleeing = false; }
+                        if (s.mt != Motion::Kind::Fear || !s.state || !s.flag) { keptFleeing = false; }
                     }
                     char text[160];
                     if (keptFleeing)
@@ -484,20 +484,20 @@ namespace Harness
                     else
                     {
                         Sample const& s = (*afterFirst)[0];
-                        snprintf(text, sizeof(text), "BUG(after fear A's removal: mt=%s state=%d flag=%d)", Harness::TypeName(s.mt), s.state ? 1 : 0, s.flag ? 1 : 0);
+                        snprintf(text, sizeof(text), "BUG(after fear A's removal: mt=%s state=%d flag=%d)", Motion::KindName(s.mt), s.state ? 1 : 0, s.flag ? 1 : 0);
                         first = text;
                     }
                     Sample const& soon = (*afterLast)[std::min<size_t>(2, afterLast->size() - 1)];   // +900 ms
                     Sample const& end = afterLast->back();
                     const bool closed = end.dVictim < (*afterLast)[0].dVictim + 1.0f || end.dVictim <= 4.0f;   // closes on the victim, or already within melee reach
-                    if (soon.mt == CHASE_MOTION_TYPE && !end.state && !end.move && !end.flag && closed)
+                    if (soon.mt == Motion::Kind::Chase && !end.state && !end.move && !end.flag && closed)
                     {
                         snprintf(text, sizeof(text), "OK(chase back within a second of fear B's removal, state and flag clear, %.1f -> %.1f yd)", (*afterLast)[0].dVictim, end.dVictim);
                     }
                     else
                     {
                         snprintf(text, sizeof(text), "BUG(after fear B's removal: mt=%s at +%ums, state=%d move=%d flag=%d, %.1f -> %.1f yd)",
-                                 Harness::TypeName(soon.mt), soon.t - 8500, end.state ? 1 : 0, end.move ? 1 : 0, end.flag ? 1 : 0, (*afterLast)[0].dVictim, end.dVictim);
+                                 Motion::KindName(soon.mt), soon.t - 8500, end.state ? 1 : 0, end.move ? 1 : 0, end.flag ? 1 : 0, (*afterLast)[0].dVictim, end.dVictim);
                     }
                     last = text;
                     Verdict("secondFearKeepsFleeing=" + first + " | lastFearResumesChase=" + last);
@@ -519,7 +519,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; MovementGeneratorType mt; float dHome; };
+                struct Sample { uint32 t; Motion::Kind mt; float dHome; };
                 Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
                 Creature* k = Spawn(KOBOLD, SE.x + 20.0f, SE.y, Ground(SE.x + 20.0f, SE.y, SE.z), 3.1f);
                 if (!a || !k) { Verdict("fearEndGoesHome=INVALID(spawn failed)"); return; }
@@ -546,7 +546,7 @@ namespace Harness
                     Creature* a = Get(g); Creature* k = Get(gk); if (!a || !k) { return; }
                     k->DealDamage(k, k->GetHealth(), NULL, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, NULL, false);   // nothing to attack afterwards
                     a->SetFeared(false, gk, 5782, 0, 0);
-                    *homeAtRemoval = Type(a) == HOME_MOTION_TYPE;   // a wolf feared a few yards from home is back before the first sample
+                    *homeAtRemoval = Type(a) == Motion::Kind::Home;   // a wolf feared a few yards from home is back before the first sample
                     Log("fear removed %.1f yd from home, mt=%s", Dist2(a->Where().X(), a->Where().Y(), hx, hy), TypeName(a));
                 });
                 for (uint32 i = 1; i <= 12; ++i)
@@ -559,7 +559,7 @@ namespace Harness
                         s.mt = Type(a);
                         s.dHome = Dist2(a->Where().X(), a->Where().Y(), hx, hy);
                         samples->push_back(s);
-                        Log("+%4ums mt=%s dHome=%.1f", s.t, Harness::TypeName(s.mt), s.dHome);
+                        Log("+%4ums mt=%s dHome=%.1f", s.t, Motion::KindName(s.mt), s.dHome);
                     });
                 }
                 At(10700, [this, samples, homeAtRemoval]()
@@ -568,7 +568,7 @@ namespace Harness
                     bool sawHome = *homeAtRemoval;
                     for (size_t k = 0; k < samples->size() && (*samples)[k].t <= 2000; ++k)
                     {
-                        if ((*samples)[k].mt == HOME_MOTION_TYPE) { sawHome = true; }
+                        if ((*samples)[k].mt == Motion::Kind::Home) { sawHome = true; }
                     }
                     Sample const& first = samples->front();
                     Sample const& last = samples->back();
@@ -581,12 +581,12 @@ namespace Harness
                     char text[192];
                     if (sawHome && closest < bar)
                     {
-                        snprintf(text, sizeof(text), "fearEndGoesHome=OK(HOME within two seconds, %.1f -> closest %.1f yd from home, last mt=%s)", first.dHome, closest, Harness::TypeName(last.mt));
+                        snprintf(text, sizeof(text), "fearEndGoesHome=OK(HOME within two seconds, %.1f -> closest %.1f yd from home, last mt=%s)", first.dHome, closest, Motion::KindName(last.mt));
                     }
                     else
                     {
                         snprintf(text, sizeof(text), "fearEndGoesHome=BUG(home %s, %.1f -> closest %.1f yd from home, last mt=%s)",
-                                 sawHome ? "seen" : "never seen", first.dHome, closest, Harness::TypeName(last.mt));
+                                 sawHome ? "seen" : "never seen", first.dHome, closest, Motion::KindName(last.mt));
                     }
                     Verdict(text);
                 });
@@ -611,10 +611,10 @@ namespace Harness
                 b->SetMaxHealth(500000); b->SetHealth(500000);
                 b->setFaction(14); c->setFaction(14);
                 const ObjectGuid g = a->GetObjectGuid(), h = b->GetObjectGuid(), gc = c->GetObjectGuid();
-                auto both = std::make_shared<std::vector<MovementGeneratorType> >();
-                auto afterConfuse = std::make_shared<std::vector<MovementGeneratorType> >();
-                auto afterFear = std::make_shared<std::vector<MovementGeneratorType> >();
-                auto sample = [this, g](std::vector<MovementGeneratorType>& into, char const* phase, uint32 t)
+                auto both = std::make_shared<std::vector<Motion::Kind> >();
+                auto afterConfuse = std::make_shared<std::vector<Motion::Kind> >();
+                auto afterFear = std::make_shared<std::vector<Motion::Kind> >();
+                auto sample = [this, g](std::vector<Motion::Kind>& into, char const* phase, uint32 t)
                 {
                     Creature* a = Get(g); if (!a) { return; }
                     into.push_back(Type(a));
@@ -636,17 +636,17 @@ namespace Harness
                 for (uint32 i = 1; i <= 5; ++i) { At(9500 + i * 300, [sample, afterFear, i]() { sample(*afterFear, "none", i * 300); }); }
                 At(11300, [this, both, afterConfuse, afterFear]()
                 {
-                    auto all = [](std::vector<MovementGeneratorType> const& v, MovementGeneratorType t)
+                    auto all = [](std::vector<Motion::Kind> const& v, Motion::Kind t)
                     {
                         if (v.empty()) { return false; }
                         for (size_t k = 0; k < v.size(); ++k) { if (v[k] != t) { return false; } }
                         return true;
                     };
                     std::string body;
-                    body += std::string("confuseOutranksFear=") + (all(*both, CONFUSED_MOTION_TYPE) ? "OK(CONFUSED while both held)" : (both->empty() ? "INVALID(no samples)" : std::string("BUG(") + Harness::TypeName(both->front()) + " while both held)"));
-                    body += std::string(" | fearResumesAfterConfuse=") + (all(*afterConfuse, FLEEING_MOTION_TYPE) ? "OK(FLEEING after the confuse's removal)" : (afterConfuse->empty() ? "INVALID(no samples)" : std::string("BUG(") + Harness::TypeName(afterConfuse->front()) + " after the confuse's removal)"));
-                    const bool chase = afterFear->size() >= 3 && (*afterFear)[2] == CHASE_MOTION_TYPE;   // +900 ms
-                    body += std::string(" | chaseResumesLast=") + (chase ? "OK(CHASE within a second of the fear's removal)" : (afterFear->empty() ? "INVALID(no samples)" : std::string("BUG(") + Harness::TypeName(afterFear->size() >= 3 ? (*afterFear)[2] : afterFear->back()) + " after the fear's removal)"));
+                    body += std::string("confuseOutranksFear=") + (all(*both, Motion::Kind::Confused) ? "OK(CONFUSED while both held)" : (both->empty() ? "INVALID(no samples)" : std::string("BUG(") + Motion::KindName(both->front()) + " while both held)"));
+                    body += std::string(" | fearResumesAfterConfuse=") + (all(*afterConfuse, Motion::Kind::Fear) ? "OK(FLEEING after the confuse's removal)" : (afterConfuse->empty() ? "INVALID(no samples)" : std::string("BUG(") + Motion::KindName(afterConfuse->front()) + " after the confuse's removal)"));
+                    const bool chase = afterFear->size() >= 3 && (*afterFear)[2] == Motion::Kind::Chase;   // +900 ms
+                    body += std::string(" | chaseResumesLast=") + (chase ? "OK(CHASE within a second of the fear's removal)" : (afterFear->empty() ? "INVALID(no samples)" : std::string("BUG(") + Motion::KindName(afterFear->size() >= 3 ? (*afterFear)[2] : afterFear->back()) + " after the fear's removal)"));
                     Verdict(body);
                 });
             }
@@ -654,7 +654,7 @@ namespace Harness
 
         /// P4-A: the low-health flee (a timed fear from the victim, spell 0) ends on its own
         /// and must leave no fleeing flag behind; today nothing cleared UNIT_FLAG_FLEEING after
-        /// it. The chase resumes through the timed generator's own re-engagement.
+        /// it. The chase resumes through the timed behaviour's own re-engagement.
         class TimedFleeCleans : public Scenario
         {
         public:
@@ -662,7 +662,14 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; MovementGeneratorType mt; bool flag; bool state; };
+                struct Sample
+                {
+                    uint32       t;
+                    Motion::Kind mt;
+                    bool         flag;
+                    bool         state;
+                    bool         timed = false;   ///< the selected fear was the timed variant (SelectedVariant() == 1)
+                };
                 Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
                 Creature* b = Spawn(KOBOLD, SE.x + 20.0f, SE.y, Ground(SE.x + 20.0f, SE.y, SE.z), 3.1f);
                 if (!a || !b) { Verdict("timedFleeCleans=INVALID(spawn failed)"); return; }
@@ -692,26 +699,27 @@ namespace Harness
                         Sample s;
                         s.t = i * 400;
                         s.mt = Type(a);
+                        s.timed = a->GetMotionMaster()->SelectedVariant() == 1;
                         s.flag = a->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
                         s.state = a->hasUnitState(UNIT_STAT_FLEEING | UNIT_STAT_FLEEING_MOVE);
                         samples->push_back(s);
-                        Log("+%4ums mt=%s flag=%d state=%d", s.t, Harness::TypeName(s.mt), s.flag ? 1 : 0, s.state ? 1 : 0);
+                        Log("+%4ums mt=%s flag=%d state=%d", s.t, Motion::KindName(s.mt), s.flag ? 1 : 0, s.state ? 1 : 0);
                     });
                 }
                 At(7400, [this, samples]()
                 {
                     if (samples->empty()) { Verdict("timedFleeCleans=INVALID(no samples)"); return; }
                     bool fled = false;
-                    for (size_t k = 0; k < samples->size(); ++k) { if ((*samples)[k].mt == TIMED_FLEEING_MOTION_TYPE) { fled = true; } }
+                    for (size_t k = 0; k < samples->size(); ++k) { if ((*samples)[k].mt == Motion::Kind::Fear && (*samples)[k].timed) { fled = true; } }
                     Sample const& end = samples->back();
                     char text[160];
-                    if (fled && end.mt == CHASE_MOTION_TYPE && !end.flag && !end.state)
+                    if (fled && end.mt == Motion::Kind::Chase && !end.flag && !end.state)
                     {
                         snprintf(text, sizeof(text), "timedFleeCleans=OK(fled, then chased with the flag and state clear)");
                     }
                     else
                     {
-                        snprintf(text, sizeof(text), "timedFleeCleans=BUG(fled=%d, end mt=%s flag=%d state=%d)", fled ? 1 : 0, Harness::TypeName(end.mt), end.flag ? 1 : 0, end.state ? 1 : 0);
+                        snprintf(text, sizeof(text), "timedFleeCleans=BUG(fled=%d, end mt=%s flag=%d state=%d)", fled ? 1 : 0, Motion::KindName(end.mt), end.flag ? 1 : 0, end.state ? 1 : 0);
                     }
                     Verdict(text);
                 });
@@ -737,8 +745,8 @@ namespace Harness
                 b->setFaction(14); c->setFaction(14);
                 const ObjectGuid g = a->GetObjectGuid(), h = b->GetObjectGuid(), gc = c->GetObjectGuid();
                 const float px = SE.x - 15.0f, py = SE.y + 10.0f;
-                auto afterClear = std::make_shared<std::vector<MovementGeneratorType> >();
-                auto afterFear = std::make_shared<std::vector<MovementGeneratorType> >();
+                auto afterClear = std::make_shared<std::vector<Motion::Kind> >();
+                auto afterFear = std::make_shared<std::vector<Motion::Kind> >();
                 At(500, [this, g, h]()
                 {
                     Creature* a = Get(g); Creature* b = Get(h); if (!a || !b) { return; }
@@ -766,10 +774,10 @@ namespace Harness
                 At(8600, [this, afterClear, afterFear]()
                 {
                     bool keptFear = !afterClear->empty();
-                    for (size_t k = 0; k < afterClear->size(); ++k) { if ((*afterClear)[k] != FLEEING_MOTION_TYPE) { keptFear = false; } }
-                    const bool point = afterFear->size() >= 3 && (*afterFear)[2] == POINT_MOTION_TYPE;   // +900 ms
-                    std::string body = std::string("clearKeepsFear=") + (keptFear ? "OK(still FLEEING after a script's Clear(false))" : (afterClear->empty() ? "INVALID(no samples)" : std::string("BUG(") + Harness::TypeName(afterClear->front()) + " after the clear)"));
-                    body += std::string(" | pointRunsAfterFear=") + (point ? "OK(the script's point runs within a second of the fear's end)" : (afterFear->empty() ? "INVALID(no samples)" : std::string("BUG(") + Harness::TypeName(afterFear->size() >= 3 ? (*afterFear)[2] : afterFear->back()) + " after the fear's end)"));
+                    for (size_t k = 0; k < afterClear->size(); ++k) { if ((*afterClear)[k] != Motion::Kind::Fear) { keptFear = false; } }
+                    const bool point = afterFear->size() >= 3 && (*afterFear)[2] == Motion::Kind::Point;   // +900 ms
+                    std::string body = std::string("clearKeepsFear=") + (keptFear ? "OK(still FLEEING after a script's Clear(false))" : (afterClear->empty() ? "INVALID(no samples)" : std::string("BUG(") + Motion::KindName(afterClear->front()) + " after the clear)"));
+                    body += std::string(" | pointRunsAfterFear=") + (point ? "OK(the script's point runs within a second of the fear's end)" : (afterFear->empty() ? "INVALID(no samples)" : std::string("BUG(") + Motion::KindName(afterFear->size() >= 3 ? (*afterFear)[2] : afterFear->back()) + " after the fear's end)"));
                     Verdict(body);
                 });
             }
@@ -796,7 +804,7 @@ namespace Harness
                 auto rooted = std::make_shared<std::vector<Pt> >();
                 auto after = std::make_shared<std::vector<Pt> >();
                 auto keptFear = std::make_shared<bool>(true);
-                auto legAfter = std::make_shared<bool>(false);   // the generator laid a leg after the unroot (its move bit)
+                auto legAfter = std::make_shared<bool>(false);   // the behaviour laid a leg after the unroot (its move bit)
                 At(500, [this, g, gk]()
                 {
                     Creature* a = Get(g); if (!a) { return; }
@@ -816,7 +824,7 @@ namespace Harness
                         Creature* a = Get(g); if (!a) { return; }
                         Pt p = { a->Where().X(), a->Where().Y(), a->Where().Z() };
                         rooted->push_back(p);
-                        if (Type(a) != FLEEING_MOTION_TYPE) { *keptFear = false; }
+                        if (Type(a) != Motion::Kind::Fear) { *keptFear = false; }
                         Log("rooted +%4ums mt=%s root state=%d at %.1f %.1f", i * 400, TypeName(a), a->IsRooted() ? 1 : 0, p.x, p.y);
                     });
                 }
@@ -853,7 +861,7 @@ namespace Harness
                         snprintf(text, sizeof(text), "rootHoldsFear=BUG(moved %.1f yd while rooted%s)", held, *keptFear ? "" : ", the fear was cut");
                     }
                     std::string body = text;
-                    // The gate reopened when the generator laid a leg again (its move bit) or the wolf
+                    // The gate reopened when the behaviour laid a leg again (its move bit) or the wolf
                     // got away; a bolt's length and the pauses between bolts are the flee geometry's.
                     if (*legAfter || resumed > 3.0f)
                     {
@@ -909,7 +917,7 @@ namespace Harness
                         Creature* a = Get(g); if (!a) { return; }
                         Pt p = { a->Where().X(), a->Where().Y(), a->Where().Z() };
                         rooted->push_back(p);
-                        if (Type(a) != CHASE_MOTION_TYPE) { *keptChase = false; }
+                        if (Type(a) != Motion::Kind::Chase) { *keptChase = false; }
                         Log("rooted +%4ums mt=%s root state=%d at %.1f %.1f", i * 400, TypeName(a), a->IsRooted() ? 1 : 0, p.x, p.y);
                     });
                 }

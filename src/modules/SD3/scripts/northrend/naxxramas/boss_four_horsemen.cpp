@@ -185,9 +185,9 @@ struct boss_lady_blaumeux : CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMotionType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }
@@ -338,9 +338,9 @@ struct boss_rivendare_naxx : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMotionType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }
@@ -471,9 +471,9 @@ struct boss_thane_korthazz : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMotionType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }
@@ -606,9 +606,9 @@ struct boss_sir_zeliek :CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMotionType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }

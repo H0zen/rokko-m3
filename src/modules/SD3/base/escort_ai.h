@@ -85,7 +85,7 @@ struct npc_escortAI : public ScriptedAI
         void UpdateAI(const uint32) override;               // the "internal" update, calls UpdateEscortAI()
         virtual void UpdateEscortAI(const uint32);          // used when it's needed to add code in update (abilities, scripted events, etc)
 
-        void MovementInform(uint32, uint32) override;
+        void MovementInform(Motion::Kind, uint32) override;
 
         // EscortAI functions
         // void AddWaypoint(uint32 id, float x, float y, float z, uint32 WaitTimeMs = 0);

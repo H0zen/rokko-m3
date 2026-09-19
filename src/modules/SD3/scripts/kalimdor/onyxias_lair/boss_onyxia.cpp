@@ -251,9 +251,9 @@ struct boss_onyxia : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiMoveType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || uiPointId != 1 || !m_creature->getVictim())
+            if (uiMoveType != Motion::Kind::Point || uiPointId != 1 || !m_creature->getVictim())
             {
                 return;
             }
@@ -283,9 +283,11 @@ struct boss_onyxia : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !m_pInstance)
+            // POINT_ID_LAND and POINT_ID_IN_AIR arrive as FlyLand (MoveFlyOrLand); POINT_ID_LIFTOFF,
+            // POINT_ID_INIT_NORTH and the breath's points as Point (MovePoint) (P5-C1)
+            if ((uiMoveType != Motion::Kind::Point && uiMoveType != Motion::Kind::FlyLand) || !m_pInstance)
             {
                 return;
             }

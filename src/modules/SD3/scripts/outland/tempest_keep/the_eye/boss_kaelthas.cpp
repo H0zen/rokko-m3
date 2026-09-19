@@ -352,9 +352,9 @@ struct boss_kaelthas : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMotionType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }

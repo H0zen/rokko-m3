@@ -435,9 +435,9 @@ struct npc_crystal_channel_target : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiMotionType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiPointId != 1 || uiMotionType != POINT_MOTION_TYPE || (pSummoned->GetEntry() != NPC_HULKING_CORPSE && pSummoned->GetEntry() != NPC_FETID_TROLL_CORPSE && pSummoned->GetEntry() != NPC_RISON_SHADOWCASTER))
+            if (uiPointId != 1 || uiMotionType != Motion::Kind::Point || (pSummoned->GetEntry() != NPC_HULKING_CORPSE && pSummoned->GetEntry() != NPC_FETID_TROLL_CORPSE && pSummoned->GetEntry() != NPC_RISON_SHADOWCASTER))
             {
                 return;
             }

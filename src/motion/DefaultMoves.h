@@ -93,22 +93,14 @@ namespace Motion
                 /// The generator's `behavior != nullptr && !behavior->isEmpty()`: emote, spell, either model, or any text id.
                 bool HasBehavior() const { return emote || spell || model1 || model2 || textAnywhere; }
             };
-            struct InformTypes
-            {
-                uint32 waypoint = 0;       ///< WAYPOINT_MOTION_TYPE
-                uint32 externalMove = 0;   ///< EXTERNAL_WAYPOINT_MOVE + pathId
-                uint32 externalStart = 0;  ///< EXTERNAL_WAYPOINT_MOVE_START + pathId
-                uint32 externalLast = 0;   ///< EXTERNAL_WAYPOINT_FINISHED_LAST + pathId
-            };
             struct Params
             {
                 int32  pathId = 0;
                 uint32 origin = 0;         ///< the shell's WaypointPathOrigin value, opaque here
-                bool   external = false;   ///< origin == PATH_FROM_EXTERNAL && pathId > 0: the raw inform types apply
+                bool   external = false;   ///< origin == PATH_FROM_EXTERNAL && pathId > 0: the informs go out as PathInform(pathId, ...) instead of Inform(Patrol, node)
                 bool   externalOrigin = false; ///< origin == PATH_FROM_EXTERNAL (any pathId): no welding, the path may be replaced under us
                 std::vector<Node> nodes;   ///< in path order (ascending id)
                 uint32 initialDelay = 0;
-                InformTypes inform;
                 uint32 revision = 0;       ///< opaque: the shell's path revision the nodes were read at
                 uint32 entry = 0;          ///< opaque: the entry the shell resolved the path with, so a refresh resolves the same path
             };

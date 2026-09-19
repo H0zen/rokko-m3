@@ -29,6 +29,7 @@
 #include "Timeline.h"
 #include "ObjectGuid.h"
 #include "MotionMaster.h"
+#include "Arbiter.h"
 
 #include <string>
 #include <vector>
@@ -46,15 +47,22 @@ namespace Harness
     /// The distance from the first sample to the farthest one: how far the unit got.
     float Spread(std::vector<Pt> const& samples);
 
-    /// One MovementInform the recording AI saw: the generator type, the id the
-    /// script gave, where the creature stood, and whose.
+    /// One event the recording AI saw: a MovementInform (the kind and the id the native gave),
+    /// an external path's WaypointPathInform, the home reached, or the death; where the creature
+    /// stood, and whose.
+    /// kind, id, pathId and pathEvent are meaningful only for the event named in each field's doc; a
+    /// ReachedHome or Died record carries their defaults (kind reads Idle).
     struct Inform
     {
-        uint32 type;
-        uint32 id;
-        float  x;
-        float  y;
-        uint32 guidLow;
+        enum class Event : uint8 { Inform, PathInform, ReachedHome, Died };
+        Event  event = Event::Inform;
+        Motion::Kind kind = Motion::Kind::Idle;   ///< Inform: the kind that informed
+        uint32 id = 0;                    ///< Inform: the id; PathInform: the node
+        uint32 pathId = 0;                ///< PathInform: the external path's id
+        Motion::PathEvent pathEvent = Motion::PathEvent::NodeReached;   ///< PathInform: what happened
+        float  x = 0.0f;
+        float  y = 0.0f;
+        uint32 guidLow = 0;
     };
 
     /// One creature Find resolved: its guid, whether the world already had it
@@ -70,8 +78,8 @@ namespace Harness
 
     /**
      * One headless scenario (design v2 §12): it spawns its actors, drives the
-     * MotionMaster facade from a step timeline, samples positions and generator
-     * types, and prints its verdict. The runner owns the map and the clock; the
+     * MotionMaster facade from a step timeline, samples positions and behaviour
+     * kinds, and prints its verdict. The runner owns the map and the clock; the
      * scenario re-resolves every actor by guid on each step, as the old Lua did.
      */
     class Scenario
@@ -100,9 +108,11 @@ namespace Harness
         std::vector<FoundActor> const& Found() const { return m_found; }
         std::vector<Inform>& Informs() { return m_informs; }
         /// A MovementInform the recording AI just saw, delivered synchronously from inside
-        /// the inform: a scenario that must act while the generator's Update is still on
+        /// the inform: a scenario that must act while the behaviour's Tick is still on
         /// the stack overrides this. The default records nothing more.
-        virtual void OnInform(Creature* /*creature*/, uint32 /*type*/, uint32 /*id*/) {}
+        virtual void OnInform(Creature* /*creature*/, Motion::Kind /*kind*/, uint32 /*id*/) {}
+        /// An external waypoint path's progress, as MovementInform above but for the second hook.
+        virtual void OnPathInform(Creature* /*creature*/, uint32 /*pathId*/, Motion::PathEvent /*event*/, uint32 /*node*/) {}
         void Reset();
 
     protected:
@@ -125,9 +135,11 @@ namespace Harness
         void Load(float x, float y);
         /// The map's height at (x, y) near z; the caller's z when the map has none.
         float Ground(float x, float y, float z) const;
-        MovementGeneratorType Type(Creature* c) const;
-        char const* TypeName(Creature* c) const { return Harness::TypeName(uint32(Type(c))); }
-        /// The current waypoint node when the top generator is a patrol, else 0.
+        /// The selected kind of the creature's facade (ActiveKind()), Idle for NULL.
+        Motion::Kind Type(Creature* c) const;
+        /// Motion::KindName(Type(c)): the label the verdicts print (mt=...).
+        char const* TypeName(Creature* c) const { return Motion::KindName(Type(c)); }
+        /// The current waypoint node when the selected behaviour is a patrol, else 0.
         uint32 Node(Creature* c) const;
         /// The selected tracking native's re-lay counters (routine, cut, partial, blocked,
         /// finished, first), else NULL: nothing selected, a legacy binding, or a native that

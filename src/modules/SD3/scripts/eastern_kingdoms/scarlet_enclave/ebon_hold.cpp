@@ -1420,9 +1420,9 @@ struct npc_eye_of_acherus : public CreatureScript
             m_creature->CastSpell(m_creature, 52694, true);     // HACK - Remove this when mangos supports proper spell casting
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE || uiPointId != POINT_EYE_DESTINATION)
+            if (uiType != Motion::Kind::Point || uiPointId != POINT_EYE_DESTINATION)
             {
                 return;
             }
@@ -1519,9 +1519,9 @@ struct npc_scarlet_ghoul : public CreatureScript
 
         void Reset() override {}
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType == EFFECT_MOTION_TYPE && uiPointId == 1)
+            if (uiMotionType == Motion::Kind::Effect && uiPointId == 1)
             {
                 m_uiUnsummonTimer = 1000;
                 DoCastSpellIfCan(m_creature, SPELL_GHOUL_UNSUMMON);
@@ -1955,9 +1955,9 @@ struct npc_highlord_darion_mograine : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE || uiPointId != POINT_MOVE_CHAPEL)
+            if (uiType != Motion::Kind::Point || uiPointId != POINT_MOVE_CHAPEL)
             {
                 return;
             }
@@ -2081,7 +2081,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId)
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId)
         {
             if (uiPointId < POINT_MOVE_CHAPEL || uiPointId > 10 * POINT_MOVE_RETURN_BATTLE)
             {
@@ -2089,7 +2089,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                 return;
             }
 
-            if (uiMotionType == POINT_MOTION_TYPE && uiPointId == POINT_MOVE_RETURN_BATTLE)
+            if (uiMotionType == Motion::Kind::Point && uiPointId == POINT_MOVE_RETURN_BATTLE)
             {
                 SetCombatMovement(false);
                 DoStartMovement(m_creature->getVictim());
@@ -3197,9 +3197,9 @@ struct npc_fellow_death_knight : public CreatureScript
             DoCastSpellIfCan(m_creature, SPELL_HERO_AGGRO_AURA);
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE || uiPointId != POINT_MOVE_CHAPEL)
+            if (uiType != Motion::Kind::Point || uiPointId != POINT_MOVE_CHAPEL)
             {
                 return;
             }

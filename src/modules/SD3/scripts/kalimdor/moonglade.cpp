@@ -391,9 +391,9 @@ struct npc_keeper_remulos : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE || pSummoned->GetEntry() != NPC_ERANIKUS_TYRANT)
+            if (uiType != Motion::Kind::Point || pSummoned->GetEntry() != NPC_ERANIKUS_TYRANT)
             {
                 return;
             }
@@ -866,9 +866,9 @@ struct boss_eranikus : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE)
+            if (uiType != Motion::Kind::Point)
             {
                 return;
             }
@@ -899,9 +899,9 @@ struct boss_eranikus : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE || uiPointId != POINT_ID_ERANIKUS_REDEEMED)
+            if (uiType != Motion::Kind::Point || uiPointId != POINT_ID_ERANIKUS_REDEEMED)
             {
                 return;
             }

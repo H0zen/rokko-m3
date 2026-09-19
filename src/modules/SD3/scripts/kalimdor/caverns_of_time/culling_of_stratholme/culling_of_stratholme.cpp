@@ -496,9 +496,9 @@ struct npc_arthas : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType == WAYPOINT_MOTION_TYPE)
+            if (uiType == Motion::Kind::Patrol)
             {
                 // set the intro event as done and start the undead waves
                 if (uiPointId == POINT_ID_INTRO_COMPLETE && m_pInstance)

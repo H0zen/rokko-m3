@@ -716,7 +716,7 @@ namespace Harness
                         Log("%s", text);
                         return;
                     }
-                    const bool ok = r.deadSources == 2 && r.dead && flags && Type(w) == FOLLOW_MOTION_TYPE;
+                    const bool ok = r.deadSources == 2 && r.dead && flags && Type(w) == Motion::Kind::Follow;
                     char text[120];
                     snprintf(text, sizeof(text), "%s(deadSources=%u flags=%d mt=%s)", ok ? "OK" : "BUG", uint32(r.deadSources), flags ? 1 : 0, TypeName(w));
                     *twoSources = text;
@@ -760,7 +760,7 @@ namespace Harness
                     Creature* w = Get(gw); if (!w) { return; }
                     const BlockRead r = ReadBlock(w);
                     const bool flags = w->HasFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH) || w->HasFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
-                    const bool ok = !r.dead && r.deadSources == 0 && !flags && Type(w) == FOLLOW_MOTION_TYPE;
+                    const bool ok = !r.dead && r.deadSources == 0 && !flags && Type(w) == Motion::Kind::Follow;
                     char text[120];
                     snprintf(text, sizeof(text), "%s(dead=%d flags=%d mt=%s)", ok ? "OK" : "BUG", r.dead ? 1 : 0, flags ? 1 : 0, TypeName(w));
                     *lastLifts = text;

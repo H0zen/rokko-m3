@@ -1043,9 +1043,9 @@ struct boss_tethyr : public CreatureScript
             DoEncounterCleanup();
         }
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType == WAYPOINT_MOTION_TYPE)
+            if (uiMotionType == Motion::Kind::Patrol)
             {
                 // start attacking
                 if (uiPointId == 12)
@@ -1070,7 +1070,7 @@ struct boss_tethyr : public CreatureScript
                     }
                 }
             }
-            else if (uiMotionType == POINT_MOTION_TYPE)
+            else if (uiMotionType == Motion::Kind::Point)
             {
                 // Spout on cannon point reach
                 if (uiPointId)

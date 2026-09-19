@@ -158,9 +158,9 @@ struct boss_forgemaster_garfrost : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != EFFECT_MOTION_TYPE)
+            if (uiMotionType != Motion::Kind::Effect)
             {
                 return;
             }

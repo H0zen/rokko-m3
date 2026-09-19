@@ -48,11 +48,15 @@ namespace Motion
         constexpr float DEFAULT_PATH_LENGTH =
             float(MAX_POINT_PATH_LENGTH) * SMOOTH_PATH_STEP_SIZE;
 
-        /// The world frame's router: the Detour navmesh, behind IPathQuery.
-        class WorldPathQuery final : public IPathQuery
+        /// A unit's router on a map, behind IPathQuery: the world map the mover is filed under,
+        /// or a vessel's deck (its own map, while the world still holds the mover's guid).
+        class UnitPathQuery final : public IPathQuery
         {
             public:
-                explicit WorldPathQuery(Unit const& mover) : m_path(&mover) {}
+                explicit UnitPathQuery(Unit const& mover) : m_path(&mover) {}
+                /// No caller today: TransportFrame inherits WorldFrame::CreatePathQuery. The deck's
+                /// documented entry for the vehicle phase (P4-C).
+                UnitPathQuery(Unit const& mover, uint32 deckMapId) : m_path(&mover, deckMapId) {}
 
                 bool Calculate(Vector3 const& start, Vector3 const& goal,
                                bool forceDestination, float lengthLimit) override
@@ -121,7 +125,7 @@ namespace Motion
 
                 std::unique_ptr<IPathQuery> CreatePathQuery(Unit const& mover) const override
                 {
-                    return std::make_unique<WorldPathQuery>(mover);
+                    return std::make_unique<UnitPathQuery>(mover);
                 }
 
                 Vector3 MoverPosition(Unit const& mover) const override
@@ -132,7 +136,7 @@ namespace Motion
                 }
 
                 /// The world frame IS world space, so both conversions are the identity.
-                /// This is what lets every generator convert its anchors unconditionally
+                /// This is what lets every behaviour convert its anchors unconditionally
                 /// and cost nothing for the units that are not on a vessel.
                 Vector3 FromWorld(Unit const& /*mover*/, Vector3 const& world) const override
                 {
@@ -273,74 +277,6 @@ namespace Motion
             return hull.IsBlocked(Vector3(from.x, from.y, from.z + DECK_PROBE_HEIGHT),
                                   Vector3(to.x, to.y, to.z + DECK_PROBE_HEIGHT));
         }
-
-        /**
-         * @brief The deck's router: Detour, on the deck map's own navmesh.
-         *
-         * A vessel's hull is a map, and the baker gives that map a navmesh like any other,
-         * so a deck leg is a REAL route -- round a bulkhead, up a companionway -- rather
-         * than a sampled line that merely follows the floor. Deck coordinates are that
-         * map's coordinates, so nothing is transformed on the way in or out.
-         *
-         * The mover is still filed under the world map, so the map id is passed explicitly.
-         */
-        class DeckPathQuery final : public IPathQuery
-        {
-            public:
-                DeckPathQuery(Unit const& mover, uint32 deckMapId)
-                    : m_path(&mover, deckMapId)
-                {
-                }
-
-                bool Calculate(Vector3 const& start, Vector3 const& goal,
-                               bool forceDestination, float lengthLimit) override
-                {
-                    m_path.setPathLengthLimit(lengthLimit > 0.0f ? lengthLimit
-                                                                 : DEFAULT_PATH_LENGTH);
-
-                    if (!m_path.calculate(start.x, start.y, start.z,
-                                          goal.x, goal.y, goal.z, forceDestination))
-                    {
-                        return false;
-                    }
-
-                    return m_path.getPath().size() >= 2;
-                }
-
-                PointsArray const& Points() const override { return m_path.getPath(); }
-
-                bool Failed() const override
-                {
-                    return (m_path.getPathType() & PATHFIND_NOPATH) != 0;
-                }
-
-                bool Routed() const override
-                {
-                    return (m_path.getPathType() &
-                            (PATHFIND_NOPATH | PATHFIND_NOT_USING_PATH)) == 0;
-                }
-
-                bool Partial() const override
-                {
-                    return (m_path.getPathType() & PATHFIND_INCOMPLETE) != 0;
-                }
-
-                bool Progresses() const override
-                {
-                    // Under a yard of travel is a route that ends where it starts.
-                    const float advance =
-                        (m_path.getActualEndPosition() - m_path.getStartPosition()).magnitude();
-                    return advance >= 1.0f;
-                }
-
-                bool Reachable() const override
-                {
-                    return (m_path.getPathType() & PATHFIND_NORMAL) != 0;
-                }
-
-            private:
-                mutable PathFinder m_path;
-        };
 
         /**
          * @brief A deck is a map WITH EDGES. That is the whole of the difference.

@@ -59,23 +59,6 @@ namespace Motion
     }
 
     /**
-     * @brief Classifies an in-progress segment by whether its spline has completed.
-     * @param splineFinalized Whether the spline has completed.
-     * @return The resulting WaypointSegmentUpdateState.
-     */
-    WaypointSegmentUpdateState GetWaypointSegmentUpdateState(bool splineFinalized)
-    {
-        // A stop from outside is not read here any more: the driver reports it as a cut
-        // leg, and the waypoint generator pauses or resumes on its own terms.
-        if (splineFinalized)
-        {
-            return WaypointSegmentUpdateState::Finalized;
-        }
-
-        return WaypointSegmentUpdateState::Moving;
-    }
-
-    /**
      * @brief Expands the bounding box to include the given point.
      * @param bounds Bounding box to grow.
      * @param x Point X-coordinate.

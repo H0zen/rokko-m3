@@ -388,9 +388,9 @@ struct boss_krick : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* /*pSummoned*/, uint32 uiMotionType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* /*pSummoned*/, Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMotionType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }

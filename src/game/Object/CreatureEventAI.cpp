@@ -1337,13 +1337,13 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
         {
             switch (action.changeMovement.movementType)
             {
-                case IDLE_MOTION_TYPE:
+                case CREATURE_MOVEMENT_IDLE:
                     m_creature->GetMotionMaster()->MoveIdle();
                     break;
-                case RANDOM_MOTION_TYPE:
+                case CREATURE_MOVEMENT_RANDOM:
                     m_creature->GetMotionMaster()->MoveRandomAroundPoint(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), float(action.changeMovement.wanderDistance));
                     break;
-                case WAYPOINT_MOTION_TYPE:
+                case CREATURE_MOVEMENT_WAYPOINT:
                     m_creature->GetMotionMaster()->MoveWaypoint();
                     break;
             }

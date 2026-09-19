@@ -48,7 +48,6 @@
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
 #include "Weather.h"
-#include "PathFinder.h"
 #include "SkillDiscovery.h"
 #include "SkillExtraItems.h"
 #include "Config/Config.h"

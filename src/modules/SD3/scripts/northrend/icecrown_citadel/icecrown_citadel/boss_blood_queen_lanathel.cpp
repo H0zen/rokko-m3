@@ -165,9 +165,9 @@ struct boss_blood_queen_lanathel : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMovementType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMovementType, uint32 uiPointId) override
         {
-            if (uiMovementType != POINT_MOTION_TYPE)
+            if (uiMovementType != Motion::Kind::Point)
             {
                 return;
             }

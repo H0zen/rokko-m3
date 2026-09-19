@@ -239,9 +239,9 @@ struct boss_felmyst : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE)
+            if (uiMoveType != Motion::Kind::Point)
             {
                 return;
             }

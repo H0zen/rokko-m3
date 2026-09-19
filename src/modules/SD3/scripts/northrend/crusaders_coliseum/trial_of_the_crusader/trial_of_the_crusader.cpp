@@ -127,9 +127,9 @@ struct npc_barrett_ramsey : public CreatureScript
 
         void Reset() override {}
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType == POINT_MOTION_TYPE && uiPointId == 1)
+            if (uiType == Motion::Kind::Point && uiPointId == 1)
             {
                 m_creature->ForcedDespawn();
             }

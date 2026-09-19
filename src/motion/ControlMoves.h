@@ -83,7 +83,7 @@ namespace Motion
             Outcome Finish(FinishReason why, Sight const& sight, Services& svc) override;
             /// For the listing (HeldView::target): the fright is not tracked per tick, so TracksTarget() stays false.
             uint64 Target() const override { return m_p.fright; }
-            uint32 Variant() const override { return m_p.timeLimitMs ? 1 : 0; }   ///< TIMED_FLEEING's projection
+            uint32 Variant() const override { return m_p.timeLimitMs ? 1 : 0; }   ///< 1 for the timed variant (the low-health runner), 0 for an aura fear
         private:
             /// The generator's PickFleePoint: the bearing draw, the fright, the band's two draws,
             /// the ground point. False when the bearing it picked has no ground under it.

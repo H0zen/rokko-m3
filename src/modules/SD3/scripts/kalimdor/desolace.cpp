@@ -575,9 +575,9 @@ struct npc_cork_gizelton : public CreatureScript
             return;
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != WAYPOINT_MOTION_TYPE)
+            if (uiType != Motion::Kind::Patrol)
             {
                 return;
             }

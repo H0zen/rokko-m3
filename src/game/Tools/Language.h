@@ -503,18 +503,6 @@ enum MangosStrings
     LANG_GAMEOBJECT_DETAIL                                    = 524,    /* Selected object:|cffffffff|Hgameobject:%d|h[%s]|h|r GUID: %u ID: %uX: %f Y: %f Z: %f MapId: %uOrientation: %f */
     LANG_GAMEOBJECT_ADD                                       = 525,    /* >> Add Game Object '%i' (%s) (GUID: %i) added at '%f %f %f'. */
     LANG_MOVEGENS_LIST                                        = 526,    /* %s (lowguid: %u) movement generators stack: */
-    LANG_MOVEGENS_IDLE                                        = 527,    /*    Idle */
-    LANG_MOVEGENS_RANDOM                                      = 528,    /*    Random */
-    LANG_MOVEGENS_WAYPOINT                                    = 529,    /*    Waypoint */
-    LANG_MOVEGENS_ANIMAL_RANDOM                               = 530,    /*    Animal random */
-    LANG_MOVEGENS_CONFUSED                                    = 531,    /*    Confused */
-    LANG_MOVEGENS_CHASE_PLAYER                                = 532,    /*    Targeted to player %s (lowguid %u) */
-    LANG_MOVEGENS_CHASE_CREATURE                              = 533,    /*    Targeted to creature %s (lowguid %u) */
-    LANG_MOVEGENS_CHASE_NULL                                  = 534,    /*    Targeted to <NULL> */
-    LANG_MOVEGENS_HOME_CREATURE                               = 535,    /*    Home movement to (X:%f Y:%f Z:%f) */
-    LANG_MOVEGENS_HOME_PLAYER                                 = 536,    /*    Home movement used for player?!? */
-    LANG_MOVEGENS_FLIGHT                                      = 537,    /*    Taxi flight */
-    LANG_MOVEGENS_UNKNOWN                                     = 538,    /*    Unknown movement generator (%u) */
     LANG_NPCINFO_CHAR                                         = 539,    /* Player selected: %s.
 Faction: %u.
 npcFlags: %u.
@@ -568,9 +556,6 @@ Faction Template: %u. */
     LANG_EVENT_INFO                                           = 586,    /* Event %u: %s%sStart: %s End: %s Occurence: %s Length: %sNext state change: %s */
     LANG_EVENT_ALREADY_ACTIVE                                 = 587,    /* Event %u already active! */
     LANG_EVENT_NOT_ACTIVE                                     = 588,    /* Event %u not active! */
-    LANG_MOVEGENS_POINT                                       = 589,    /*    Point movement to (X:%f Y:%f Z:%f) */
-    LANG_MOVEGENS_FEAR                                        = 590,    /*    Fear movement */
-    LANG_MOVEGENS_DISTRACT                                    = 591,    /*    Distract movement */
     LANG_COMMAND_LEARN_ALL_RECIPES                            = 592,    /* You have learned all spells in craft: %s */
     LANG_BANLIST_ACCOUNTS                                     = 593,    /* Currently Banned Accounts: */
     LANG_BANLIST_ACCOUNTS_HEADER                              = 594,    /* |    Account    |   BanDate    |   UnbanDate  |  Banned By    |   Ban Reason  | */
@@ -805,9 +790,6 @@ Faction Template: %u. */
     LANG_TAXINODE_ENTRY_LIST_CONSOLE                          = 1129,    /* %d - %s %s (Map:%u X:%f Y:%f Z:%f) */
     LANG_EVENT_STARTED                                        = 1130,    /* event started %u "%s" */
     LANG_EVENT_STOPPED                                        = 1131,    /* event stopped %u "%s" */
-    LANG_MOVEGENS_FOLLOW_PLAYER                               = 1132,    /*    Follow player %s (lowguid %u) */
-    LANG_MOVEGENS_FOLLOW_CREATURE                             = 1133,    /*    Follow creature %s (lowguid %u) */
-    LANG_MOVEGENS_FOLLOW_NULL                                 = 1134,    /*    Follow <NULL> */
     LANG_LIST_TALENTS_TITLE                                   = 1135,    /* List known talents: */
     LANG_LIST_TALENTS_COUNT                                   = 1136,    /*    (Found talents: %u used talent points: %u) */
     LANG_GO_LIST_CHAT                                         = 1137,    /* %d%s - |cffffffff|Hgameobject:%d|h[%s X:%f Y:%f Z:%f MapId:%d]|h|r  */
@@ -865,7 +847,6 @@ Faction Template: %u. */
     LANG_AHBOT_QUALITY_YELLOW                                 = 1189,    /* Yellow */
     LANG_AHBOT_ITEMS_AMOUNT                                   = 1190,    /* Amount of %s items is set to %u. */
     LANG_AHBOT_ITEMS_RATIO                                    = 1191,    /* Items ratio for %s is set to %u. */
-    LANG_MOVEGENS_EFFECT                                      = 1192,    /* Effect movement */
     LANG_GEARSCORE                                            = 1193,
     LANG_COMMAND_GO_STATUS                                    = 1194,    /* Current State Information: GOState %u, LootState %u. Collision %s */
     LANG_COMMAND_GO_STATUS_DOOR                               = 1195,    /* Current State Information: GOState %u, LootState %u. Collision %s, (door %s by default) */

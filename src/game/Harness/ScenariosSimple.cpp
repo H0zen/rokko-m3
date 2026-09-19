@@ -66,18 +66,18 @@ namespace Harness
         /// One position sample with the facade reads a category needs.
         struct Sample
         {
-            uint32                t;
-            float                 x, y, z;
-            MovementGeneratorType mt;
+            uint32       t;
+            float        x, y, z;
+            Motion::Kind mt;
         };
 
         /// True when the wolf saw this inform since `mark`.
-        bool Informed(std::vector<Inform> const& informs, size_t mark, uint32 low, uint32 type, uint32 id)
+        bool Informed(std::vector<Inform> const& informs, size_t mark, uint32 low, Motion::Kind kind, uint32 id)
         {
             for (size_t k = mark; k < informs.size(); ++k)
             {
                 Inform const& r = informs[k];
-                if (r.guidLow == low && r.type == type && r.id == id)
+                if (r.guidLow == low && r.kind == kind && r.id == id)
                 {
                     return true;
                 }
@@ -139,7 +139,7 @@ namespace Harness
                         Creature* w = Get(g); if (!w) { return; }
                         Sample s; s.t = t; s.x = w->Where().X(); s.y = w->Where().Y(); s.z = w->Where().Z(); s.mt = Type(w);
                         rooted->push_back(s);
-                        Log("rooted +%5ums %.2f %.2f mt=%s rooted=%d dJump=%.2f spline=%d", s.t, s.x, s.y, Harness::TypeName(s.mt),
+                        Log("rooted +%5ums %.2f %.2f mt=%s rooted=%d dJump=%.2f spline=%d", s.t, s.x, s.y, Motion::KindName(s.mt),
                             w->IsRooted() ? 1 : 0, Dist2(s.x, s.y, jump->x, jump->y), w->movespline->Finalized() ? 0 : 1);
                     });
                 }
@@ -150,7 +150,7 @@ namespace Harness
                         Creature* w = Get(g); if (!w) { return; }
                         Sample s; s.t = t; s.x = w->Where().X(); s.y = w->Where().Y(); s.z = w->Where().Z(); s.mt = Type(w);
                         freed->push_back(s);
-                        Log("free +%5ums %.2f %.2f mt=%s rooted=%d", s.t, s.x, s.y, Harness::TypeName(s.mt), w->IsRooted() ? 1 : 0);
+                        Log("free +%5ums %.2f %.2f mt=%s rooted=%d", s.t, s.x, s.y, Motion::KindName(s.mt), w->IsRooted() ? 1 : 0);
                     });
                 }
                 At(9500, [this, low, mark, accepted, called, rooted, freed, rootLanded]()
@@ -172,7 +172,7 @@ namespace Harness
                         Sample const& s = (*rooted)[k];
                         Pt p = { s.x, s.y, s.z };
                         held.push_back(p);
-                        if (s.mt != POINT_MOTION_TYPE) { point = false; }
+                        if (s.mt != Motion::Kind::Point) { point = false; }
                     }
                     std::vector<Pt> after;
                     for (size_t k = 0; k < freed->size(); ++k)
@@ -183,7 +183,7 @@ namespace Harness
                     }
                     const float drift = Spread(held);
                     const float moved = Spread(after);
-                    const bool informed = Informed(Informs(), mark, low, EFFECT_MOTION_TYPE, 66);
+                    const bool informed = Informed(Informs(), mark, low, Motion::Kind::Effect, 66);
                     char text[420];
                     char noSpline[140];
                     if (drift < 0.5f && point) { snprintf(noSpline, sizeof(noSpline), "OK(stood within %.2f yd, POINT throughout)", drift); }
@@ -270,7 +270,7 @@ namespace Harness
                         Verdict("accepted=INVALID(the Bash did not stun) | lands=INVALID(the Bash did not stun) | informs=INVALID(the Bash did not stun)");
                         return;
                     }
-                    const bool informed = Informed(Informs(), mark, low, EFFECT_MOTION_TYPE, 67);
+                    const bool informed = Informed(Informs(), mark, low, Motion::Kind::Effect, 67);
                     char lands[140];
                     if (*closest < 2.5f) { snprintf(lands, sizeof(lands), "OK(came within %.2f yd of the jump point)", *closest); }
                     else { snprintf(lands, sizeof(lands), "BUG(closest %.2f yd: the arc never played)", *closest); }
@@ -328,7 +328,7 @@ namespace Harness
                 {
                     Creature* w = Get(g); Creature* k = Get(gk); if (!w || !k) { return; }
                     char const* before = TypeName(w);
-                    if (Type(w) == CHASE_MOTION_TYPE)
+                    if (Type(w) == Motion::Kind::Chase)
                     {
                         Log("the AI engaged on its own, mt=%s", before);
                         return;
@@ -348,7 +348,7 @@ namespace Harness
                 At(1600, [this, g, gk, spell]()
                 {
                     Creature* w = Get(g); Creature* k = Get(gk); if (!w || !k) { return; }
-                    if (Type(w) == POINT_MOTION_TYPE)
+                    if (Type(w) == Motion::Kind::Point)
                     {
                         Log("the Charge spell laid the kernel point itself, mt=%s", TypeName(w));
                         return;
@@ -363,7 +363,7 @@ namespace Harness
                 At(1800, [this, g, selected]()
                 {
                     Creature* w = Get(g); if (!w) { return; }
-                    *selected = Type(w) == POINT_MOTION_TYPE;
+                    *selected = Type(w) == Motion::Kind::Point;
                     Log("charge selected: mt=%s", TypeName(w));
                 });
                 for (uint32 t = 1800; t <= 4000; t += 200)
@@ -378,7 +378,7 @@ namespace Harness
                         // from outside -- one distinct destination per leg the charge laid.
                         float gx = 0.0f, gy = 0.0f, gz = 0.0f;
                         // Only while the charge is the selection: the chase that follows lays goals of its own.
-                        const bool live = Type(w) == POINT_MOTION_TYPE && w->GetMotionMaster()->GetDestination(gx, gy, gz);
+                        const bool live = Type(w) == Motion::Kind::Point && w->GetMotionMaster()->GetDestination(gx, gy, gz);
                         if (live && (goals->empty() || Dist2(gx, gy, goals->back().x, goals->back().y) > 1.0f))
                         {
                             Pt p = { gx, gy, gz };
@@ -394,7 +394,7 @@ namespace Harness
                     At(t, [this, g, chased, t]()
                     {
                         Creature* w = Get(g); if (!w) { return; }
-                        if (Type(w) == CHASE_MOTION_TYPE) { *chased = true; }
+                        if (Type(w) == Motion::Kind::Chase) { *chased = true; }
                         Log("after +%5ums mt=%s victim=%d", t, TypeName(w), w->getVictim() ? 1 : 0);
                     });
                 }
@@ -458,7 +458,7 @@ namespace Harness
                         Creature* w = Get(g); Creature* k = Get(gk); if (!w || !k) { return; }
                         Sample s; s.t = t; s.x = w->Where().X(); s.y = w->Where().Y(); s.z = w->Where().Z(); s.mt = Type(w);
                         held->push_back(s);
-                        Log("rooted +%5ums %.2f %.2f mt=%s rooted=%d spline=%d dTarget=%.2f", s.t, s.x, s.y, Harness::TypeName(s.mt),
+                        Log("rooted +%5ums %.2f %.2f mt=%s rooted=%d spline=%d dTarget=%.2f", s.t, s.x, s.y, Motion::KindName(s.mt),
                             w->IsRooted() ? 1 : 0, w->movespline->Finalized() ? 0 : 1,
                             Dist2(s.x, s.y, k->Where().X(), k->Where().Y()));
                     });
@@ -491,13 +491,13 @@ namespace Harness
                     }
                     std::vector<Pt> pts;
                     bool point = true;
-                    MovementGeneratorType lost = IDLE_MOTION_TYPE;
+                    Motion::Kind lost = Motion::Kind::Idle;
                     for (size_t k = 0; k < held->size(); ++k)
                     {
                         Sample const& s = (*held)[k];
                         Pt p = { s.x, s.y, s.z };
                         pts.push_back(p);
-                        if (s.mt != POINT_MOTION_TYPE && point) { point = false; lost = s.mt; }
+                        if (s.mt != Motion::Kind::Point && point) { point = false; lost = s.mt; }
                     }
                     const float drift = Spread(pts);
                     char stands[140];
@@ -505,7 +505,7 @@ namespace Harness
                     else { snprintf(stands, sizeof(stands), "BUG(slid %.2f yd under the Web)", drift); }
                     char chargeHeld[160];
                     if (point) { snprintf(chargeHeld, sizeof(chargeHeld), "OK(POINT throughout: the block paused the charge, never finished it)"); }
-                    else { snprintf(chargeHeld, sizeof(chargeHeld), "BUG(the charge was lost under the root: mt=%s)", Harness::TypeName(lost)); }
+                    else { snprintf(chargeHeld, sizeof(chargeHeld), "BUG(the charge was lost under the root: mt=%s)", Motion::KindName(lost)); }
                     char moves[160];
                     if (*atEight < *atFour) { snprintf(moves, sizeof(moves), "OK(%.1f yd out at 4 s, %.1f yd at 8 s)", *atFour, *atEight); }
                     else { snprintf(moves, sizeof(moves), "BUG(%.1f yd out at 4 s, %.1f yd at 8 s: never closed)", *atFour, *atEight); }
@@ -533,7 +533,7 @@ namespace Harness
                 const uint32 low = w->GetGUIDLow();
                 const size_t mark = Informs().size();
                 auto ended = std::make_shared<uint32>(0);
-                auto lastType = std::make_shared<MovementGeneratorType>(IDLE_MOTION_TYPE);
+                auto lastType = std::make_shared<Motion::Kind>(Motion::Kind::Idle);
                 auto atTwo = std::make_shared<Pt>();
                 auto atThree = std::make_shared<Pt>();
                 // The premise: a kobold that turned out not to be a summon leaves nothing
@@ -566,7 +566,7 @@ namespace Harness
                     {
                         Creature* w = Get(g); if (!w) { return; }
                         *lastType = Type(w);
-                        if (*ended == 0 && *lastType != POINT_MOTION_TYPE) { *ended = t; }
+                        if (*ended == 0 && *lastType != Motion::Kind::Point) { *ended = t; }
                         if (t == 2000) { Pt p = { w->Where().X(), w->Where().Y(), w->Where().Z() }; *atTwo = p; }
                         if (t == 3000) { Pt p = { w->Where().X(), w->Where().Y(), w->Where().Z() }; *atThree = p; }
                         Log("+%5ums %.2f %.2f mt=%s spline=%d", t, w->Where().X(), w->Where().Y(), TypeName(w), w->movespline->Finalized() ? 0 : 1);
@@ -579,7 +579,7 @@ namespace Harness
                         Verdict("endsWithoutStall=INVALID(the kobold was not despawned) | noInform=INVALID(the kobold was not despawned)");
                         return;
                     }
-                    const bool informed = Informed(Informs(), mark, low, POINT_MOTION_TYPE, 0);
+                    const bool informed = Informed(Informs(), mark, low, Motion::Kind::Point, 0);
                     // The default the arbiter reselects lays a leg of its own at once, so a finalized
                     // spline is not the evidence: what proves nothing stalled is that the charge's own
                     // 24 yd/s leg is no longer driving the wolf a second after it was retired.
@@ -594,7 +594,7 @@ namespace Harness
                         snprintf(ends, sizeof(ends), "BUG(retired at +%ums but still travelling %.2f yd/s)", *ended, drift);
                     }
                     else if (*ended != 0) { snprintf(ends, sizeof(ends), "BUG(the point only ended at +%ums, past 2 s)", *ended); }
-                    else { snprintf(ends, sizeof(ends), "BUG(still POINT at 3 s: mt=%s)", Harness::TypeName(*lastType)); }
+                    else { snprintf(ends, sizeof(ends), "BUG(still POINT at 3 s: mt=%s)", Motion::KindName(*lastType)); }
                     char text[360];
                     snprintf(text, sizeof(text), "endsWithoutStall=%s | noInform=%s", ends,
                              informed ? "BUG(POINT 0 informed for a charge whose target was lost)" : "OK(no POINT inform)");
@@ -638,7 +638,7 @@ namespace Harness
                 }
                 At(3500, [this, low, mark, closest]()
                 {
-                    const bool informed = Informed(Informs(), mark, low, POINT_MOTION_TYPE, 0);
+                    const bool informed = Informed(Informs(), mark, low, Motion::Kind::Point, 0);
                     char arrives[140];
                     if (*closest < 2.0f) { snprintf(arrives, sizeof(arrives), "OK(came within %.2f yd of the goal)", *closest); }
                     else { snprintf(arrives, sizeof(arrives), "BUG(closest %.2f yd)", *closest); }
@@ -705,7 +705,7 @@ namespace Harness
                     Creature* w = Get(g);
                     if (!w || !*called) { Verdict("followKept=INVALID(jump refused or lost)"); return; }
                     if (!m_installed) { Verdict("followKept=INVALID(the inform never reentered the facade)"); return; }
-                    const bool ok = Type(w) == FOLLOW_MOTION_TYPE;
+                    const bool ok = Type(w) == Motion::Kind::Follow;
                     char text[160];
                     snprintf(text, sizeof(text), "followKept=%s(mt=%s)", ok ? "OK" : "BUG", TypeName(w));
                     Verdict(text);
@@ -716,9 +716,9 @@ namespace Harness
             /// NativeBehaviour::PerformOutcome's Effect::Inform case, before that same
             /// Outcome reaches Effect::ReengageVictim -- installing the follow here IS
             /// reentering the facade from inside the inform.
-            void OnInform(Creature* creature, uint32 type, uint32 id) override
+            void OnInform(Creature* creature, Motion::Kind kind, uint32 id) override
             {
-                if (type != EFFECT_MOTION_TYPE || id != 80 || m_installed) { return; }
+                if (kind != Motion::Kind::Effect || id != 80 || m_installed) { return; }
                 if (Creature* leader = Get(m_leader))
                 {
                     creature->GetMotionMaster()->MoveFollow(leader, 2.0f, 0.0f);
@@ -841,7 +841,7 @@ namespace Harness
                         Creature* w = Get(g); if (!w) { return; }
                         Sample s; s.t = t; s.x = w->Where().X(); s.y = w->Where().Y(); s.z = w->Where().Z(); s.mt = Type(w);
                         held->push_back(s);
-                        Log("rooted +%5ums %.2f %.2f mt=%s rooted=%d", s.t, s.x, s.y, Harness::TypeName(s.mt), w->IsRooted() ? 1 : 0);
+                        Log("rooted +%5ums %.2f %.2f mt=%s rooted=%d", s.t, s.x, s.y, Motion::KindName(s.mt), w->IsRooted() ? 1 : 0);
                     });
                 }
                 for (uint32 t = 6000; t <= 8000; t += 250)   // the Web is out (cast at 0.5 s, about 5 s): the point runs
@@ -851,7 +851,7 @@ namespace Harness
                         Creature* w = Get(g); if (!w) { return; }
                         Sample s; s.t = t; s.x = w->Where().X(); s.y = w->Where().Y(); s.z = w->Where().Z(); s.mt = Type(w);
                         after->push_back(s);
-                        Log("free +%5ums %.2f %.2f mt=%s rooted=%d", s.t, s.x, s.y, Harness::TypeName(s.mt), w->IsRooted() ? 1 : 0);
+                        Log("free +%5ums %.2f %.2f mt=%s rooted=%d", s.t, s.x, s.y, Motion::KindName(s.mt), w->IsRooted() ? 1 : 0);
                     });
                 }
                 At(12000, [this, low, mark, called, rootLanded, held, after]()
@@ -873,7 +873,7 @@ namespace Harness
                         Sample const& s = (*held)[k];
                         Pt p = { s.x, s.y, s.z };
                         heldPts.push_back(p);
-                        if (s.mt != POINT_MOTION_TYPE) { point = false; }
+                        if (s.mt != Motion::Kind::Point) { point = false; }
                     }
                     std::vector<Pt> afterPts;
                     for (size_t k = 0; k < after->size(); ++k)
@@ -888,7 +888,7 @@ namespace Harness
                     for (size_t k = mark; k < Informs().size(); ++k)
                     {
                         Inform const& r = Informs()[k];
-                        if (r.guidLow == low && r.type == POINT_MOTION_TYPE && r.id == 3) { ++count; }
+                        if (r.guidLow == low && r.kind == Motion::Kind::Point && r.id == 3) { ++count; }
                     }
                     char noLeg[140];
                     if (drift < 0.5f && point) { snprintf(noLeg, sizeof(noLeg), "OK(stood within %.2f yd, POINT throughout)", drift); }

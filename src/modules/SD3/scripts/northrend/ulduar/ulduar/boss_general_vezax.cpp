@@ -443,9 +443,9 @@ struct npc_saronite_vapor : public CreatureScript
             DoCastSpellIfCan(m_creature, SPELL_SARONITE_VAPORS, CAST_TRIGGERED);
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE || !uiPointId || !m_pInstance)
+            if (uiType != Motion::Kind::Point || !uiPointId || !m_pInstance)
             {
                 return;
             }

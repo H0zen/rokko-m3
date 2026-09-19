@@ -51,10 +51,10 @@ class WorldObject;
  * The invariant that makes this safe: A LEG NEVER SPANS TWO FRAMES. The driver
  * enforces it by dropping its router whenever the frame under it changes.
  *
- * The other half of that invariant is FromWorld. Every anchor a generator captures --
+ * The other half of that invariant is FromWorld. Every anchor a behaviour captures --
  * a respawn coord, a DB waypoint, a script's MovePoint -- is WORLD data, because world
  * data is the only kind the database and the script API speak. Under the world frame it
- * is the identity, which is why generators may convert unconditionally and pay nothing.
+ * is the identity, which is why behaviours may convert unconditionally and pay nothing.
  * There is no way back: a deck IS a map, so nothing on one is ever composed into the
  * world, and a frame that could do it would be a frame someone would eventually use.
  */
@@ -74,7 +74,7 @@ namespace Motion
      * @brief The 2D bearing from one FRAME point to another, normalised to [0, 2*PI)
      *        exactly as WorldObject::GetAngle normalises.
      *
-     * Generators need this because GetAngle itself reads world positions. Distances
+     * Behaviours need this because GetAngle itself reads world positions. Distances
      * survive a change of frame (a rigid transform preserves them); ANGLES do not.
      * The kernel's Motion::AngleFromTo (MoveIntent.h) is the same expression; this keeps
      * the shell's callers their own name.

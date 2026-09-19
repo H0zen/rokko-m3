@@ -46,7 +46,7 @@ class FollowerAI : public ScriptedAI
 
         // virtual void WaypointReached(uint32 uiPointId) = 0;
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override;
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override;
 
         void AttackStart(Unit*) override;
 

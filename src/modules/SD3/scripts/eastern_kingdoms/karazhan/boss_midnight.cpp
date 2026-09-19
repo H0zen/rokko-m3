@@ -148,9 +148,9 @@ struct boss_midnight : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !uiPointId || !m_pInstance)
+            if (uiMoveType != Motion::Kind::Point || !uiPointId || !m_pInstance)
             {
                 return;
             }

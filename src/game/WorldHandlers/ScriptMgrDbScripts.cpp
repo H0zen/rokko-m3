@@ -542,7 +542,7 @@ void ScriptMgr::LoadScripts(DBScriptType type)
             }
             case SCRIPT_COMMAND_MOVEMENT:                   // 20
             {
-                if (tmp.movement.movementType >= MAX_DB_MOTION_TYPE)
+                if (tmp.movement.movementType >= CREATURE_MOVEMENT_MAX)
                 {
                     sLog.outErrorDb("Table `db_scripts [type = %d]` SCRIPT_COMMAND_MOVEMENT has invalid MovementType %u for script id %u",
                                     type, tmp.movement.movementType, tmp.id);

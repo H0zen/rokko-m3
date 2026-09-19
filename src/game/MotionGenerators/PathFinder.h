@@ -113,7 +113,7 @@ class PathFinder
          * @brief Set whether to use a straight path.
          * @param useStraightPath Whether to use a straight path.
          */
-        void setUseStrightPath(bool useStraightPath) { m_useStraightPath = useStraightPath; };
+        void setUseStraightPath(bool useStraightPath) { m_useStraightPath = useStraightPath; };
 
         /**
          * @brief Set the path length limit.

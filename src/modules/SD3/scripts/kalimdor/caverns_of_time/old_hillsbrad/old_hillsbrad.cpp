@@ -640,9 +640,9 @@ struct npc_thrall_old_hillsbrad : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE)
+            if (uiType != Motion::Kind::Point)
             {
                 return;
             }

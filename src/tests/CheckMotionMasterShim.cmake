@@ -4,6 +4,7 @@
 # starts calling anything else widens the promise, and this gate says so.
 # P3-C moved the scripts' type checks to the typed queries (ActiveKind, IsChasing,
 # IsPatrolling); GetCurrentMovementGeneratorType left the promise with them.
+# P5-C retired the legacy type enum and this list's dead MoveRandom row: 18 entry points.
 #
 # Usage: cmake -DSOURCE_ROOT=<repo root> -P CheckMotionMasterShim.cmake
 # Limitation: the regex below sees only literal "GetMotionMaster()->X" call sites;
@@ -12,7 +13,7 @@
 set(ALLOWED
     MovePoint Clear MoveIdle MoveChase MoveFollow MoveTargetedHome MoveWaypoint
     MoveRandomAroundPoint MovementExpired MoveJump MoveFlyOrLand Initialize
-    MoveRandom MoveFleeing ActiveKind IsChasing IsPatrolling Inhibit Uninhibit)
+    MoveFleeing ActiveKind IsChasing IsPatrolling Inhibit Uninhibit)
 list(LENGTH ALLOWED ALLOWED_COUNT)
 file(GLOB_RECURSE SD3_SOURCES "${SOURCE_ROOT}/src/modules/SD3/*.cpp" "${SOURCE_ROOT}/src/modules/SD3/*.h")
 list(LENGTH SD3_SOURCES SD3_COUNT)

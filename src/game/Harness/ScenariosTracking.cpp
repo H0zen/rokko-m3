@@ -137,7 +137,7 @@ namespace Harness
         /// nothing at all moves the actor except this file.
         void Park(Creature* c)
         {
-            c->SetDefaultMovementType(IDLE_MOTION_TYPE);
+            c->SetDefaultMovementType(CREATURE_MOVEMENT_IDLE);
             c->GetMotionMaster()->Initialize();
         }
 
@@ -1295,7 +1295,7 @@ namespace Harness
                             for (size_t i = mark; i < Informs().size(); ++i)
                             {
                                 Inform const& r = Informs()[i];
-                                if (r.guidLow != lowA || r.type != HOME_MOTION_TYPE) { continue; }
+                                if (r.guidLow != lowA || r.event != Inform::Event::ReachedHome) { continue; }
                                 if (i < wa->liftMark) { ++before; }
                                 else { ++after; }
                                 if (Dist2(r.x, r.y, SE.x, SE.y) <= 2.0f) { ++atHome; }
@@ -1309,7 +1309,7 @@ namespace Harness
                     for (size_t i = mark; i < Informs().size(); ++i)
                     {
                         Inform const& r = Informs()[i];
-                        if (r.guidLow == lowB && r.type == HOME_MOTION_TYPE) { ++bHome; }
+                        if (r.guidLow == lowB && r.event == Inform::Event::ReachedHome) { ++bHome; }
                     }
                     snprintf(text, sizeof(text), " | noRecipeOnDisplacement=%s(%u home informs for the wolf that went idle under the root)",
                              bHome ? "BUG" : "OK", bHome);

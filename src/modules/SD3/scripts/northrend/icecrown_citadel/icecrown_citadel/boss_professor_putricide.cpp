@@ -201,9 +201,9 @@ struct boss_professor_putricide : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMovementType, uint32 uiData) override
+        void MovementInform(Motion::Kind uiMovementType, uint32 uiData) override
         {
-            if (uiMovementType != POINT_MOTION_TYPE)
+            if (uiMovementType != Motion::Kind::Point)
             {
                 return;
             }

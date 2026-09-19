@@ -1094,9 +1094,9 @@ void CreatureEventAIMgr::LoadCreatureEventAI_Scripts()
                         }
                         break;
                     case ACTION_T_CHANGE_MOVEMENT:
-                        if (action.changeMovement.movementType >= MAX_DB_MOTION_TYPE)
+                        if (action.changeMovement.movementType >= CREATURE_MOVEMENT_MAX)
                         {
-                            sLog.outErrorEventAI("Event %u Action %u uses invalid movement type %u (must be smaller than %u)", i, j + 1, action.changeMovement.movementType, MAX_DB_MOTION_TYPE);
+                            sLog.outErrorEventAI("Event %u Action %u uses invalid movement type %u (must be smaller than %u)", i, j + 1, action.changeMovement.movementType, uint32(CREATURE_MOVEMENT_MAX));
                             continue;
                         }
                         break;

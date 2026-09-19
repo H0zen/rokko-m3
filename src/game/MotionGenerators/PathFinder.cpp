@@ -61,7 +61,7 @@ PathFinder::PathFinder(const Unit* owner, uint32 mapId) :
 
 void PathFinder::BindMesh()
 {
-    // Looked up afresh before every route: a PathFinder can outlive its map (a generator
+    // Looked up afresh before every route: a PathFinder can outlive its map (a behaviour
     // survives a teleport), and an instance torn down and recreated under the same ids
     // gets a new query while a pointer taken earlier would point at freed memory.
     m_navMesh = NULL;

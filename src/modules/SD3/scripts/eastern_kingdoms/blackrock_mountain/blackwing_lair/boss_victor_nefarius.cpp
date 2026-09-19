@@ -219,10 +219,10 @@ struct boss_victor_nefarius : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiMotionType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiMotionType, uint32 uiPointId) override
         {
             // If Nefarian has reached combat area, let him attack
-            if (pSummoned->GetEntry() == NPC_NEFARIAN && uiMotionType == POINT_MOTION_TYPE && uiPointId == 1)
+            if (pSummoned->GetEntry() == NPC_NEFARIAN && uiMotionType == Motion::Kind::Point && uiPointId == 1)
             {
                 if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 {

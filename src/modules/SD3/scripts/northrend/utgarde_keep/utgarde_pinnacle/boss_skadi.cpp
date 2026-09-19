@@ -226,9 +226,9 @@ struct boss_skadi : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiMotionType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMotionType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }
@@ -447,9 +447,9 @@ struct npc_grauf : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != WAYPOINT_MOTION_TYPE || !m_pInstance)
+            if (uiType != Motion::Kind::Patrol || !m_pInstance)
             {
                 return;
             }

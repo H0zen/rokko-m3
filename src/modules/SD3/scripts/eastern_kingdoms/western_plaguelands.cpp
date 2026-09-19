@@ -548,7 +548,7 @@ struct npc_taelan_fordring : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 /*uiMotionType*/, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind /*uiMotionType*/, uint32 uiPointId) override
         {
             if (pSummoned->GetEntry() != NPC_TIRION_FORDRING)
             {
@@ -1163,7 +1163,7 @@ struct npc_tirion_fordring : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
             // custom points; ignore in escort AI
             if (uiPointId == 100 || uiPointId == 200)

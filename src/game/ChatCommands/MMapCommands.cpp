@@ -126,7 +126,7 @@ bool ChatHandler::HandleMmapPathCommand(char* args)
 
     // path
     PathFinder path(originUnit);
-    path.setUseStrightPath(useStraightPath);
+    path.setUseStraightPath(useStraightPath);
     path.calculate(x, y, z);
 
     PointsArray pointPath = path.getPath();

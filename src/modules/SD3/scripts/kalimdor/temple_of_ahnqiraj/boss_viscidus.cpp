@@ -208,9 +208,9 @@ struct boss_viscidus : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (pSummoned->GetEntry() != NPC_GLOB_OF_VISCIDUS || uiType != POINT_MOTION_TYPE || !uiPointId)
+            if (pSummoned->GetEntry() != NPC_GLOB_OF_VISCIDUS || uiType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }

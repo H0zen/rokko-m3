@@ -157,7 +157,7 @@ namespace Harness
                     for (size_t k = mark; k < Informs().size(); ++k)
                     {
                         Inform const& r = Informs()[k];
-                        if (r.guidLow == low && r.type == WAYPOINT_MOTION_TYPE) { ids.push_back(r.id); }
+                        if (r.guidLow == low && r.kind == Motion::Kind::Patrol) { ids.push_back(r.id); }
                     }
                     char welded[80];
                     if (*legAtOneFive > 2) { snprintf(welded, sizeof(welded), "welded=OK(%u points at +1.5 s)", uint32(*legAtOneFive)); }
@@ -210,9 +210,9 @@ namespace Harness
             /// The recording hook (Scenario.h): fires synchronously at the exact arrival, so
             /// the facing read here is the leg's true final facing, not whatever a later poll
             /// might catch after the driver has already moved on to the next leg.
-            void OnInform(Creature* creature, uint32 type, uint32 id) override
+            void OnPathInform(Creature* creature, uint32 pathId, Motion::PathEvent event, uint32 node) override
             {
-                if (creature->GetGUIDLow() == m_low && type == EXTERNAL_WAYPOINT_MOVE + kFacePath && id == 3)
+                if (creature->GetGUIDLow() == m_low && pathId == uint32(kFacePath) && event == Motion::PathEvent::NodeReached && node == 3)
                 {
                     const float facing = creature->Where().Facing();
                     m_atNode3.push_back(facing);
@@ -332,9 +332,9 @@ namespace Harness
             /// The recording hook (Scenario.h): called synchronously from inside the native's
             /// MOVE_START inform, before the driver prepares the leg toward the named node --
             /// installing SetNextWaypoint here IS reentering the facade from inside the inform.
-            void OnInform(Creature* creature, uint32 type, uint32 id) override
+            void OnPathInform(Creature* creature, uint32 pathId, Motion::PathEvent event, uint32 node) override
             {
-                if (creature->GetGUIDLow() == m_low && type == EXTERNAL_WAYPOINT_MOVE_START + kHookPath && id == 2 && !m_hooked)
+                if (creature->GetGUIDLow() == m_low && pathId == uint32(kHookPath) && event == Motion::PathEvent::NodeLeft && node == 2 && !m_hooked)
                 {
                     const bool ok = creature->GetMotionMaster()->SetNextWaypoint(4);
                     m_hooked = true;
@@ -392,7 +392,7 @@ namespace Harness
                     for (size_t k = m_hookMark; k < Informs().size(); ++k)
                     {
                         Inform const& r = Informs()[k];
-                        if (r.guidLow != m_low || r.type != EXTERNAL_WAYPOINT_MOVE + kHookPath) { continue; }
+                        if (r.guidLow != m_low || r.event != Inform::Event::PathInform || r.pathId != uint32(kHookPath) || r.pathEvent != Motion::PathEvent::NodeReached) { continue; }
                         ++arrivals;
                         if (!found && r.id != 1) { found = true; nextArrival = r.id; }
                     }

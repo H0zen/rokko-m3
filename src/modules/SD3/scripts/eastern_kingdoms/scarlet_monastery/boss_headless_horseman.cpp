@@ -216,10 +216,10 @@ struct boss_headless_horseman : public CreatureScript
             m_creature->ForcedDespawn();
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
             // allow attacking
-            if (uiType == WAYPOINT_MOTION_TYPE && uiPointId == 15)
+            if (uiType == Motion::Kind::Patrol && uiPointId == 15)
             {
                 m_bHorsemanLanded = true;
                 m_creature->SetLevitate(false);

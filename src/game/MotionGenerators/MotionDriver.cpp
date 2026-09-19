@@ -60,7 +60,7 @@ Motion::IPathQuery* MotionDriver::Query(Unit const& owner)
 
     // A leg never spans two frames: if the mover changed frame since the last leg, the
     // old router speaks the wrong coordinate system. Nor two maps: the router binds the
-    // map's mesh and the instance's query at construction, and a generator outlives a
+    // map's mesh and the instance's query at construction, and a behaviour outlives a
     // teleport.
     if (!m_query || m_queryFrame != frame.Kind() ||
         m_queryMapId != owner.GetMapId() || m_queryInstanceId != owner.GetInstanceId())
@@ -108,7 +108,7 @@ Motion::MoveStatus MotionDriver::BeginTick(Unit& owner)
     }
 
     // Both edges are reported exactly once. A sticky `blocked` would starve every
-    // generator whose answer to it is "reset my retry timer and try again in a moment":
+    // behaviour whose answer to it is "reset my retry timer and try again in a moment":
     // it would reset the timer on every tick and never fire it.
     m_blocked = false;
     m_wasTraveling = traveling;
@@ -172,7 +172,7 @@ bool MotionDriver::LayLeg(Unit& owner, Motion::MoveIntent const& intent)
 
     if (intent.path && intent.path->size() >= 2)
     {
-        // The generator dictated the exact geometry (the smoothed patrol).
+        // The behaviour dictated the exact geometry (the smoothed patrol).
         init.MovebyPath(*intent.path);
     }
     else if (intent.Has(Motion::MOVE_STRAIGHT))
@@ -192,7 +192,7 @@ bool MotionDriver::LayLeg(Unit& owner, Motion::MoveIntent const& intent)
                                                       intent.pathLengthLimit);
 
         // Nothing usable at all, or the router failed and this movement kind refuses the
-        // straight-line fallback. Either way no leg is laid, and the generator is told
+        // straight-line fallback. Either way no leg is laid, and the behaviour is told
         // so next tick so it can give up or pick somewhere else.
         // Likewise a partial route that gets no closer to the goal: laying it would walk
         // nowhere and re-lay itself from the same spot every tick.
@@ -273,7 +273,7 @@ bool MotionDriver::LayLeg(Unit& owner, Motion::MoveIntent const& intent)
 void MotionDriver::ReconcileHold(Unit& owner, Motion::MoveIntent const& intent)
 {
     // A running leg is deliberately NOT cut short: letting it finish is what stops an
-    // arriving chase from stuttering a yard short of its victim. A generator that really
+    // arriving chase from stuttering a yard short of its victim. A behaviour that really
     // must halt calls Unit::StopMoving itself -- a unit-level action, not a decision
     // about the next leg.
     if (!owner.movespline->Finalized())

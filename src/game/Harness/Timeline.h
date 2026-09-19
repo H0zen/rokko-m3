@@ -95,8 +95,6 @@ namespace Harness
 
     /// "VERDICT <scenario> <body>": the old runner's line, minus the MVTEST prefix the log adds.
     std::string VerdictLine(char const* scenario, std::string const& body);
-    /// The old harness's generator-type names, by MovementGeneratorType value.
-    char const* TypeName(uint32 movementGeneratorType);
     /// Planar distance.
     float Dist2(float x1, float y1, float x2, float y2);
 }

@@ -56,7 +56,8 @@ namespace Harness
         /// which installs it back on the creature in this decorator's place.
         CreatureAI* Release();
 
-        void MovementInform(uint32 type, uint32 id) override;
+        void MovementInform(Motion::Kind kind, uint32 id) override;
+        void WaypointPathInform(uint32 pathId, Motion::PathEvent event, uint32 node) override;
         void JustReachedHome() override;
         void JustDied(Unit* killer) override;
 
@@ -80,7 +81,7 @@ namespace Harness
         void SpellHitTarget(Unit* target, SpellEntry const* spell) override;
         void AttackedBy(Unit* attacker) override;
         void JustRespawned() override;
-        void SummonedMovementInform(Creature* summoned, uint32 type, uint32 data) override;
+        void SummonedMovementInform(Creature* summoned, Motion::Kind kind, uint32 data) override;
         void ReceiveEmote(Player* player, uint32 emote) override;
         void AttackStart(Unit* who) override;
         void UpdateAI(uint32 const diff) override;

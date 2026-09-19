@@ -1269,11 +1269,11 @@ struct npc_akama_illidan : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
             npc_escortAI::MovementInform(uiMoveType, uiPointId);
 
-            if (uiMoveType != POINT_MOTION_TYPE || uiPointId != 100)
+            if (uiMoveType != Motion::Kind::Point || uiPointId != 100)
             {
                 return;
             }
@@ -1837,9 +1837,9 @@ struct npc_shadow_demon : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMovementType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMovementType, uint32 uiPointId) override
         {
-            if (uiMovementType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMovementType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }

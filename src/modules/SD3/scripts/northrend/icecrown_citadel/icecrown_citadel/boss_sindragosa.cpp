@@ -251,9 +251,9 @@ struct boss_sindragosa : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMovementType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMovementType, uint32 uiPointId) override
         {
-            if (uiMovementType != POINT_MOTION_TYPE)
+            if (uiMovementType != Motion::Kind::Point)
             {
                 return;
             }
@@ -626,9 +626,9 @@ struct npc_rimefang_icc : public CreatureScript
             Reset();
         }
 
-        void MovementInform(uint32 uiMovementType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMovementType, uint32 uiPointId) override
         {
-            if (uiMovementType != POINT_MOTION_TYPE)
+            if (uiMovementType != Motion::Kind::Point)
             {
                 return;
             }
@@ -829,9 +829,9 @@ struct npc_spinestalker_icc : public CreatureScript
             Reset();
         }
 
-        void MovementInform(uint32 uiMovementType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMovementType, uint32 uiPointId) override
         {
-            if (uiMovementType != POINT_MOTION_TYPE)
+            if (uiMovementType != Motion::Kind::Point)
             {
                 return;
             }

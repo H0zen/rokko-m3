@@ -29,7 +29,6 @@
 #include <optional>
 #include <sstream>
 #include "MotionMaster.h"
-#include "Behaviour.h"
 #include "NativeBehaviour.h"
 #include "SimpleMoves.h"
 #include "DefaultMoves.h"
@@ -147,10 +146,6 @@ namespace
         out.external = resolvedOrigin == PATH_FROM_EXTERNAL && pathId > 0;
         out.externalOrigin = resolvedOrigin == PATH_FROM_EXTERNAL;
         out.initialDelay = initialDelay;
-        out.inform.waypoint = WAYPOINT_MOTION_TYPE;
-        out.inform.externalMove = EXTERNAL_WAYPOINT_MOVE + pathId;
-        out.inform.externalStart = EXTERNAL_WAYPOINT_MOVE_START + pathId;
-        out.inform.externalLast = EXTERNAL_WAYPOINT_FINISHED_LAST + pathId;
 
         if (!path)
         {
@@ -216,14 +211,14 @@ namespace
      * @param owner The moving unit.
      * @param behaviour The selected binding's behaviour.
      */
-    void RefreshPatrolPath(Unit& owner, MotionBehaviour& behaviour)
+    void RefreshPatrolPath(Unit& owner, NativeBehaviour& behaviour)
     {
         if (behaviour.Kind() != Motion::Kind::Patrol || owner.GetTypeId() != TYPEID_UNIT)
         {
             return;
         }
         Motion::PatrolBehaviour* native =
-            static_cast<Motion::PatrolBehaviour*>(static_cast<NativeBehaviour&>(behaviour).Native());
+            static_cast<Motion::PatrolBehaviour*>(behaviour.Native());
         if (native->Revision() == sWaypointMgr.Revision())
         {
             return;
@@ -241,7 +236,7 @@ namespace
 
 // ---- Bound --------------------------------------------------------------------
 
-MotionMaster::Bound::Bound(uint32 s, std::unique_ptr<MotionBehaviour> b) : seq(s), behaviour(std::move(b)), activated(false)
+MotionMaster::Bound::Bound(uint32 s, std::unique_ptr<NativeBehaviour> b) : seq(s), behaviour(std::move(b)), activated(false)
 {
 }
 
@@ -336,7 +331,7 @@ MotionMaster::MotionMaster(Unit* unit)
 MotionMaster::~MotionMaster()
 {
     m_retired.clear();
-    m_bound.clear();   // generators deleted, no hooks: the stack deleted without Finalize too
+    m_bound.clear();   // held entries deleted, no hooks: the stack deleted without Finalize too
 }
 
 // ---- the commit ----------------------------------------------------------------
@@ -608,7 +603,7 @@ MotionMaster::Bound const* MotionMaster::SelectedBound() const
  */
 void MotionMaster::Retire(size_t index, Motion::FinishReason reason)
 {
-    std::unique_ptr<MotionBehaviour> gone = std::move(m_bound[index].behaviour);
+    std::unique_ptr<NativeBehaviour> gone = std::move(m_bound[index].behaviour);
     const bool activated = m_bound[index].activated;
     m_bound.erase(m_bound.begin() + static_cast<std::vector<Bound>::difference_type>(index));
     if (activated)
@@ -632,7 +627,7 @@ bool MotionMaster::BindNative(uint32 seqBefore, std::unique_ptr<Motion::Behaviou
     }
     std::unique_ptr<NativeBehaviour> adapter(new NativeBehaviour(std::move(native)));
     adapter->SetSequence(seqBefore + 1);   // what the tick's per-round IsSelectedSequence re-check reads
-    m_bound.push_back(Bound(seqBefore + 1, std::unique_ptr<MotionBehaviour>(std::move(adapter))));
+    m_bound.push_back(Bound(seqBefore + 1, std::move(adapter)));
     return true;
 }
 
@@ -736,10 +731,12 @@ void MotionMaster::Initialize()
     {
         Creature* creature = (Creature*)m_owner;
         MANGOS_ASSERT(creature->GetCreatureInfo() != NULL);   // every creature reaching here has one: the default-type reads below assume it
-        const MovementGeneratorType wanted = creature->GetOwnerGuid().IsPlayer() ? FOLLOW_MOTION_TYPE : creature->GetDefaultMovementType();
-        if (wanted == RANDOM_MOTION_TYPE)
+        // A player's pet has no factory default: the old follow default fell through to the
+        // idle below too, and the pet code installs its follow itself.
+        const CreatureMovementType wanted = creature->GetOwnerGuid().IsPlayer() ? CREATURE_MOVEMENT_IDLE : creature->GetDefaultMovementType();
+        if (wanted == CREATURE_MOVEMENT_RANDOM)
         {
-            // No factory is registered for RANDOM_MOTION_TYPE: the wander native is installed
+            // No factory is registered for a random default: the wander native is installed
             // directly, as the factory constructor built it (no vertical band).
             Geometry::Placement const& spawn = creature->Spawn();
             Motion::WanderBehaviour::Params p;
@@ -749,9 +746,9 @@ void MotionMaster::Initialize()
             InstallFactoryNative(Motion::Kind::Wander, std::unique_ptr<Motion::Behaviour>(new Motion::WanderBehaviour(p)));
             return;
         }
-        if (wanted == WAYPOINT_MOTION_TYPE)
+        if (wanted == CREATURE_MOVEMENT_WAYPOINT)
         {
-            // Likewise for WAYPOINT_MOTION_TYPE: the patrol native, loading the default path
+            // Likewise for a waypoint default: the patrol native, loading the default path
             // exactly as InitializeWaypointPath(pathId 0, PATH_NO_PATH) did; an unresolved path
             // is a patrol with no nodes, which holds, as the generator's did.
             Motion::PatrolBehaviour::Params p;
@@ -760,9 +757,8 @@ void MotionMaster::Initialize()
             return;
         }
     }
-    // Nothing registered for this creature's default type (and every player, and a Follow
-    // default -- it never had a registered factory either): the idle native is the default,
-    // as the shared idle singleton used to be.
+    // Nothing registered for this creature's default type, and every player: the idle native
+    // is the default, as the shared idle singleton used to be.
     InstallFactoryNative(Motion::Kind::Idle, std::unique_ptr<Motion::Behaviour>(new Motion::IdleBehaviour()));
 }
 
@@ -811,7 +807,7 @@ void MotionMaster::UpdateMotion(uint32 diff)
 }
 
 /**
- * @brief Clears the movement generators.
+ * @brief Clears the held behaviours.
  * @param reset Whether the survivor resets.
  * @param all Whether the default goes too.
  */
@@ -1103,7 +1099,7 @@ void MotionMaster::MoveWaypoint(int32 id, uint32 source, uint32 initialDelay, ui
         sLog.outError("Non-creature %s attempt to MoveWaypoint()", m_owner->GetGuidStr().c_str());
         return;
     }
-    if (GetCurrentMovementGeneratorType() == WAYPOINT_MOTION_TYPE)
+    if (ActiveKind() == Motion::Kind::Patrol)
     {
         sLog.outError("Creature %s (Entry %u) attempt to MoveWaypoint() but creature is already using waypoint", m_owner->GetGuidStr().c_str(), m_owner->GetEntry());
         return;
@@ -1127,7 +1123,7 @@ bool MotionMaster::PauseWaypoints(int32 ms)
     {
         return false;
     }
-    NativeBehaviour* adapter = static_cast<NativeBehaviour*>(bound->behaviour.get());
+    NativeBehaviour* adapter = bound->behaviour.get();
     Motion::PatrolBehaviour* patrol = static_cast<Motion::PatrolBehaviour*>(adapter->Native());
     adapter->PerformStep(*m_owner, patrol->Pause(ms));
     return true;
@@ -1213,7 +1209,7 @@ void MotionMaster::TaxiContinue()
     {
         return;
     }
-    NativeBehaviour* adapter = static_cast<NativeBehaviour*>(bound->behaviour.get());
+    NativeBehaviour* adapter = bound->behaviour.get();
     Motion::TaxiBehaviour* flight = static_cast<Motion::TaxiBehaviour*>(adapter->Native());
     if (!flight->CrossingLandedOn(m_owner->GetMapId()))
     {
@@ -1252,8 +1248,8 @@ void MotionMaster::MoveDistract(uint32 timer)
  */
 bool MotionMaster::MoveJump(float x, float y, float z, float horizontalSpeed, float max_height, uint32 id)
 {
-    EffectLaunch launch;
-    launch.kind = EffectLaunch::Jump;
+    Motion::EffectLaunch launch;
+    launch.kind = Motion::EffectLaunch::Jump;
     launch.point = Motion::Vector3(x, y, z);
     launch.speed = horizontalSpeed;
     launch.height = max_height;
@@ -1292,8 +1288,8 @@ bool MotionMaster::MoveJump(Position& pos, float horizontalSpeed, float max_heig
  */
 bool MotionMaster::MoveJump(float x, float y, float z, float o, float horizontalSpeed, float max_height, Unit* target)
 {
-    EffectLaunch launch;
-    launch.kind = EffectLaunch::Jump;
+    Motion::EffectLaunch launch;
+    launch.kind = Motion::EffectLaunch::Jump;
     launch.point = Motion::Vector3(x, y, z);
     launch.speed = horizontalSpeed;
     launch.height = max_height;
@@ -1320,8 +1316,8 @@ void MotionMaster::MoveFall()
     {
         return;
     }
-    EffectLaunch launch;
-    launch.kind = EffectLaunch::Fall;
+    Motion::EffectLaunch launch;
+    launch.kind = Motion::EffectLaunch::Fall;
     launch.point = Motion::Vector3(m_owner->Where().X(), m_owner->Where().Y(), tz);
     RequestEffect(0, launch);   // never refused: a fall is not a Jump, and the dying flyer's is requested after the death inhibit
 }
@@ -1407,17 +1403,6 @@ void MotionMaster::MoveCharge(float x, float y, float z, float speed)
 }
 
 /**
- * @brief The legacy type the selected behaviour projects onto (the GM prints and the harness
- *        labels, until P5-C retires the enum).
- * @return The selected behaviour's projection, IDLE_MOTION_TYPE when nothing is selected.
- */
-MovementGeneratorType MotionMaster::GetCurrentMovementGeneratorType() const
-{
-    Bound const* bound = SelectedBound();
-    return bound ? bound->behaviour->LegacyType() : IDLE_MOTION_TYPE;
-}
-
-/**
  * @brief Propagates the speed change to every held behaviour.
  */
 void MotionMaster::PropagateSpeedChange()
@@ -1438,7 +1423,7 @@ Motion::PatrolBehaviour* MotionMaster::HeldPatrol()
     {
         if (m_bound[i].behaviour->Kind() == Motion::Kind::Patrol)
         {
-            return static_cast<Motion::PatrolBehaviour*>(static_cast<NativeBehaviour*>(m_bound[i].behaviour.get())->Native());
+            return static_cast<Motion::PatrolBehaviour*>(m_bound[i].behaviour->Native());
         }
     }
     return NULL;
@@ -1454,7 +1439,7 @@ Motion::PatrolBehaviour const* MotionMaster::HeldPatrol() const
     {
         if (m_bound[i].behaviour->Kind() == Motion::Kind::Patrol)
         {
-            return static_cast<Motion::PatrolBehaviour const*>(static_cast<NativeBehaviour const*>(m_bound[i].behaviour.get())->Native());
+            return static_cast<Motion::PatrolBehaviour const*>(m_bound[i].behaviour->Native());
         }
     }
     return NULL;
@@ -1472,7 +1457,7 @@ Motion::RelayCounts const* MotionMaster::SelectedRelays() const
     {
         return NULL;
     }
-    return static_cast<NativeBehaviour const*>(bound->behaviour.get())->Native()->Relays();
+    return bound->behaviour->Native()->Relays();
 }
 
 /**
@@ -1487,7 +1472,7 @@ Motion::Facing::Mode MotionMaster::SelectedLegFacingMode() const
     {
         return Motion::Facing::Mode::None;
     }
-    return static_cast<NativeBehaviour const*>(bound->behaviour.get())->LegFacingMode();
+    return bound->behaviour->LegFacingMode();
 }
 
 /**
@@ -1503,7 +1488,7 @@ bool MotionMaster::SetNextWaypoint(uint32 pointId)
         {
             continue;
         }
-        NativeBehaviour* adapter = static_cast<NativeBehaviour*>(m_bound[i].behaviour.get());
+        NativeBehaviour* adapter = m_bound[i].behaviour.get();
         if (!static_cast<Motion::PatrolBehaviour*>(adapter->Native())->SetNextWaypoint(pointId))
         {
             return false;
@@ -1569,7 +1554,7 @@ bool MotionMaster::AddToSelectedPatrolPause(int32 ms)
     {
         return false;
     }
-    static_cast<Motion::PatrolBehaviour*>(static_cast<NativeBehaviour*>(bound->behaviour.get())->Native())->AddToPauseTime(ms);
+    static_cast<Motion::PatrolBehaviour*>(bound->behaviour->Native())->AddToPauseTime(ms);
     return true;
 }
 
@@ -1584,7 +1569,7 @@ uint32 MotionMaster::SelectedPatrolNode() const
     {
         return 0;
     }
-    return static_cast<Motion::PatrolBehaviour const*>(static_cast<NativeBehaviour const*>(bound->behaviour.get())->Native())->CurrentNode();
+    return static_cast<Motion::PatrolBehaviour const*>(bound->behaviour->Native())->CurrentNode();
 }
 
 /**
@@ -1598,7 +1583,7 @@ size_t MotionMaster::SelectedPatrolLegPoints() const
     {
         return 0;
     }
-    return static_cast<Motion::PatrolBehaviour const*>(static_cast<NativeBehaviour const*>(bound->behaviour.get())->Native())->LegPointCount();
+    return static_cast<Motion::PatrolBehaviour const*>(bound->behaviour->Native())->LegPointCount();
 }
 
 /**
@@ -1846,7 +1831,7 @@ Unit* MotionMaster::ChaseTarget() const
     }
     // The held entry's guid, resolved now: the pointer the generator stored through its
     // FollowerReference is gone, and a target that has left the world answers NULL here.
-    const uint64 guid = static_cast<NativeBehaviour const*>(bound->behaviour.get())->Native()->Target();
+    const uint64 guid = bound->behaviour->Native()->Target();
     return ObjectLookup::GetUnit(*m_owner, ObjectGuid(guid));
 }
 
@@ -1872,7 +1857,7 @@ Unit* MotionMaster::FollowTarget() const
     {
         return NULL;
     }
-    const uint64 guid = static_cast<NativeBehaviour const*>(bound->behaviour.get())->Native()->Target();
+    const uint64 guid = bound->behaviour->Native()->Target();
     return ObjectLookup::GetUnit(*m_owner, ObjectGuid(guid));
 }
 
@@ -1893,6 +1878,16 @@ bool MotionMaster::IsPatrolling() const
 bool MotionMaster::IsOnTaxi() const
 {
     return m_arbiter.Command(Motion::Layer::Taxi).has_value();
+}
+
+/**
+ * @brief The selected native's variant.
+ * @return Behaviour::Variant() of the selected native, 0 when nothing is selected.
+ */
+uint32 MotionMaster::SelectedVariant() const
+{
+    Bound const* bound = SelectedBound();
+    return bound ? bound->behaviour->Native()->Variant() : 0;
 }
 
 /**
@@ -1943,7 +1938,6 @@ std::vector<MotionMaster::HeldView> MotionMaster::Held() const
     {
         HeldView view;
         view.kind = m_bound[i].behaviour->Kind();
-        view.type = m_bound[i].behaviour->LegacyType();
         view.selected = &m_bound[i] == selected;
         view.reachable = m_bound[i].behaviour->Reachable();
         view.target = m_bound[i].behaviour->TrackedTarget();

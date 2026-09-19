@@ -38,25 +38,25 @@ class Unit;
  * @brief The engine of the intent model: everything mechanical about a movement leg,
  *        in one place.
  *
- * A generator says WHAT it wants (a MoveIntent). This says HOW that happens: it reads
+ * A behaviour says WHAT it wants (a MoveIntent). This says HOW that happens: it reads
  * the live spline and reports progress as a MoveStatus; decides whether a fresh leg is
  * needed at all (the test every generator used to carry its own subtly different copy
  * of); routes through the mover's IMotionFrame; resolves the leg's final facing, picks
  * walk or run, and calls Launch exactly once; and latches "that Move could not be laid"
  * so a one-shot pops and a patrol skips a dead node rather than retrying into a wall.
  *
- * One driver belongs to one generator, and its per-leg state is cleared whenever that
- * generator is interrupted or reset.
+ * One driver belongs to one behaviour, and its per-leg state is cleared whenever that
+ * behaviour is interrupted or reset.
  */
 class MotionDriver
 {
     public:
-        /// Read the live leg and hand back what the generator may know about it.
+        /// Read the live leg and hand back what the behaviour may know about it.
         /// Call once per tick, before Apply.
         Motion::MoveStatus BeginTick(Unit& owner);
 
-        /// Reconcile the generator's intent against the live leg.
-        /// @return False when the generator asked to be popped (Act::Done).
+        /// Reconcile the behaviour's intent against the live leg.
+        /// @return False when the behaviour asked to be popped (Act::Done).
         bool Apply(Unit& owner, Motion::MoveIntent const& intent);
 
         /// The unit's speed changed: any leg in flight is paced wrong, so re-lay it.

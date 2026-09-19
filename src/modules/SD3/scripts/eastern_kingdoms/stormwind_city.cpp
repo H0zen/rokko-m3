@@ -336,9 +336,9 @@ struct npc_squire_rowe : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiMotionType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || !uiPointId || pSummoned->GetEntry() != NPC_WINDSOR)
+            if (uiMotionType != Motion::Kind::Point || !uiPointId || pSummoned->GetEntry() != NPC_WINDSOR)
             {
                 return;
             }
@@ -757,9 +757,9 @@ struct npc_reginald_windsor : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiMotionType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || !uiPointId || pSummoned->GetEntry() != NPC_GUARD_ROYAL)
+            if (uiMotionType != Motion::Kind::Point || !uiPointId || pSummoned->GetEntry() != NPC_GUARD_ROYAL)
             {
                 return;
             }

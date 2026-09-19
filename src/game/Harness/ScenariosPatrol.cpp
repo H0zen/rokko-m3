@@ -128,7 +128,7 @@ namespace Harness
         /// S8: a patroller of our own on Mouse's four nodes (the world's Mouse,
         /// guid 261361, mirrored as an external path: the harness map is bare)
         /// lifted sixty yards off the mesh, where there is no navmesh under it.
-        /// B7 asks whether the waypoint generator ever lays a leg back down once
+        /// B7 asks whether the patrol behaviour ever lays a leg back down once
         /// its destination node turns out unreachable.
         class PatrolLifted : public Scenario
         {
@@ -137,7 +137,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; float z; uint32 node; MovementGeneratorType mt; };
+                struct Sample { uint32 t; float z; uint32 node; Motion::Kind mt; };
                 Creature* c = Spawn(MOUSE_ENTRY, -2986.64f, -329.723f, 54.0748f, 0.0f);
                 if (!c) { Verdict("B7=INVALID(spawn failed)"); return; }
                 c->GetMotionMaster()->MoveWaypoint(kMousePath, PATH_FROM_EXTERNAL);
@@ -159,7 +159,7 @@ namespace Harness
                         s.mt = Type(a);
                         s.node = Node(a);
                         samples->push_back(s);
-                        Log("+%5ums %.1f %.1f z=%.1f mt=%s lastWP=%u", s.t, px, py, s.z, Harness::TypeName(s.mt), s.node);
+                        Log("+%5ums %.1f %.1f z=%.1f mt=%s lastWP=%u", s.t, px, py, s.z, Motion::KindName(s.mt), s.node);
                     });
                 }
                 At(41000, [this, samples, z0]()
@@ -206,7 +206,7 @@ namespace Harness
             void Prepare() override
             {
                 struct StunAt { bool set; float x, y; uint32 node; };
-                struct Sample { uint32 t; float d; uint32 node; MovementGeneratorType mt; };
+                struct Sample { uint32 t; float d; uint32 node; Motion::Kind mt; };
                 Creature* a = Spawn(CHICKEN, P0.x, P0.y, P0.z, 0.0f);
                 if (!a) { Verdict("stunnedPatrol=INVALID(spawn failed)"); return; }
                 const ObjectGuid g = a->GetObjectGuid();
@@ -242,7 +242,7 @@ namespace Harness
                         samples->push_back(s);
                         if (i % 5 == 0)
                         {
-                            Log("+%2us after the stun: %.1f yd from the stun spot, node %u, mt=%s", i, s.d, s.node, Harness::TypeName(s.mt));
+                            Log("+%2us after the stun: %.1f yd from the stun spot, node %u, mt=%s", i, s.d, s.node, Motion::KindName(s.mt));
                         }
                     });
                 }
@@ -257,7 +257,7 @@ namespace Harness
                     }
                     const bool hasLast = !samples->empty();
                     const uint32 lastNode = hasLast ? samples->back().node : stunAt->node;
-                    char const* lastMt = hasLast ? Harness::TypeName(samples->back().mt) : "?";
+                    char const* lastMt = hasLast ? Motion::KindName(samples->back().mt) : "?";
                     const bool advanced = hasLast && lastNode != stunAt->node;
                     std::string v;
                     if (moved && advanced)
@@ -280,23 +280,28 @@ namespace Harness
         };
 
         /// P3-C: a node hook that despawns its walker from inside the inform, while the
-        /// waypoint generator's Update is still on the stack. P3-B defers a finished
+        /// patrol behaviour's Tick is still on the stack. P3-B defers a finished
         /// behaviour's destruction to the end of the outermost commit for exactly this;
-        /// no scenario drove it until now. An external path informs with
-        /// EXTERNAL_WAYPOINT_MOVE plus its id, so the hook listens for that as well as
-        /// the plain waypoint type.
+        /// no scenario drove it until now. An external path reports through
+        /// WaypointPathInform instead of MovementInform, so the hook listens on both.
         class DespawnAtNode : public Scenario
         {
         public:
             DespawnAtNode() : Scenario("despawn-at-node", 18) {}
 
-            void OnInform(Creature* creature, uint32 type, uint32 id) override
+            void OnInform(Creature* creature, Motion::Kind kind, uint32 id) override
             {
-                if (creature && creature->GetObjectGuid() == m_walker &&
-                    (type == WAYPOINT_MOTION_TYPE || type == EXTERNAL_WAYPOINT_MOVE + kExternalPath) && id == 2 && creature->IsAlive())
+                if (creature && creature->GetObjectGuid() == m_walker && kind == Motion::Kind::Patrol && id == 2 && creature->IsAlive())
                 {
-                    Log("node %u inform: ForcedDespawn from inside the hook, mt=%s", id, TypeName(creature));
-                    creature->ForcedDespawn();
+                    OnNodeTwo(creature);
+                }
+            }
+
+            void OnPathInform(Creature* creature, uint32 pathId, Motion::PathEvent event, uint32 node) override
+            {
+                if (creature && creature->GetObjectGuid() == m_walker && pathId == uint32(kExternalPath) && event == Motion::PathEvent::NodeReached && node == 2 && creature->IsAlive())
+                {
+                    OnNodeTwo(creature);
                 }
             }
 
@@ -321,7 +326,9 @@ namespace Harness
                         if (*informedAt) { return; }
                         for (size_t k = 0; k < Informs().size(); ++k)
                         {
-                            if ((Informs()[k].type == WAYPOINT_MOTION_TYPE || Informs()[k].type == EXTERNAL_WAYPOINT_MOVE + kExternalPath) && Informs()[k].id == 2)
+                            if (((Informs()[k].event == Inform::Event::Inform && Informs()[k].kind == Motion::Kind::Patrol) ||
+                                 (Informs()[k].event == Inform::Event::PathInform && Informs()[k].pathId == uint32(kExternalPath) && Informs()[k].pathEvent == Motion::PathEvent::NodeReached)) &&
+                                Informs()[k].id == 2)
                             {
                                 *informedAt = 500 + i * 500;
                                 Creature* a = Get(g);
@@ -356,6 +363,14 @@ namespace Harness
             }
 
         private:
+            /// The hook body, shared by the internal and the external path: node 2's arrival,
+            /// while the patrol behaviour's Tick is still on the stack.
+            void OnNodeTwo(Creature* creature)
+            {
+                Log("node %u inform: ForcedDespawn from inside the hook, mt=%s", 2u, TypeName(creature));
+                creature->ForcedDespawn();
+            }
+
             ObjectGuid m_walker;   ///< the walker this run spawned; the despawn hook acts on it alone
         };
     }

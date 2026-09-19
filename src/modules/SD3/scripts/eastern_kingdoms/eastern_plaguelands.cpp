@@ -171,9 +171,9 @@ struct npc_eris_havenfire : public CreatureScript
             m_lSummonedGuidList.push_back(pSummoned->GetObjectGuid());
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiMotionType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || uiPointId != 1)
+            if (uiMotionType != Motion::Kind::Point || uiPointId != 1)
             {
                 return;
             }

@@ -312,9 +312,9 @@ void FollowerAI::UpdateFollowerAI(const uint32 /*uiDiff*/)
     DoMeleeAttackIfReady();
 }
 
-void FollowerAI::MovementInform(uint32 uiMotionType, uint32 uiPointId)
+void FollowerAI::MovementInform(Motion::Kind uiMotionType, uint32 uiPointId)
 {
-    if (uiMotionType != POINT_MOTION_TYPE || !HasFollowState(STATE_FOLLOW_INPROGRESS))
+    if (uiMotionType != Motion::Kind::Point || !HasFollowState(STATE_FOLLOW_INPROGRESS))
     {
         return;
     }
@@ -363,7 +363,7 @@ void FollowerAI::StartFollow(Player* pLeader, uint32 uiFactionForFollower, const
     {
         m_creature->GetMotionMaster()->Clear();
         m_creature->GetMotionMaster()->MoveIdle();
-        debug_log("SD3: FollowerAI start with WAYPOINT_MOTION_TYPE, set to MoveIdle.");
+        debug_log("SD3: FollowerAI start with a waypoint default, set to MoveIdle.");
     }
 
     m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);

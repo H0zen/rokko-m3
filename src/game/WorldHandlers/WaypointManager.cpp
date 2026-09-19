@@ -152,7 +152,7 @@ void WaypointManager::Load()
                 continue;
             }
 
-            if (cData->movementType != WAYPOINT_MOTION_TYPE)
+            if (cData->movementType != CREATURE_MOVEMENT_WAYPOINT)
             {
                 creatureNoMoveType.insert(id);
             }
@@ -259,11 +259,11 @@ void WaypointManager::Load()
                 const CreatureData* cData = sObjectMgr.GetCreatureData(*itr);
                 const CreatureInfo* cInfo = ObjectMgr::GetCreatureTemplate(cData->id);
 
-                ERROR_DB_STRICT_LOG("Table creature_movement has waypoint for creature guid %u (entry %u), but MovementType is not WAYPOINT_MOTION_TYPE(2). Make sure that this is actually used in a script!", *itr, cData->id);
+                ERROR_DB_STRICT_LOG("Table creature_movement has waypoint for creature guid %u (entry %u), but MovementType is not 2 (waypoint). Make sure that this is actually used in a script!", *itr, cData->id);
 
-                if (cInfo->MovementType == WAYPOINT_MOTION_TYPE)
+                if (cInfo->MovementType == CREATURE_MOVEMENT_WAYPOINT)
                 {
-                    sLog.outErrorDb("    creature_template for this entry has MovementType WAYPOINT_MOTION_TYPE(2), did you intend to use creature_movement_template ?");
+                    sLog.outErrorDb("    creature_template for this entry has MovementType 2 (waypoint), did you intend to use creature_movement_template ?");
                 }
             }
         }

@@ -255,7 +255,7 @@ struct npc_daegarn : public CreatureScript
             m_creature->SummonCreature(uiEntry, afSummon[0], afSummon[1], afSummon[2], 0.0f, TEMPSPAWN_TIMED_OOC_DESPAWN, 20 * IN_MILLISECONDS);
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 /*uiMotionType*/, uint32 /*uiPointId*/) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind /*uiMotionType*/, uint32 /*uiPointId*/) override
         {
             Player* pPlayer = m_creature->GetMap()->GetPlayer(m_playerGuid);
 

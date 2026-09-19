@@ -44,7 +44,6 @@
 #include "Utilities/PackedValues.h"
 #include "ObjectMgr.h"
 #include "LivingWorldAnchorPolicy.h"
-#include "MotionGenerators/MotionMaster.h"  // WAYPOINT_MOTION_TYPE
 #include "Database/DatabaseEnv.h"
 #include "Policies/Singleton.h"
 
@@ -387,10 +386,10 @@ void ObjectMgr::LoadCreatureTemplates()
             }
         }
 
-        if (cInfo->MovementType >= MAX_DB_MOTION_TYPE)
+        if (cInfo->MovementType >= CREATURE_MOVEMENT_MAX)
         {
             sLog.outErrorDb("Creature (Entry: %u) has wrong movement generator type (%u), ignore and set to IDLE.", cInfo->Entry, cInfo->MovementType);
-            const_cast<CreatureInfo*>(cInfo)->MovementType = IDLE_MOTION_TYPE;
+            const_cast<CreatureInfo*>(cInfo)->MovementType = CREATURE_MOVEMENT_IDLE;
         }
 
         if (cInfo->VehicleTemplateId && !sVehicleStore.LookupEntry(cInfo->VehicleTemplateId))
@@ -1265,15 +1264,15 @@ void ObjectMgr::LoadCreatures()
             sLog.outErrorDb("Table `creature` have creature (GUID: %u Entry: %u) with `spawndist`< 0, set to 0.", guid, data.id);
             data.spawndist = 0.0f;
         }
-        else if (data.movementType == RANDOM_MOTION_TYPE)
+        else if (data.movementType == CREATURE_MOVEMENT_RANDOM)
         {
             if (data.spawndist == 0.0f)
             {
                 sLog.outErrorDb("Table `creature` have creature (GUID: %u Entry: %u) with `MovementType`=1 (random movement) but with `spawndist`=0, replace by idle movement type (0).", guid, data.id);
-                data.movementType = IDLE_MOTION_TYPE;
+                data.movementType = CREATURE_MOVEMENT_IDLE;
             }
         }
-        else if (data.movementType == IDLE_MOTION_TYPE)
+        else if (data.movementType == CREATURE_MOVEMENT_IDLE)
         {
             if (data.spawndist != 0.0f)
             {
@@ -1292,7 +1291,7 @@ void ObjectMgr::LoadCreatures()
         {
             AddCreatureToGrid(guid, &data);
 
-            const bool lwIsWaypoint = (data.movementType == WAYPOINT_MOTION_TYPE);
+            const bool lwIsWaypoint = (data.movementType == CREATURE_MOVEMENT_WAYPOINT);
             uint32 lwCats = (GetLivingWorldAnchorCategories(cInfo, mapEntry)
                           |  GetLivingWorldDefenderCategory(cInfo, mapEntry, lwIsWaypoint)) & lwAnchorMask;
             if ((cInfo->ExtraFlags & CREATURE_FLAG_EXTRA_ACTIVE) || lwCats != 0)

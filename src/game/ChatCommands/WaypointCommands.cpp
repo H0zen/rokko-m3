@@ -41,7 +41,6 @@
 #include "WaypointManager.h"
 #include "TemporarySummon.h"
 #include "MoveMap.h"
-#include "PathFinder.h" // for mmap manager
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
@@ -464,7 +463,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
 
         if (wpPath->empty())
         {
-            wpOwner->SetDefaultMovementType(RANDOM_MOTION_TYPE);
+            wpOwner->SetDefaultMovementType(CREATURE_MOVEMENT_RANDOM);
             wpOwner->GetMotionMaster()->Initialize();
             if (wpOwner->IsAlive())                         // Dead creature will reset movement generator at respawn
             {

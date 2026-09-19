@@ -216,9 +216,9 @@ struct boss_kalecgos : public CreatureScript
             m_uiExitTimer = 10000;
         }
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE)
+            if (uiMotionType != Motion::Kind::Point)
             {
                 return;
             }

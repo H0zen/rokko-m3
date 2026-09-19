@@ -127,9 +127,9 @@ struct boss_broggok : public CreatureScript
         }
 
         // Reset Orientation
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || uiPointId != POINT_EVENT_COMBAT)
+            if (uiMotionType != Motion::Kind::Point || uiPointId != POINT_EVENT_COMBAT)
             {
                 return;
             }

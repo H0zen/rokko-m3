@@ -32,7 +32,7 @@
 #include "Utilities/PackedValues.h"
 #include "ObjectMgr.h"
 #include "LivingWorldAnchorPolicy.h"
-#include "MotionGenerators/MotionMaster.h"  // WAYPOINT_MOTION_TYPE
+#include "MotionGenerators/MotionMaster.h"
 #include "Database/DatabaseEnv.h"
 #include "Policies/Singleton.h"
 

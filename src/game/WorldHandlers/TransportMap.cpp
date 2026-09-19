@@ -68,7 +68,7 @@ std::string DescribeSpatially(Unit* u)
 
     char buf[320];
     snprintf(buf, sizeof(buf),
-             "%s map=%u%s frame=%s/%llu pos=(%.2f %.2f %.2f) inworld=%d alive=%d gen=%u",
+             "%s map=%u%s frame=%s/%llu pos=(%.2f %.2f %.2f) inworld=%d alive=%d motion=%s",
              u->GetGuidStr().c_str(),
              on ? on->GetId() : 0u,
              on && on->AsTransport() ? "[deck]" : "",
@@ -76,7 +76,7 @@ std::string DescribeSpatially(Unit* u)
              static_cast<unsigned long long>(f.Id()),
              u->Where().X(), u->Where().Y(), u->Where().Z(),
              u->IsInWorld() ? 1 : 0, u->IsAlive() ? 1 : 0,
-             unsigned(u->GetMotionMaster()->GetCurrentMovementGeneratorType()));
+             Motion::KindName(u->GetMotionMaster()->ActiveKind()));
 
     return buf;
 }
@@ -234,11 +234,11 @@ namespace
         dest->Add(c);
 
         // AND THE MOTION, in the frame it now stands in. Initialize() alone restores the
-        // creature's DEFAULT generator -- for a pet that is not following anybody, which is
+        // creature's DEFAULT behaviour -- for a pet that is not following anybody, which is
         // a pet teleported neatly to its master's side and then standing there.
         //
         // MoveFollow and MoveIdle each clear the stack themselves, and correctly. Clearing
-        // it here first with all=true emptied it down to and including the idle generator,
+        // it here first with all=true emptied it down to and including the idle behaviour,
         // and the Clear inside MoveFollow then asserted on !empty() -- a crash on every
         // step ashore, from MotionMaster::DirectClean.
         if (c->GetCharmInfo() && c->GetCharmInfo()->HasCommandState(COMMAND_STAY))

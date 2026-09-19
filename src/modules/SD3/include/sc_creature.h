@@ -208,10 +208,10 @@ struct ScriptedAI : public CreatureAI
         void JustRespawned() override;
 
         // Called at waypoint reached or point movement finished
-        void MovementInform(uint32 /*uiMovementType*/, uint32 /*uiData*/) override {}
+        void MovementInform(Motion::Kind /*uiMovementType*/, uint32 /*uiData*/) override {}
 
         // Called if a temporary summoned of m_creature reach a move point
-        void SummonedMovementInform(Creature* /*pSummoned*/, uint32 /*uiMotionType*/, uint32 /*uiData*/) override {}
+        void SummonedMovementInform(Creature* /*pSummoned*/, Motion::Kind /*uiMotionType*/, uint32 /*uiData*/) override {}
 
         // Called at text emote receive from player
         void ReceiveEmote(Player* /*pPlayer*/, uint32 /*uiEmote*/) override {}

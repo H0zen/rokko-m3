@@ -169,9 +169,9 @@ struct boss_sapphiron : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiType, uint32 /*uiPointId*/) override
+        void MovementInform(Motion::Kind uiType, uint32 /*uiPointId*/) override
         {
-            if (uiType == POINT_MOTION_TYPE && m_Phase == PHASE_LIFT_OFF)
+            if (uiType == Motion::Kind::Point && m_Phase == PHASE_LIFT_OFF)
             {
                 DoScriptText(EMOTE_FLY, m_creature);
                 m_creature->HandleEmote(EMOTE_ONESHOT_LIFTOFF);

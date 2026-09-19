@@ -26,29 +26,57 @@
 #include "HarnessAI.h"
 #include "Scenario.h"
 #include "Creature.h"
-#include "MotionMaster.h"
 
 namespace Harness
 {
     namespace
     {
-        /// Not a MovementGeneratorType: the marker the old harness used for a death.
-        const uint32 kDiedType = 0xFFFF;
-
         /// One recorded event, at the creature's position as the hook saw it.
-        void Record(Scenario* scenario, Creature* creature, uint32 type, uint32 id)
+        Inform At(Creature* creature, Inform::Event event)
+        {
+            Inform r;
+            r.event = event;
+            r.x = creature->Where().X();
+            r.y = creature->Where().Y();
+            r.guidLow = creature->GetGUIDLow();
+            return r;
+        }
+
+        /// A MovementInform record: the kind and the id, at the creature's position.
+        void Record(Scenario* scenario, Creature* creature, Motion::Kind kind, uint32 id)
         {
             if (!scenario || !creature)
             {
                 return;
             }
-            Inform r;
-            r.type = type;
+            Inform r = At(creature, Inform::Event::Inform);
+            r.kind = kind;
             r.id = id;
-            r.x = creature->Where().X();
-            r.y = creature->Where().Y();
-            r.guidLow = creature->GetGUIDLow();
             scenario->Informs().push_back(r);
+        }
+
+        /// A WaypointPathInform record: the path id, the event and the node.
+        void RecordPath(Scenario* scenario, Creature* creature, uint32 pathId, Motion::PathEvent event, uint32 node)
+        {
+            if (!scenario || !creature)
+            {
+                return;
+            }
+            Inform r = At(creature, Inform::Event::PathInform);
+            r.pathId = pathId;
+            r.pathEvent = event;
+            r.id = node;
+            scenario->Informs().push_back(r);
+        }
+
+        /// A ReachedHome or Died record: the event alone.
+        void RecordEvent(Scenario* scenario, Creature* creature, Inform::Event event)
+        {
+            if (!scenario || !creature)
+            {
+                return;
+            }
+            scenario->Informs().push_back(At(creature, event));
         }
     }
 
@@ -69,22 +97,35 @@ namespace Harness
         return wrapped;
     }
 
-    void HarnessAI::MovementInform(uint32 type, uint32 id)
+    void HarnessAI::MovementInform(Motion::Kind kind, uint32 id)
     {
-        Record(m_scenario, m_creature, type, id);
+        Record(m_scenario, m_creature, kind, id);
         if (m_scenario)
         {
-            m_scenario->OnInform(m_creature, type, id);
+            m_scenario->OnInform(m_creature, kind, id);
         }
         if (m_wrapped)
         {
-            m_wrapped->MovementInform(type, id);
+            m_wrapped->MovementInform(kind, id);
+        }
+    }
+
+    void HarnessAI::WaypointPathInform(uint32 pathId, Motion::PathEvent event, uint32 node)
+    {
+        RecordPath(m_scenario, m_creature, pathId, event, node);
+        if (m_scenario)
+        {
+            m_scenario->OnPathInform(m_creature, pathId, event, node);
+        }
+        if (m_wrapped)
+        {
+            m_wrapped->WaypointPathInform(pathId, event, node);
         }
     }
 
     void HarnessAI::JustReachedHome()
     {
-        Record(m_scenario, m_creature, HOME_MOTION_TYPE, 0);
+        RecordEvent(m_scenario, m_creature, Inform::Event::ReachedHome);
         if (m_wrapped)
         {
             m_wrapped->JustReachedHome();
@@ -93,7 +134,7 @@ namespace Harness
 
     void HarnessAI::JustDied(Unit* killer)
     {
-        Record(m_scenario, m_creature, kDiedType, 0);
+        RecordEvent(m_scenario, m_creature, Inform::Event::Died);
         if (m_wrapped)
         {
             m_wrapped->JustDied(killer);
@@ -249,11 +290,11 @@ namespace Harness
         }
     }
 
-    void HarnessAI::SummonedMovementInform(Creature* summoned, uint32 type, uint32 data)
+    void HarnessAI::SummonedMovementInform(Creature* summoned, Motion::Kind kind, uint32 data)
     {
         if (m_wrapped)
         {
-            m_wrapped->SummonedMovementInform(summoned, type, data);
+            m_wrapped->SummonedMovementInform(summoned, kind, data);
         }
     }
 

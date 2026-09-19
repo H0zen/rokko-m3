@@ -180,9 +180,9 @@ struct npc_tapoke_slim_jahn : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !HasEscortState(STATE_ESCORT_ESCORTING))
+            if (uiMoveType != Motion::Kind::Point || !HasEscortState(STATE_ESCORT_ESCORTING))
             {
                 return;
             }

@@ -109,9 +109,9 @@ struct npc_nesingwary_trapper : public CreatureScript
             ScriptedAI::MoveInLineOfSight(pWho);
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }
@@ -227,9 +227,9 @@ struct npc_oil_stained_wolf : public CreatureScript
             m_uiPooTimer = 0;
         }
 
-        void MovementInform(uint32 uiType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE)
+            if (uiType != Motion::Kind::Point)
             {
                 return;
             }
@@ -1046,9 +1046,9 @@ struct npc_scourged_flamespitter : public CreatureScript
             }
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !uiPointId)
+            if (uiMoveType != Motion::Kind::Point || !uiPointId)
             {
                 return;
             }

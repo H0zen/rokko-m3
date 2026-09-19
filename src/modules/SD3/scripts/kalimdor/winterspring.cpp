@@ -260,9 +260,9 @@ struct npc_ranshalla : public CreatureScript
             }
         }
 
-        void SummonedMovementInform(Creature* pSummoned, uint32 uiType, uint32 uiPointId) override
+        void SummonedMovementInform(Creature* pSummoned, Motion::Kind uiType, uint32 uiPointId) override
         {
-            if (uiType != POINT_MOTION_TYPE || pSummoned->GetEntry() != NPC_PRIESTESS_ELUNE || uiPointId != 1)
+            if (uiType != Motion::Kind::Point || pSummoned->GetEntry() != NPC_PRIESTESS_ELUNE || uiPointId != 1)
             {
                 return;
             }
@@ -611,7 +611,7 @@ struct npc_artorius_the_doombringer : public CreatureScript
                     m_creature->NearTeleportTo(7909.71f, -4598.67f, 710.008f, 0.606013f);
                     if (!m_creature->GetMotionMaster()->IsPatrolling())
                     {
-                        m_creature->SetDefaultMovementType(WAYPOINT_MOTION_TYPE);
+                        m_creature->SetDefaultMovementType(CREATURE_MOVEMENT_WAYPOINT);
                         m_creature->GetMotionMaster()->Initialize();
                     }
 

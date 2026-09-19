@@ -1,5 +1,5 @@
 // The GM harness's pure parts (movement P0-C): the step timeline every scenario
-// runs on, the verdict line, the generator-type names. Nothing here touches a map.
+// runs on, the verdict line. Nothing here touches a map.
 #include "TestHarness.h"
 #include "Timeline.h"
 
@@ -67,16 +67,6 @@ TEST(HarnessVerdictLine_has_the_old_shape)
 {
     CHECK_STR(Harness::VerdictLine("jump-over-point", "B1=OK(jump completed server-side) | B5=OK(point leg resumed)").c_str(),
               "VERDICT jump-over-point B1=OK(jump completed server-side) | B5=OK(point leg resumed)");
-}
-
-TEST(HarnessTypeName_is_the_old_table)
-{
-    CHECK_STR(Harness::TypeName(0), "IDLE");
-    CHECK_STR(Harness::TypeName(8), "POINT");
-    CHECK_STR(Harness::TypeName(14), "FOLLOW");
-    CHECK_STR(Harness::TypeName(15), "EFFECT");
-    CHECK_STR(Harness::TypeName(3), "?");
-    CHECK_STR(Harness::TypeName(99), "?");
 }
 
 TEST(HarnessDist2_is_planar)

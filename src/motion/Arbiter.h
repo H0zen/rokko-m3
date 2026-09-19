@@ -41,8 +41,7 @@
  * decides whether a request issued from inside a hook survives (§4.3); a
  * fixed ring of decisions for the GM dump. Nothing here knows a unit, a
  * driver, a map or a clock: the shell above (P3-B) delivers the events this
- * class accumulates and tells it when a leg or a timer ended. The legacy
- * MovementGeneratorType conversions live with the shim, outside this seam.
+ * class accumulates and tells it when a leg or a timer ended.
  */
 namespace Motion
 {
@@ -57,6 +56,12 @@ namespace Motion
         Taxi,                              ///< Taxi
         Count
     };
+
+    /// An external waypoint path's progress (a script's MoveWaypoint with a path id > 0), the
+    /// patrol's own vocabulary for the AI hook CreatureAI::WaypointPathInform: the old
+    /// EXTERNAL_WAYPOINT_MOVE / _MOVE_START / _FINISHED_LAST codes, which no AI but the
+    /// harness's recording decorator ever consumed.
+    enum class PathEvent : uint8 { NodeReached, NodeLeft, LastWaitEnded };
 
     enum class Layer : uint8 { Default, Combat, Scripted, Distract, Control, Forced, Taxi, Count };
 

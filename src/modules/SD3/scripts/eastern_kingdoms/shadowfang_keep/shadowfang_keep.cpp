@@ -367,9 +367,9 @@ struct mob_arugal_voidwalker : public CreatureScript
             DoMeleeAttackIfReady();
         }
 
-        void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMoveType, uint32 uiPointId) override
         {
-            if (uiMoveType != POINT_MOTION_TYPE || !m_bIsLeader)
+            if (uiMoveType != Motion::Kind::Point || !m_bIsLeader)
             {
                 return;
             }

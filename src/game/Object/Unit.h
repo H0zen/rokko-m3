@@ -502,7 +502,7 @@ enum DeathState
 };
 
 /**
- * internal state flags for some auras and movement generators, other. (Taken from comment)
+ * internal state flags for some auras and the movement behaviours, other.
  */
 enum UnitState
 {
@@ -515,13 +515,13 @@ enum UnitState
     UNIT_STAT_ISOLATED        = 0x00000020,                 // area auras do not affect other players, Aura::HandleAuraModSchoolImmunity
     UNIT_STAT_CONTROLLED      = 0x00000040,                 // Aura::HandleAuraModPossess
 
-    // persistent movement generator state (all time while movement generator applied to unit (independent from top state of movegen)
+    // a behaviour's presence: held all the time a behaviour of the kind is held, independent of its leg
     UNIT_STAT_TAXI_FLIGHT     = 0x00000080,                 // player is in flight mode; the bit follows the Taxi entry and is continuous across a far teleport
     UNIT_STAT_DISTRACTED      = 0x00000100,                 // the distract native active
 
-    // persistent movement generator state with non-persistent mirror states for stop support
-    // (can be removed temporary by stop command or another movement generator apply)
-    // not use _MOVE versions for generic movegen state, it can be removed temporary for unit stop and etc
+    // a behaviour's presence, with non-persistent mirror states for stop support
+    // (can be cleared temporarily by a stop command or another behaviour taking hold)
+    // the _MOVE bits are a leg's, not the behaviour's: a stop from outside clears them
     UNIT_STAT_CONFUSED        = 0x00000200,                 // the confused native active/onstack
     UNIT_STAT_CONFUSED_MOVE   = 0x00000400,
     UNIT_STAT_ROAMING         = 0x00000800,                 // the wander native/a point behaviour/the patrol native active (now always set)
@@ -567,7 +567,7 @@ enum UnitState
 
     // masks (for check or reset)
 
-    // for real move using movegen check and stop (except unstoppable flight)
+    // a leg in flight, for the readers that ask whether the unit moves (the taxi's flight excluded)
     UNIT_STAT_MOVING          = UNIT_STAT_ROAMING_MOVE | UNIT_STAT_CHASE_MOVE | UNIT_STAT_FOLLOW_MOVE | UNIT_STAT_FLEEING_MOVE,
 
     UNIT_STAT_RUNNING_STATE   = UNIT_STAT_CHASE_MOVE | UNIT_STAT_FLEEING_MOVE | UNIT_STAT_RUNNING,
@@ -3130,7 +3130,7 @@ class Unit : public WorldObject
          * if we have set generatePath to true.
          *
          * Taken from comments: recommend use \ref Unit::MonsterMove / \ref Unit::MonsterMoveWithSpeed
-         * for most case that correctly work with movegens, mmaps
+         * for most case that correctly work with the movement kernel, mmaps
          * @param x the x coord to move to
          * @param y the y coord to move to
          * @param z the z coord to move to
@@ -3144,7 +3144,7 @@ class Unit : public WorldObject
          * \todo Is the dox about forceDestination correct?
          */
         void MonsterMoveWithSpeed(float x, float y, float z, float speed, bool generatePath = false, bool forceDestination = false);
-        // recommend use MonsterMove/MonsterMoveWithSpeed for most case that correctly work with movegens
+        // recommend use MonsterMove/MonsterMoveWithSpeed for most case that correctly work with the movement kernel
         // if used additional args in ... part then floats must explicitly casted to double
         /**
          * Tells nearby \ref Unit s and such that this \ref Unit has moved to a new position using

@@ -385,9 +385,9 @@ struct npc_annhylde : public CreatureScript
         void MoveInLineOfSight(Unit*) override {}
         void AttackStart(Unit*) override {}
 
-        void MovementInform(uint32 uiMotionType, uint32 uiPointId) override
+        void MovementInform(Motion::Kind uiMotionType, uint32 uiPointId) override
         {
-            if (uiMotionType != POINT_MOTION_TYPE || uiPointId != POINT_ID_ANNHYLDE)
+            if (uiMotionType != Motion::Kind::Point || uiPointId != POINT_ID_ANNHYLDE)
             {
                 return;
             }

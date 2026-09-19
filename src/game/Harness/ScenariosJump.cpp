@@ -62,7 +62,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; float x, y, z; MovementGeneratorType mt; float dJ, dPre; };
+                struct Sample { uint32 t; float x, y, z; Motion::Kind mt; float dJ, dPre; };
                 Creature* a = Spawn(WOLF, P0.x, P0.y, P0.z, 0.0f);
                 if (!a) { Verdict("B1=INVALID(spawn failed)"); return; }
                 Load(T1.x, T1.y);
@@ -95,7 +95,7 @@ namespace Harness
                         s.t = i * 200; s.x = a->Where().X(); s.y = a->Where().Y(); s.z = a->Where().Z(); s.mt = Type(a);
                         s.dJ = Dist2(s.x, s.y, P0.x, P0.y); s.dPre = Dist2(s.x, s.y, pre->x, pre->y);
                         samples->push_back(s);
-                        Log("+%4ums %.2f %.2f %.2f mt=%s dJump=%.2f dPre=%.2f", s.t, s.x, s.y, s.z, Harness::TypeName(s.mt), s.dJ, s.dPre);
+                        Log("+%4ums %.2f %.2f %.2f mt=%s dJump=%.2f dPre=%.2f", s.t, s.x, s.y, s.z, Motion::KindName(s.mt), s.dJ, s.dPre);
                     });
                 }
                 At(5200, [this, low, samples]()
@@ -110,12 +110,12 @@ namespace Harness
                     }
                     Sample const& f = samples->back();
                     std::string b1 = reached ? "OK(jump completed server-side)" : (early < 1.0f ? "BUG(spline killed at launch: never left pre-jump spot)" : "PARTIAL");
-                    std::string b5 = f.mt == POINT_MOTION_TYPE ? "OK(point leg resumed)" : std::string("BUG(stack reset to ") + Harness::TypeName(f.mt) + ")";
+                    std::string b5 = f.mt == Motion::Kind::Point ? "OK(point leg resumed)" : std::string("BUG(stack reset to ") + Motion::KindName(f.mt) + ")";
                     std::string b4 = "OK(no inform)";
                     for (size_t k = 0; k < Informs().size(); ++k)
                     {
                         Inform const& r = Informs()[k];
-                        if (r.guidLow == low && r.type == POINT_MOTION_TYPE && r.id == 77)
+                        if (r.guidLow == low && r.kind == Motion::Kind::Point && r.id == 77)
                         {
                             const float shortBy = Dist2(r.x, r.y, T1.x, T1.y);
                             char text[96];
@@ -137,7 +137,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; float x, y, z; MovementGeneratorType mt; float dJ, dPre, dV; };
+                struct Sample { uint32 t; float x, y, z; Motion::Kind mt; float dJ, dPre, dV; };
                 Creature* a = Spawn(WOLF, SA.x, SA.y, SA.z, 0.0f);
                 Creature* b = Spawn(KOBOLD, SB.x, SB.y, Ground(SB.x, SB.y, SB.z), 3.1f);
                 if (!a || !b) { Verdict("B1=INVALID(spawn failed)"); return; }
@@ -186,7 +186,7 @@ namespace Harness
                         s.dV = Dist2(s.x, s.y, bx, by);
                         samples->push_back(s);
                         Log("+%4ums %.2f %.2f %.2f mt=%s victim=%s dJump=%.2f dPre=%.2f dKobold=%.2f",
-                            s.t, s.x, s.y, s.z, Harness::TypeName(s.mt), a->getVictim() ? "true" : "false", s.dJ, s.dPre, s.dV);
+                            s.t, s.x, s.y, s.z, Motion::KindName(s.mt), a->getVictim() ? "true" : "false", s.dJ, s.dPre, s.dV);
                     });
                 }
                 At(5200, [this, samples]()
@@ -203,7 +203,7 @@ namespace Harness
                     std::string b1 = reached ? "OK(jump completed server-side)" : (early < 1.0f ? "BUG(spline killed at launch: chase re-laid from pre-jump spot)" : "PARTIAL");
                     char dv[32];
                     snprintf(dv, sizeof(dv), "%.1f", f.dV);
-                    Verdict("B1=" + b1 + " | final mt=" + Harness::TypeName(f.mt) + " dKobold=" + dv);
+                    Verdict("B1=" + b1 + " | final mt=" + Motion::KindName(f.mt) + " dKobold=" + dv);
                 });
             }
         };
@@ -252,7 +252,7 @@ namespace Harness
                     for (size_t k = mark; k < Informs().size(); ++k)
                     {
                         Inform const& r = Informs()[k];
-                        if (r.guidLow == low && r.type == EFFECT_MOTION_TYPE && r.id == 66) { lastFired = r; fired = true; }
+                        if (r.guidLow == low && r.kind == Motion::Kind::Effect && r.id == 66) { lastFired = r; fired = true; }
                     }
                     char const* mt = a ? TypeName(a) : "?";
                     std::string v;
@@ -288,7 +288,7 @@ namespace Harness
 
             void Prepare() override
             {
-                struct Sample { uint32 t; float dJ1, dJ2; MovementGeneratorType mt; };
+                struct Sample { uint32 t; float dJ1, dJ2; Motion::Kind mt; };
                 Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
                 if (!a) { Verdict("backToBackJumps=INVALID(spawn failed)"); return; }
                 const Pt j1 = { SE.x + 12.0f, SE.y, SE.z };
@@ -319,7 +319,7 @@ namespace Harness
                         const float x = a->Where().X(), y = a->Where().Y();
                         s.dJ1 = Dist2(x, y, j1.x, j1.y); s.dJ2 = Dist2(x, y, j2.x, j2.y); s.mt = Type(a);
                         samples->push_back(s);
-                        Log("+%4ums dJ1=%.1f dJ2=%.1f mt=%s", s.t, s.dJ1, s.dJ2, Harness::TypeName(s.mt));
+                        Log("+%4ums dJ1=%.1f dJ2=%.1f mt=%s", s.t, s.dJ1, s.dJ2, Motion::KindName(s.mt));
                     });
                 }
                 At(5500, [this, low, samples, mark]()
@@ -333,7 +333,7 @@ namespace Harness
                     for (size_t k = mark; k < Informs().size(); ++k)
                     {
                         Inform const& r = Informs()[k];
-                        if (r.guidLow == low && r.type == EFFECT_MOTION_TYPE && r.id == 72) { informed = true; }
+                        if (r.guidLow == low && r.kind == Motion::Kind::Effect && r.id == 72) { informed = true; }
                     }
                     std::string v;
                     if (mn < 2.5f && informed)

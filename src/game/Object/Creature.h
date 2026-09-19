@@ -114,6 +114,19 @@ enum CreatureFlagsExtra
 #define USE_DEFAULT_DATABASE_LEVEL  0                       // just used to show we don't want to force the new creature level and use the level stored in db
 
 /**
+ * creature_template.MovementType / creature.MovementType: what a creature does by default. The
+ * DB's vocabulary, not the kernel's; MotionMaster::Initialize maps it to a Motion::Kind (idle,
+ * a wander around the spawn, the default waypoint path).
+ */
+enum CreatureMovementType : uint8
+{
+    CREATURE_MOVEMENT_IDLE     = 0,
+    CREATURE_MOVEMENT_RANDOM   = 1,
+    CREATURE_MOVEMENT_WAYPOINT = 2,
+    CREATURE_MOVEMENT_MAX      = 3   ///< the bound the loaders check the DB value against
+};
+
+/**
  * @brief Creature information structure
  *
  * Data from `creature_template` table.
@@ -182,7 +195,7 @@ struct CreatureInfo
     int32 ResistanceShadow;                                   ///< Shadow resistance
     int32 ResistanceArcane;                                   ///< Arcane resistance
     uint32 PetSpellDataId;                                    ///< Pet spell data ID
-    uint32 MovementType;                                      ///< Movement type (enum MovementGeneratorType)
+    uint32 MovementType;                                      ///< Movement type (enum CreatureMovementType)
     uint32 MovementTemplateId;
     uint32 TrainerType;                                       ///< Trainer type (enum TrainerType)
     uint32 TrainerSpell;                                      ///< Trainer spell ID
@@ -834,8 +847,8 @@ class Creature : public Unit
         bool CanAssistTo(const Unit* u, const Unit* enemy, bool checkfaction = true) const;
         bool CanInitiateAttack();
 
-        MovementGeneratorType GetDefaultMovementType() const { return m_defaultMovementType; }
-        void SetDefaultMovementType(MovementGeneratorType mgt) { m_defaultMovementType = mgt; }
+        CreatureMovementType GetDefaultMovementType() const { return m_defaultMovementType; }
+        void SetDefaultMovementType(CreatureMovementType type) { m_defaultMovementType = type; }
 
         // for use only in LoadHelper, Map::Add Map::CreatureCellRelocation
         Cell const& GetCurrentCell() const { return m_currentCell; }
@@ -950,7 +963,7 @@ class Creature : public Unit
         CreatureSubtype m_subtype;                          // set in Creatures subclasses for fast it detect without dynamic_cast use
         void RegeneratePower();
         void RegenerateHealth();
-        MovementGeneratorType m_defaultMovementType;
+        CreatureMovementType m_defaultMovementType;
         Cell m_currentCell;                                 // store current cell where creature listed
         uint32 m_equipmentId;
 

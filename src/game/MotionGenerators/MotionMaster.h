@@ -38,41 +38,10 @@
 struct Position;
 
 class Unit;
-class MotionBehaviour;
+class NativeBehaviour;
 
 // Creature Entry ID used for waypoints show, visible only for GMs
 #define VISUAL_WAYPOINT 1
-
-/**
- * @brief Movement generator type enumeration
- *
- * Values 0 ... MAX_DB_MOTION_TYPE-1 used in database.
- * Values MAX_DB_MOTION_TYPE and above cannot be set in database.
- */
-enum MovementGeneratorType
-{
-    IDLE_MOTION_TYPE = 0,                  ///< Idle movement (Motion::IdleBehaviour)
-    RANDOM_MOTION_TYPE = 1,                ///< Random movement (Motion::WanderBehaviour)
-    WAYPOINT_MOTION_TYPE = 2,              ///< Waypoint movement (Motion::PatrolBehaviour)
-    MAX_DB_MOTION_TYPE = 3,                ///< Maximum database motion type (values below this can be set in DB)
-
-    CONFUSED_MOTION_TYPE = 4,              ///< Confused movement (Motion::ConfusedBehaviour)
-    CHASE_MOTION_TYPE = 5,                 ///< Chase movement (Motion::ChaseBehaviour)
-    HOME_MOTION_TYPE = 6,                  ///< Return home movement (Motion::HomeBehaviour)
-    FLIGHT_MOTION_TYPE = 7,                ///< Flight movement (the kernel's TaxiBehaviour, src/motion/TaxiMove.h)
-    POINT_MOTION_TYPE = 8,                 ///< Point movement (Motion::PointBehaviour; fly/land projects here too)
-    FLEEING_MOTION_TYPE = 9,               ///< Fleeing movement (Motion::FearBehaviour)
-    DISTRACT_MOTION_TYPE = 10,             ///< Distract movement (Motion::DistractBehaviour)
-    ASSISTANCE_MOTION_TYPE = 11,           ///< Assistance movement (Motion::PointBehaviour - first part of flee for assistance)
-    ASSISTANCE_DISTRACT_MOTION_TYPE = 12,  ///< Assistance distract (Motion::DistractBehaviour - second part of flee for assistance)
-    TIMED_FLEEING_MOTION_TYPE = 13,        ///< Timed fleeing (Motion::FearBehaviour with a time limit - alternative second part of flee for assistance)
-    FOLLOW_MOTION_TYPE = 14,               ///< Follow movement (Motion::FollowBehaviour)
-    EFFECT_MOTION_TYPE = 15,               ///< Effect movement
-
-    EXTERNAL_WAYPOINT_MOVE = 256,          ///< External waypoint move (used in CreatureAI::MovementInform when waypoint reached)
-    EXTERNAL_WAYPOINT_MOVE_START = 512,    ///< External waypoint move start (used in CreatureAI::MovementInform when waypoint started)
-    EXTERNAL_WAYPOINT_FINISHED_LAST = 1024 ///< External waypoint finished last (used in CreatureAI::MovementInform when last waypoint wait time finished)
-};
 
 namespace Motion
 {
@@ -161,7 +130,6 @@ class MotionMaster
         /// What the selected behaviour may do right now, and why not.
         Motion::MobilityDecision Mobility() const { return m_arbiter.Evaluate(); }
 
-        MovementGeneratorType GetCurrentMovementGeneratorType() const;
         void PropagateSpeedChange();
         /// Jumps the held patrol to a given node; it moves there on the next tick. @return False when the node does not exist.
         bool SetNextWaypoint(uint32 pointId);
@@ -212,6 +180,9 @@ class MotionMaster
         bool IsPatrolling() const;
         /// A taxi flight is held.
         bool IsOnTaxi() const;
+        /// The selected native's Behaviour::Variant(): 0 for every kind but the timed flee's 1
+        /// (the harness's timed-flee sample; the old timed-fleeing projection).
+        uint32 SelectedVariant() const;
         /// The selected behaviour can reach its goal; true when nothing is selected
         /// (nothing could have reported a failed path: taunts stay where they are).
         bool IsReachable() const;
@@ -219,9 +190,6 @@ class MotionMaster
         void CombatStarted();
         /// True when this sequence has a binding and that binding has been activated.
         bool IsActivated(uint32 seq) const;
-        /// The held patrol native wherever it sits (default slot, masked or not), else NULL.
-        Motion::PatrolBehaviour* HeldPatrol();
-        Motion::PatrolBehaviour const* HeldPatrol() const;
         /// The selected native's re-lay counters by cause (design v2 §5), else NULL: a native
         /// that counts nothing answers NULL.
         Motion::RelayCounts const* SelectedRelays() const;
@@ -230,19 +198,16 @@ class MotionMaster
         /// A read for the GM harness, not a script entry point.
         Motion::Facing::Mode SelectedLegFacingMode() const;
 
-        /// One held entry for a listing: what it is, without asking a generator for it.
+        /// One held entry for a listing: what it is, without asking a behaviour for it.
         struct HeldView
         {
             Motion::Kind kind;                   ///< the kernel kind the entry runs under
-            MovementGeneratorType type;          ///< its projection, the type the commands print
             bool selected;                       ///< this is the one that ticks
             bool reachable;                      ///< it can still reach its goal
             uint64 target;                       ///< the raw guid it tracks, 0 for a non-tracking native
         };
         /// Every held behaviour in arrival order, the selected one marked.
         std::vector<HeldView> Held() const;
-        /// Allocate the arbiter's decision ring (Movement.DecisionRing).
-        void EnableDecisionRing();
         /// The model, for the GM dump.
         Motion::Arbiter const& Arbiter() const { return m_arbiter; }
 
@@ -251,9 +216,9 @@ class MotionMaster
         struct Bound
         {
             uint32 seq;
-            std::unique_ptr<MotionBehaviour> behaviour;
+            std::unique_ptr<NativeBehaviour> behaviour;
             bool activated;
-            Bound(uint32 s, std::unique_ptr<MotionBehaviour> b);
+            Bound(uint32 s, std::unique_ptr<NativeBehaviour> b);
             Bound(Bound&& other) noexcept;
             Bound& operator=(Bound&& other) noexcept;
             ~Bound();
@@ -289,11 +254,16 @@ class MotionMaster
         /// differs, so an outside wipe of the unit state (a respawn's clearUnitState) heals at the
         /// next commit instead of leaving a mirrored bit stuck stale.
         void MirrorUnitState();
+        /// The held patrol native wherever it sits (default slot, masked or not), else NULL.
+        Motion::PatrolBehaviour* HeldPatrol();
+        Motion::PatrolBehaviour const* HeldPatrol() const;
+        /// Allocate the arbiter's decision ring (Movement.DecisionRing): the constructor's.
+        void EnableDecisionRing();
 
         Unit*              m_owner;
         Motion::Arbiter    m_arbiter;
         std::vector<Bound> m_bound;
-        std::vector<std::unique_ptr<MotionBehaviour> > m_retired; ///< finished behaviours, destroyed at the end of the outermost commit (a generator ticking when its hook finished it must outlive its own Update)
+        std::vector<std::unique_ptr<NativeBehaviour> > m_retired; ///< finished behaviours, destroyed at the end of the outermost commit (a behaviour ticking when its hook finished it must outlive its own Tick)
         uint32             m_depth;          ///< open scopes
         Motion::TransactionKind m_scopeKind; ///< the kind the outermost commit runs under; a nested death raises it to Death
         PendingReset       m_pendingReset;
