@@ -253,8 +253,8 @@ namespace Harness
                     {
                         Creature* a = Get(g); if (!a) { return; }
                         if (Type(a) != Motion::Kind::Confused) { *wanderKind = false; }
-                        if (a->hasUnitState(UNIT_STAT_CONFUSED_MOVE)) { *wanderMoved = true; }
-                        Log("wander +%4ums mt=%s move=%d", i * 500, TypeName(a), a->hasUnitState(UNIT_STAT_CONFUSED_MOVE) ? 1 : 0);
+                        if (a->GetMotionMaster()->Latches().confusedLeg) { *wanderMoved = true; }
+                        Log("wander +%4ums mt=%s move=%d", i * 500, TypeName(a), a->GetMotionMaster()->Latches().confusedLeg ? 1 : 0);
                     });
                 }
                 At(9000, [this, g, gk]() { if (Creature* a = Get(g)) { a->SetConfused(false, gk, 118, 0); Log("confuse ended, mt=%s", TypeName(a)); } });
@@ -264,8 +264,8 @@ namespace Harness
                     {
                         Creature* a = Get(g); if (!a) { return; }
                         if (Type(a) != Motion::Kind::Fear) { *fleeKind = false; }
-                        if (a->hasUnitState(UNIT_STAT_FLEEING_MOVE)) { *fleeMoved = true; }
-                        Log("flee +%4ums mt=%s move=%d", i * 500, TypeName(a), a->hasUnitState(UNIT_STAT_FLEEING_MOVE) ? 1 : 0);
+                        if (a->GetMotionMaster()->Latches().fearLeg) { *fleeMoved = true; }
+                        Log("flee +%4ums mt=%s move=%d", i * 500, TypeName(a), a->GetMotionMaster()->Latches().fearLeg ? 1 : 0);
                     });
                 }
                 At(13500, [this, g, gk, stunned, stunKind, wanderKind, wanderMoved, fleeKind, fleeMoved]()

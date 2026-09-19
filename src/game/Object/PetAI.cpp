@@ -238,7 +238,7 @@ void PetAI::UpdateAI(const uint32 diff)
 
         if (!InReach(*owner, *m_creature, (PET_FOLLOW_DIST * 2)))
         {
-            if (!m_creature->hasUnitState(UNIT_STAT_FOLLOW))
+            if (!m_creature->FollowLatched())
             {
                 m_creature->GetMotionMaster()->MoveFollow(owner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
             }
@@ -261,7 +261,7 @@ void PetAI::UpdateAI(const uint32 diff)
                 && HasLineOfSight(*m_creature, *victim))
         {
             // stop moving
-            m_creature->clearUnitState(UNIT_STAT_MOVING);
+            m_creature->GetMotionMaster()->ClearMovingLatches();
 
             // auto turn to target
             m_creature->SetInFront(victim);
@@ -364,7 +364,7 @@ void PetAI::UpdateAI(const uint32 diff)
 
             Spell* spell = new Spell(m_creature, spellInfo, false);
 
-            if (inCombat && !m_creature->hasUnitState(UNIT_STAT_FOLLOW) && spell->CanAutoCast(victim))
+            if (inCombat && !m_creature->FollowLatched() && spell->CanAutoCast(victim))
             {
                 targetSpellStore.push_back(TargetSpellList::value_type(victim, spell));
                 continue;
@@ -488,7 +488,7 @@ void PetAI::UpdateAI(const uint32 diff)
             }
         }
         else if (!(m_creature->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE)
-            || m_creature->hasUnitState(UNIT_STAT_MOVING)))
+            || !m_creature->IsStopped()))
             AttackStart(victim);
     }
     else if (owner)
@@ -520,7 +520,7 @@ void PetAI::UpdateAI(const uint32 diff)
                     {
                         float StayPosO = pet->GetStayPosO();
 
-                        if (m_creature->hasUnitState(UNIT_STAT_MOVING))
+                        if (!m_creature->IsStopped())
                         {
                             m_creature->GetMotionMaster()->Clear(false);
                             m_creature->GetMotionMaster()->MoveIdle();
@@ -536,7 +536,7 @@ void PetAI::UpdateAI(const uint32 diff)
                     }
                 }
             }
-            else if (m_creature->hasUnitState(UNIT_STAT_FOLLOW))
+            else if (m_creature->FollowLatched())
             {
                 if (InReach(*owner, *m_creature, PET_FOLLOW_DIST))
                 {

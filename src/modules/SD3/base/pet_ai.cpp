@@ -192,7 +192,7 @@ void ScriptedPetAI::UpdateAI(const uint32 uiDiff)
         else if (m_creature->GetCharmInfo()->HasCommandState(COMMAND_FOLLOW))
         {
             // not following, so start follow
-            if (!m_creature->hasUnitState(UNIT_STAT_FOLLOW))
+            if (!m_creature->FollowLatched())
             {
                 m_creature->GetMotionMaster()->MoveFollow(pOwner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
             }

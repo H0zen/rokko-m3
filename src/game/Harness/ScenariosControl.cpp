@@ -78,7 +78,7 @@ namespace Harness
         }
 
         /// The flee's first bolt: a wolf feared by a kobold 6 yd east bolts within pi/8 of due
-        /// west for 0.4-1.3 times the 22 yd to the quiet band, with FLEEING_MOVE set and the run
+        /// west for 0.4-1.3 times the 22 yd to the quiet band, with the fear's leg latched and the run
         /// gait on the leg (design §4.1: the close band, the bit with the leg, SetWalk(false));
         /// then rests 800-1500 ms standing (measured 700-1700 at the sampler's cadence) before
         /// the next bolt (the rest counts only standing).
@@ -127,7 +127,7 @@ namespace Harness
                             {
                                 st->haveFirst = true;
                                 st->goal = goal;
-                                st->bitOnLeg = a->hasUnitState(UNIT_STAT_FLEEING_MOVE);
+                                st->bitOnLeg = a->GetMotionMaster()->Latches().fearLeg;
                                 st->walkOnLeg = a->IsWalking();
                                 Log("+%4ums the first bolt: goal (%.1f, %.1f), %.1f yd, %.0f deg off due west, move=%d walk=%d mt=%s", t, goal.x, goal.y,
                                     Dist2(st->x0, st->y0, goal.x, goal.y), AngleDiff(Bearing(st->x0, st->y0, goal.x, goal.y), M_PI_F) * 180.0f / M_PI_F,
@@ -145,7 +145,7 @@ namespace Harness
                         {
                             st->haveEnd = true;
                             st->endAt = t;
-                            Log("+%4ums the first bolt ended, move=%d", t, a->hasUnitState(UNIT_STAT_FLEEING_MOVE) ? 1 : 0);
+                            Log("+%4ums the first bolt ended, move=%d", t, a->GetMotionMaster()->Latches().fearLeg ? 1 : 0);
                         }
                     });
                 }
@@ -180,7 +180,7 @@ namespace Harness
         };
 
         /// The stagger's envelope and gait: every lurch's goal within Movement.ConfuseRadius of
-        /// the spot the wolf was confused at, at a walk with CONFUSED_MOVE set, launched every
+        /// the spot the wolf was confused at, at a walk with the confuse's leg latched, launched every
         /// 800-1500 ms (measured 700-2000 at the sampler's cadence, and a refused point's
         /// doubling retry stretches one gap; a measured gap may double again when a lurch is too
         /// short to be seen: the stagger counts from the launch, mid-leg included, and a lurch
@@ -235,7 +235,7 @@ namespace Harness
                         if (running)
                         {
                             if (!a->IsWalking()) { st->allWalk = false; }
-                            if (!a->hasUnitState(UNIT_STAT_CONFUSED_MOVE)) { st->allBit = false; }
+                            if (!a->GetMotionMaster()->Latches().confusedLeg) { st->allBit = false; }
                         }
                         if (st->haveGoal && SameGoal(goal, st->lastGoal)) { return; }
                         // A stop spline ends where the unit stands (the confuse's activation stops
@@ -259,7 +259,7 @@ namespace Harness
                         st->lastLaunchAt = t;
                         st->haveGoal = true;
                         st->lastGoal = goal;
-                        Log("+%4ums lurch %u: goal (%.1f, %.1f), %.1f yd from the anchor, walk=%d move=%d mt=%s", t, st->launches, goal.x, goal.y, d, a->IsWalking() ? 1 : 0, a->hasUnitState(UNIT_STAT_CONFUSED_MOVE) ? 1 : 0, TypeName(a));
+                        Log("+%4ums lurch %u: goal (%.1f, %.1f), %.1f yd from the anchor, walk=%d move=%d mt=%s", t, st->launches, goal.x, goal.y, d, a->IsWalking() ? 1 : 0, a->GetMotionMaster()->Latches().confusedLeg ? 1 : 0, TypeName(a));
                     });
                 }
                 At(6600, [this, st]()

@@ -971,7 +971,7 @@ void Spell::EffectScriptEffect(SpellEffectEntry const* effect)
                             // can only affect "own" summoned
                             if (pSummon->GetSummonerGuid() == m_caster->GetObjectGuid())
                             {
-                                if (pTarget->hasUnitState(UNIT_STAT_ROAMING | UNIT_STAT_ROAMING_MOVE))
+                                if (pTarget->GetMotionMaster()->Latches().roaming || pTarget->GetMotionMaster()->Latches().roamingLeg)
                                 {
                                     pTarget->GetMotionMaster()->MovementExpired();
                                 }

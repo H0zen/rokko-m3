@@ -50,7 +50,7 @@ namespace Harness
 
         /// S5: a POINT leg interrupted by a real chase and then cleared must not
         /// spuriously inform for the point it never reached (B4). roamingBits and
-        /// projection (task 5) read the shell's own bookkeeping: UNIT_STAT_ROAMING_MOVE
+        /// projection (task 5) read the shell's own bookkeeping: the roaming leg latch
         /// is set while the point leg runs (mid-leg, before the Attack+MoveChase at
         /// 2.5 s), and Type() reads POINT while the point is the selection. The
         /// Attack+MoveChase at 2.5 s does not in fact win the claim against a Point
@@ -59,10 +59,10 @@ namespace Harness
         /// kobold" already said so, unchanged from the record), so "after the point
         /// finished" is read where the point actually does relinquish control: the
         /// same world tick as Clear(), before the reselected default (Random, which
-        /// reuses the same bit for its own wander) has had a tick to run -- confirmed
-        /// empirically: hasUnitState reads 0 in that same tick and 1 by the next one.
+        /// reuses the same latch for its own wander) has had a tick to run -- confirmed
+        /// empirically: the roaming leg latch reads 0 in that same tick and 1 by the next one.
         /// Type() itself flips to RANDOM synchronously within Clear(), one tick ahead
-        /// of the roaming bit, so it cannot serve as this category's own "after" read.
+        /// of the roaming leg latch, so it cannot serve as this category's own "after" read.
         class PointInformAfterInterrupt : public Scenario
         {
         public:
@@ -92,7 +92,7 @@ namespace Harness
                     // Silent (no Log line added): the record's log for this scenario stays
                     // byte-identical, and the verdict body itself carries the evidence.
                     Creature* a = Get(g); if (!a) { return; }
-                    *roamingAtPoint = a->hasUnitState(UNIT_STAT_ROAMING_MOVE);
+                    *roamingAtPoint = a->GetMotionMaster()->Latches().roamingLeg;
                     *projectionAtPoint = Type(a) == Motion::Kind::Point;
                     *sampledBefore = true;
                 });
@@ -117,7 +117,7 @@ namespace Harness
                 At(6500, [this, g, roamingAfterClear, sampledAfter]()   // same world tick, right after Clear() above (Timeline.cpp: same-`at` steps run in registration order within one Advance) -- before Random's own Activate (next tick) can reclaim the bit; silent, same reason as the mid-leg sample
                 {
                     Creature* a = Get(g); if (!a) { return; }
-                    *roamingAfterClear = a->hasUnitState(UNIT_STAT_ROAMING_MOVE);
+                    *roamingAfterClear = a->GetMotionMaster()->Latches().roamingLeg;
                     *sampledAfter = true;
                 });
                 At(8000, [this, mark, roamingAtPoint, projectionAtPoint, roamingAfterClear, sampledBefore, sampledAfter]()
@@ -170,11 +170,11 @@ namespace Harness
         /// "while running" half comes from the same 5 s samples the distance check
         /// already takes (mt and the roaming bit, side by side); the "after" half
         /// cannot wait for a later coarse sample -- this wolf's own default motion
-        /// (creature_template.MovementType 1, Random) reclaims UNIT_STAT_ROAMING_MOVE
+        /// (creature_template.MovementType 1, Random) reclaims the roaming leg latch
         /// for its own wander the moment it is reselected, so a sample taken seconds
         /// later would read true again for an unrelated reason. OnInform (Scenario.h:105)
         /// fires synchronously from inside NativeBehaviour::PerformOutcome, which clears
-        /// the roaming pair (Roam(outcome.roaming)) before it walks the effects that
+        /// the roaming pair (MotionMaster::WriteRoaming(outcome.roaming)) before it walks the effects that
         /// deliver the inform -- so reading the bit from inside the POINT 88 callback
         /// catches the point's own release before any later reselect can touch it.
         class LongPoint : public Scenario
@@ -210,7 +210,7 @@ namespace Harness
                         s.t = i * 5;
                         s.d = Dist2(a->Where().X(), a->Where().Y(), B4.x, B4.y);
                         s.mt = Type(a);
-                        s.roaming = a->hasUnitState(UNIT_STAT_ROAMING_MOVE);   // captured silently: the record's log line for this scenario stays byte-identical
+                        s.roaming = a->GetMotionMaster()->Latches().roamingLeg;   // captured silently: the record's log line for this scenario stays byte-identical
                         samples->push_back(s);
                         Log("+%3us dist=%.1f mt=%s", s.t, s.d, Motion::KindName(s.mt));
                     });
@@ -292,7 +292,7 @@ namespace Harness
             }
 
             /// The recording hook (Scenario.h:105), fired synchronously from inside
-            /// NativeBehaviour::PerformOutcome for the POINT 88 inform: Roam(outcome.roaming)
+            /// NativeBehaviour::PerformOutcome for the POINT 88 inform: MotionMaster::WriteRoaming(outcome.roaming)
             /// (PerformOutcome, before the effects loop) has already cleared the roaming pair
             /// by the time this runs, so this is the earliest possible read of the point's own
             /// release, before the wolf's default Random re-claims the same bit for its own
@@ -300,7 +300,7 @@ namespace Harness
             void OnInform(Creature* creature, Motion::Kind kind, uint32 id) override
             {
                 if (kind != Motion::Kind::Point || id != 88 || m_informedAt88) { return; }
-                m_roamingAtInform = creature->hasUnitState(UNIT_STAT_ROAMING_MOVE);
+                m_roamingAtInform = creature->GetMotionMaster()->Latches().roamingLeg;
                 m_informedAt88 = true;
             }
 

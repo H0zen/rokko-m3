@@ -772,6 +772,7 @@ void Creature::Update(uint32 update_diff, uint32 diff)
                     i_motionMaster.Clear();
                     clearUnitState(UNIT_STAT_ALL_STATE);
                     i_motionMaster.ClearPublished();   // the wipe takes the published state with the bits (P5-C2)
+                    i_motionMaster.ClearAllLatches();   // and every latch, as it cleared their bits (P5-C3)
                     LoadCreatureAddon(true);
                 }
                 else
@@ -2051,6 +2052,7 @@ void Creature::SetDeathState(DeathState s)
     {
         clearUnitState(UNIT_STAT_ALL_STATE);
         i_motionMaster.ClearPublished();   // the wipe takes the published state with the bits (P5-C2)
+        i_motionMaster.ClearAllLatches();   // and every latch, as it cleared their bits (P5-C3)
 
         Unit::SetDeathState(ALIVE);
 

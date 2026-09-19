@@ -142,6 +142,7 @@ void Spell::EffectSummonDeadPet(SpellEffectEntry const* /*effect*/)
     pet->SetDeathState(ALIVE);
     pet->clearUnitState(UNIT_STAT_ALL_STATE);
     pet->GetMotionMaster()->ClearPublished();   // the wipe takes the published state with the bits (P5-C2)
+    pet->GetMotionMaster()->ClearAllLatches();   // and every latch, as it cleared their bits (P5-C3)
     pet->SetHealth(uint32(pet->GetMaxHealth() * (float(damage) / 100)));
 
     pet->AIM_Initialize();

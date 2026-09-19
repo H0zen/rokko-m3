@@ -1727,28 +1727,24 @@ namespace
         return Close(a.x, b.x, eps) && Close(a.y, b.y, eps) && Close(a.z, b.z, eps);
     }
 
-    /// The chase's opaque state masks: CHASE = 1, CHASE_MOVE = 2.
+    /// A chase of unit 42 at no offset, head-on, its drift re-checked every second.
     ChaseBehaviour::ChaseParams Chasing(uint64 target = 42)
     {
         ChaseBehaviour::ChaseParams p;
         p.target = target;
         p.offset = 0.0f;
         p.angle = 0.0f;
-        p.stateSet = 1;
-        p.stateMove = 2;
         p.routineMs = 1000;
         return p;
     }
 
-    /// The follow's: FOLLOW = 4, FOLLOW_MOVE = 8; the cadence and the horizon 400 ms.
+    /// A follow of unit 77 at no offset; the cadence and the horizon 400 ms.
     FollowBehaviour::FollowParams Following(uint64 target = 77)
     {
         FollowBehaviour::FollowParams p;
         p.target = target;
         p.offset = 0.0f;
         p.angle = 0.0f;
-        p.stateSet = 4;
-        p.stateMove = 8;
         p.routineMs = 400;
         p.horizonMs = 400;
         p.recalcRange = 1.5f;
@@ -1775,9 +1771,9 @@ TEST(MotionBehaviour_ChaseDerivesRetailsBandAndFacesItsVictim)
     CHECK(a.resetLeg);
     CHECK(!a.apply);                                  // the leg is laid by the tick, not the activation
     REQUIRE(a.effects.size() == size_t(2));
-    CHECK(a.effects[0].kind == Effect::StateRaw);     // the bit first, as the generator's Initialize set it
-    CHECK_EQ(a.effects[0].setMask, 1u);               // CHASE; never CHASE_MOVE, which follows a laid leg
-    CHECK_EQ(a.effects[0].clearMask, 0u);
+    CHECK(a.effects[0].kind == Effect::Latches);     // the bit first, as the generator's Initialize set it
+    CHECK_EQ(a.effects[0].latchSet, uint8(LatchPresence));   // the presence; never the leg, which follows a laid leg
+    CHECK_EQ(a.effects[0].latchClear, uint8(0));
     CHECK(a.effects[1].kind == Effect::SetWalk);
     CHECK(!a.effects[1].flag);                        // a chase runs
 
@@ -1794,9 +1790,9 @@ TEST(MotionBehaviour_ChaseDerivesRetailsBandAndFacesItsVictim)
     CHECK(t.intent.facing.mode == Facing::Mode::Target);
     CHECK_EQ(t.intent.facing.target, uint64(42));
     REQUIRE(t.effects.size() == size_t(2));
-    CHECK(t.effects[0].kind == Effect::StateRaw);
-    CHECK_EQ(t.effects[0].setMask, 2u);                         // CHASE_MOVE, with the leg
-    CHECK_EQ(t.effects[0].clearMask, 0u);
+    CHECK(t.effects[0].kind == Effect::Latches);
+    CHECK_EQ(t.effects[0].latchSet, uint8(LatchLeg));           // the leg latch, with the leg
+    CHECK_EQ(t.effects[0].latchClear, uint8(0));
     CHECK(t.effects[1].kind == Effect::EngageInReach);          // the mover has not set off yet: still idle
     REQUIRE(b.Relays() != 0);
     CHECK_EQ(b.Relays()->first, 1u);
@@ -1945,7 +1941,7 @@ TEST(MotionBehaviour_ChaseHoldsForCastsAndStatesAndLosesItsVictim)
     CHECK(underCast.effects.empty());
     Step stillCasting = b.Tick(Tracked(), svc, 100);
     CHECK(stillCasting.intent.act == MoveIntent::Act::Hold);
-    CHECK(stillCasting.stop);                           // unconditional: StopMoving also clears the _MOVE bits
+    CHECK(stillCasting.stop);                           // unconditional: StopMoving also clears the moving legs
     svc.casting = false;
 
     Sight rooted = Tracked();
@@ -1953,23 +1949,23 @@ TEST(MotionBehaviour_ChaseHoldsForCastsAndStatesAndLosesItsVictim)
     Step held = b.Tick(rooted, svc, 100);
     CHECK(held.intent.act == MoveIntent::Act::Hold);
     REQUIRE(held.effects.size() == size_t(1));
-    CHECK(held.effects[0].kind == Effect::StateRaw);
-    CHECK_EQ(held.effects[0].setMask, 0u);
-    CHECK_EQ(held.effects[0].clearMask, 2u);            // CHASE_MOVE only: the chase itself stands
+    CHECK(held.effects[0].kind == Effect::Latches);
+    CHECK_EQ(held.effects[0].latchSet, uint8(0));
+    CHECK_EQ(held.effects[0].latchClear, uint8(LatchLeg));   // the leg only: the chase's presence stands
 
     Sight noCombatMovement = Tracked();
     noCombatMovement.combatMovementHeld = true;
     Step frozen = b.Tick(noCombatMovement, svc, 100);
     CHECK(frozen.intent.act == MoveIntent::Act::Hold);
     REQUIRE(frozen.effects.size() == size_t(1));
-    CHECK_EQ(frozen.effects[0].clearMask, 2u);
+    CHECK_EQ(frozen.effects[0].latchClear, uint8(LatchLeg));
 
     Sight notMyVictim = Tracked();
     notMyVictim.target.isVictim = false;
     Step lost = b.Tick(notMyVictim, svc, 100);
     CHECK(lost.intent.act == MoveIntent::Act::Hold);
     REQUIRE(lost.effects.size() == size_t(1));
-    CHECK_EQ(lost.effects[0].clearMask, 2u);
+    CHECK_EQ(lost.effects[0].latchClear, uint8(LatchLeg));
 
     Sight dead = Tracked();
     dead.alive = false;
@@ -1988,10 +1984,10 @@ TEST(MotionBehaviour_ChaseHoldsForCastsAndStatesAndLosesItsVictim)
 TEST(MotionBehaviour_ACastStopsAStandingChaserToo)
 {
     // The generator's gate was `if (!owner.IsStopped()) owner.StopMoving();` and IsStopped()
-    // reads the _MOVE unit states, not the spline: a chaser standing at its spot with CHASE_MOVE
-    // still set was stopped too, and StopMoving clears UNIT_STAT_MOVING before it returns early
-    // on a finalized spline (Unit::StopMoving). So the stop is unconditional here; the shell puts
-    // nothing on the wire for a spline that has already run out.
+    // read the _MOVE unit states (today the moving leg latches), not the spline: a chaser standing
+    // at its spot with its chase leg still latched was stopped too, and StopMoving clears the
+    // moving legs before it returns early on a finalized spline (Unit::StopMoving). So the stop is
+    // unconditional here; the shell puts nothing on the wire for a spline that has already run out.
     FakeServices svc;
     ChaseBehaviour b(Chasing());
     b.Activate(Tracked(), svc);
@@ -2019,8 +2015,8 @@ TEST(MotionBehaviour_ChaseEngagesOnEveryIdleTick)
         Step t = b.Tick(inContact, svc, 100);
         CHECK(t.intent.act == MoveIntent::Act::Move);
         REQUIRE(t.effects.size() == size_t(2));
-        CHECK(t.effects[0].kind == Effect::StateRaw);           // the _MOVE bit, with the leg
-        CHECK_EQ(t.effects[0].setMask, 2u);
+        CHECK(t.effects[0].kind == Effect::Latches);            // the leg latch, with the leg
+        CHECK_EQ(t.effects[0].latchSet, uint8(LatchLeg));
         CHECK(t.effects[1].kind == Effect::EngageInReach);      // and the attack, decided live
         CHECK_EQ(b.Relays()->first, 1u);
     }
@@ -2096,9 +2092,9 @@ TEST(MotionBehaviour_FollowAimsOneCadenceAheadAndCopiesTheLeadersFacingAtRest)
         CHECK(a.resetLeg);
         CHECK(!a.apply);
         REQUIRE(a.effects.size() == size_t(2));
-        CHECK(a.effects[0].kind == Effect::StateRaw);   // the bit precedes the sync that reads it
-        CHECK_EQ(a.effects[0].setMask, 4u);
-        CHECK_EQ(a.effects[0].clearMask, 0u);
+        CHECK(a.effects[0].kind == Effect::Latches);   // the bit precedes the sync that reads it
+        CHECK_EQ(a.effects[0].latchSet, uint8(LatchPresence));
+        CHECK_EQ(a.effects[0].latchClear, uint8(0));
         CHECK(a.effects[1].kind == Effect::SyncSpeed);
 
         Sight running = Leading();
@@ -2111,7 +2107,7 @@ TEST(MotionBehaviour_FollowAimsOneCadenceAheadAndCopiesTheLeadersFacingAtRest)
         CHECK(leg.intent.act == MoveIntent::Act::Move);
         CHECK(leg.intent.facing.mode == Facing::Mode::None);        // never baked into a moving leg
         REQUIRE(leg.effects.size() == size_t(1));
-        CHECK_EQ(leg.effects[0].setMask, 8u);
+        CHECK_EQ(leg.effects[0].latchSet, uint8(LatchLeg));
     }
     {
         FakeServices svc;
@@ -2144,22 +2140,22 @@ TEST(MotionBehaviour_FollowAimsOneCadenceAheadAndCopiesTheLeadersFacingAtRest)
         CHECK(suspended.interrupt);
         CHECK(suspended.resetLeg);
         REQUIRE(suspended.effects.size() == size_t(2));
-        CHECK(suspended.effects[0].kind == Effect::StateRaw);
-        CHECK_EQ(suspended.effects[0].setMask, 0u);
-        CHECK_EQ(suspended.effects[0].clearMask, 12u);              // FOLLOW | FOLLOW_MOVE
+        CHECK(suspended.effects[0].kind == Effect::Latches);
+        CHECK_EQ(suspended.effects[0].latchSet, uint8(0));
+        CHECK_EQ(suspended.effects[0].latchClear, uint8(LatchBoth));   // the presence and the leg
         CHECK(suspended.effects[1].kind == Effect::SyncSpeed);
 
         Outcome superseded = b.Finish(FinishReason::Superseded, Leading(), svc);
         CHECK(superseded.interrupt);
         REQUIRE(superseded.effects.size() == size_t(2));
-        CHECK(superseded.effects[0].kind == Effect::StateRaw);
-        CHECK_EQ(superseded.effects[0].clearMask, 12u);
+        CHECK(superseded.effects[0].kind == Effect::Latches);
+        CHECK_EQ(superseded.effects[0].latchClear, uint8(LatchBoth));
         CHECK(superseded.effects[1].kind == Effect::SyncSpeed);
 
         Outcome cleared = b.Finish(FinishReason::Cleared, Leading(), svc);
         CHECK(!cleared.interrupt);                                  // Finalize never stopped the mover
         REQUIRE(cleared.effects.size() == size_t(2));
-        CHECK_EQ(cleared.effects[0].clearMask, 12u);
+        CHECK_EQ(cleared.effects[0].latchClear, uint8(LatchBoth));
         CHECK(cleared.effects[1].kind == Effect::SyncSpeed);
 
         Sight gone = Leading();
@@ -2172,16 +2168,16 @@ TEST(MotionBehaviour_FollowAimsOneCadenceAheadAndCopiesTheLeadersFacingAtRest)
 TEST(MotionBehaviour_FollowSetsItsBitBeforeItSyncsSpeed)
 {
     // Load-bearing order, not cosmetics: Unit::UpdateSpeed's pet branch copies the owner's
-    // rate only while UNIT_STAT_FOLLOW is set (UnitSpeed.cpp), and the deleted
-    // FollowMovementGenerator::Initialize did addUnitState(UNIT_STAT_FOLLOW) first and
+    // rate only while the follow's presence is latched (UnitSpeed.cpp), and the deleted
+    // FollowMovementGenerator::Initialize set its follow bit first and
     // SyncSpeedWithMaster second. A sync performed ahead of the bit reads the pet's own rate,
     // so the pet would trail its mounted master until some later UpdateSpeed happened to run.
     FakeServices svc;
     FollowBehaviour b(Following());
     Step a = b.Activate(Leading(), svc);
     REQUIRE(a.effects.size() == size_t(2));
-    CHECK(a.effects[0].kind == Effect::StateRaw);
-    CHECK_EQ(a.effects[0].setMask, 4u);                 // FOLLOW
+    CHECK(a.effects[0].kind == Effect::Latches);
+    CHECK_EQ(a.effects[0].latchSet, uint8(LatchPresence));   // the follow's presence
     CHECK(a.effects[1].kind == Effect::SyncSpeed);      // reads the bit the line above just set
 }
 
@@ -2353,8 +2349,8 @@ TEST(MotionBehaviour_TrackingResumesOnlyOnAReset)
     CHECK(reset.resetLeg);
     CHECK(!reset.apply);
     REQUIRE(reset.effects.size() == size_t(2));
-    CHECK(reset.effects[0].kind == Effect::StateRaw);   // Resume(reset) is Activate: the same order
-    CHECK_EQ(reset.effects[0].setMask, 4u);
+    CHECK(reset.effects[0].kind == Effect::Latches);   // Resume(reset) is Activate: the same order
+    CHECK_EQ(reset.effects[0].latchSet, uint8(LatchPresence));
     CHECK(reset.effects[1].kind == Effect::SyncSpeed);
     Step t = b.Tick(Leading(), svc, 100);
     CHECK(t.intent.act == MoveIntent::Act::Move);
@@ -2364,13 +2360,12 @@ TEST(MotionBehaviour_TrackingResumesOnlyOnAReset)
 namespace
 {
     /// The evade return's params: a distinct world point and heading so the leg and the
-    /// facing are both checkable, and an opaque dynamic-state clear mask.
+    /// facing are both checkable.
     HomeBehaviour::Params Homing()
     {
         HomeBehaviour::Params p;
         p.home = Vector3(12.0f, -4.0f, 2.0f);
         p.facing = 1.5f;
-        p.stateClear = 0x30u;
         return p;
     }
 }
@@ -2387,9 +2382,7 @@ TEST(MotionBehaviour_HomeClearsOnItsFirstTickAndForcesItsEndpoint)
 
     Step t1 = b.Tick(Free(), svc, 100);
     REQUIRE(t1.effects.size() == size_t(1));
-    CHECK(t1.effects[0].kind == Effect::StateRaw);
-    CHECK_EQ(t1.effects[0].setMask, 0u);
-    CHECK_EQ(t1.effects[0].clearMask, 0x30u);
+    CHECK(t1.effects[0].kind == Effect::WipeLatches);   // the dynamic state wiped on the first tick, after any block lifted
     CHECK(t1.apply);
     CHECK(t1.intent.act == MoveIntent::Act::Move);
     CHECK_EQ(t1.intent.goal.x, 12.0f);
@@ -2465,8 +2458,9 @@ TEST(MotionBehaviour_HomeEndsOnArrivalOrBlockAndRestoresOnlyThen)
 
 TEST(MotionBehaviour_ModelGrowsForTheControlMoves)
 {
-    // The per-effect owner rule: the state mirror is every owner's, the rest a creature's.
-    CHECK_EQ(Effect::Owners(Effect::StateRaw), uint8(Effect::OwnerAny));
+    // The per-effect owner rule: the latch writes are every owner's, the rest a creature's.
+    CHECK_EQ(Effect::Owners(Effect::Latches), uint8(Effect::OwnerAny));
+    CHECK_EQ(Effect::Owners(Effect::WipeLatches), uint8(Effect::OwnerAny));
     CHECK_EQ(Effect::Owners(Effect::SetWalk), uint8(Effect::OwnerCreature));
     CHECK_EQ(Effect::Owners(Effect::ClearTarget), uint8(Effect::OwnerCreature));
     CHECK_EQ(Effect::Owners(Effect::ClearFleeingFlag), uint8(Effect::OwnerCreature));
@@ -2534,19 +2528,17 @@ TEST(MotionBehaviour_ModelGrowsForTheTaxi)
 
 namespace
 {
-    /// The flee's opaque move bit: 0x40000 (the shell's UNIT_STAT_FLEEING_MOVE); the confuse's 0x400.
+    /// A fear of unit 77 (the timed variant when timeLimitMs is non-zero); a confuse of the given radius.
     FearBehaviour::Params Feared(uint32 timeLimitMs = 0)
     {
         FearBehaviour::Params p;
         p.fright = 77;
         p.timeLimitMs = timeLimitMs;
-        p.stateFleeingMove = 0x40000;
         return p;
     }
     ConfusedBehaviour::Params Confusing(float radius = 10.0f)
     {
         ConfusedBehaviour::Params p;
-        p.stateConfusedMove = 0x400;
         p.radius = radius;
         return p;
     }
@@ -2594,7 +2586,7 @@ TEST(MotionBehaviour_FearHooksAreTheGeneratorsInitializeInterruptReset)
     FearBehaviour f(Feared());
     Sight s = Standing(0.0f, 0.0f);
     Step a = f.Activate(s, svc);
-    CHECK(a.stop);                                   // the generator's add-then-StopMoving nets to a cleared bit: no StateRaw here
+    CHECK(a.stop);                                   // the generator's add-then-StopMoving nets to a cleared bit: no latch here
     CHECK(!a.interrupt);
     CHECK(a.resetLeg);
     CHECK(!a.apply);
@@ -2612,9 +2604,9 @@ TEST(MotionBehaviour_FearHooksAreTheGeneratorsInitializeInterruptReset)
     Step su = f.Suspend();
     CHECK(su.interrupt && su.resetLeg && !su.stop && !su.apply);
     REQUIRE(su.effects.size() == size_t(1));
-    CHECK(su.effects[0].kind == Effect::StateRaw);
-    CHECK_EQ(su.effects[0].setMask, 0u);
-    CHECK_EQ(su.effects[0].clearMask, 0x40000u);
+    CHECK(su.effects[0].kind == Effect::Latches);
+    CHECK_EQ(su.effects[0].latchSet, uint8(0));
+    CHECK_EQ(su.effects[0].latchClear, uint8(LatchLeg));
     Step r = f.Resume(s, svc, false);
     CHECK(!r.stop && !r.resetLeg && r.effects.empty());   // a resume without a reset does nothing
     Step rr = f.Resume(s, svc, true);
@@ -2649,9 +2641,9 @@ TEST(MotionBehaviour_FearPickDrawsInTheGeneratorsOrder)
     CHECK_EQ(t.intent.flags, uint32(MOVE_REQUIRE_PATH));
     CHECK(Close(t.intent.pathLengthLimit, 30.0f));
     REQUIRE(t.effects.size() == size_t(1));
-    CHECK(t.effects[0].kind == Effect::StateRaw);
-    CHECK_EQ(t.effects[0].setMask, 0x40000u);
-    CHECK_EQ(t.effects[0].clearMask, 0u);
+    CHECK(t.effects[0].kind == Effect::Latches);
+    CHECK_EQ(t.effects[0].latchSet, uint8(LatchLeg));
+    CHECK_EQ(t.effects[0].latchClear, uint8(0));
     // The fake's Frand answers its minimum. Inside 28 yd: dist = 0.4 * (28 - 6) = 8.8 at the
     // bearing from the fright to the mover (pi) plus the minimum jitter (-pi/8) = 7pi/8:
     // west and a little north; the guess sits half a yard up.
@@ -2819,8 +2811,8 @@ TEST(MotionBehaviour_FearFinishRecipesByReason)
         CHECK(o.interrupt);
         CHECK(!o.stop && !o.stopForced);
         REQUIRE(o.effects.size() == size_t(2));
-        CHECK(o.effects[0].kind == Effect::StateRaw);
-        CHECK_EQ(o.effects[0].clearMask, 0x40000u);
+        CHECK(o.effects[0].kind == Effect::Latches);
+        CHECK_EQ(o.effects[0].latchClear, uint8(LatchLeg));
         CHECK(o.effects[1].kind == Effect::RestoreGait);
     }
     // The same with another fear claim surviving: the run is its, no restore.
@@ -2830,7 +2822,7 @@ TEST(MotionBehaviour_FearFinishRecipesByReason)
         Outcome o = f.Finish(FinishReason::Superseded, creature, svc);
         CHECK(o.interrupt);
         REQUIRE(o.effects.size() == size_t(1));
-        CHECK(o.effects[0].kind == Effect::StateRaw);
+        CHECK(o.effects[0].kind == Effect::Latches);
         svc.fearHeld = false;
     }
     // A displacing finish on a player: no gait, no stop of its own (the interrupt stops it).
@@ -2839,7 +2831,7 @@ TEST(MotionBehaviour_FearFinishRecipesByReason)
         Outcome o = f.Finish(FinishReason::Overridden, player, svc);
         CHECK(o.interrupt && !o.stop);
         REQUIRE(o.effects.size() == size_t(1));
-        CHECK(o.effects[0].kind == Effect::StateRaw);
+        CHECK(o.effects[0].kind == Effect::Latches);
     }
     // The untimed Finalize (Expired, Died, Cleared) on a creature: the gait read BEFORE the
     // clear, then the clear; no interrupt.
@@ -2852,8 +2844,8 @@ TEST(MotionBehaviour_FearFinishRecipesByReason)
             CHECK(!o.interrupt && !o.stop);
             REQUIRE(o.effects.size() == size_t(2));
             CHECK(o.effects[0].kind == Effect::RestoreGait);
-            CHECK(o.effects[1].kind == Effect::StateRaw);
-            CHECK_EQ(o.effects[1].clearMask, 0x40000u);
+            CHECK(o.effects[1].kind == Effect::Latches);
+            CHECK_EQ(o.effects[1].latchClear, uint8(LatchLeg));
         }
     }
     // The untimed Finalize on a player: the soft stop, then the clear; no gait effect.
@@ -2862,7 +2854,7 @@ TEST(MotionBehaviour_FearFinishRecipesByReason)
         Outcome o = f.Finish(FinishReason::Died, player, svc);
         CHECK(o.stop && !o.stopForced && !o.interrupt);
         REQUIRE(o.effects.size() == size_t(1));
-        CHECK(o.effects[0].kind == Effect::StateRaw);
+        CHECK(o.effects[0].kind == Effect::Latches);
     }
     // The timed Finalize: the clear, the flag dropped when no fear claim survives, the gait
     // restored unconditionally (design §6.5: the generator left the run), the re-engage.
@@ -2871,14 +2863,14 @@ TEST(MotionBehaviour_FearFinishRecipesByReason)
         Outcome o = f.Finish(FinishReason::Expired, creature, svc);
         CHECK(!o.interrupt && !o.stop);
         REQUIRE(o.effects.size() == size_t(4));
-        CHECK(o.effects[0].kind == Effect::StateRaw);
+        CHECK(o.effects[0].kind == Effect::Latches);
         CHECK(o.effects[1].kind == Effect::ClearFleeingFlag);
         CHECK(o.effects[2].kind == Effect::RestoreGait);     // after the clear, before the re-engage
         CHECK(o.effects[3].kind == Effect::AttackVictim);
         svc.fearHeld = true;
         Outcome held = f.Finish(FinishReason::Expired, creature, svc);
         REQUIRE(held.effects.size() == size_t(3));
-        CHECK(held.effects[0].kind == Effect::StateRaw);
+        CHECK(held.effects[0].kind == Effect::Latches);
         CHECK(held.effects[1].kind == Effect::RestoreGait);
         CHECK(held.effects[2].kind == Effect::AttackVictim);   // the flag is the survivor's
         svc.fearHeld = false;
@@ -2913,14 +2905,14 @@ TEST(MotionBehaviour_FearFinishRecipesByReason)
         f.Resume(creature, svc, false);
         Outcome resumed = f.Finish(FinishReason::Cancelled, creature, svc);
         REQUIRE(resumed.effects.size() == size_t(2));
-        CHECK(resumed.effects[0].kind == Effect::StateRaw);
+        CHECK(resumed.effects[0].kind == Effect::Latches);
         CHECK(resumed.effects[1].kind == Effect::RestoreGait);
         // Suspended, then a reset: a reset re-activates, so the clear is back too.
         f.Suspend();
         f.Resume(creature, svc, true);
         Outcome afterReset = f.Finish(FinishReason::Cancelled, creature, svc);
         REQUIRE(afterReset.effects.size() == size_t(2));
-        CHECK(afterReset.effects[0].kind == Effect::StateRaw);
+        CHECK(afterReset.effects[0].kind == Effect::Latches);
         CHECK(afterReset.effects[1].kind == Effect::RestoreGait);
     }
     svc.fearHeld = false;   // later cases keep their assumptions
@@ -2935,9 +2927,9 @@ TEST(MotionBehaviour_ConfusedHooksKeepTheAnchorThroughAReset)
     CHECK(Close(c.Anchor(), Vector3(3.0f, 4.0f, 0.0f)));
     CHECK(a.stop && a.resetLeg && !a.interrupt && !a.apply);
     REQUIRE(a.effects.size() == size_t(1));
-    CHECK(a.effects[0].kind == Effect::StateRaw);   // after the stop: the bit ends SET
-    CHECK_EQ(a.effects[0].setMask, 0x400u);
-    CHECK_EQ(a.effects[0].clearMask, 0u);
+    CHECK(a.effects[0].kind == Effect::Latches);   // after the stop: the bit ends SET
+    CHECK_EQ(a.effects[0].latchSet, uint8(LatchLeg));
+    CHECK_EQ(a.effects[0].latchClear, uint8(0));
     CHECK(svc.calls.empty());
     CHECK(c.EndReason(s) == FinishReason::Expired);
     CHECK(!c.TracksTarget());
@@ -2957,7 +2949,7 @@ TEST(MotionBehaviour_ConfusedHooksKeepTheAnchorThroughAReset)
     Step su = c.Suspend();
     CHECK(su.interrupt && su.resetLeg && !su.stop);
     REQUIRE(su.effects.size() == size_t(1));
-    CHECK_EQ(su.effects[0].clearMask, 0x400u);
+    CHECK_EQ(su.effects[0].latchClear, uint8(LatchLeg));
     // A reset from somewhere else: the stop and the bit again, the anchor untouched.
     Sight elsewhere = Standing(30.0f, 40.0f);
     Step r = c.Resume(elsewhere, svc, true);
@@ -2994,8 +2986,8 @@ TEST(MotionBehaviour_ConfusedLurchesFromTheAnchorAtAWalkAndSupersedesMidLeg)
     CHECK_EQ(t.intent.flags, uint32(MOVE_WALK));
     CHECK(Close(t.intent.goal, Vector3(13.0f, 4.0f, 0.0f)));   // the fake: the anchor + the radius along x
     REQUIRE(t.effects.size() == size_t(1));
-    CHECK(t.effects[0].kind == Effect::StateRaw);   // re-asserted every tick
-    CHECK_EQ(t.effects[0].setMask, 0x400u);
+    CHECK(t.effects[0].kind == Effect::Latches);   // re-asserted every tick
+    CHECK_EQ(t.effects[0].latchSet, uint8(LatchLeg));
     // Traveling: the lurch re-stated, the bit again, no draw; the stagger (800) counts meanwhile.
     svc.calls.clear();
     Sight moving = Standing(5.0f, 4.0f);
@@ -3082,8 +3074,8 @@ TEST(MotionBehaviour_ConfusedFinishRecipesByReason)
     Outcome d = c.Finish(FinishReason::Cancelled, creature, svc);
     CHECK(d.interrupt && !d.stop && !d.stopForced);
     REQUIRE(d.effects.size() == size_t(1));
-    CHECK(d.effects[0].kind == Effect::StateRaw);
-    CHECK_EQ(d.effects[0].clearMask, 0x400u);
+    CHECK(d.effects[0].kind == Effect::Latches);
+    CHECK_EQ(d.effects[0].latchClear, uint8(LatchLeg));
     Outcome dp = c.Finish(FinishReason::Superseded, player, svc);
     CHECK(dp.interrupt && !dp.stopForced);
     // The Finalize (Expired, Died, Cleared): the clear; a player's forced stop, a creature's spline left alone.
@@ -3093,7 +3085,7 @@ TEST(MotionBehaviour_ConfusedFinishRecipesByReason)
         Outcome o = c.Finish(reasons[i], creature, svc);
         CHECK(!o.interrupt && !o.stop && !o.stopForced);
         REQUIRE(o.effects.size() == size_t(1));
-        CHECK(o.effects[0].kind == Effect::StateRaw);
+        CHECK(o.effects[0].kind == Effect::Latches);
         Outcome p = c.Finish(reasons[i], player, svc);
         CHECK(p.stopForced && !p.stop && !p.interrupt);
         CHECK_EQ(p.effects.size(), size_t(1));
@@ -3113,13 +3105,31 @@ TEST(MotionBehaviour_ConfusedFinishRecipesByReason)
         Outcome resumed = c.Finish(FinishReason::Cancelled, creature, svc);
         CHECK(resumed.interrupt);
         REQUIRE(resumed.effects.size() == size_t(1));
-        CHECK(resumed.effects[0].kind == Effect::StateRaw);
+        CHECK(resumed.effects[0].kind == Effect::Latches);
         // Suspended, then a reset: a reset re-activates, so the clear is back after a reset too.
         c.Suspend();
         c.Resume(creature, svc, true);
         Outcome afterReset = c.Finish(FinishReason::Cancelled, creature, svc);
         CHECK(afterReset.interrupt);
         REQUIRE(afterReset.effects.size() == size_t(1));
-        CHECK(afterReset.effects[0].kind == Effect::StateRaw);
+        CHECK(afterReset.effects[0].kind == Effect::Latches);
     }
+}
+
+TEST(MotionBehaviour_LatchEffectsCarryTheNativesOwnPresenceAndLeg)
+{
+    // P5-C3: a native's latch write names its own presence and leg, never a shell mask; the
+    // shell maps the emitting native's kind to the channel (MotionMaster::WriteLatches).
+    CHECK_EQ(uint8(LatchBoth), uint8(LatchPresence | LatchLeg));
+    const Effect set = Effect::Latch(LatchLeg, 0);
+    CHECK(set.kind == Effect::Latches);
+    CHECK_EQ(set.latchSet, uint8(LatchLeg));
+    CHECK_EQ(set.latchClear, uint8(0));
+    const Effect cleared = Effect::Latch(0, LatchBoth);
+    CHECK(cleared.kind == Effect::Latches);
+    CHECK_EQ(cleared.latchSet, uint8(0));
+    CHECK_EQ(cleared.latchClear, uint8(LatchBoth));
+    const Effect wipe(Effect::WipeLatches);
+    CHECK_EQ(wipe.latchSet, uint8(0));
+    CHECK_EQ(wipe.latchClear, uint8(0));
 }

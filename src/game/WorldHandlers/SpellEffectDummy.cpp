@@ -2083,7 +2083,7 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
 
                     if (pTargetDummy)
                     {
-                        if (unitTarget->hasUnitState(UNIT_STAT_FOLLOW | UNIT_STAT_FOLLOW_MOVE))
+                        if (unitTarget->GetMotionMaster()->Latches().follow || unitTarget->GetMotionMaster()->Latches().followLeg)
                         {
                             unitTarget->GetMotionMaster()->MovementExpired();
                         }

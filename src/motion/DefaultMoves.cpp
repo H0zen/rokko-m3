@@ -54,7 +54,7 @@ namespace Motion
         m_haveHop = false;
         // m_retries is untouched: the generator's Initialize never reset it either (git history: the deleted wander generator's Initialize).
         Step s;
-        s.roaming = Roaming::SetRoam;   // ROAMING alone; ROAMING_MOVE follows the first hop
+        s.roaming = Roaming::SetRoam;   // the roaming presence alone; its leg follows the first hop
         s.resetLeg = true;
         return s;
     }

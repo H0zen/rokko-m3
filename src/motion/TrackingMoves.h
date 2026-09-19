@@ -52,8 +52,6 @@ namespace Motion
                 uint64 target = 0;          ///< the tracked unit's raw guid
                 float  offset = 0.0f;       ///< the requested distance to keep
                 float  angle = 0.0f;        ///< the requested bearing relative to the target's facing; 0 = head-on
-                uint32 stateSet = 0;        ///< UNIT_STAT_CHASE or UNIT_STAT_FOLLOW (opaque)
-                uint32 stateMove = 0;       ///< UNIT_STAT_CHASE_MOVE or UNIT_STAT_FOLLOW_MOVE (opaque)
                 uint32 routineMs = 1000;    ///< the drift re-check cadence; 0 re-checks on every tick
             };
             bool TracksTarget() const override { return true; }
@@ -159,7 +157,6 @@ namespace Motion
             {
                 Vector3 home;               ///< world coordinates (the shell converts a Move goal to the frame)
                 float   facing = 0.0f;
-                uint32  stateClear = 0;     ///< the shell's UNIT_STAT_ALL_DYN_STATES mask (opaque)
             };
             explicit HomeBehaviour(Params const& p) : m_p(p) {}
             Motion::Kind Kind() const override { return Motion::Kind::Home; }

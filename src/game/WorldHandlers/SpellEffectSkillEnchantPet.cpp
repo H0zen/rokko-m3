@@ -313,7 +313,7 @@ void Spell::EffectDistract(SpellEffectEntry const* /*effect*/)
     }
 
     unitTarget->SetFacingTo(unitTarget->Where().BearingTo(Geometry::Vector2(m_targets.m_destX, m_targets.m_destY)));
-    unitTarget->clearUnitState(UNIT_STAT_MOVING);
+    unitTarget->GetMotionMaster()->ClearMovingLatches();
 
     if (unitTarget->GetTypeId() == TYPEID_UNIT)
     {

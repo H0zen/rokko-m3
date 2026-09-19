@@ -35,7 +35,7 @@ namespace Motion
     Step FearBehaviour::Activate(Sight const&, Services&)
     {
         // The generator's Initialize: +FLEEING_MOVE, then StopMoving() -- which clears the moving
-        // mask, that bit included, so the pair nets to a CLEARED bit and no StateRaw belongs
+        // mask, that bit included, so the pair nets to a CLEARED bit and no latch belongs
         // here; a creature runs and drops its target; the rest cleared, no point, the leg
         // forgotten. The timed clock is untouched: only construction sets it.
         m_rest = 0;
@@ -50,12 +50,12 @@ namespace Motion
 
     Step FearBehaviour::Suspend()
     {
-        // The generator's Interrupt: InterruptMoving, the move bit alone cleared (the flee state
-        // is the shell's mirror and outlives a suspension), no point, the leg forgotten.
+        // The generator's Interrupt: InterruptMoving, the leg latch alone cleared (the flee state
+        // is the shell's published block and outlives a suspension), no point, the leg forgotten.
         m_havePoint = false;
         Step s;
         s.interrupt = true;
-        s.effects.push_back(Effect::State(0, m_p.stateFleeingMove));
+        s.effects.push_back(Effect::Latch(0, LatchLeg));
         s.resetLeg = true;
         return s;
     }
@@ -173,7 +173,7 @@ namespace Motion
         m_rest = int32(svc.Urand(m_p.geometry.restMin, m_p.geometry.restMax));
 
         Step s = Step::Of(MoveIntent::Move(m_point, MOVE_REQUIRE_PATH).WithinLength(m_p.geometry.legLimit));
-        s.effects.push_back(Effect::State(m_p.stateFleeingMove, 0));   // the generator added the bit before its Move
+        s.effects.push_back(Effect::Latch(LatchLeg, 0));   // the generator added the bit before its Move
         return s;
     }
 
@@ -193,7 +193,7 @@ namespace Motion
             o.interrupt = true;
             if (!sight.suspended)
             {
-                o.effects.push_back(Effect::State(0, m_p.stateFleeingMove));
+                o.effects.push_back(Effect::Latch(0, LatchLeg));
             }
             if (sight.isCreature && !svc.ClaimHeld(Motion::Kind::Fear))
             {
@@ -207,7 +207,7 @@ namespace Motion
             // client-visible flag dropped when no fear claim remains (the low-health flee has
             // no aura to clear it), the gait restored unconditionally (design §6.5: the
             // generator left the run), and the panic over, back to whatever frightened us.
-            o.effects.push_back(Effect::State(0, m_p.stateFleeingMove));
+            o.effects.push_back(Effect::Latch(0, LatchLeg));
             if (!svc.ClaimHeld(Motion::Kind::Fear))
             {
                 o.effects.push_back(Effect(Effect::ClearFleeingFlag));
@@ -229,7 +229,7 @@ namespace Motion
         {
             o.stop = true;
         }
-        o.effects.push_back(Effect::State(0, m_p.stateFleeingMove));
+        o.effects.push_back(Effect::Latch(0, LatchLeg));
         return o;
     }
 
@@ -253,20 +253,20 @@ namespace Motion
         {
             return s;   // the generator returned before its stop and its bit (UNIT_STAT_NOT_MOVE: root, stun, death, a distract's stand)
         }
-        // The stop first, then the bit: the moving mask does not hold CONFUSED_MOVE, so it ends SET.
+        // The stop first, then the latch: a stop's ClearMovingLatches never clears the confuse's leg, so it ends SET.
         s.stop = true;
-        s.effects.push_back(Effect::State(m_p.stateConfusedMove, 0));
+        s.effects.push_back(Effect::Latch(LatchLeg, 0));
         return s;
     }
 
     Step ConfusedBehaviour::Suspend()
     {
-        // The generator's Interrupt: InterruptMoving, the move bit cleared (the confused state
-        // is the shell's mirror and outlives a suspension), no lurch, the leg forgotten.
+        // The generator's Interrupt: InterruptMoving, the leg latch cleared (the confused state
+        // is the shell's published block and outlives a suspension), no lurch, the leg forgotten.
         m_haveLurch = false;
         Step s;
         s.interrupt = true;
-        s.effects.push_back(Effect::State(0, m_p.stateConfusedMove));
+        s.effects.push_back(Effect::Latch(0, LatchLeg));
         s.resetLeg = true;
         return s;
     }
@@ -291,10 +291,10 @@ namespace Motion
 
     Step ConfusedBehaviour::Tick(Sight const& sight, Services& svc, uint32 diff)
     {
-        // No mobility guard (design fact 6). The bit is re-asserted every tick: a stop from
-        // elsewhere clears the mirror and the generator wrote it back at the top of each Intent.
+        // No mobility guard (design fact 6). The leg latch is re-asserted every tick: a wipe from
+        // elsewhere may clear it, and the generator wrote its bit back at the top of each Intent.
         Step s;
-        s.effects.push_back(Effect::State(m_p.stateConfusedMove, 0));
+        s.effects.push_back(Effect::Latch(LatchLeg, 0));
 
         // A refused leg: no lurch, the retry wait -- and fall through, as the generator did: a
         // tick whose diff passes it picks again at once, and a refused pick in that same tick
@@ -354,7 +354,7 @@ namespace Motion
             o.interrupt = true;
             if (!sight.suspended)
             {
-                o.effects.push_back(Effect::State(0, m_p.stateConfusedMove));
+                o.effects.push_back(Effect::Latch(0, LatchLeg));
             }
             return o;
         }
@@ -362,7 +362,7 @@ namespace Motion
         // stands with its client told to stop (the forced stop), a creature's spline simply
         // abandoned to whatever takes over. The generator cleared before it stopped; the Outcome
         // stops before its effects: benign, StopMoving neither reads nor writes this bit.
-        o.effects.push_back(Effect::State(0, m_p.stateConfusedMove));
+        o.effects.push_back(Effect::Latch(0, LatchLeg));
         if (!sight.isCreature)
         {
             o.stopForced = true;

@@ -232,6 +232,14 @@ add_test(NAME motion_shim
         -DSOURCE_ROOT=${CMAKE_SOURCE_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckMotionMasterShim.cmake)
 
+# Unit::Blocked takes the kernel's reason bits (P5-C2 deleted its UnitState overload). An ORed
+# mask of unit-state constants is an int and would still bind, read as reasons; the gate refuses
+# any Blocked( call that names a UNIT_STAT_ constant (P5-C3).
+add_test(NAME motion_blocked_masks
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_ROOT=${CMAKE_SOURCE_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckBlockedMasks.cmake)
+
 # The console may only stop the world on EOF when stdin is a terminal. A service
 # manager passes /dev/null, which is EOF at once; treating that as an operator
 # shutdown request stops every headless deployment a second after start-up, and

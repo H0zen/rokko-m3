@@ -415,7 +415,7 @@ namespace Harness
                     s.t = t;
                     s.mt = Type(a);
                     s.state = a->Blocked(Motion::ReasonFeared);
-                    s.move = a->hasUnitState(UNIT_STAT_FLEEING_MOVE);
+                    s.move = a->GetMotionMaster()->Latches().fearLeg;
                     s.flag = a->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
                     Unit* v = a->getVictim() ? a->getVictim() : b;
                     s.dVictim = Dist2(a->Where().X(), a->Where().Y(), v->Where().X(), v->Where().Y());
@@ -701,7 +701,7 @@ namespace Harness
                         s.mt = Type(a);
                         s.timed = a->GetMotionMaster()->SelectedVariant() == 1;
                         s.flag = a->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING);
-                        s.state = a->Blocked(Motion::ReasonFeared) || a->hasUnitState(UNIT_STAT_FLEEING_MOVE);
+                        s.state = a->Blocked(Motion::ReasonFeared) || a->GetMotionMaster()->Latches().fearLeg;
                         samples->push_back(s);
                         Log("+%4ums mt=%s flag=%d state=%d", s.t, Motion::KindName(s.mt), s.flag ? 1 : 0, s.state ? 1 : 0);
                     });
@@ -841,7 +841,7 @@ namespace Harness
                         Creature* a = Get(g); if (!a) { return; }
                         Pt p = { a->Where().X(), a->Where().Y(), a->Where().Z() };
                         after->push_back(p);
-                        const bool leg = a->hasUnitState(UNIT_STAT_FLEEING_MOVE);   // set when a leg starts, cleared by the gate
+                        const bool leg = a->GetMotionMaster()->Latches().fearLeg;   // set when a leg starts, cleared by the gate
                         if (leg) { *legAfter = true; }
                         Log("after +%4ums mt=%s move=%d at %.1f %.1f", i * 400, TypeName(a), leg ? 1 : 0, p.x, p.y);
                     });
@@ -934,7 +934,7 @@ namespace Harness
                         Creature* a = Get(g); Creature* b = Get(h); if (!a || !b) { return; }
                         Pt p = { a->Where().X(), a->Where().Y(), a->Where().Z() };
                         after->push_back(p);
-                        const bool leg = a->hasUnitState(UNIT_STAT_CHASE_MOVE);   // set per chase leg, cleared by the gate
+                        const bool leg = a->GetMotionMaster()->Latches().chaseLeg;   // set per chase leg, cleared by the gate
                         if (leg) { *legAfter = true; }
                         Log("after +%4ums mt=%s move=%d at %.1f %.1f dVictim=%.1f", i * 400, TypeName(a), leg ? 1 : 0, p.x, p.y, Dist2(p.x, p.y, b->Where().X(), b->Where().Y()));
                     });

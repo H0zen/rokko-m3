@@ -126,7 +126,6 @@ class NativeBehaviour : private Motion::Services
         /// effects are skipped for a player owner; Effect::Owners names each kind's owners.
         void PerformEffects(Unit& owner, std::vector<Motion::Effect> const& effects);
         void Launch(Unit& owner, Motion::EffectLaunch const& launch);
-        void Roam(Unit& owner, Motion::Roaming what);
         /// The taxi's six kinds, a player's alone (Effect::Owners): dispatched to Player::Taxi*.
         void PerformTaxi(Player& player, Motion::Effect const& e);
 

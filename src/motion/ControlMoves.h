@@ -68,7 +68,6 @@ namespace Motion
             {
                 uint64       fright = 0;              ///< the fear source's raw guid, resolved at each pick through Services::Fright
                 uint32       timeLimitMs = 0;         ///< the timed variant; 0 = until the claim is released
-                uint32       stateFleeingMove = 0;    ///< the shell's UNIT_STAT_FLEEING_MOVE, opaque here
                 FearGeometry geometry;
             };
             explicit FearBehaviour(Params const& p) : m_p(p), m_totalLeft(int32(p.timeLimitMs)) {}
@@ -104,7 +103,6 @@ namespace Motion
         public:
             struct Params
             {
-                uint32 stateConfusedMove = 0;   ///< the shell's UNIT_STAT_CONFUSED_MOVE, opaque here
                 float  radius = 10.0f;          ///< the stagger envelope around the anchor (Movement.ConfuseRadius)
                 uint32 staggerMin = 800;        ///< the stagger after a lurch, ms, counted from the lurch
                 uint32 staggerMax = 1500;

@@ -72,17 +72,18 @@ namespace Motion
 
     Step TrackingBehaviour::Activate(Sight const& sight, Services& /*svc*/)
     {
-        // Initialize: the kind's state bit (never the _MOVE one: that follows a laid leg), the tracking reset.
+        // Initialize: the kind's presence latch (never its leg: that follows a laid leg), the tracking reset.
         ResetTracking();
         Step s;
         s.resetLeg = true;
-        // The order is load-bearing: the bit BEFORE the kind's own activation effects. The
-        // deleted FollowMovementGenerator::Initialize did addUnitState(UNIT_STAT_FOLLOW) and
-        // only then SyncSpeedWithMaster, because UpdateSpeed's pet branch copies the owner's
-        // rate only while that bit is set (UnitSpeed.cpp) -- a sync ahead of the bit reads the
-        // pet's own rate and the follower never matches its master. The chase's Walk(false)
-        // then trails its bit too, harmlessly: SetWalk reads no unit state.
-        s.effects.push_back(Effect::State(m_p.stateSet, 0));
+        // The order is load-bearing: the presence latch BEFORE the kind's own activation
+        // effects. The deleted FollowMovementGenerator::Initialize set its follow bit and only
+        // then SyncSpeedWithMaster, because UpdateSpeed's pet branch copies the owner's rate
+        // only while the follow's presence is latched (UnitSpeed.cpp: Unit::FollowLatched) -- a
+        // sync ahead of the latch reads the pet's own rate and the follower never matches its
+        // master. The chase's Walk(false) then trails its latch too, harmlessly: SetWalk reads
+        // no latch.
+        s.effects.push_back(Effect::Latch(LatchPresence, 0));
         OnActivate(sight, s);
         return s;
     }
@@ -94,12 +95,12 @@ namespace Motion
 
     Step TrackingBehaviour::Suspend()
     {
-        // Interrupt: InterruptMoving, both bits cleared, the tracking reset.
+        // Interrupt: InterruptMoving, both latches cleared, the tracking reset.
         ResetTracking();
         Step s;
         s.interrupt = true;
         s.resetLeg = true;
-        s.effects.push_back(Effect::State(0, m_p.stateSet | m_p.stateMove));
+        s.effects.push_back(Effect::Latch(0, LatchBoth));
         OnSuspendOrFinish(s.effects);
         return s;
     }
@@ -108,7 +109,7 @@ namespace Motion
     {
         Outcome o;
         o.interrupt = Displacing(why);   // the generator's Interrupt stopped the mover; Finalize did not
-        o.effects.push_back(Effect::State(0, m_p.stateSet | m_p.stateMove));
+        o.effects.push_back(Effect::Latch(0, LatchBoth));
         OnSuspendOrFinish(o.effects);
         return o;
     }
@@ -140,7 +141,7 @@ namespace Motion
         m_dest = spot;
         m_haveDest = true;
         m_relays.Count(why);
-        s.effects.push_back(Effect::State(m_p.stateMove, 0));
+        s.effects.push_back(Effect::Latch(LatchLeg, 0));
     }
 
     Step TrackingBehaviour::Tick(Sight const& sight, Services& svc, uint32 diff)
@@ -155,7 +156,7 @@ namespace Motion
         {
             LatchRelay(sight);
             Step s = Step::Of(MoveIntent::Hold());
-            s.effects.push_back(Effect::State(0, m_p.stateMove));
+            s.effects.push_back(Effect::Latch(0, LatchLeg));
             return s;
         }
         // 4. A cast with a cast time, or a channel: stop (every casting tick; the shell sends no packet once stopped), hold.
@@ -164,10 +165,10 @@ namespace Motion
             LatchRelay(sight);
             Step s = Step::Of(MoveIntent::Hold());
             // Unconditional, as the generator's own gate was: it called StopMoving() whenever
-            // !IsStopped(), and StopMoving clears the _MOVE bits BEFORE its finalized-spline
-            // early return (Unit::StopMoving). A standing chaser that starts a cast must lose
-            // its move bit too, so gating the stop on a live leg would leave that bit set for
-            // the whole cast. Nothing goes on the wire for a spline that is already finalized.
+            // !IsStopped(), and StopMoving clears the moving legs (MotionMaster::ClearMovingLatches)
+            // BEFORE its finalized-spline early return (Unit::StopMoving). A standing chaser that
+            // starts a cast must lose its leg latch too, so gating the stop on a live leg would
+            // leave that latch set for the whole cast. Nothing goes on the wire for a spline that is already finalized.
             s.stop = true;
             return s;
         }
@@ -301,7 +302,7 @@ namespace Motion
         m_cleared = false;
         m_arrived = false;
         Step s;
-        s.resetLeg = true;   // the clear waits for the first tick: under a block the mask would erase the block's own mirrors
+        s.resetLeg = true;   // the wipe waits for the first tick: under a block it would erase the block's published state
         return s;
     }
 
@@ -316,7 +317,7 @@ namespace Motion
         if (!m_cleared)
         {
             m_cleared = true;
-            s.effects.push_back(Effect::State(0, m_p.stateClear));
+            s.effects.push_back(Effect(Effect::WipeLatches));
         }
         // A creature that could not be sent home at all still counts as home: evade must always terminate.
         if (sight.status.arrived || sight.status.blocked)

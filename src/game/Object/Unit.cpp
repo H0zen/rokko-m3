@@ -474,7 +474,7 @@ void Unit::Update(uint32 update_diff, uint32 p_time)
     // update combat timer only for players and pets
     if (IsInCombat() && GetCharmerOrOwnerPlayerOrPlayerItself())
     {
-        // Check UNIT_STAT_MELEE_ATTACKING or UNIT_STAT_CHASE (without UNIT_STAT_FOLLOW in this case) so pets can reach far away
+        // Check melee attacking or chasing (not following, in this case) so pets can reach far away
         // targets without stopping half way there and running off.
         // These flags are reset after target dies or another command is given.
         if (m_HostileRefManager.isEmpty())
@@ -5802,7 +5802,7 @@ bool Unit::IsRooted() const
 
 void Unit::StopMoving(bool forceSendStop /*=false*/)
 {
-    clearUnitState(UNIT_STAT_MOVING);
+    i_motionMaster.ClearMovingLatches();   // the legs the moving mask held (P5-C3)
 
     // not need send any packets if not in world
     if (!IsInWorld())
@@ -5810,7 +5810,7 @@ void Unit::StopMoving(bool forceSendStop /*=false*/)
         return;
     }
 
-    // Gate on the spline, not on the *_MOVE states: home legs, effects and raw script
+    // Gate on the spline, not on the leg latches (the old *_MOVE states): home legs, effects and raw script
     // splines set none, and skipping them left the spline running.
     if (movespline->Finalized() && !forceSendStop)
     {

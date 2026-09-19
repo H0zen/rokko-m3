@@ -505,7 +505,9 @@ enum DeathState
  * internal state flags for some auras and the movement behaviours, other. The kernel's block
  * (rooted, stunned, a feign, possessed, feared, confused, distracted, on a taxi) is not here: the
  * facade publishes it (MotionMaster::Published) and Unit reads it through Blocked,
- * IsFeigningDeath, CannotMove, CannotReact, LostControl and IsTaxiFlying (P5-C2).
+ * IsFeigningDeath, CannotMove, CannotReact, LostControl and IsTaxiFlying (P5-C2). Nor are the
+ * natives' presence and leg bits: the facade's latch bank holds them (MotionMaster::Latches,
+ * P5-C3), read through IsStopped, FollowLatched and the bank's fields.
  */
 enum UnitState
 {
@@ -513,19 +515,6 @@ enum UnitState
     UNIT_STAT_MELEE_ATTACKING = 0x00000001,                 // unit is melee attacking someone Unit::Attack
     UNIT_STAT_ATTACK_PLAYER   = 0x00000002,                 // unit attack player or player's controlled unit and have contested pvpv timer setup, until timer expire, combat end and etc
     UNIT_STAT_ISOLATED        = 0x00000020,                 // area auras do not affect other players, Aura::HandleAuraModSchoolImmunity
-
-    // a behaviour's presence and its leg, written by the natives (StateRaw effects; the roaming pair through Step::roaming)
-    // (can be cleared temporarily by a stop command or another behaviour taking hold)
-    // the _MOVE bits are a leg's, not the behaviour's: a stop from outside clears them
-    UNIT_STAT_CONFUSED_MOVE   = 0x00000400,
-    UNIT_STAT_ROAMING         = 0x00000800,                 // the wander native/a point behaviour/the patrol native active (now always set)
-    UNIT_STAT_ROAMING_MOVE    = 0x00001000,
-    UNIT_STAT_CHASE           = 0x00002000,                 // the chase native active
-    UNIT_STAT_CHASE_MOVE      = 0x00004000,
-    UNIT_STAT_FOLLOW          = 0x00008000,                 // the follow native active
-    UNIT_STAT_FOLLOW_MOVE     = 0x00010000,
-    UNIT_STAT_FLEEING_MOVE    = 0x00040000,
-    // More room for other MMGens
 
     // High-Level states (usually only with Creatures)
     UNIT_STAT_NO_COMBAT_MOVEMENT    = 0x01000000,           // Combat Movement for MoveChase stopped
@@ -536,12 +525,8 @@ enum UnitState
 
     // masks (for check or reset)
 
-    // a leg in flight, for the readers that ask whether the unit moves (the taxi's flight excluded)
-    UNIT_STAT_MOVING          = UNIT_STAT_ROAMING_MOVE | UNIT_STAT_CHASE_MOVE | UNIT_STAT_FOLLOW_MOVE | UNIT_STAT_FLEEING_MOVE,
-
-    UNIT_STAT_RUNNING_STATE   = UNIT_STAT_CHASE_MOVE | UNIT_STAT_FLEEING_MOVE | UNIT_STAT_RUNNING,
-
     UNIT_STAT_ALL_STATE       = 0xFFFFFFFF,
+    // the Home native's first-tick wipe (MotionMaster::WipeLatches): the melee, attack-player and isolated bits
     UNIT_STAT_ALL_DYN_STATES  = UNIT_STAT_ALL_STATE & ~(UNIT_STAT_NO_COMBAT_MOVEMENT | UNIT_STAT_RUNNING | UNIT_STAT_WAYPOINT_PAUSED | UNIT_STAT_IGNORE_PATHFINDING),
 
 };
@@ -3975,7 +3960,12 @@ class Unit : public WorldObject
         MotionMaster* GetMotionMaster() { return &i_motionMaster; }
         MotionMaster const* GetMotionMaster() const { return &i_motionMaster; }
 
-        bool IsStopped() const { return !(hasUnitState(UNIT_STAT_MOVING)); }
+        /// No leg in flight (the old UNIT_STAT_MOVING, negated): no roaming, chase, follow or fear
+        /// leg is latched (MotionMaster::LatchBank::Moving); the confuse's lurch was never counted.
+        bool IsStopped() const { return !i_motionMaster.Latches().Moving(); }
+        /// A follow native is active (the old UNIT_STAT_FOLLOW): latched at its activation, cleared
+        /// at its suspension or its finish, or by a whole-state wipe (MotionMaster::LatchBank::follow).
+        bool FollowLatched() const { return i_motionMaster.Latches().follow; }
         void StopMoving(bool forceSendStop = false);
         void InterruptMoving(bool forceSendStop = false);
         bool CommitSplinePosition(); ///< Take the running spline's position: the seat pose at once, the placement on the next Update. False when no spline runs.
