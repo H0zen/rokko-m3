@@ -51,11 +51,10 @@
 #include <string>
 #include "Database/DatabaseEnv.h"
 #include "Config/Config.h"
-#include "GitRevision.h"
+#include "Version.h"
 #include "ProgressBar.h"
 #include "Console/ConsoleUI.h"
 #include "Log.h"
-#include "BuildInfo.h"
 #include "AuctionHouseBot.h"
 #include "Master.h"
 #include "World.h"
@@ -194,7 +193,7 @@ int main(int argc, char** argv)
 #endif
 
     ///- Command line parsing
-    char const* cfg_file = MANGOSD_CONFIG_LOCATION;
+    char const* cfg_file = Version::GetMangosdConfigFile();
 
     char serviceDaemonMode = '\0';
 
@@ -207,7 +206,7 @@ int main(int argc, char** argv)
 
         if (arg == "-v" || arg == "--version")
         {
-            printf("%s\n", GitRevision::GetProjectRevision());
+            printf("%s\n", Version::GetFullVersion());
             return 0;
         }
         else if ((arg == "-c") && hasValue)
@@ -289,8 +288,8 @@ int main(int argc, char** argv)
     }
 #endif
 
-    sLog.outString("%s [world-daemon]", GitRevision::GetProjectRevision());
-    sLog.outString("%s", GitRevision::GetFullRevision());
+    sLog.outString("%s [world-daemon]", Version::GetRelease());
+    sLog.outString("Revision %s", Version::GetRevision());
     print_banner();
     sLog.outString("Using configuration file %s.", cfg_file);
 

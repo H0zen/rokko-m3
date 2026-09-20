@@ -33,8 +33,11 @@
 // No argument runs everything, which is what CI does and what the ctest entry does.
 // -only/-skip are for iterating: the network and crypto stress cases cost minutes and
 // have nothing to say about a change elsewhere.
+#ifdef MANGOS_CRYPTO_TESTS
 /// CryptoBench.cpp: the in-house primitives timed the way the pre-switch baseline was.
+/// Built only with -DWITH_CRYPTO_TESTS=1; see src/tests/CMakeLists.txt.
 void RunCryptoBench();
+#endif
 
 static void Usage()
 {
@@ -59,8 +62,13 @@ int main(int argc, char** argv)
         }
         else if (std::strcmp(argv[i], "--bench") == 0 && hasValue && std::strcmp(argv[i + 1], "crypto") == 0)
         {
+#ifdef MANGOS_CRYPTO_TESTS
             RunCryptoBench();
             return 0;
+#else
+            std::printf("built without the crypto tests; configure with -DWITH_CRYPTO_TESTS=1\n");
+            return 2;
+#endif
         }
         else
         {

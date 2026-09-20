@@ -1,76 +1,32 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
-#
-# MaNGOS is a full featured server for World of Warcraft, supporting
-# the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
-#
-# Copyright (C) 2005-2026 MaNGOS <https://www.getmangos.eu>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-# Geometry is header-only and sits below everything else: it knows nothing
-# about WoW, any client version, or the server.
 add_subdirectory(shared/Crypto)
 add_subdirectory(shared/Geometry)
 add_subdirectory(shared/terrain)
 
-# Build the mangos shared library
 add_subdirectory(shared)
 
-# The world protocol. Sits between shared and game: it links shared, game links
-# it, and it never links back up.
 add_subdirectory(proto)
 add_subdirectory(motion)
 
 add_subdirectory(genrev)
 
-# Needs to link against mangos_world.lib
 if(BUILD_MANGOSD)
-    # Build the mangos game library
     add_subdirectory(game)
 endif()
 
 if(BUILD_MANGOSD)
-    # Build the mangos world server
     add_subdirectory(mangosd)
 
-    # Build the selected modules
     add_subdirectory(modules)
 endif()
 
-# Build the mangos realm authentication server
 if(BUILD_REALMD)
     add_subdirectory(realmd)
 endif()
 
-# The client-data parsers are configured unconditionally: the unit tests link them
-# without the tools. The baker executable itself is gated on BUILD_TOOLS, inside.
-add_subdirectory(tools/extractor)
+add_subdirectory(tools/mep)
 
-# Scores those tiles against the world database's own ground-only creature spawns.
-# A clean parse is not correct geometry; this is what says whether it is.
 add_subdirectory(tools/height-check)
 
-# Mints the realm's redirect keypair and writes its public half into clients.
-# Unconditional, and deliberately so: without a keypair the server refuses to
-# start, so gating the only tool that produces one on BUILD_TOOLS would make a
-# server-only build unable to configure itself.
-add_subdirectory(tools/patcher)
-
-# A synthetic 4.3.4 client. It is the only way to put a known number of real
-# sessions on this server: a WoW client cannot be scripted, so measuring how a
-# session's traffic divides between the two world streams needs a client we
-# wrote. Gated on BUILD_TOOLS, inside.
 add_subdirectory(tools/loadtest)
 
 if (BUILD_MANGOSD OR BUILD_REALMD)

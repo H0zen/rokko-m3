@@ -1,23 +1,3 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
-#
-# MaNGOS is a full featured server for World of Warcraft, supporting
-# the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
-#
-# Copyright (C) 2005-2026 MaNGOS <https://www.getmangos.eu>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 include(TestBigEndian)
 
 set(SRC_GRP_AUTH
@@ -40,8 +20,8 @@ set(SRC_GRP_COMMON
   Common/Locales.h
   Common/TimeConstants.h
   Common/ServerDefines.h
-  Common/GitRevision.cpp
-  Common/GitRevision.h
+  Common/Version.cpp
+  Common/Version.h
 )
 source_group("Common" FILES ${SRC_GRP_COMMON})
 
@@ -139,10 +119,6 @@ set(SRC_GRP_POLICIES
 )
 source_group("Policies" FILES ${SRC_GRP_POLICIES})
 
-# Shared networking engine. The backends self-collapse on the platforms they do not
-# serve (IocpServer is #ifdef _WIN32, the reactor is #ifndef _WIN32), so they can all
-# be listed unconditionally. io_uring is the exception: it needs liburing, so it is
-# only compiled when the option above resolved.
 set(SRC_GRP_NET
   net/BindAddress.cpp
   net/BindAddress.hpp
@@ -235,8 +211,6 @@ set(TGT_INCL
   Policies
 )
 
-configure_file(BuildInfo.h.in ${CMAKE_CURRENT_BINARY_DIR}/BuildInfo.h @ONLY)
-
 TEST_BIG_ENDIAN(ENDIAN_VALUE)
 
 add_library(shared STATIC
@@ -244,7 +218,6 @@ add_library(shared STATIC
     ${SRC_GRP_COMMON}
     ${SRC_GRP_CONFIG}
     ${SRC_GRP_DATASTORE}
-    ${SRC_GRP_DATABASE}
     ${SRC_GRP_DYNAMIC}
     ${SRC_GRP_GAMESYSTEM}
     ${SRC_GRP_LOCKQ}
@@ -275,18 +248,10 @@ target_compile_definitions(shared
 
 target_link_libraries(shared
     PUBLIC
-        # PUBLIC, and required: shared uses std::thread directly (the console
-        # writer, Threading, the net workers). ACE used to drag pthread in as a
-        # side effect on Linux, so nothing here ever declared the dependency --
-        # which only becomes visible now that acelite is disarmed.
         Threads::Threads
         utf8
-        MySQL::MySQL
-        # The Auth wrappers (BigNumber, Sha1Hash, HMACSHA1, Md5Hash) are headers over
-        # the tree's own crypto library; whatever includes them needs it too.
         mangos_crypto
         $<$<BOOL:${WIN32}>:dbghelp>
-        # Winsock + the AcceptEx/GetAcceptExSockaddrs extensions used by IocpServer.
         $<$<BOOL:${WIN32}>:ws2_32>
         $<$<BOOL:${WIN32}>:mswsock>
         $<$<BOOL:${MANGOS_USE_IO_URING}>:${URING_LIBRARY}>
@@ -295,3 +260,11 @@ target_link_libraries(shared
 if(MANGOS_USE_IO_URING)
     target_include_directories(shared PUBLIC ${URING_INCLUDE_DIR})
 endif()
+
+add_library(shared_db STATIC ${SRC_GRP_DATABASE})
+
+target_link_libraries(shared_db
+    PUBLIC
+        shared
+        MySQL::MySQL
+)

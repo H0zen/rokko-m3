@@ -25,52 +25,34 @@
 
 #pragma once
 
-// GENERATED from BuildInfo.h.in -- the one template this build has.
+// GENERATED from BuildInfo.h.in by cmake/MangosVersion.cmake, which declares
+// every value substituted below. A number written here directly is one that
+// cannot be bumped from the place everything else is bumped.
 //
-// Everything CMake knows and the code needs: what this build IS (package,
-// version, client), what it was built FROM (the checkout), what it expects to
-// find AROUND it (schemas, config files, install paths). It was three separate
-// templates -- revision_data.h.in, SystemConfig.h.in and win/VersionInfo.h.in --
-// generated from the same variables at the same moment into the same tree,
-// which is three places to look for a value and three places for one to be
-// missing.
+// The commit hash is in here, so this header is rewritten by every commit and
+// everything including it recompiles. Exactly one translation unit does --
+// src/shared/Common/Version.cpp, the umbrella everything else reads through --
+// and src/tests/CheckVersionSources.cmake keeps it that way.
 //
-// The numbers themselves are NOT declared here. They come from
-// cmake/MangosVersions.cmake; a value written into this file directly is one
-// that cannot be bumped from the place everything else is bumped.
-//
-// This header is rewritten whenever any of them changes, so what includes it
-// gets rebuilt. Read a VERSION through GitRevision instead -- it includes this
-// and exposes the values as functions, which is what keeps a config-version
-// bump from rebuilding the server. The paths and defaults below are fair game
-// for a .cpp: they change when the install layout does, not when a version does.
-// No HEADER may include this; src/tests/CheckVersionSources.cmake enforces both.
-
-// The Windows resource compiler includes this file too, for the version block
-// at the bottom. It is not a C++ compiler: it cannot resolve this include path,
-// and it has no business parsing the header anyway. RC_INVOKED is what it
-// defines to let a header tell the two apart.
-#ifndef RC_INVOKED
-#include "Platform/Define.h"
-#endif
+// cmake/win/VersionInfo.rc includes it too. The resource compiler is not a C++
+// compiler: nothing here may need a C++ header, and every macro it reads has to
+// be one literal rather than adjacent literals a compiler would join.
 
 // --- What this build is ------------------------------------------------------
 
 #define MANGOS_PACKAGENAME "@MANGOS_PKG@"
-
-#define MANGOS_VERSION(REVD, REVT, REVN, REVH) \
-    "@PROJECT_VERSION@" " (" REVD " " REVT " Revision " REVN " - " REVH ")"
+#define MANGOS_VERSION_STR "@PROJECT_VERSION@"
+#define MANGOS_RELEASE_STR MANGOS_PACKAGENAME " " MANGOS_VERSION_STR
 
 // --- What it was built from --------------------------------------------------
+//
+// REVISION_STR is one literal because the version resource reads it too.
 
-#define REVISION_HASH     "@rev_hash@"
-#define REVISION_DATE     "@rev_date@"
-#define REVISION_BRANCH   "@rev_branch@"
+#define REVISION_HASH "@rev_hash@"
+#define REVISION_DATE "@rev_date@"
+#define REVISION_STR  "@rev_hash@ @rev_date@ (@rev_branch@ branch)"
 
-#define CMAKE_VERSION     R"(@CMAKE_VERSION@)"
-#define CMAKE_HOST_SYSTEM R"(@CMAKE_HOST_SYSTEM_NAME@ @CMAKE_HOST_SYSTEM_VERSION@)"
-
-#define PROJECT_REVISION_NR "@MANGOS_REVISION_NR@"
+#define BUILD_HOST_SYSTEM R"(@CMAKE_HOST_SYSTEM_NAME@ @CMAKE_HOST_SYSTEM_VERSION@)"
 
 // --- Configuration files it expects ------------------------------------------
 //
@@ -86,7 +68,7 @@
 //
 // One build, deliberately: two would mean half the features work for one set of
 // players and half for the other, with neither half testable. The trailing zero
-// terminates the list GitRevision walks.
+// terminates the list Version.cpp walks.
 
 #define EXPECTED_MANGOSD_CLIENT_BUILD   {@MANGOS_CLIENT_BUILD@, 0}
 #define EXPECTED_MANGOSD_CLIENT_VERSION "@MANGOS_CLIENT_VERSION@"
@@ -109,70 +91,20 @@
 #define WORLD_DB_UPDATE_DESCRIPT  "@MANGOS_WORLD_DB_DESCRIPT@"
 
 // --- Where it installs itself ------------------------------------------------
+//
+// The file names themselves are not generated and live in Common/ServerDefines.h.
 
 #define SYSCONFDIR "@CONF_INSTALL_DIR@/"
 
-#define REALMD_CONFIG_NAME          "realmd.conf"
-#define MANGOSD_CONFIG_NAME         "mangosd.conf"
-#define AUCTIONHOUSEBOT_CONFIG_NAME "ahbot.conf"
+#define MANGOSD_CONFIG_LOCATION         SYSCONFDIR "mangosd.conf"
+#define REALMD_CONFIG_LOCATION          SYSCONFDIR "realmd.conf"
+#define AUCTIONHOUSEBOT_CONFIG_LOCATION SYSCONFDIR "ahbot.conf"
 
-#define MANGOSD_CONFIG_LOCATION         SYSCONFDIR MANGOSD_CONFIG_NAME
-#define REALMD_CONFIG_LOCATION          SYSCONFDIR REALMD_CONFIG_NAME
-#define AUCTIONHOUSEBOT_CONFIG_LOCATION SYSCONFDIR AUCTIONHOUSEBOT_CONFIG_NAME
-
-// --- Defaults for settings an operator did not set ---------------------------
-
-#define DEFAULT_PLAYER_LIMIT            100
-#define DEFAULT_WORLDSERVER_PORT        8085
-#define DEFAULT_WORLDSERVER_STREAM_PORT 8086
-#define DEFAULT_REALMSERVER_PORT        3724
-
-// --- Host ---------------------------------------------------------------------
-
-// Depends on Platform/Define.h, which the resource compiler does not read.
-#ifndef RC_INVOKED
-# if MANGOS_ENDIAN == MANGOS_BIGENDIAN
-#  define MANGOS_ENDIAN_STRING "big-endian"
-# else
-#  define MANGOS_ENDIAN_STRING "little-endian"
-# endif
-#endif
-
-// --- Windows resource version -------------------------------------------------
+// --- Windows version resource ------------------------------------------------
 //
-// VersionInfo.rc reads these. They are the project version as four integers,
-// which is the only shape a VERSIONINFO resource accepts.
+// cmake/win/VersionInfo.rc is the only consumer and the only .rc in the tree.
+// Each executable compiles it with an icon and two strings of its own.
 
-#define PRODUCT_VERSION_MAJOR @PROJECT_VERSION_MAJOR@
-#define PRODUCT_VERSION_MINOR @PROJECT_VERSION_MINOR@
-#define PRODUCT_VERSION_PATCH @PROJECT_VERSION_PATCH@
-
-#define FILE_VERSION_MAJOR PRODUCT_VERSION_MAJOR
-#define FILE_VERSION_MINOR PRODUCT_VERSION_MINOR
-#define FILE_VERSION_PATCH PRODUCT_VERSION_PATCH
-
-#define __TO_STRING_IMPL(x) #x
-#define __TO_STRING(x)      __TO_STRING_IMPL(x)
-
-#define PRODUCT_VERSION_MAJOR_MINOR_STR \
-    __TO_STRING(PRODUCT_VERSION_MAJOR) "." __TO_STRING(PRODUCT_VERSION_MINOR)
-#define PRODUCT_VERSION_MAJOR_MINOR_PATCH_STR \
-    PRODUCT_VERSION_MAJOR_MINOR_STR "." __TO_STRING(PRODUCT_VERSION_PATCH)
-#define PRODUCT_VERSION_FULL_STR     PRODUCT_VERSION_MAJOR_MINOR_PATCH_STR
-#define PRODUCT_VERSION_RESOURCE     PRODUCT_VERSION_MAJOR,PRODUCT_VERSION_MINOR,PRODUCT_VERSION_PATCH
-#define PRODUCT_VERSION_RESOURCE_STR PRODUCT_VERSION_FULL_STR "\0"
-
-#define FILE_VERSION_MAJOR_MINOR_STR \
-    __TO_STRING(FILE_VERSION_MAJOR) "." __TO_STRING(FILE_VERSION_MINOR)
-#define FILE_VERSION_MAJOR_MINOR_PATCH_STR \
-    FILE_VERSION_MAJOR_MINOR_STR "." __TO_STRING(FILE_VERSION_PATCH)
-#define FILE_VERSION_FULL_STR     FILE_VERSION_MAJOR_MINOR_PATCH_STR
-#define FILE_VERSION_RESOURCE     FILE_VERSION_MAJOR,FILE_VERSION_MINOR,FILE_VERSION_PATCH
-#define FILE_VERSION_RESOURCE_STR FILE_VERSION_FULL_STR "\0"
-
-#define VER_COMPANY_NAME_STR   "MaNGOS Developers"
-#define VER_LEGALCOPYRIGHT_STR "(c)2005-@rev_year@ MaNGOS"
-#define VER_FILEVERSION        0,0,0
-#define VER_FILEVERSION_STR    "@rev_hash@ @rev_date@ (@rev_branch@ branch)"
-#define VER_PRODUCTVERSION     VER_FILEVERSION
-#define VER_PRODUCTVERSION_STR VER_FILEVERSION_STR
+#define PRODUCT_VERSION_RESOURCE @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+#define PRODUCT_COMPANY_STR      "MaNGOS Developers"
+#define PRODUCT_COPYRIGHT_STR    "Copyright (C) 2005-@rev_year@ MaNGOS"

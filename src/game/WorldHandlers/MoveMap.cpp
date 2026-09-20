@@ -112,6 +112,16 @@ namespace MMAP
      */
     MMapManager* MMapFactory::createOrGetMMapManager()
     {
+        // The first caller is whichever map thread loads the first grid, and there are
+        // several of them. Unguarded, two could both read NULL and both construct one:
+        // the loser's manager leaks and, worse, whichever threads kept the losing pointer
+        // load their tiles into a mesh nobody else queries.
+        //
+        // Not a Meyers singleton, though the core prefers one elsewhere -- clear() has to
+        // be able to destroy this and have the next call build a fresh one.
+        static std::mutex s_createLock;
+        std::lock_guard<std::mutex> guard(s_createLock);
+
         if (g_MMapManager == NULL)
         {
             g_MMapManager = new MMapManager();
@@ -241,6 +251,8 @@ namespace MMAP
     // ######################## MMapManager ########################
     MMapManager::~MMapManager()
     {
+        std::unique_lock<std::shared_mutex> guard(m_lock);
+
         for (MMapDataSet::iterator i = loadedMMaps.begin(); i != loadedMMaps.end(); ++i)
         {
             delete i->second;
@@ -250,6 +262,23 @@ namespace MMAP
         // if we had, tiles in MMapData->mmapLoadedTiles, their actual data is lost!
     }
 
+    /// Caller holds m_lock. Returns NULL rather than default-constructing an entry:
+    /// every reader here used to say `find(...) == end()` and then `loadedMMaps[mapId]`,
+    /// two lookups where one does, and the second one non-const on a shared container.
+    MMapData* MMapManager::findMap(uint32 mapId) const
+    {
+        MMapDataSet::const_iterator found = loadedMMaps.find(mapId);
+        return found != loadedMMaps.end() ? found->second : NULL;
+    }
+
+    /// Caller holds m_lock. Does NOT create -- creation needs the exclusive lock.
+    dtNavMeshQuery const* MMapManager::findQuery(MMapData* mmap, uint32 instanceId) const
+    {
+        NavMeshQuerySet::const_iterator found = mmap->navMeshQueries.find(instanceId);
+        return found != mmap->navMeshQueries.end() ? found->second : NULL;
+    }
+
+    /// Caller holds m_lock EXCLUSIVE: this inserts into loadedMMaps.
     bool MMapManager::loadMapData(uint32 mapId)
     {
         // we already have this map loaded?
@@ -305,6 +334,11 @@ namespace MMAP
 
     bool MMapManager::loadMap(uint32 mapId, int32 x, int32 y)
     {
+        // Exclusive, and held across the file read: addTile() rewrites the mesh's tile
+        // array, which every in-flight Route is reading. Grid loads are rare and already
+        // do disk I/O, so the cost of making the routes wait is noise next to the fread.
+        std::unique_lock<std::shared_mutex> guard(m_lock);
+
         // make sure the mmap is loaded and ready to load tiles
         if (!loadMapData(mapId))
         {
@@ -312,8 +346,8 @@ namespace MMAP
         }
 
         // get this mmap data
-        MMapData* mmap = loadedMMaps[mapId];
-        MANGOS_ASSERT(mmap->navMesh);
+        MMapData* mmap = findMap(mapId);
+        MANGOS_ASSERT(mmap && mmap->navMesh);
 
         // check if we already have this tile loaded
         uint32 packedGridPos = packTileID(x, y);
@@ -389,15 +423,18 @@ namespace MMAP
 
     bool MMapManager::unloadMap(uint32 mapId, int32 x, int32 y)
     {
+        // Exclusive: removeTile() rewrites the same tile array addTile() does, and frees
+        // the tile's data while a Route may be standing on a poly inside it.
+        std::unique_lock<std::shared_mutex> guard(m_lock);
+
         // check if we have this map loaded
-        if (loadedMMaps.find(mapId) == loadedMMaps.end())
+        MMapData* mmap = findMap(mapId);
+        if (!mmap)
         {
             // file may not exist, therefore not loaded
             DEBUG_FILTER_LOG(LOG_FILTER_MAP_LOADING, "MMAP:unloadMap: Asked to unload not loaded navmesh map. %04u%02i%02i.mmtile", mapId, x, y);
             return false;
         }
-
-        MMapData* mmap = loadedMMaps[mapId];
 
         // check if we have this tile loaded
         uint32 packedGridPos = packTileID(x, y);
@@ -432,7 +469,11 @@ namespace MMAP
 
     bool MMapManager::unloadMap(uint32 mapId)
     {
-        if (loadedMMaps.find(mapId) == loadedMMaps.end())
+        // Exclusive: this deletes the MMapData, so no Route may be holding its mesh.
+        std::unique_lock<std::shared_mutex> guard(m_lock);
+
+        MMapData* mmap = findMap(mapId);
+        if (!mmap)
         {
             // file may not exist, therefore not loaded
             DEBUG_FILTER_LOG(LOG_FILTER_MAP_LOADING, "MMAP:unloadMap: Asked to unload not loaded navmesh map %04u", mapId);
@@ -440,7 +481,6 @@ namespace MMAP
         }
 
         // unload all tiles from given map
-        MMapData* mmap = loadedMMaps[mapId];
         for (MMapTileSet::iterator i = mmap->mmapLoadedTiles.begin(); i != mmap->mmapLoadedTiles.end(); ++i)
         {
             uint32 x = (i->first >> 16);
@@ -465,64 +505,135 @@ namespace MMAP
 
     bool MMapManager::unloadMapInstance(uint32 mapId, uint32 instanceId)
     {
+        // Exclusive: this frees a dtNavMeshQuery that a Route may be mid-findPath on.
+        std::unique_lock<std::shared_mutex> guard(m_lock);
+
         // check if we have this map loaded
-        if (loadedMMaps.find(mapId) == loadedMMaps.end())
+        MMapData* mmap = findMap(mapId);
+        if (!mmap)
         {
             // file may not exist, therefore not loaded
             DEBUG_FILTER_LOG(LOG_FILTER_MAP_LOADING, "MMAP:unloadMapInstance: Asked to unload not loaded navmesh map %04u", mapId);
             return false;
         }
 
-        MMapData* mmap = loadedMMaps[mapId];
-        if (mmap->navMeshQueries.find(instanceId) == mmap->navMeshQueries.end())
+        NavMeshQuerySet::iterator query = mmap->navMeshQueries.find(instanceId);
+        if (query == mmap->navMeshQueries.end())
         {
             DEBUG_FILTER_LOG(LOG_FILTER_MAP_LOADING, "MMAP:unloadMapInstance: Asked to unload not loaded dtNavMeshQuery mapId %04u instanceId %u", mapId, instanceId);
             return false;
         }
 
-        dtNavMeshQuery* query = mmap->navMeshQueries[instanceId];
-
-        dtFreeNavMeshQuery(query);
-        mmap->navMeshQueries.erase(instanceId);
+        dtFreeNavMeshQuery(query->second);
+        mmap->navMeshQueries.erase(query);
         DEBUG_FILTER_LOG(LOG_FILTER_MAP_LOADING, "MMAP:unloadMapInstance: Unloaded mapId %04u instanceId %u", mapId, instanceId);
 
         return true;
     }
 
+    uint32 MMapManager::getLoadedTilesCount() const
+    {
+        std::shared_lock<std::shared_mutex> guard(m_lock);
+        return loadedTiles;
+    }
+
+    uint32 MMapManager::getLoadedMapsCount() const
+    {
+        std::shared_lock<std::shared_mutex> guard(m_lock);
+        return uint32(loadedMMaps.size());
+    }
+
     dtNavMesh const* MMapManager::GetNavMesh(uint32 mapId)
     {
-        if (loadedMMaps.find(mapId) == loadedMMaps.end())
-        {
-            return NULL;
-        }
+        std::shared_lock<std::shared_mutex> guard(m_lock);
 
-        return loadedMMaps[mapId]->navMesh;
+        MMapData* mmap = findMap(mapId);
+        return mmap ? mmap->navMesh : NULL;
     }
 
     dtNavMeshQuery const* MMapManager::GetNavMeshQuery(uint32 mapId, uint32 instanceId)
     {
-        if (loadedMMaps.find(mapId) == loadedMMaps.end())
+        return OpenRoute(mapId, instanceId).Query();
+    }
+
+    MMapManager::Route MMapManager::OpenMesh(uint32 mapId)
+    {
+        std::shared_lock<std::shared_mutex> guard(m_lock);
+
+        MMapData* mmap = findMap(mapId);
+        if (!mmap)
         {
-            return NULL;
+            return Route();
         }
 
-        MMapData* mmap = loadedMMaps[mapId];
-        if (mmap->navMeshQueries.find(instanceId) == mmap->navMeshQueries.end())
+        return Route(std::move(guard), mmap->navMesh, NULL);
+    }
+
+    MMapManager::Route MMapManager::OpenRoute(uint32 mapId, uint32 instanceId)
+    {
+        // The common case, and the only one on the hot path: the map is loaded and this
+        // instance already has its query. Shared, so every map thread runs it at once.
         {
-            // allocate mesh query
-            dtNavMeshQuery* query = dtAllocNavMeshQuery();
-            MANGOS_ASSERT(query);
-            if (DT_SUCCESS != query->init(mmap->navMesh, 1024))
+            std::shared_lock<std::shared_mutex> guard(m_lock);
+
+            if (MMapData* mmap = findMap(mapId))
             {
-                dtFreeNavMeshQuery(query);
-                sLog.outError("MMAP:GetNavMeshQuery: Failed to initialize dtNavMeshQuery for mapId %04u instanceId %u", mapId, instanceId);
-                return NULL;
+                if (dtNavMeshQuery const* query = findQuery(mmap, instanceId))
+                {
+                    return Route(std::move(guard), mmap->navMesh, query);
+                }
+            }
+            else
+            {
+                // No mesh for this map at all -- no mmtiles baked, which is normal.
+                // Nothing to create, and no point taking the exclusive lock to find out.
+                return Route();
+            }
+        }
+
+        // First route on this instance. Drop to exclusive to create the query, then take
+        // the read lock again for the caller. The gap between the two is why everything
+        // is looked up a second time below rather than carried across: another thread may
+        // have unloaded the map, or created this very query, in between.
+        {
+            std::unique_lock<std::shared_mutex> guard(m_lock);
+
+            MMapData* mmap = findMap(mapId);
+            if (!mmap)
+            {
+                return Route();
             }
 
-            DEBUG_FILTER_LOG(LOG_FILTER_MAP_LOADING, "MMAP:GetNavMeshQuery: created dtNavMeshQuery for mapId %04u instanceId %u", mapId, instanceId);
-            mmap->navMeshQueries.insert(std::pair<uint32, dtNavMeshQuery*>(instanceId, query));
+            if (!findQuery(mmap, instanceId))
+            {
+                dtNavMeshQuery* query = dtAllocNavMeshQuery();
+                MANGOS_ASSERT(query);
+                if (DT_SUCCESS != query->init(mmap->navMesh, 1024))
+                {
+                    dtFreeNavMeshQuery(query);
+                    sLog.outError("MMAP:OpenRoute: Failed to initialize dtNavMeshQuery for mapId %04u instanceId %u", mapId, instanceId);
+                    return Route();
+                }
+
+                DEBUG_FILTER_LOG(LOG_FILTER_MAP_LOADING, "MMAP:OpenRoute: created dtNavMeshQuery for mapId %04u instanceId %u", mapId, instanceId);
+                mmap->navMeshQueries.insert(std::pair<uint32, dtNavMeshQuery*>(instanceId, query));
+            }
         }
 
-        return mmap->navMeshQueries[instanceId];
+        std::shared_lock<std::shared_mutex> guard(m_lock);
+
+        MMapData* mmap = findMap(mapId);
+        if (!mmap)
+        {
+            return Route();
+        }
+
+        dtNavMeshQuery const* query = findQuery(mmap, instanceId);
+        if (!query)
+        {
+            return Route();
+        }
+
+        return Route(std::move(guard), mmap->navMesh, query);
     }
 }

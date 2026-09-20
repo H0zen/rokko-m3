@@ -50,12 +50,12 @@
 #include "Realm/RealmList.h"
 
 #include "Config/Config.h"
-#include "GitRevision.h"
+#include "Version.h"
 #include "Log.h"
 #include "Auth/PatchPolicy.h"
 #include "Auth/AuthSocket.h"
 #include "Auth/AuthServer.h"
-#include "BuildInfo.h"
+#include "Common/ServerDefines.h"
 #include "ScheduledExit.h"
 #include "Util.h"
 
@@ -245,7 +245,7 @@ extern int main(int argc, char** argv)
 #endif
 
     ///- Command line parsing
-    char const* cfg_file = REALMD_CONFIG_LOCATION;
+    char const* cfg_file = Version::GetRealmdConfigFile();
 
     char serviceDaemonMode = '\0';
 
@@ -278,7 +278,7 @@ extern int main(int argc, char** argv)
         // Long options.
         if (!strcmp(arg, "--version"))
         {
-            printf("%s\n", GitRevision::GetProjectRevision());
+            printf("%s\n", Version::GetFullVersion());
             return 0;
         }
 
@@ -297,7 +297,7 @@ extern int main(int argc, char** argv)
         switch (opt)
         {
             case 'v':
-                printf("%s\n", GitRevision::GetProjectRevision());
+                printf("%s\n", Version::GetFullVersion());
                 return 0;
             case 'c':
             {
@@ -400,22 +400,13 @@ extern int main(int argc, char** argv)
 
     sLog.Initialize();
 
-    sLog.outString("%s [realm-daemon]", GitRevision::GetProjectRevision());
-    sLog.outString("%s", GitRevision::GetFullRevision());
+    sLog.outString("%s [realm-daemon]", Version::GetRelease());
+    sLog.outString("Revision %s", Version::GetRevision());
     sLog.outString("<Ctrl-C> to stop.\n");
     sLog.outString("Using configuration file %s.", cfg_file);
 
     ///- Check the version of the configuration file
-    uint32 confVersion = sConfig.GetIntDefault("ConfVersion", 0);
-    if (confVersion < GitRevision::GetRealmConfigVersion())
-    {
-        sLog.outError("*****************************************************************************");
-        sLog.outError(" WARNING: Your realmd.conf version indicates your conf file is out of date!");
-        sLog.outError("          Please check for updates, as your current default values may cause");
-        sLog.outError("          strange behavior.");
-        sLog.outError("*****************************************************************************");
-        Log::WaitBeforeContinueIfNeed();
-    }
+    sConfig.CheckVersion(Version::GetRealmConfigVersion());
 
     LoadScheduledExitConfig();
 

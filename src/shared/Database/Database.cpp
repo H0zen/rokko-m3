@@ -34,7 +34,7 @@
 #include "DatabaseEnv.h"
 #include "Config/Config.h"
 #include "Database/SqlOperations.h"
-#include "GitRevision.h"
+#include "Version.h"
 #include "Utilities/Util.h"
 #include <ctime>
 #include <iostream>
@@ -44,6 +44,27 @@
 
 #define MIN_CONNECTION_POOL_SIZE 1
 #define MAX_CONNECTION_POOL_SIZE 16
+
+bool QueryFormatFailed(int res, const char* format)
+{
+    if (res >= 0 && res < MAX_QUERY_LEN)
+    {
+        return false;
+    }
+
+    if (res < 0)
+    {
+        sLog.outError("SQL Query could not be formatted (and not executed) for format: %s",
+                      format);
+    }
+    else
+    {
+        sLog.outError("SQL Query truncated (and not executed): needs %d bytes, buffer is %d, "
+                      "for format: %s", res, int(MAX_QUERY_LEN), format);
+    }
+
+    return true;
+}
 
 struct DBVersion
 {
@@ -55,9 +76,9 @@ struct DBVersion
 };
 
 const DBVersion databaseVersions[COUNT_DATABASES] = {
-    { "World", GitRevision::GetWorldDBVersion(), GitRevision::GetWorldDBStructure(), GitRevision::GetWorldDBContent(), GitRevision::GetWorldDBUpdateDescription() }, // DATABASE_WORLD
-    { "Realmd", GitRevision::GetRealmDBVersion(), GitRevision::GetRealmDBStructure(), GitRevision::GetRealmDBContent(), GitRevision::GetRealmDBUpdateDescription() }, // DATABASE_REALMD
-    { "Character", GitRevision::GetCharDBVersion(), GitRevision::GetCharDBStructure(), GitRevision::GetCharDBContent(), GitRevision::GetCharDBUpdateDescription() }, // DATABASE_CHARACTER
+    { "World", Version::GetWorldDBVersion(), Version::GetWorldDBStructure(), Version::GetWorldDBContent(), Version::GetWorldDBUpdateDescription() }, // DATABASE_WORLD
+    { "Realmd", Version::GetRealmDBVersion(), Version::GetRealmDBStructure(), Version::GetRealmDBContent(), Version::GetRealmDBUpdateDescription() }, // DATABASE_REALMD
+    { "Character", Version::GetCharDBVersion(), Version::GetCharDBStructure(), Version::GetCharDBContent(), Version::GetCharDBUpdateDescription() }, // DATABASE_CHARACTER
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -322,9 +343,8 @@ bool Database::PExecuteLog(const char* format, ...)
     int res = vsnprintf(szQuery, MAX_QUERY_LEN, format, ap);
     va_end(ap);
 
-    if (res == -1)
+    if (QueryFormatFailed(res, format))
     {
-        sLog.outError("SQL Query truncated (and not execute) for format: %s", format);
         return false;
     }
 
@@ -368,9 +388,8 @@ QueryResult* Database::PQuery(const char* format, ...)
     int res = vsnprintf(szQuery, MAX_QUERY_LEN, format, ap);
     va_end(ap);
 
-    if (res == -1)
+    if (QueryFormatFailed(res, format))
     {
-        sLog.outError("SQL Query truncated (and not execute) for format: %s", format);
         return NULL;
     }
 
@@ -390,9 +409,8 @@ QueryNamedResult* Database::PQueryNamed(const char* format, ...)
     int res = vsnprintf(szQuery, MAX_QUERY_LEN, format, ap);
     va_end(ap);
 
-    if (res == -1)
+    if (QueryFormatFailed(res, format))
     {
-        sLog.outError("SQL Query truncated (and not execute) for format: %s", format);
         return NULL;
     }
 
@@ -440,9 +458,8 @@ bool Database::PExecute(const char* format, ...)
     int res = vsnprintf(szQuery, MAX_QUERY_LEN, format, ap);
     va_end(ap);
 
-    if (res == -1)
+    if (QueryFormatFailed(res, format))
     {
-        sLog.outError("SQL Query truncated (and not execute) for format: %s", format);
         return false;
     }
 
@@ -462,9 +479,8 @@ bool Database::DirectPExecute(const char* format, ...)
     int res = vsnprintf(szQuery, MAX_QUERY_LEN, format, ap);
     va_end(ap);
 
-    if (res == -1)
+    if (QueryFormatFailed(res, format))
     {
-        sLog.outError("SQL Query truncated (and not execute) for format: %s", format);
         return false;
     }
 
@@ -494,9 +510,8 @@ bool Database::AsyncPQuery(std::function<void(QueryResult*)> callback, const cha
     int res = vsnprintf(szQuery, MAX_QUERY_LEN, format, ap);
     va_end(ap);
 
-    if (res == -1)
+    if (QueryFormatFailed(res, format))
     {
-        sLog.outError("SQL Query truncated (and not executed) for format: %s", format);
         return false;
     }
 

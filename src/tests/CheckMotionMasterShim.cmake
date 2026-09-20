@@ -1,15 +1,3 @@
-# The MotionMaster facade's promise to the vendored scripts (design v2 section 9):
-# the entry points src/modules/SD3 calls today. P3 replaces the facade's internals
-# and P5 deletes the rest of the old stack; both keep exactly these. A script that
-# starts calling anything else widens the promise, and this gate says so.
-# P3-C moved the scripts' type checks to the typed queries (ActiveKind, IsChasing,
-# IsPatrolling); GetCurrentMovementGeneratorType left the promise with them.
-# P5-C retired the legacy type enum and this list's dead MoveRandom row: 18 entry points.
-#
-# Usage: cmake -DSOURCE_ROOT=<repo root> -P CheckMotionMasterShim.cmake
-# Limitation: the regex below sees only literal "GetMotionMaster()->X" call sites;
-# a script that hoists the pointer first (MotionMaster* mm = c->GetMotionMaster();)
-# would escape it. None does today.
 set(ALLOWED
     MovePoint Clear MoveIdle MoveChase MoveFollow MoveTargetedHome MoveWaypoint
     MoveRandomAroundPoint MovementExpired MoveJump MoveFlyOrLand Initialize

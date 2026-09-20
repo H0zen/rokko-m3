@@ -1648,7 +1648,7 @@ void WorldSession::UpdateSecondStream()
             // client, and a permanent one. It counts, so it ends in a kick and a
             // log line instead of a player parked at the loading screen forever.
             sLog.outError("WorldSession: could not issue a redirect for account %u "
-                          "(attempt %u); check Redirect.SecretFile",
+                          "(attempt %u); check <DataDir>/keys/server.secret",
                           GetAccountId(), m_secondStreamAttempts + 1);
             ++m_secondStreamAttempts;
             break;

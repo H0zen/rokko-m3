@@ -181,8 +181,9 @@ jobs:
 
             version=$(printf '%s' "$out" | tail -n 1 | tr -d '\r')
             case "$version" in
-              '' | *[!0-9]*)
-                echo "::error::$daemon --version ended with '$version', not a revision number"
+              *[0-9].[0-9]*.[0-9]*" ("*")") ;;
+              *)
+                echo "::error::$daemon --version ended with '$version', not a release and a revision"
                 exit 1 ;;
             esac
           }

@@ -185,8 +185,15 @@ bool ChatHandler::HandleMmapLocCommand(char* /*args*/)
     PSendSysMessage("gridloc [%i,%i]", gx, gy);
 
     // calculate navmesh tile location
-    const dtNavMesh* navmesh = MMAP::MMapFactory::createOrGetMMapManager()->GetNavMesh(player->GetMapId());
-    const dtNavMeshQuery* navmeshquery = MMAP::MMapFactory::createOrGetMMapManager()->GetNavMeshQuery(player->GetMapId(), player->GetInstanceId());
+    //
+    // Held to the end of the command: this runs on the world thread while the map
+    // threads are free to load and unload grids, and findNearestPoly walks the same
+    // tile array addTile() rewrites.
+    MMAP::MMapManager::Route route =
+        MMAP::MMapFactory::createOrGetMMapManager()->OpenRoute(player->GetMapId(), player->GetInstanceId());
+
+    const dtNavMesh* navmesh = route.Mesh();
+    const dtNavMeshQuery* navmeshquery = route.Query();
     if (!navmesh || !navmeshquery)
     {
         PSendSysMessage("NavMesh not loaded for current map.");
@@ -244,9 +251,12 @@ bool ChatHandler::HandleMmapLoadedTilesCommand(char* /*args*/)
 {
     uint32 mapid = m_session->GetPlayer()->GetMapId();
 
-    const dtNavMesh* navmesh = MMAP::MMapFactory::createOrGetMMapManager()->GetNavMesh(mapid);
-    const dtNavMeshQuery* navmeshquery = MMAP::MMapFactory::createOrGetMMapManager()->GetNavMeshQuery(mapid, m_session->GetPlayer()->GetInstanceId());
-    if (!navmesh || !navmeshquery)
+    // Mesh only: this walks the tile array and reports, it never queries. Held for the
+    // length of the walk so a grid unload cannot pull a tile out from under getTile().
+    MMAP::MMapManager::Route route = MMAP::MMapFactory::createOrGetMMapManager()->OpenMesh(mapid);
+
+    const dtNavMesh* navmesh = route.Mesh();
+    if (!navmesh)
     {
         PSendSysMessage("NavMesh not loaded for current map.");
         return true;
@@ -282,7 +292,9 @@ bool ChatHandler::HandleMmapStatsCommand(char* /*args*/)
     MMAP::MMapManager* manager = MMAP::MMapFactory::createOrGetMMapManager();
     PSendSysMessage(" %u maps loaded with %u tiles overall", manager->getLoadedMapsCount(), manager->getLoadedTilesCount());
 
-    const dtNavMesh* navmesh = manager->GetNavMesh(m_session->GetPlayer()->GetMapId());
+    MMAP::MMapManager::Route route = manager->OpenMesh(m_session->GetPlayer()->GetMapId());
+
+    const dtNavMesh* navmesh = route.Mesh();
     if (!navmesh)
     {
         PSendSysMessage("NavMesh not loaded for current map.");

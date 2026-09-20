@@ -95,21 +95,24 @@ ConfVersion=@MANGOS_WORLD_VER@
 #    fallback: without the second stream it silently discards a fifth of what the
 #    server sends it and never transmits most of what it should.
 #
-#    Run 'secret-gen' once per realm. It writes two files from one generation:
+#    'mep bake' mints the pair once per realm, as part of baking the client:
 #
-#        server.secret   goes here, via Redirect.SecretFile below
-#        client.secret   goes to 'mangos-patch apply <Wow.exe> --secret client.secret'
+#        <DataDir>/keys/server.secret   read from there by this server. There is
+#                                       no setting for it: it is baked data, like
+#                                       the tiles, and the server refuses to start
+#                                       without it. SECRET -- anyone holding it can
+#                                       redirect this realm's players to an address
+#                                       of their choosing. Keep it readable only by
+#                                       the account the server runs as, and out of
+#                                       backups that travel.
+#        <DataDir>/keys/client.secret   what every client is patched from, which
+#                                       'mep bake' also does in the same pass, or
+#                                       'mep patch apply <Wow.exe> --secret ...'
 #
-#    Redirect.SecretFile
-#        Path to the server.secret secret-gen wrote. SECRET -- anyone holding it
-#        can redirect this realm's players to an address of their choosing. Keep
-#        it readable only by the account the server runs as, and out of backups
-#        that travel. The server refuses to start without it.
-#        secret-gen also writes the key's primes and CRT parameters (Prime1,
-#        Prime2, Exponent1, Exponent2, Coefficient) into it; with them each
-#        redirect is signed about four times faster. A file from an older
-#        secret-gen without them still loads, on the slower path.
-#        Default: server.secret
+#    'mep mint' writes the key's primes and CRT parameters (Prime1, Prime2,
+#    Exponent1, Exponent2, Coefficient) into server.secret; with them each redirect
+#    is signed about four times faster. An older file without them still loads, on
+#    the slower path.
 #
 #    Redirect.Address
 #        The address the client is told to connect to for the second stream.
@@ -147,7 +150,6 @@ WorldServerStreamPort        = 8086
 SecondStream.ExtraRouting    = 1
 BindIP                       = "0.0.0.0"
 
-Redirect.SecretFile          = "server.secret"
 Redirect.Address             = ""
 Redirect.Timeout             = 15000
 Redirect.Stream1Crypt        = 1

@@ -30,6 +30,7 @@
 #include "DetourNavMesh.h"
 #include "DetourNavMeshQuery.h"
 
+#include "MoveMap.h"
 #include "MoveMapSharedDefines.h"
 #include "movement/MoveSplineInitArgs.h"
 
@@ -300,8 +301,16 @@ class PathFinder
          * @brief Create the query filter.
          */
         void createFilter();
-        /// Take the map's mesh and the instance's query from the manager; NULL when there is none.
-        void BindMesh();
+        /**
+         * @brief Take the map's mesh and the instance's query from the manager.
+         *
+         * Sets m_navMesh / m_navMeshQuery (NULL when the map has no navmesh) and returns
+         * the Route that makes them safe to dereference. THE CALLER MUST KEEP IT ALIVE
+         * for as long as it touches either: the Route holds the manager's read lock, and
+         * without it a grid load on another instance of this map can call addTile() on
+         * the mesh mid-query.
+         */
+        MMAP::MMapManager::Route BindMesh();
 
         /**
          * @brief Update the query filter.

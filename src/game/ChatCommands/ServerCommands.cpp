@@ -39,8 +39,8 @@
 #include "Language.h"
 #include "World.h"
 #include "Config.h"
-#include "GitRevision.h"
-#include "BuildInfo.h"
+#include "Version.h"
+#include "Common/ServerDefines.h"
 #include "BattleGroundMgr.h"
 #include "UpdateTime.h"
 #include "MapPersistentStateMgr.h"
@@ -67,9 +67,7 @@ bool ChatHandler::HandleServerInfoCommand(char* /*args*/)
     std::string str = secsToTimeString(sWorld.GetUptime());
     uint32 updateTime = sWorldUpdateTime.GetLastUpdateTime();
 
-    char const* full;
-    full = GitRevision::GetProjectRevision();
-    SendSysMessage(full);
+    SendSysMessage(Version::GetFullVersion());
 
     if (sScriptMgr.IsScriptLibraryLoaded())
     {
@@ -88,8 +86,7 @@ bool ChatHandler::HandleServerInfoCommand(char* /*args*/)
         SendSysMessage(LANG_USING_SCRIPT_LIB_NONE);
     }
 
-    PSendSysMessage("%s", GitRevision::GetFullRevision());
-    PSendSysMessage("%s", GitRevision::GetRunningSystem());
+    PSendSysMessage("%s", Version::GetRunningSystem());
 
     PSendSysMessage(LANG_USING_WORLD_DB, sWorld.GetDBVersion());
     PSendSysMessage(LANG_CONNECTED_USERS, activeClientsNum, maxActiveClientsNum, queuedClientsNum, maxQueuedClientsNum);

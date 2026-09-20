@@ -26,6 +26,20 @@
 #ifndef MANGOSSERVER_SERVERDEFINES_H
 #define MANGOSSERVER_SERVERDEFINES_H
 
+/// Config file names, looked for beside the binary when the installed path in
+/// Version::Get*ConfigFile() does not resolve.
+constexpr char const* MANGOSD_CONFIG_NAME         = "mangosd.conf";
+constexpr char const* REALMD_CONFIG_NAME          = "realmd.conf";
+constexpr char const* AUCTIONHOUSEBOT_CONFIG_NAME = "ahbot.conf";
+
+/// What an operator gets for a setting they did not set. These lived in the
+/// generated header, which meant a commit recompiled everyone who wanted a
+/// default port.
+constexpr int DEFAULT_PLAYER_LIMIT            = 100;
+constexpr int DEFAULT_WORLDSERVER_PORT        = 8085;
+constexpr int DEFAULT_WORLDSERVER_STREAM_PORT = 8086;
+constexpr int DEFAULT_REALMSERVER_PORT        = 3724;
+
 /**
  * @brief
  *

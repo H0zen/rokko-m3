@@ -1,10 +1,3 @@
-# The Montgomery kernel has one assembly source, MontgomeryAsm.S (GAS); MSVC assembles
-# MontgomeryAsm.asm, generated from it by src/tests/tools/gas2masm.py. This regenerates
-# the twin and compares it with the committed file, so an edit to one cannot go unnoticed
-# in the other. Python is required on Linux (the CI runners have it); on Windows the
-# check is skipped with a notice when no interpreter is found.
-# An interpreter that actually runs: on Windows a `python3` may be the Store's
-# app-execution alias, which exits non-zero without a word.
 set(PYTHON_FOR_TWIN "")
 foreach(candidate IN ITEMS python3 python py)
     find_program(PYTHON_CANDIDATE_${candidate} NAMES ${candidate})
@@ -46,8 +39,6 @@ if(NOT GENERATED STREQUAL COMMITTED)
         "CheckAsmTwin: src/shared/Crypto/MontgomeryAsm.asm is not what gas2masm.py generates from MontgomeryAsm.S. "
         "Regenerate it: python3 src/tests/tools/gas2masm.py src/shared/Crypto/MontgomeryAsm.S > src/shared/Crypto/MontgomeryAsm.asm")
 endif()
-# The GAS source itself is generated (src/tests/tools/gen_montgomery_asm.py): it too
-# must be what the generator produces.
 set(GENERATOR "${SOURCE_ROOT}/src/tests/tools/gen_montgomery_asm.py")
 execute_process(
     COMMAND "${PYTHON_FOR_TWIN}" "${GENERATOR}"

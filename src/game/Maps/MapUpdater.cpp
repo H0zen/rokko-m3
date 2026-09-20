@@ -33,6 +33,7 @@
 #include "Map.h"
 #include "Database/DatabaseEnv.h"
 #include "Log.h"
+#include <exception>
 #include <mutex>
 #include <thread>
 
@@ -168,7 +169,35 @@ void MapUpdater::workerLoop()
         }
 
         // Map::Update sets its own ownership scope now; the worker names no map.
-        task.first->Update(task.second);
+        //
+        // And it must not throw past this point. An escaping exception used to take
+        // the whole process with it -- no handler above a std::thread's entry point
+        // means std::terminate -- and if it had been caught anywhere else, the
+        // --m_pending below would have been skipped and wait() would have blocked on
+        // a count that never reaches zero: the world thread parked at the tick
+        // barrier for ever. Neither failure is hypothetical. WorldSession::Update
+        // catches ByteBufferException only on the PARSE path; the same exception is
+        // thrown by ByteBuffer::put() while BUILDING a packet, which SendObjectUpdates()
+        // does inside this call with no try anywhere between.
+        //
+        // One map's tick is lost and said so. The other maps still tick, the barrier
+        // still releases, and the players on them keep playing.
+        try
+        {
+            task.first->Update(task.second);
+        }
+        catch (const std::exception& e)
+        {
+            sLog.outError("MapUpdater: map %u update threw (%s); this tick is lost",
+                          task.first->GetId(), e.what());
+        }
+        catch (...)
+        {
+            // ByteBufferException does not derive from std::exception and reports
+            // itself from its own constructor, so there is nothing to print here.
+            sLog.outError("MapUpdater: map %u update threw a non-standard exception; "
+                          "this tick is lost", task.first->GetId());
+        }
 
         {
             std::lock_guard<std::mutex> guard(m_mutex);
