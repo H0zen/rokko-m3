@@ -117,6 +117,7 @@ struct AreaTrigger;
 
 #include <memory>
 #include "CinematicFlyover.h"
+#include "Cell.h"
 
 typedef std::deque<Mail*> PlayerMails;
 
@@ -2822,6 +2823,12 @@ class Player : public Unit
         void RemovedInsignia(Player* looterPlr);
 
         // Get the player's session
+        /// The grid cell he is filed under. A creature has always tracked this; a player now
+        /// does too, because Map::PlayerRelocation cannot derive it from a placement whose
+        /// frame it does not know -- a vehicle rider's placement is his seat pose.
+        Cell const& GetCurrentCell() const { return m_currentCell; }
+        void SetCurrentCell(Cell const& cell) { m_currentCell = cell; }
+
         WorldSession* GetSession() const
         {
             return m_session;
@@ -4157,6 +4164,8 @@ class Player : public Unit
         static const float m_diminishing_k[MAX_CLASSES];
 
     private:
+        Cell m_currentCell;   ///< the grid cell this player is filed under (see GetCurrentCell)
+
         void _HandleDeadlyPoison(Unit* Target, WeaponAttackType attType, SpellEntry const* spellInfo);
         // internal common parts for CanStore/StoreItem functions
         uint32 m_created_date = 0;
