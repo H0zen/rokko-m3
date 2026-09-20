@@ -52,12 +52,10 @@ endif()
 file(READ "${HANDLER_SOURCE}" HANDLER_TEXT)
 
 string(REGEX MATCH
-    "void[ 	
-]*WorldSession::HandleWardenDataOpcode[^{]*{([^}]*)}"
+    "void[ \t\r\n]*WorldSession::HandleWardenDataOpcode[^{]*{([^}]*)}"
     UNUSED "${HANDLER_TEXT}")
 set(HANDLER_BODY "${CMAKE_MATCH_1}")
-string(REGEX REPLACE "[ 	
-]" "" HANDLER_BODY "${HANDLER_BODY}")
+string(REGEX REPLACE "[ \t\r\n]" "" HANDLER_BODY "${HANDLER_BODY}")
 
 if(NOT HANDLER_BODY STREQUAL "recv_data.rfinish();")
     message(FATAL_ERROR
