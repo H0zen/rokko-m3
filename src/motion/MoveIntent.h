@@ -109,7 +109,7 @@ namespace Motion
         Facing       facing;
         uint32       flags = MOVE_NONE;
         float        speed = 0.0f;          ///< Move: a speed override in yd/s; 0 = the unit's own pace.
-        float        pathLengthLimit = 0.0f;
+        float        pathLengthLimit = 0.0f;  ///< Move: refuse a route LONGER than this many yards (0 = no cap): the leg's own length, never a budget of path points.
         PointsArray const* path = nullptr;  ///< Move: exact geometry (non-owning, stable for the leg's life).
         EffectLaunch launch;                ///< Launch: the spline.
 

@@ -2639,7 +2639,7 @@ TEST(MotionBehaviour_FearPickDrawsInTheGeneratorsOrder)
     CHECK(t.apply);
     CHECK(t.intent.act == MoveIntent::Act::Move);
     CHECK_EQ(t.intent.flags, uint32(MOVE_REQUIRE_PATH));
-    CHECK(Close(t.intent.pathLengthLimit, 30.0f));
+    CHECK(Close(t.intent.pathLengthLimit, 60.0f));
     REQUIRE(t.effects.size() == size_t(1));
     CHECK(t.effects[0].kind == Effect::Latches);
     CHECK_EQ(t.effects[0].latchSet, uint8(LatchLeg));

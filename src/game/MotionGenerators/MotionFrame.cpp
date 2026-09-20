@@ -48,6 +48,18 @@ namespace Motion
         constexpr float DEFAULT_PATH_LENGTH =
             float(MAX_POINT_PATH_LENGTH) * SMOOTH_PATH_STEP_SIZE;
 
+        /// The length of a routed path, summed over its segments: what a caller's cap names.
+        float RouteLength(PointsArray const& points)
+        {
+            float total = 0.0f;
+            for (size_t i = 1; i < points.size(); ++i)
+            {
+                const Vector3 step = points[i] - points[i - 1];
+                total += sqrtf(step.x * step.x + step.y * step.y + step.z * step.z);
+            }
+            return total;
+        }
+
         /// A unit's router on a map, behind IPathQuery: the world map the mover is filed under,
         /// or a vessel's deck (its own map, while the world still holds the mover's guid).
         class UnitPathQuery final : public IPathQuery
@@ -61,8 +73,14 @@ namespace Motion
                 bool Calculate(Vector3 const& start, Vector3 const& goal,
                                bool forceDestination, float lengthLimit) override
                 {
-                    m_path.setPathLengthLimit(lengthLimit > 0.0f ? lengthLimit
-                                                                 : DEFAULT_PATH_LENGTH);
+                    // The smoother always gets its own budget. PathFinder::setPathLengthLimit
+                    // reads yards as a COUNT OF PATH POINTS (yards over the 4-yard smoothing
+                    // step) and findSmoothPath FAILS when it runs out of them before the goal,
+                    // so a caller's 30-yard cap allowed seven points and refused every route
+                    // that had to bend: a feared unit stood still in any city, its animation
+                    // running, while the same leg smoothed fine over open ground (the live
+                    // test of 2026-09-20). The cap is applied below, to the route's length.
+                    m_path.setPathLengthLimit(DEFAULT_PATH_LENGTH);
 
                     if (!m_path.calculate(start.x, start.y, start.z,
                                           goal.x, goal.y, goal.z, forceDestination))
@@ -73,7 +91,15 @@ namespace Motion
                     // A failed route still leaves a straight-line shortcut in the points,
                     // which some movement kinds want and others refuse -- so report it
                     // through Failed() rather than deciding here.
-                    return m_path.getPath().size() >= 2;
+                    if (m_path.getPath().size() < 2)
+                    {
+                        return false;
+                    }
+
+                    // The caller's cap, applied to what it names: the route's length. A bolt
+                    // that would walk half a zone to reach its point is not a bolt, and the
+                    // behaviour hears the refusal and draws another point next tick.
+                    return lengthLimit <= 0.0f || RouteLength(m_path.getPath()) <= lengthLimit;
                 }
 
                 PointsArray const& Points() const override { return m_path.getPath(); }

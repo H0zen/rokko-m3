@@ -45,7 +45,10 @@ namespace Motion
     {
         float  minQuiet = 28.0f;          ///< closer than this to the fright: bolt away from it
         float  maxQuiet = 43.0f;          ///< farther than this: drift back toward it
-        float  legLimit = 30.0f;          ///< the routed leg's length cap: a bolt, not a journey
+        float  legLimit = 60.0f;          ///< the routed leg's length cap in yards: a bolt, not a journey.
+                                          ///< The longest pick this geometry draws is 1.3 * minQuiet = 36.4 yd,
+                                          ///< so a route may bend to about 1.6 times its straight line before
+                                          ///< it is refused and another point is drawn.
         uint32 restMin = 800;             ///< the rest standing after a bolt, ms
         uint32 restMax = 1500;
         uint32 retryMs = 50;              ///< after a refused point or a blocked leg

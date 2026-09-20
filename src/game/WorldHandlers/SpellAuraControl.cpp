@@ -850,6 +850,32 @@ void Aura::HandleDetectAmore(bool apply, bool /*real*/)
  * @param apply True to root the target; false to unroot it.
  * @param Real True when processing the real aura state change.
  */
+/**
+ * @brief Does this spell drive its target's movement itself (a fear or a confuse)?
+ *
+ * Retail's control spells carry a Mod Root effect of their own -- spell 5782 (Fear) roots
+ * through its third effect -- whose job is to stop the CLIENT steering while the SERVER
+ * drives the flee. Read as a movement block it pauses the very behaviour the same spell
+ * installed, and the victim stands still with its fleeing animation running (the live test
+ * of 2026-09-20; it began when root auras first reached the kernel's block state in the
+ * root fix of 2026-09-14). The control claim owns the movement for these spells, so their
+ * own root is not one of the kernel's.
+ * @param proto The spell the root effect belongs to.
+ * @return True when the same spell also fears or confuses.
+ */
+static bool SpellDrivesItsOwnMovement(SpellEntry const* proto)
+{
+    for (int32 i = 0; i < MAX_EFFECT_INDEX; ++i)
+    {
+        const AuraType aura = AuraType(proto->GetEffectApplyAuraNameByIndex(SpellEffectIndex(i)));
+        if (aura == SPELL_AURA_MOD_FEAR || aura == SPELL_AURA_MOD_CONFUSE)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 void Aura::HandleAuraModRoot(bool apply, bool Real)
 {
     // only at real add/remove aura
@@ -880,7 +906,10 @@ void Aura::HandleAuraModRoot(bool apply, bool Real)
         // M1, which wipes first): a player's root is a desired flag awaiting the ack, not part
         // of m_movementInfo, while the stun handler wipes first because a charmed creature's
         // root already is.
-        target->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, source);
+        if (!SpellDrivesItsOwnMovement(GetSpellProto()))
+        {
+            target->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, source);
+        }
 
         if (target->GetTypeId() == TYPEID_PLAYER)
         {
@@ -924,7 +953,10 @@ void Aura::HandleAuraModRoot(bool apply, bool Real)
         // One writer for the root state now: the kernel's. The source count replaces the
         // "other root auras active" check and the seat/fixed-vehicle check; the projection
         // keeps the mover rooted while a stun or a seat still holds it.
-        target->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted, source);
+        if (!SpellDrivesItsOwnMovement(GetSpellProto()))
+        {
+            target->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted, source);
+        }
     }
 }
 

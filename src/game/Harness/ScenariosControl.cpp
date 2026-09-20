@@ -594,6 +594,80 @@ namespace Harness
         };
     }
 
+        /// S60 (the live test of 2026-09-20): the fear applied AS THE SPELL, not through the
+        /// entry point every other scenario calls. Spell 5782's third effect is a Mod Root aura
+        /// -- retail's way of stopping the CLIENT steering while the server drives the flee --
+        /// and once root auras reached the kernel's block state (the root fix of 2026-09-14) it
+        /// paused the very fear that brought it: the victim stood still with its fleeing
+        /// animation running, on every live server, while every harness scenario passed because
+        /// it called Unit::SetFeared directly and the spell's other effects never landed.
+        /// This one casts the spell.
+        class FearAuraMoves : public Scenario
+        {
+        public:
+            FearAuraMoves() : Scenario("fear-aura-moves", 60) {}
+
+            void Prepare() override
+            {
+                struct St
+                {
+                    float x0, y0;
+                    float far2;        ///< the farthest the wolf got from where it was feared
+                    bool  feared;      ///< the claim was held at the first sample
+                    bool  rooted;      ///< the kernel called it rooted while feared
+                };
+                Creature* a = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+                Creature* k = Spawn(KOBOLD, SE.x + 6.0f, SE.y, Ground(SE.x + 6.0f, SE.y, SE.z), 3.1f);
+                if (!a || !k) { Verdict("fearAuraMoves=INVALID(spawn failed) | ownRootNotHeld=INVALID(spawn failed)"); return; }
+                Silence(a);
+                Silence(k);
+                const ObjectGuid g = a->GetObjectGuid(), gk = k->GetObjectGuid();
+                auto st = std::make_shared<St>();
+                st->x0 = st->y0 = st->far2 = 0.0f;
+                st->feared = st->rooted = false;
+
+                At(500, [this, g, gk, st]()
+                {
+                    Creature* a = Get(g); Creature* k = Get(gk);
+                    if (!a || !k) { return; }
+                    st->x0 = a->Where().X();
+                    st->y0 = a->Where().Y();
+                    k->CastSpell(a, FEAR, true);        // the spell, with every effect it carries
+                    Log("the kobold casts %u on the wolf at (%.1f, %.1f)", FEAR, st->x0, st->y0);
+                });
+                At(700, [this, g, st]()
+                {
+                    Creature* a = Get(g); if (!a) { return; }
+                    st->feared = a->Blocked(Motion::ReasonFeared);
+                    st->rooted = a->IsRooted();
+                    Log("+ 200ms after the cast: feared=%d rooted=%d mt=%s", st->feared ? 1 : 0, st->rooted ? 1 : 0, TypeName(a));
+                });
+                for (uint32 i = 1; i <= 16; ++i)
+                {
+                    At(700 + i * 250, [this, g, st, i]()
+                    {
+                        Creature* a = Get(g); if (!a) { return; }
+                        const float d = Dist2(st->x0, st->y0, a->Where().X(), a->Where().Y());
+                        if (d > st->far2) { st->far2 = d; }
+                        if (i % 4 == 0)
+                        {
+                            Log("+%4ums %.1f yd from the spot it was feared at, farthest %.1f", i * 250, d, st->far2);
+                        }
+                    });
+                }
+                At(5000, [this, g, st]()
+                {
+                    // A bolt is 11-36 yd and the first one is under way well inside four seconds:
+                    // ten yards is the line between fleeing and standing, not a measure of the geometry.
+                    const char* moved = !st->feared ? "INVALID(the fear never held)"
+                                                    : (st->far2 >= 10.0f ? "OK" : "BUG(stood still)");
+                    const char* root = st->rooted ? "BUG(the fear's own root is in the kernel's block)" : "OK";
+                    Verdict(std::string("fearAuraMoves=") + moved + " | ownRootNotHeld=" + root);
+                });
+            }
+        };
+
+
     void RegisterControlScenarios(Runner& r)
     {
         r.Register(new FearBoltsAway());
@@ -601,5 +675,6 @@ namespace Harness
         r.Register(new FearFromACorpse());
         r.Register(new FearRefreshSameClaim());
         r.Register(new ConfuseInTheAir());
+        r.Register(new FearAuraMoves());
     }
 }
