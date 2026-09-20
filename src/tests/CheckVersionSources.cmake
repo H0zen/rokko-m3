@@ -93,7 +93,8 @@ foreach(SHORT IN LISTS INCLUDERS)
     endif()
 endforeach()
 
-if(NOT BUILDINFO_UMBRELLA IN_LIST INCLUDERS)
+list(FIND INCLUDERS "${BUILDINFO_UMBRELLA}" UMBRELLA_AT)
+if(UMBRELLA_AT EQUAL -1)
     list(APPEND VIOLATIONS "${BUILDINFO_UMBRELLA}: the umbrella no longer includes BuildInfo.h")
 endif()
 
