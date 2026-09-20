@@ -2,39 +2,51 @@
 
 . "$(dirname "${BASH_SOURCE[0]}")/codestyle-scope.sh"
 
-exclude_dirs=""
-for dir in "${codestyle_excludes[@]}"; do
-    exclude_dirs+="--exclude-dir=$dir "
-done
-
-set -e
+set -u
 
 echo "Starting Codestyling Script:"
 echo
 
-declare -A singleLineRegexChecks=(
-    ["[[:blank:]]$"]="Remove whitespace at the end of the lines above"
-    ["	"]="Replace tabs with 4 spaces in the lines above"
-)
+mapfile -t files < <(git ls-files | grep -vE "${codestyle_exclude_re}")
+count=${#files[@]}
 
-for check in "${!singleLineRegexChecks[@]}"; do
-    echo "  Checking RegEx: '${check}'"
+if [ "${count}" -lt "${codestyle_minimum_files}" ]; then
+    echo "Only ${count} files in scope, expected at least ${codestyle_minimum_files}."
+    echo "The scan is not reading the tree; failing instead of passing quietly."
+    exit 1
+fi
 
-    set +e
-    grep -P -r -I -n ${exclude_dirs} "${check}" "${codestyle_root}"
-    status=$?
-    set -e
+echo "  ${count} files in scope"
+echo
 
-    if [ ${status} -eq 0 ]; then
+failed=0
+
+# Every rule runs, and every rule reports, so one push answers all of them
+# instead of one per round trip.
+check() {
+    local name="$1" pattern="$2" advice="$3" hits
+
+    hits=$(grep -n -I -P -- "${pattern}" "${files[@]}" 2>/dev/null)
+
+    if [ -n "${hits}" ]; then
+        echo "  ${name}:"
+        echo "${hits}"
+        echo "  ${advice}"
         echo
-        echo "${singleLineRegexChecks[$check]}"
-        exit 1
-    elif [ ${status} -ne 1 ]; then
-        echo
-        echo "grep exited ${status} for '${check}': the check did not run."
-        exit 1
+        failed=1
+    else
+        echo "  ${name}: clean"
     fi
-done
+}
+
+check "tabs" $'\t' "Replace tabs with 4 spaces in the lines above"
+check "trailing whitespace" '[[:blank:]]+$' "Remove whitespace at the end of the lines above"
 
 echo
+
+if [ "${failed}" -ne 0 ]; then
+    echo "Codestyle failed."
+    exit 1
+fi
+
 echo "Awesome! No issues..."
