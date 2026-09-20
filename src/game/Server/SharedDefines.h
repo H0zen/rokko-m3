@@ -3791,8 +3791,8 @@ enum TrackedAuraType
     MAX_TRACKED_AURA_TYPES
 };
 
-// The accepted client build and version are GitRevision::GetAcceptedClientBuilds()
-// and GetClientVersion(), generated from cmake/MangosVersions.cmake. They used to
+// The accepted client build and version are Version::GetAcceptedClientBuilds()
+// and GetClientVersion(), generated from cmake/MangosVersion.cmake. They used to
 // be macros written out here, three thousand lines into a header 81 files include
 // -- which put every one of them on the dependency of a generated header.
 

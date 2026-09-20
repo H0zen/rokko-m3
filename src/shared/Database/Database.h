@@ -47,6 +47,23 @@ class Database;
 
 #define MAX_QUERY_LEN   (32*1024)
 
+/**
+ * @brief Did vsnprintf fail to lay the whole query into a MAX_QUERY_LEN buffer?
+ *
+ * Every P* entry point formats into a stack buffer of that size, and each of them
+ * used to test `res == -1`. vsnprintf does not report truncation that way: it returns
+ * the length the query WOULD have needed, and goes negative only on an encoding
+ * error. That is C99, and MSVC has conformed since 2015 -- the -1 belongs to the old
+ * _vsnprintf. So the guard never fired, and a query longer than 32 KB was cut at the
+ * buffer and handed to the server anyway, under a log line promising it had not been.
+ * Truncation lands mid-statement, so what MySQL reports is a syntax error on a save
+ * that silently did not happen.
+ *
+ * Shared rather than repeated, so the seven callers cannot drift apart again. Logs the
+ * reason itself; the caller only has to return its own kind of failure.
+ */
+bool QueryFormatFailed(int res, const char* format);
+
 enum DatabaseTypes
 {
     DATABASE_WORLD,

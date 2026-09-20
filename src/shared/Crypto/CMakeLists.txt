@@ -1,10 +1,3 @@
-# =============================================================================
-# mangos_crypto: the primitives the server's protocols run on, owned by this tree.
-#
-# No dependency on the rest of the tree -- the C++17 standard library and the OS
-# random-number API only -- so a tool that needs to hash a file or sign a block
-# links this and nothing else, and every primitive is testable on its own.
-# =============================================================================
 set(CRYPTO_SOURCES
     Fatal.cpp
     Fatal.h
@@ -38,16 +31,10 @@ set(CRYPTO_SOURCES
     Prime.h
 )
 
-# The assembly tier of the Montgomery kernel (x86-64, BMI2 + ADX; MontgomeryAsm.S).
-# One source: the GAS file. MSVC assembles the generated MASM twin (MontgomeryAsm.asm,
-# from src/tests/tools/gas2masm.py -- a test checks it is current); Linux assembles the
-# GAS source through the compiler driver. Elsewhere the C++ tiers stand alone.
 set(CRYPTO_ASM_SOURCES)
 set(CRYPTO_HAVE_ASM OFF)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64|amd64")
     if(MSVC)
-        # ml64 through its own command: the C++ options the tree adds directory-wide
-        # (/W4, /MP, /bigobj, ...) are not assembler options, and ml64 warns on each.
         enable_language(ASM_MASM)
         set(CRYPTO_ASM_OBJECT ${CMAKE_CURRENT_BINARY_DIR}/MontgomeryAsm.obj)
         add_custom_command(
@@ -76,7 +63,6 @@ target_include_directories(mangos_crypto
     PUBLIC
         ${CMAKE_SOURCE_DIR}/src/shared)
 
-# The OS random source: BCryptGenRandom on Windows; getrandom(2)/arc4random_buf need no library.
 target_link_libraries(mangos_crypto PUBLIC $<$<BOOL:${WIN32}>:bcrypt>)
 
 target_compile_features(mangos_crypto PUBLIC cxx_std_17)

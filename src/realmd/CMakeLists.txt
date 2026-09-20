@@ -1,35 +1,8 @@
-#/**
-# * MaNGOS is a full featured server for World of Warcraft, supporting
-# * the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
-# *
-# * Copyright (C) 2005-2026 MaNGOS <https://www.getmangos.eu>
-# *
-# * This program is free software; you can redistribute it and/or modify
-# * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
-# * (at your option) any later version.
-# *
-# * This program is distributed in the hope that it will be useful,
-# * but WITHOUT ANY WARRANTY; without even the implied warranty of
-# * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# * GNU General Public License for more details.
-# *
-# * You should have received a copy of the GNU General Public License
-# * along with this program; if not, write to the Free Software
-# * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
-# *
-# * World of Warcraft, and all World of Warcraft or Warcraft art, images,
-# * and lore are copyrighted by Blizzard Entertainment, Inc.
-# */
-
-#Auth Files
 file(GLOB_RECURSE SRC_GRP_AUTH Auth/*.cpp Auth/*.h)
 source_group("Authentication" FILES ${SRC_GRP_AUTH})
 
-#Realm Files
 file(GLOB_RECURSE SRC_GRP_REALM Realm/*.cpp Realm/*.h)
 source_group("Realmlist" FILES ${SRC_GRP_REALM})
-
 
 configure_file(realmd.conf.dist.in ${CMAKE_CURRENT_BINARY_DIR}/realmd.conf.dist)
 
@@ -40,13 +13,12 @@ add_executable(realmd
     $<$<BOOL:${WIN32}>:${CMAKE_SOURCE_DIR}/cmake/win/VersionInfo.rc>
 )
 
-# See the note in src/mangosd/CMakeLists.txt: only the strings that name this
-# executable are per-target, and they reach the resource compiler directly.
 if(WIN32)
-    set_source_files_properties(${CMAKE_SOURCE_DIR}/cmake/win/VersionInfo.rc
-        TARGET_DIRECTORY realmd
-        PROPERTIES COMPILE_DEFINITIONS
-            "PRODUCT_ICON=\"${CMAKE_CURRENT_SOURCE_DIR}/realmd.ico\";PRODUCT_BUNDLE=\"realmd.exe\\0\";PRODUCT_FILE_DESCRIPTION=\"MaNGOS Authentication Daemon\\0\"")
+    target_compile_definitions(realmd
+        PRIVATE
+            PRODUCT_ICON="${CMAKE_CURRENT_SOURCE_DIR}/realmd.ico"
+            PRODUCT_FILE_NAME="realmd.exe"
+            PRODUCT_FILE_DESCRIPTION="${MANGOS_PKG} Login Server")
 endif()
 
 target_compile_features(realmd PUBLIC cxx_std_17)
@@ -60,7 +32,7 @@ target_include_directories(realmd
 
 target_link_libraries(realmd
     PUBLIC
-        shared
+        shared_db
         Threads::Threads
 )
 
@@ -82,10 +54,6 @@ if(WIN32 AND MSVC)
         )
 endif()
 
-# Parent cores use two explicit test switches: WITH_TESTS in MangosTwo and
-# BUILD_TESTING in MangosZero/MangosOne. Both default off in their respective
-# parents, so realmd tests remain opt-in while working with every supported
-# parent convention.
 if(WITH_TESTS OR BUILD_TESTING)
     add_executable(realmd_client_locale_tests
         Tests/ClientLocaleTests.cpp

@@ -10,6 +10,7 @@
 #include "ClientFile.h"
 #include "Hash.h"
 #include "Patch.h"
+#include "SecretFile.h"
 #include "Targets.h"
 
 namespace {
@@ -17,14 +18,14 @@ namespace {
 using namespace mangos::patcher;
 
 const char* kUsage =
-    "mangos-patch - patch a WoW 4.3.4.15595 client for MaNGOS's signed redirects\n"
+    "mep patch - patch a WoW 4.3.4.15595 client for MaNGOS's signed redirects\n"
     "\n"
-    "  mangos-patch verify <exe>\n"
-    "  mangos-patch apply  <exe> [options]\n"
-    "  mangos-patch selftest\n"
+    "  mep patch verify <exe>\n"
+    "  mep patch apply  <exe> [options]\n"
+    "  mep patch selftest\n"
     "\n"
     "apply options:\n"
-    "  --secret <client.secret>    modulus and digest, as secret-gen wrote them\n"
+    "  --secret <client.secret>    modulus and digest, as 'mep mint' wrote them\n"
     "  --modulus-le <512 hex>      take the modulus directly, little-endian\n"
     "  --auth73 <146 hex>          re-bake DIGEST20 for a custom auth blob\n"
     "  --digest <40 hex>           write DIGEST20 directly\n"
@@ -41,54 +42,6 @@ std::string Hex64(std::uint64_t v) {
     std::ostringstream os;
     os << "0x" << std::uppercase << std::hex << v;
     return os.str();
-}
-
-// Reads one `Name = value` line out of a client.secret. The format is the
-// server's own config syntax, so an operator who can read mangosd.conf can read
-// this, and neither side needs a JSON parser to agree on what a key is.
-bool ReadSecretField(const std::string& path, const std::string& field,
-                     std::string& out, std::string& error) {
-    std::ifstream f(path);
-    if (!f) {
-        error = "cannot open " + path;
-        return false;
-    }
-
-    std::string line;
-    while (std::getline(f, line)) {
-        const std::size_t hash = line.find('#');
-        if (hash != std::string::npos) {
-            line.erase(hash);
-        }
-
-        const std::size_t eq = line.find('=');
-        if (eq == std::string::npos) {
-            continue;
-        }
-
-        std::string key = line.substr(0, eq);
-        std::string value = line.substr(eq + 1);
-
-        auto trim = [](std::string& s) {
-            const std::string space = " \t\r\n\"";
-            const std::size_t first = s.find_first_not_of(space);
-            if (first == std::string::npos) {
-                s.clear();
-                return;
-            }
-            s = s.substr(first, s.find_last_not_of(space) - first + 1);
-        };
-        trim(key);
-        trim(value);
-
-        if (key == field) {
-            out = value;
-            return true;
-        }
-    }
-
-    error = path + ": no field '" + field + "'";
-    return false;
 }
 
 void PrintSite(const SiteReport& s) {
@@ -337,7 +290,7 @@ int CommandSelfTest() {
 
 }  // namespace
 
-int main(int argc, char** argv) {
+int PatchMain(int argc, char** argv) {
     const std::vector<std::string> args(argv + 1, argv + argc);
     if (args.empty() || args[0] == "-h" || args[0] == "--help") {
         std::cout << kUsage;

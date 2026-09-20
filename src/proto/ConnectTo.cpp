@@ -270,8 +270,8 @@ namespace proto
         if (!file.good())
         {
             sLog.outError("proto: cannot read the redirect secret at '%s'. "
-                          "Generate one with secret-gen and point "
-                          "Redirect.SecretFile at it.", path.c_str());
+                          "'mep bake' mints it into <DataDir>/keys, which is where "
+                          "the server reads it from.", path.c_str());
             return false;
         }
 
@@ -452,7 +452,7 @@ namespace proto
         {
             sLog.outString("proto: the redirect key has no CRT parameters (Prime1 .. Coefficient); "
                            "redirects are signed on the slower path. Regenerate server.secret "
-                           "with secret-gen for the fast one.");
+                           "with 'mep mint' for the fast one.");
         }
         m_loaded = true;
         return true;

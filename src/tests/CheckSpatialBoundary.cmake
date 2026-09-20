@@ -1,28 +1,3 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
-#
-# MaNGOS is a full featured server for World of Warcraft, supporting
-# the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
-#
-# Copyright (C) 2005-2026 MaNGOS <https://www.getmangos.eu>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-# GNU General Public License for more details.
-
-# =============================================================================
-# The object hierarchy owns no geometry: an object HAS a Geometry::Placement. The
-# linker cannot hold that seam -- a member function costs nothing to add back --
-# so it is held here. Free functions that compose a placement with what the
-# component must not know (phase, world membership, terrain, line of sight) are
-# deliberately allowed; so is the write-through that keeps the extent current.
-# =============================================================================
-
 set(HIERARCHY_HEADERS
     Object/Object.h
     Object/Unit.h
@@ -61,8 +36,6 @@ foreach(HEADER IN LISTS HIERARCHY_HEADERS)
   endif()
   file(READ "${PATH}" TEXT)
   foreach(NAME IN LISTS FORBIDDEN_MEMBERS)
-    # Indented return type + name + parameter list: a member. Free functions open
-    # at column zero and do not match.
     if(TEXT MATCHES "\n[ \t]+[A-Za-z_][A-Za-z_0-9:<>,&\\* \t]*[ \t\\*&]${NAME}[ \t]*\\(")
       list(APPEND VIOLATIONS "${HEADER}: ${NAME}")
     endif()

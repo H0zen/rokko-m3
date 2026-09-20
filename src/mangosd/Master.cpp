@@ -24,7 +24,7 @@
  */
 
 #include <memory>
-#include "Common/GitRevision.h"
+#include "Common/Version.h"
 #include "Master.h"
 
 #include "AntiFreezeService.h"
@@ -38,7 +38,7 @@
 #include "MapManager.h"
 #include "MapPhase.h"
 #include "Server/WorldNetwork.h"
-#include "BuildInfo.h"
+#include "Common/ServerDefines.h"
 #include "Timer.h"
 #include "World.h"
 #include "WorldClock.h"
@@ -116,7 +116,7 @@ namespace
 
         char title[128];
         snprintf(title, sizeof(title), "%s (%u Players - %u Connections)",
-                 MANGOS_PACKAGENAME, players, connections);
+                 Version::GetPackageName(), players, connections);
 
         std::string newTitle(title);
         if (s_lastTitle != newTitle)
@@ -414,7 +414,7 @@ int Master::Run()
         sWorld.getConfig(CONFIG_BOOL_REALM_RECOMMENDED_OR_NEW_ENABLED)
             ? recommendedOrNew : uint8(REALM_FLAG_NONE);
 
-    std::string builds = GitRevision::GetAcceptedClientBuildsStr();
+    std::string builds = Version::GetAcceptedClientBuildsStr();
     LoginDatabase.escape_string(builds);
     LoginDatabase.DirectPExecute(
         "UPDATE `realmlist` SET `realmflags` = %u, `population` = 0, "

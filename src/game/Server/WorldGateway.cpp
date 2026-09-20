@@ -23,7 +23,7 @@
  * and lore are copyrighted by Blizzard Entertainment, Inc.
  */
 
-#include "Common/GitRevision.h"
+#include "Common/Version.h"
 #include "Common/Locales.h"
 #include <cmath>
 #include <utility>
@@ -106,7 +106,7 @@ proto::AuthLookup WorldGateway::LookupAccount(const proto::AuthRequest& request)
 
     // ---- Client build ------------------------------------------------------
     // WorldSocket.cpp:1036.
-    if (!GitRevision::IsAcceptedClientBuild(request.build))
+    if (!Version::IsAcceptedClientBuild(request.build))
     {
         result.status = proto::AuthStatus::VersionMismatch;
         return result;

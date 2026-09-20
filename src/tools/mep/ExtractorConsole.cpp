@@ -379,6 +379,8 @@ namespace world::terrain
             row("5                      Extract transports (needs 3)", Style::STYLE_NORMAL);
             row("6                      Extract navmesh (needs 4, takes hours)",
                 Style::STYLE_NORMAL);
+            row("7                      Patch client (realm keys + Wow.exe)",
+                Style::STYLE_NORMAL);
             row("src [path, optional]   Set source path (mpq directories)",
                 Style::STYLE_DETAIL);
             row("dest [path, optional]  Set destination path", Style::STYLE_DETAIL);
@@ -386,6 +388,8 @@ namespace world::terrain
             row("vessels [path, opt.]   Set vessels.txt (which hull -> which map)",
                 Style::STYLE_DETAIL);
             row("offmesh [path, opt.]   Set offmesh.txt (hand-made navmesh links)",
+                Style::STYLE_DETAIL);
+            row("client [path, opt.]    Set the Wow.exe entry 7 patches",
                 Style::STYLE_DETAIL);
             row("?                      Show this list", Style::STYLE_DETAIL);
             row("q                      Quit", Style::STYLE_DETAIL);
@@ -494,6 +498,13 @@ namespace world::terrain
                         out.offMesh);
                 continue;
             }
+            if (cmd == "client" || cmd.rfind("client ", 0) == 0)
+            {
+                setFile("the Wow executable", "Programs\0*.exe\0All files\0*.*\0\0",
+                        cmd.size() > 7 ? Trim(cmd.substr(7)) : std::string(),
+                        out.clientExe);
+                continue;
+            }
             if (cmd == "?" || cmd == "help")
             {
                 showMenu();
@@ -505,11 +516,18 @@ namespace world::terrain
             // and not by the order they were typed, so this only collects flags.
             //
             // A rejected answer must leave nothing behind, or "6" then "4 6" would bake
-            // the flags of both attempts. The paths and the map filter are not part of
-            // the answer, so they survive the reset.
-            const int keptFilter = out.mapFilter;
-            const std::string keptSrc = out.src;
-            const std::string keptDest = out.dest;
+            // the flags of both attempts. Only the components ARE the answer: the paths
+            // and the map filter were set by their own commands and survive it.
+            //
+            // Clearing the components rather than reassigning a fresh Choice, because
+            // reassigning threw away every path too and then restored three of them by
+            // hand -- so an offmesh.txt chosen before a mistyped pick was silently lost,
+            // and every field added here afterwards inherited that.
+            const auto clearPicks = [&out]()
+            {
+                out.dbc = out.goModels = out.tiles = out.vessels = out.nav =
+                    out.patchClient = false;
+            };
 
             bool any = false, bad = false;
             std::istringstream picks(cmd);
@@ -525,6 +543,7 @@ namespace world::terrain
                 else if (pick == "4") { out.tiles = true; }
                 else if (pick == "5") { out.vessels = true; }
                 else if (pick == "6") { out.nav = true; }
+                else if (pick == "7") { out.patchClient = true; }
                 else
                 {
                     Ui().PushLog("  \"" + pick + "\" is not one of the choices",
@@ -542,10 +561,7 @@ namespace world::terrain
                     Ui().PushLog("  nothing chosen -- type a number, or q to leave",
                                  Style::STYLE_WARN);
                 }
-                out = Choice();          // a rejected answer leaves nothing behind
-                out.mapFilter = keptFilter;
-                out.src = keptSrc;
-                out.dest = keptDest;
+                clearPicks();
                 Draw();
                 continue;
             }
@@ -575,10 +591,7 @@ namespace world::terrain
             }
             if (impossible)
             {
-                out = Choice();
-                out.mapFilter = keptFilter;
-                out.src = keptSrc;
-                out.dest = keptDest;
+                clearPicks();
                 Draw();
                 continue;
             }

@@ -27,6 +27,7 @@
 #include "WorldNetwork.h"
 
 #include "ClientConnection.h"
+#include "World.h"
 #include "Config/Config.h"
 #include "Log/Log.h"
 #include "OpcodeTable.h"
@@ -76,16 +77,21 @@ WorldNetwork::~WorldNetwork()
 
 bool WorldNetwork::LoadRedirectConfiguration(const std::string& bindIp)
 {
-    const std::string secretFile =
-        sConfig.GetStringDefault("Redirect.SecretFile", "server.secret");
+    // Baked data, not configuration: it is written into DataDir by the same run
+    // of mep that bakes the tiles, and it is read from there the way a .tile is.
+    // It used to be Redirect.SecretFile, a path an operator could point anywhere
+    // -- including at last generation's key, which patches no client anyone has.
+    const std::string secretFile = sWorld.GetDataPath() + "keys/server.secret";
 
     if (!m_signer.LoadFromFile(secretFile))
     {
-        sLog.outError("Without a redirect keypair no client can be sent to the second "
-                      "world stream, and no client can enter the world. Run "
-                      "'secret-gen' to mint one, point Redirect.SecretFile at the "
-                      "server.secret it writes, and patch every client from the "
-                      "client.secret it wrote alongside.");
+        sLog.outError("No redirect keypair at '%s'. Without one no client can be sent "
+                      "to the second world stream, and no client can enter the world.",
+                      secretFile.c_str());
+        sLog.outError("Run 'mep bake' against a 4.3.4 client: it mints the pair into "
+                      "<DataDir>/keys and patches your client from the client.secret "
+                      "beside it. 'mep mint --out-dir <DataDir>/keys' does the key "
+                      "alone. Or correct DataDir in mangosd.conf.");
         return false;
     }
 

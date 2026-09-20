@@ -1,35 +1,3 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
-#
-# MaNGOS is a full featured server for World of Warcraft, supporting
-# the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
-#
-# Copyright (C) 2005-2026 MaNGOS <https://www.getmangos.eu>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-# Unit::Blocked takes Motion::Reason bits (P5-C2). Its UnitState overload is deleted, so one
-# unit-state constant passed to it is a compile error; but an ORed mask of unit-state constants
-# is an int, binds to Blocked(uint32) and would be read as reason bits (UNIT_STAT_MELEE_ATTACKING
-# is ReasonRooted's bit, UNIT_STAT_ATTACK_PLAYER ReasonStunned's, UNIT_STAT_ISOLATED
-# ReasonConfused's). This gate refuses any Blocked( call whose argument names a UNIT_STAT_
-# constant, in the core and in the scripts (P5-C3), and checks the deleted overload still stands.
-#
-# Usage: cmake -DSOURCE_ROOT=<repo root> -P CheckBlockedMasks.cmake
-# Limitation: the regex reads a call's argument up to its first ')'; a mask built in a variable
-# first would escape it, and so would a constant after a nested call's ')' inside the argument
-# (Blocked(f() | UNIT_STAT_X)). None is today.
-
 set(ROOTS "${SOURCE_ROOT}/src/game" "${SOURCE_ROOT}/src/modules")
 set(SOURCES "")
 foreach(ROOT_DIR IN LISTS ROOTS)

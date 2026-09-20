@@ -48,6 +48,7 @@
  */
 
 #include "Config.h"
+#include "Log/Log.h"
 #include "Policies/Singleton.h"
 
 #include <cstdlib>
@@ -295,4 +296,43 @@ float Config::GetFloatDefault(const char* name, float def)
 {
     std::string val;
     return GetValue(name, val) ? (float)atof(val.c_str()) : def;
+}
+
+/**
+ * @brief Check the ConfVersion of the loaded file against what this build expects
+ * @param expected ConfVersion generated from cmake/MangosVersion.cmake
+ * @return True when the file is current, false when a warning was emitted
+ *
+ * Older, not merely different: a config file from a newer build is a thing an
+ * operator does on purpose while testing, and warning about it teaches them to
+ * ignore the warning that matters.
+ */
+bool Config::CheckVersion(uint32 expected)
+{
+    const uint32 found = uint32(GetIntDefault("ConfVersion", 0));
+
+    if (found >= expected)
+    {
+        return true;
+    }
+
+    sLog.outError("*****************************************************************************");
+
+    if (!found)
+    {
+        sLog.outError(" WARNING: %s declares no ConfVersion, so it cannot be dated at all.",
+                      mFilename.c_str());
+    }
+    else
+    {
+        sLog.outError(" WARNING: %s is out of date (ConfVersion %u, this build expects %u).",
+                      mFilename.c_str(), found, expected);
+    }
+
+    sLog.outError("          Settings added since then fall back to their defaults, which may");
+    sLog.outError("          cause behavior you did not configure.");
+    sLog.outError("*****************************************************************************");
+
+    Log::WaitBeforeContinueIfNeed();
+    return false;
 }

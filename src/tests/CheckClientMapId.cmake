@@ -1,38 +1,3 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
-#
-# MaNGOS is a full featured server for World of Warcraft, supporting
-# the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
-#
-# Copyright (C) 2005-2026 MaNGOS <https://www.getmangos.eu>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <https://www.gnu.org/licenses/>.
-
-# An update packet's header carries a map id, and the 4.3.4 client acts on it: a header
-# naming a map other than the one the client is on is a WORLD CHANGE, which rebuilds its
-# object manager, destroys its active player and faults on the next frame. A vessel's hull
-# is a server-side map of its own (TransportMap), so a passenger's GetMapId() is the hull's
-# -- a value the client has never heard of. Every sender must therefore build its UpdateData
-# from GetClientMapId() (the vessel's world map for anyone aboard), which is what
-# TransportMap's own senders already do through WorldMapIdOf.
-#
-# This gate refuses a raw GetMapId() in an UpdateData construction. It cost two client
-# crashes to learn (the zeppelin boarding of 2026-09-14 and the login of 2026-09-20).
-#
-# Usage: cmake -DSOURCE_ROOT=<repo root> -P CheckClientMapId.cmake
-# Limitation: the regex reads one construction's argument list up to its first ')'; a map id
-# computed into a variable first would escape it. None is today.
-
 set(ROOTS "${SOURCE_ROOT}/src/game" "${SOURCE_ROOT}/src/modules")
 set(SOURCES "")
 foreach(ROOT_DIR IN LISTS ROOTS)

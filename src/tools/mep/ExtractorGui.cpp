@@ -23,7 +23,7 @@
  * and lore are copyrighted by Blizzard Entertainment, Inc.
  */
 
-// A window in front of mangos-extractor, for people who do not live in a terminal.
+// A window in front of mep, for people who do not live in a terminal.
 //
 // IT DRIVES THE TOOL THROUGH ITS COMMAND LINE and reads its stdout -- it does not link
 // the baker, include its headers or know a thing about MPQs. The command line IS the
@@ -68,10 +68,12 @@ namespace
         ID_DEST, ID_DEST_BROWSE,
         ID_VESSELS, ID_VESSELS_BROWSE,
         ID_OFFMESH, ID_OFFMESH_BROWSE,
+        ID_CLIENT, ID_CLIENT_BROWSE,
         ID_MAP,
         ID_LOCALE, ID_CHK_ALLLOC,
         ID_CHK_SHUTDOWN, ID_TIMES,
         ID_CHK_DBC, ID_CHK_GOMODELS, ID_CHK_TILES, ID_CHK_TRANS, ID_CHK_NAV,
+        ID_CHK_PATCH,
         ID_ALL, ID_NONE,
         ID_START, ID_CLOSE,
         ID_LOG, ID_PROGRESS, ID_STATUS
@@ -86,6 +88,46 @@ namespace
     HWND g_status = nullptr;
     HANDLE g_worker = nullptr;
     volatile LONG g_running = 0;
+
+    // Every child is created inside this job, which is set to kill what it holds
+    // when its last handle closes. That is what makes closing the window take the
+    // bake down with it -- including any grandchild -- however the window goes
+    // away: the Close button, the X, a crash, or the process being killed.
+    HANDLE g_job = nullptr;
+
+    void EnsureJob()
+    {
+        if (g_job)
+        {
+            return;
+        }
+
+        g_job = CreateJobObjectA(nullptr, nullptr);
+        if (!g_job)
+        {
+            return;
+        }
+
+        JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
+        limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+        SetInformationJobObject(g_job, JobObjectExtendedLimitInformation,
+                                &limits, sizeof(limits));
+    }
+
+    /// Kills the running bake and waits for the reader thread to unwind, so the
+    /// window never outlives its child and the child never outlives the window.
+    void StopChild()
+    {
+        if (g_job)
+        {
+            TerminateJobObject(g_job, 1);
+        }
+
+        if (g_worker)
+        {
+            WaitForSingleObject(g_worker, 5000);
+        }
+    }
     SYSTEMTIME g_startedAt{};
     ULONGLONG g_startedTick = 0;
 
@@ -335,7 +377,7 @@ namespace
     /// The command line, exactly as a person would have typed it.
     std::string BuildCommand()
     {
-        std::string cmd = Quote(ExeDir() + "\\mangos-extractor.exe");
+        std::string cmd = Quote(ExeDir() + "\\mep.exe");
 
         if (Checked(ID_CHK_DBC) && Checked(ID_CHK_GOMODELS) && Checked(ID_CHK_TILES) &&
             Checked(ID_CHK_TRANS) && Checked(ID_CHK_NAV))
@@ -351,16 +393,28 @@ namespace
             if (Checked(ID_CHK_NAV))      { cmd += " nav"; }
         }
 
+        // Outside the "all" fold on purpose, and named separately even when every
+        // other box is ticked: `all` is the baker's word for its own output, and
+        // this is the one component that edits somebody's game install.
+        if (Checked(ID_CHK_PATCH)) { cmd += " patch"; }
+
         const std::string src = GetText(ID_SRC);
         const std::string dest = GetText(ID_DEST);
         const std::string vessels = GetText(ID_VESSELS);
         const std::string offmesh = GetText(ID_OFFMESH);
+        const std::string client = GetText(ID_CLIENT);
         const std::string map = GetText(ID_MAP);
 
         if (!src.empty())     { cmd += " --src " + Quote(src); }
         if (!dest.empty())    { cmd += " --dest " + Quote(dest); }
         if (!vessels.empty()) { cmd += " --vessels " + Quote(vessels); }
         if (!offmesh.empty()) { cmd += " --offmesh " + Quote(offmesh); }
+        // Only with the box ticked: a path left in the field from a previous run
+        // must not make an unrelated bake name a client binary.
+        if (Checked(ID_CHK_PATCH) && !client.empty())
+        {
+            cmd += " --client " + Quote(client);
+        }
         if (!map.empty())     { cmd += " --map " + map; }
 
         // "all" is the extractor's own word for every language on the disc; a named
@@ -416,15 +470,27 @@ namespace
         std::vector<char> mutableCmd(job->command.begin(), job->command.end());
         mutableCmd.push_back('\0');
 
+        // Suspended, so it is inside the job before it can run a single
+        // instruction or spawn anything of its own.
         const BOOL ok = CreateProcessA(nullptr, mutableCmd.data(), nullptr, nullptr,
-                                       TRUE, CREATE_NO_WINDOW, nullptr, nullptr,
-                                       &si, &pi);
+                                       TRUE, CREATE_NO_WINDOW | CREATE_SUSPENDED,
+                                       nullptr, nullptr, &si, &pi);
         CloseHandle(writeEnd);
+
+        if (ok)
+        {
+            EnsureJob();
+            if (g_job)
+            {
+                AssignProcessToJobObject(g_job, pi.hProcess);
+            }
+            ResumeThread(pi.hThread);
+        }
 
         if (!ok)
         {
             PostMessageA(g_main, WM_APP_LINE,
-                         WPARAM(new std::string("could not start mangos-extractor.exe -- "
+                         WPARAM(new std::string("could not start mep.exe -- "
                                                 "it must sit beside this program")), 0);
             CloseHandle(readEnd);
             PostMessageA(g_main, WM_APP_DONE, WPARAM(exitCode), 0);
@@ -470,8 +536,10 @@ namespace
     {
         static const int gated[] = {
             ID_START, ID_SRC_BROWSE, ID_DEST_BROWSE, ID_VESSELS_BROWSE,
-            ID_OFFMESH_BROWSE, ID_ALL, ID_NONE, ID_LOCALE, ID_CHK_ALLLOC,
-            ID_CHK_DBC, ID_CHK_GOMODELS, ID_CHK_TILES, ID_CHK_TRANS, ID_CHK_NAV
+            ID_OFFMESH_BROWSE, ID_CLIENT_BROWSE, ID_ALL, ID_NONE, ID_LOCALE,
+            ID_CHK_ALLLOC,
+            ID_CHK_DBC, ID_CHK_GOMODELS, ID_CHK_TILES, ID_CHK_TRANS, ID_CHK_NAV,
+            ID_CHK_PATCH
         };
         for (int id : gated)
         {
@@ -533,7 +601,7 @@ namespace
     void OnStart()
     {
         if (!Checked(ID_CHK_DBC) && !Checked(ID_CHK_GOMODELS) && !Checked(ID_CHK_TILES) &&
-            !Checked(ID_CHK_TRANS) && !Checked(ID_CHK_NAV))
+            !Checked(ID_CHK_TRANS) && !Checked(ID_CHK_NAV) && !Checked(ID_CHK_PATCH))
         {
             MessageBoxA(g_main, "Tick at least one thing to extract.",
                         "Nothing selected", MB_OK | MB_ICONINFORMATION);
@@ -557,6 +625,29 @@ namespace
                 "earlier, this run produces nothing.\n\nCarry on?",
                 "Navmesh needs tiles", MB_YESNO | MB_ICONWARNING);
             if (answer != IDYES)
+            {
+                return;
+            }
+        }
+
+        // The only box that writes outside the output folder, so it is the only one
+        // that asks. The wording names the two consequences an operator cannot undo
+        // by re-running: the binary is rewritten, and the key in <output>/keys is the
+        // one every client patched from now on has to carry.
+        if (Checked(ID_CHK_PATCH))
+        {
+            const std::string client = GetText(ID_CLIENT);
+            const std::string target = client.empty()
+                ? std::string("the Wow executable beside the Data folder")
+                : client;
+            const std::string text =
+                "Patching rewrites\n\n    " + target + "\n\n"
+                "in place (a .bak is kept beside it), and mints this realm's redirect "
+                "keypair into <output>/keys if there is not one there already.\n\n"
+                "An existing keypair is reused, so every client already patched keeps "
+                "working.\n\nCarry on?";
+            if (MessageBoxA(g_main, text.c_str(), "Patch the client",
+                            MB_YESNO | MB_ICONWARNING) != IDYES)
             {
                 return;
             }
@@ -718,7 +809,9 @@ namespace
         TextOutA(dc, tx, by + 34, clientName, int(std::strlen(clientName)));
 
         SetTextColor(dc, GetSysColor(COLOR_GRAYTEXT));
-        const char* blurb = "Tiles, collision, DBC and navmesh, straight from the client.";
+        const char* blurb =
+            "Tiles, collision, DBC and navmesh, straight from the client. And the "
+            "realm keys.";
         TextOutA(dc, tx, by + 52, blurb, int(std::strlen(blurb)));
 
         SelectObject(dc, oldFont);
@@ -746,7 +839,11 @@ namespace
             {"Client (Data folder)", ID_SRC,     ID_SRC_BROWSE,     "Browse..."},
             {"Output folder",        ID_DEST,    ID_DEST_BROWSE,    "Browse..."},
             {"vessels.txt",          ID_VESSELS, ID_VESSELS_BROWSE, "Choose..."},
-            {"offmesh.txt",          ID_OFFMESH, ID_OFFMESH_BROWSE, "Choose..."}
+            {"offmesh.txt",          ID_OFFMESH, ID_OFFMESH_BROWSE, "Choose..."},
+            // Blank is the normal case: the baker finds the executable beside the
+            // Data folder above. The field is here for an install laid out some
+            // other way, and so that what is about to be rewritten is on screen.
+            {"Wow.exe (patch)",      ID_CLIENT,  ID_CLIENT_BROWSE,  "Choose..."}
         };
 
         for (const Row& r : rows)
@@ -770,7 +867,7 @@ namespace
             editX + 292, y + 2, 120, 22, ID_CHK_ALLLOC);
         y += 40;
 
-        Add(w, "BUTTON", "Extract", BS_GROUPBOX, 14, y, btnX + btnW - 14, 96, 0);
+        Add(w, "BUTTON", "Extract", BS_GROUPBOX, 14, y, btnX + btnW - 14, 122, 0);
         const int cy = y + 22;
         Add(w, "BUTTON", "DBC / DB2", WS_TABSTOP | BS_AUTOCHECKBOX, 28, cy, 110, 22,
             ID_CHK_DBC);
@@ -782,13 +879,21 @@ namespace
             ID_CHK_TRANS);
         Add(w, "BUTTON", "Navmesh (hours)", WS_TABSTOP | BS_AUTOCHECKBOX, 518, cy, 120, 22,
             ID_CHK_NAV);
-        Add(w, "BUTTON", "Select all", WS_TABSTOP | BS_PUSHBUTTON, 28, cy + 30, 100, 24,
+
+        // On its own line, below the five that write into the output folder, because
+        // it is not one of them: this one mints the realm's keypair into
+        // <output>/keys and rewrites the client binary in place. "Select all" leaves
+        // it alone for the same reason.
+        Add(w, "BUTTON", "Patch client (realm keys + Wow.exe)",
+            WS_TABSTOP | BS_AUTOCHECKBOX, 28, cy + 26, 260, 22, ID_CHK_PATCH);
+
+        Add(w, "BUTTON", "Select all", WS_TABSTOP | BS_PUSHBUTTON, 28, cy + 56, 100, 24,
             ID_ALL);
-        Add(w, "BUTTON", "Clear", WS_TABSTOP | BS_PUSHBUTTON, 138, cy + 30, 100, 24,
+        Add(w, "BUTTON", "Clear", WS_TABSTOP | BS_PUSHBUTTON, 138, cy + 56, 100, 24,
             ID_NONE);
         Add(w, "BUTTON", "Shut down the PC when finished", WS_TABSTOP | BS_AUTOCHECKBOX,
-            256, cy + 32, 230, 22, ID_CHK_SHUTDOWN);
-        y += 108;
+            256, cy + 58, 230, 22, ID_CHK_SHUTDOWN);
+        y += 134;
 
         g_progress = Add(w, PROGRESS_CLASSA, "", PBS_MARQUEE, 14, y,
                          btnX + btnW - 14, 18, ID_PROGRESS);
@@ -927,7 +1032,15 @@ namespace
                     SetWindowTextA(Find(ID_OFFMESH), picked.c_str());
                 }
                 return 0;
+            case ID_CLIENT_BROWSE:
+                if (PickFile(w, "Choose the Wow executable", picked))
+                {
+                    SetWindowTextA(Find(ID_CLIENT), picked.c_str());
+                }
+                return 0;
             case ID_ALL:
+                // Not ID_CHK_PATCH: "select all" means every cache the baker
+                // produces, and rewriting a game binary is not one of them.
                 Check(ID_CHK_DBC, true);
                 Check(ID_CHK_GOMODELS, true);
                 Check(ID_CHK_TILES, true);
@@ -940,6 +1053,10 @@ namespace
                 Check(ID_CHK_TILES, false);
                 Check(ID_CHK_TRANS, false);
                 Check(ID_CHK_NAV, false);
+                // Cleared here although "Select all" does not set it: "Clear" means
+                // nothing will happen when Start is pressed, and a box left ticked
+                // would make that false.
+                Check(ID_CHK_PATCH, false);
                 return 0;
             case ID_START:
                 OnStart();
@@ -957,18 +1074,24 @@ namespace
             if (InterlockedCompareExchange(&g_running, 0, 0) != 0)
             {
                 const int answer = MessageBoxA(w,
-                    "A bake is still running. Closing now kills it and leaves the "
+                    "A bake is still running. Closing stops it and leaves the "
                     "output half written.\n\nClose anyway?",
                     "Still baking", MB_YESNO | MB_ICONWARNING);
                 if (answer != IDYES)
                 {
                     return 0;
                 }
+                StopChild();
             }
             DestroyWindow(w);
             return 0;
 
+        case WM_ENDSESSION:
+            StopChild();
+            return 0;
+
         case WM_DESTROY:
+            StopChild();
             PostQuitMessage(0);
             return 0;
 
@@ -1000,7 +1123,11 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE, LPSTR, int show)
         return 1;
     }
 
-    RECT wanted{0, 0, 680, 680 + kBandH};
+    // 738, not 680: the Wow.exe row added 32 and the Extract group grew 26 to hold
+    // the patch line. Counted rather than eyeballed -- the layout below is absolute,
+    // so a window that is short by one row hides the Start button rather than
+    // scrolling to it.
+    RECT wanted{0, 0, 680, 738 + kBandH};
     AdjustWindowRect(&wanted, WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
                      FALSE);
 

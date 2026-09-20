@@ -38,7 +38,7 @@ namespace MaNGOS
         /**
          * @brief Primality, for key generation -- run once per realm, offline.
          *
-         * Nothing here is on a protocol path: the cost is paid at `secret-gen` time,
+         * Nothing here is on a protocol path: the cost is paid at `mep mint` time,
          * so the tests are generous (64 Miller-Rabin rounds where FIPS asks for 5)
          * and the code is the textbook one.
          */

@@ -32,7 +32,7 @@
 #include "Database/DatabaseEnv.h"
 #include "Config/Config.h"
 #include "Platform/Define.h"
-#include "BuildInfo.h"
+#include "Common/ServerDefines.h"
 #include "Log.h"
 #include "Opcodes.h"
 #include "WorldSession.h"
@@ -81,7 +81,7 @@
 #include "DisableMgr.h"
 #include "Language.h"
 #include "CommandMgr.h"
-#include "GitRevision.h"
+#include "Version.h"
 #include "UpdateTime.h"
 #include "GameTime.h"
 
@@ -105,28 +105,8 @@ void World::LoadConfigSettings(bool reload)
         }
     }
 
-    ///- Read the version of the configuration file and warn the user in case of emptiness or mismatch
-    uint32 confVersion = sConfig.GetIntDefault("ConfVersion", 0);
-    if (!confVersion)
-    {
-        sLog.outError("*****************************************************************************");
-        sLog.outError(" WARNING: mangosd.conf does not include a ConfVersion variable.");
-        sLog.outError("          Your configuration file may be out of date!");
-        sLog.outError("*****************************************************************************");
-        Log::WaitBeforeContinueIfNeed();
-    }
-    else
-    {
-        if (confVersion < GitRevision::GetWorldConfigVersion())
-        {
-            sLog.outError("*****************************************************************************");
-            sLog.outError(" WARNING: Your mangosd.conf version indicates your conf file is out of date!");
-            sLog.outError("          Please check for updates, as your current default values may cause");
-            sLog.outError("          unexpected behavior.");
-            sLog.outError("*****************************************************************************");
-            Log::WaitBeforeContinueIfNeed();
-        }
-    }
+    ///- Warn the operator when the file they loaded predates this build
+    sConfig.CheckVersion(Version::GetWorldConfigVersion());
 
     ///- Read the player limit and the Message of the day from the config file
     SetPlayerLimit(sConfig.GetIntDefault("PlayerLimit", DEFAULT_PLAYER_LIMIT), true);

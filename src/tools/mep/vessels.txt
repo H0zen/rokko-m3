@@ -1,4 +1,4 @@
-# mangos-extractor vessel list: <mapId> <displayId>   # name (entry N)
+# mep vessel list: <mapId> <displayId>   # name (entry N)
 #
 # Each line gives one vessel map the id of the hull model to bake into it. Map ids
 # below 1000000 are the client's own Transport<entry> rows; the rest are minted by

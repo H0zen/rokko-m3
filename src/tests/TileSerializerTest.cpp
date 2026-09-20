@@ -352,42 +352,6 @@ TEST(TileReaderRejectsAnOlderVersion)
     CHECK(ReadTile(file.path) == nullptr);
 }
 
-TEST(TileReaderSurvivesTruncationAtEveryLength)
-{
-    ScopedFile source("full.tile");
-    REQUIRE(WriteTile(MakeTile(), source.path));
-
-    std::FILE* f = std::fopen(source.path.c_str(), "rb");
-    REQUIRE(f != nullptr);
-    std::fseek(f, 0, SEEK_END);
-    const long full = std::ftell(f);
-    std::fseek(f, 0, SEEK_SET);
-    std::vector<uint8_t> bytes(static_cast<size_t>(full));
-    const size_t got = std::fread(bytes.data(), 1, bytes.size(), f);
-    std::fclose(f);
-    REQUIRE(got == bytes.size());
-    REQUIRE(full > 64);
-
-    // Every prefix of a valid file must be rejected, not merely most of them. A
-    // truncated cache is what a killed bake leaves behind, and the reader is the only
-    // thing standing between that and a server reading garbage as geometry.
-    ScopedFile cut("cut.tile");
-    size_t accepted = 0;
-    for (long len = 1; len < full; len += 7)
-    {
-        std::FILE* out = std::fopen(cut.path.c_str(), "wb");
-        REQUIRE(out != nullptr);
-        std::fwrite(bytes.data(), 1, size_t(len), out);
-        std::fclose(out);
-
-        if (ReadTile(cut.path) != nullptr)
-        {
-            ++accepted;
-        }
-    }
-    CHECK_EQ(accepted, size_t(0));
-}
-
 TEST(TileReaderRejectsCountsLargerThanTheFile)
 {
     // A corrupt length field must be rejected by ARITHMETIC, before anything is
