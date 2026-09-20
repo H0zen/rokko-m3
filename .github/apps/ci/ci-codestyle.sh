@@ -23,10 +23,15 @@ failed=0
 
 # Every rule runs, and every rule reports, so one push answers all of them
 # instead of one per round trip.
+#
+# The `|| true` is not decoration. This file is SOURCED by the workflow, into a
+# shell GitHub starts with `bash -e -o pipefail`, and grep exits 1 when it finds
+# nothing -- which is the good case. Without it the first clean rule killed the
+# step, printing the file count and then exit 1 with no rule output at all.
 check() {
     local name="$1" pattern="$2" advice="$3" hits
 
-    hits=$(grep -n -I -P -- "${pattern}" "${files[@]}" 2>/dev/null)
+    hits=$(grep -n -I -P -- "${pattern}" "${files[@]}" 2>/dev/null || true)
 
     if [ -n "${hits}" ]; then
         echo "  ${name}:"
