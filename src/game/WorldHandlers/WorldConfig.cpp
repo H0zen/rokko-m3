@@ -26,6 +26,7 @@
 #include <cmath>
 #include <string>
 #include "World.h"
+#include "BareMap.h"
 #include "movement/WireParity.h"
 #include "wire/MovementCapture.h"
 #include "Database/DatabaseEnv.h"
@@ -715,6 +716,14 @@ void World::LoadConfigSettings(bool reload)
 
     // The map the GM movement harness runs on (P0-D): a live server keeps 0.
     setConfig(CONFIG_UINT32_MOVEMENT_HARNESS_BARE_MAP, "Movement.HarnessBareMap", 0);
+    if (BareMapConfigured(getConfig(CONFIG_UINT32_MOVEMENT_HARNESS_BARE_MAP)))
+    {
+        // Loud, because a world with no creatures in it looks like a broken server and not
+        // like a setting: the live test of 2026-09-20 spent an afternoon on exactly that.
+        sLog.outString("Movement.HarnessBareMap = %u: MAP %u WILL LOAD NO CREATURE, GAMEOBJECT OR CORPSE SPAWNS. "
+                       "This is the GM movement harness's reproducible world; a live server leaves the option at 0.",
+                       getConfig(CONFIG_UINT32_MOVEMENT_HARNESS_BARE_MAP), getConfig(CONFIG_UINT32_MOVEMENT_HARNESS_BARE_MAP));
+    }
 
     // The follow's extrapolation horizon (design §6.3): how far ahead of a trusted velocity the
     // heel point is laid. 0 is retail's own aim -- the leader's current position, no lead at all.

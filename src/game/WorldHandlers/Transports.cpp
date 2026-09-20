@@ -36,6 +36,7 @@
 #include <set>
 
 #include "Transports.h"
+#include "BareMap.h"
 #include "TransportMap.h"
 #include "Map.h"
 #include "MapManager.h"
@@ -131,7 +132,7 @@ void MapManager::LoadTransports()
         // modulo its period, loading and unloading grids along its route at moments
         // no seed controls. Skipped here, before it is registered anywhere.
         const uint32 bareMap = sWorld.getConfig(CONFIG_UINT32_MOVEMENT_HARNESS_BARE_MAP);
-        if (bareMap && mapsUsed.count(bareMap))
+        if (BareMapConfigured(bareMap) && mapsUsed.count(bareMap))
         {
             sLog.outString("Transport %u '%s' skipped: map %u is bare", entry, name.c_str(), bareMap);
             delete t;

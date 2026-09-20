@@ -346,7 +346,9 @@ Redirect.Stream1Crypt        = 1
 #        The map the GM movement harness runs on loads no creature, gameobject or corpse
 #        spawns (terrain, vmaps and mmaps as usual), so a headless run is reproducible.
 #        For the launcher's configuration only: a live server keeps 0.
-#        Default: 0 (none); the harness runs on map 1
+#        0 is the OFF switch here, not a map: map 0 (Eastern Kingdoms) therefore cannot be
+#        blanked, and the harness runs on map 1.
+#        Default: 0 (none)
 #
 #    UpdateUptimeInterval
 #        Update realm uptime period in minutes (for save data in 'uptime' table). Must be > 0

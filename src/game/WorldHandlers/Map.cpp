@@ -49,6 +49,7 @@
 #include <set>
 #include "Utilities/MathDefines.h"
 #include "Map.h"
+#include "BareMap.h"
 #include "GameObjectModel.h"
 #include "MapManager.h"
 #include "Player.h"
@@ -171,7 +172,7 @@ Map::Map(uint32 id, time_t expiry, uint32 InstanceId, uint8 SpawnMode)
       m_activeNonPlayersIter(m_activeNonPlayers.end()),
       i_gridExpiry(expiry), m_TerrainData(sTerrainMgr.LoadTerrain(id)),
       i_data(NULL),
-      m_bare(InstanceId == 0 && sWorld.getConfig(CONFIG_UINT32_MOVEMENT_HARNESS_BARE_MAP) == id)
+      m_bare(MapIsBare(sWorld.getConfig(CONFIG_UINT32_MOVEMENT_HARNESS_BARE_MAP), id, InstanceId))
 {
     m_CreatureGuids.Set(sObjectMgr.GetFirstTemporaryCreatureLowGuid());
     m_GameObjectGuids.Set(sObjectMgr.GetFirstTemporaryGameObjectLowGuid());

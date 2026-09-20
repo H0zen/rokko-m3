@@ -39,6 +39,7 @@ set(SRC_GRP_TESTS
     Utf8Test.cpp
     ByteBufferTest.cpp
     CalendarTimeTest.cpp
+    BareMapTest.cpp
     LFGPacketsTest.cpp
     LFGEmpowermentTest.cpp
     LFGLockReasonTest.cpp
