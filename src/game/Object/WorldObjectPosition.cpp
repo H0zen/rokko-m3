@@ -329,6 +329,29 @@ bool CanBeSeen(WorldObject const& seen, WorldObject const& viewer)
         return true;
     }
 
+    // A VEHICLE SEAT is a frame too, and a narrower one than a deck: a rider shares it with
+    // nobody at all, not even with the vehicle he is sitting in. Resolve through the boarding,
+    // or a player who has just been seated cannot see his own mount -- which is how
+    // Camera::SetView came to report "viewpoint is not in map with camera's owner" the first
+    // time anyone boarded a Krazz Cannon (2026-09-20).
+    if (TransportInfo* riding = seen.GetTransportInfo())
+    {
+        WorldObject* vehicle = riding->GetTransport();
+        if (vehicle == &viewer || (vehicle && CanBeSeen(*vehicle, viewer)))
+        {
+            return true;
+        }
+    }
+
+    if (TransportInfo* watchingFrom = viewer.GetTransportInfo())
+    {
+        WorldObject* vehicle = watchingFrom->GetTransport();
+        if (vehicle == &seen || (vehicle && CanBeSeen(seen, *vehicle)))
+        {
+            return true;
+        }
+    }
+
     if (Transport* aboard = Transport::VesselOf(seen))
     {
         if (aboard->GetMap() == viewer.GetMap() || aboard == &viewer)

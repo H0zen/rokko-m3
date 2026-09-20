@@ -908,6 +908,27 @@ void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo
             const Position* offset = movementInfo.GetTransportPos();
             plMover->SetPosition(offset->x, offset->y, offset->z, offset->o);
         }
+        else if (plMover->IsBoarded())
+        {
+            // A VEHICLE rider, which is neither of the cases above: he has no m_transport
+            // (that is a vessel's, and a vehicle is a creature) and his map is the ordinary
+            // world one. His placement, though, is his SEAT POSE -- a seat-local point, which
+            // the vehicle's own movement composes into the world.
+            //
+            // Relocating him from this packet would hand Map::PlayerRelocation a seat-local
+            // pair as if it were a world one. It reads the OLD cell from the placement, so it
+            // looks up a cell near the origin, gets no grid back for it, and dereferences the
+            // null: Map.cpp's RemoveFromGrid, which is the crash a player boarding a Krazz
+            // Cannon hit on 2026-09-20 (the "Creature X: 4.2 Y: -0.05 in grid[46,35] instead
+            // grid[32,31]" complaints at shutdown are the same seat-local-as-world confusion,
+            // one step short of the fault).
+            //
+            // Nothing needs to move here in any case. The seat pose is the server's: it comes
+            // from VehicleSeat.dbc when he boards and from the vehicle's movement thereafter,
+            // and the client is not authoritative over where a seat is. So keep his movement
+            // info -- the flags, the transport guid, the timestamp all still matter -- and
+            // leave the placement to the vehicle.
+        }
         else
         {
             plMover->SetPosition(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);

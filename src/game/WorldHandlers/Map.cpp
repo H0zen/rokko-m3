@@ -300,6 +300,10 @@ void Map::AddToGrid(Player* obj, NGridType* grid, Cell const& cell)
 {
     (*grid)(cell.CellX(), cell.CellY()).AddWorldObject(obj);
     grid->incPlayerCount();
+    // Remember where he is filed, as a creature has always done. Every player add comes
+    // through here -- Map::Add and EnsureGridLoadedAtEnter both -- so this is the one
+    // place that knows it, and PlayerRelocation below is the one place that needs it.
+    obj->SetCurrentCell(cell);
 }
 
 /**
@@ -1266,10 +1270,16 @@ void Map::PlayerRelocation(Player* player, float x, float y, float z, float orie
 {
     MANGOS_ASSERT(player);
 
-    CellPair old_val = MaNGOS::ComputeCellPair(player->Where().X(), player->Where().Y());
+    // THE CELL HE IS FILED UNDER, not one computed from his placement. A rider's placement
+    // is his SEAT POSE -- a seat-local point -- so deriving a cell from it lands near the
+    // origin, finds no grid there and dereferences the nothing it got back. That is the
+    // crash a player turning a Krazz Cannon hit on 2026-09-20, by way of
+    // VehicleInfo::UpdateGlobalPositionOf, which recomposes its passengers every tick.
+    // Map::CreatureRelocation has always read the tracked cell (creature->GetCurrentCell()),
+    // which is why only players could fall in.
     CellPair new_val = MaNGOS::ComputeCellPair(x, y);
 
-    Cell old_cell(old_val);
+    Cell old_cell = player->GetCurrentCell();
     Cell new_cell(new_val);
     bool same_cell = (new_cell == old_cell);
 
