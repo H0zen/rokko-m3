@@ -27,6 +27,7 @@
 #include "Harness.h"
 #include "Creature.h"
 #include "MotionMaster.h"
+#include "Vehicle.h"
 #include "Log.h"
 #include "movement/MoveSpline.h"
 #include "Utilities/MathDefines.h"
@@ -60,6 +61,76 @@ namespace Harness
         const Pt SD = { -3122.6f, -261.3f, 46.0f };
         const Pt A4 = { -3257.5f, -351.6f, 47.8f };
         const Pt B4 = { -2891.0f, -416.7f, 47.9f };
+
+        /// S62 (the live test of 2026-09-20): boarding a vehicle, which nobody could do. Clicking
+        /// a vehicle sends CMSG_SPELLCLICK and the server casts whatever `npc_spellclick_spells`
+        /// names -- and for most vehicles that is a DUMMY meant for a script this core does not
+        /// carry (the Darnassus Love Boat's 69341 is a periodic dummy, the Burning Debris' 73677 a
+        /// plain dummy), so the click did nothing at all. The seating itself is done by a spell
+        /// carrying SPELL_AURA_CONTROL_VEHICLE, which HandleAuraControlVehicle turns into a Board;
+        /// retail's own is 46598, and HandleSpellClick now falls back to it when the table seated
+        /// nobody and the hull has a seat a player may enter and leave.
+        ///
+        /// This runs that seating on a real world vehicle: the boat is spawned from its own entry,
+        /// so its seats come from Vehicle.dbc exactly as they do live.
+        class VehicleBoarding : public Scenario
+        {
+        public:
+            VehicleBoarding() : Scenario("vehicle-boarding", 62) {}
+
+            void Prepare() override
+            {
+                const uint32 LOVE_BOAT = 37980;
+                const uint32 RIDE = 46598;   // SPELL_RIDE_VEHICLE_HARDCODED
+                Creature* boat = Spawn(LOVE_BOAT, SD.x + 20.0f, SD.y, Ground(SD.x + 20.0f, SD.y, SD.z), 0.0f);
+                Creature* rider = Spawn(WOLF, SD.x + 16.0f, SD.y, Ground(SD.x + 16.0f, SD.y, SD.z), 0.0f);
+                if (!boat || !rider) { Verdict("isVehicle=INVALID(spawn failed) | boards=INVALID(spawn failed) | ridesTheHull=INVALID(spawn failed) | leaves=INVALID(spawn failed)"); return; }
+                Silence(boat);
+                Silence(rider);
+                const ObjectGuid b = boat->GetObjectGuid();
+                const ObjectGuid g = rider->GetObjectGuid();
+
+                struct St { bool isVehicle, aboard, onThisHull, left; };
+                auto st = std::make_shared<St>();
+                st->isVehicle = st->aboard = st->onThisHull = st->left = false;
+
+                At(500, [this, g, b, st, RIDE]()
+                {
+                    Creature* boat = Get(b); Creature* rider = Get(g);
+                    if (!boat || !rider) { return; }
+                    st->isVehicle = boat->IsVehicle();
+                    rider->CastSpell(boat, RIDE, true);
+                    Log("cast %u at the boat (IsVehicle=%d)", RIDE, st->isVehicle ? 1 : 0);
+                });
+                At(1500, [this, g, b, st]()
+                {
+                    Creature* rider = Get(g);
+                    if (!rider) { return; }
+                    TransportInfo* ti = rider->GetTransportInfo();
+                    st->aboard = ti != NULL;
+                    st->onThisHull = ti && ti->GetTransportGuid() == b;
+                    Log("aboard=%d, on this hull=%d", st->aboard ? 1 : 0, st->onThisHull ? 1 : 0);
+                });
+                At(2000, [this, g, RIDE]()
+                {
+                    if (Creature* rider = Get(g)) { rider->RemoveAurasDueToSpell(RIDE); Log("aura %u removed", RIDE); }
+                });
+                At(3000, [this, g, st]()
+                {
+                    Creature* rider = Get(g);
+                    if (!rider) { return; }
+                    st->left = rider->GetTransportInfo() == NULL;
+                    Log("after the aura went: aboard=%d", st->left ? 0 : 1);
+                });
+                At(3500, [this, st]()
+                {
+                    Verdict(std::string("isVehicle=") + (st->isVehicle ? "OK" : "BUG(the boat is not a vehicle)") +
+                            " | boards=" + (st->aboard ? "OK" : "BUG(the ride aura seated nobody)") +
+                            " | ridesTheHull=" + (st->onThisHull ? "OK" : "BUG(aboard something else)") +
+                            " | leaves=" + (st->left ? "OK" : "BUG(still aboard after the aura went)"));
+                });
+            }
+        };
 
         /// S5: a POINT leg interrupted by a real chase and then cleared must not
         /// spuriously inform for the point it never reached (B4). roamingBits and
@@ -518,5 +589,6 @@ namespace Harness
         r.Register(new LongPoint());
         r.Register(new UnreachablePoint());
         r.Register(new DistractTurnsToTheSpot());
+        r.Register(new VehicleBoarding());
     }
 }
