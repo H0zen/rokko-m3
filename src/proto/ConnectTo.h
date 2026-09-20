@@ -78,7 +78,7 @@ namespace proto
             RedirectSigner();
 
             /**
-             * @brief Install the keypair from a server.secret written by secret-gen.
+             * @brief Install the keypair from a server.secret written by 'mep mint'.
              *
              * The file holds `Modulus`, `PrivateExponent` and `AuthBlob` as hex,
              * one per line. It exists as a file rather than as configuration

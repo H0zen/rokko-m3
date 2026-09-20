@@ -53,7 +53,7 @@ bool ClientFile::Save(const std::string& path, bool backup, std::string& error) 
     // Never rewrite the executable in place: a short write, a full disk or a crash
     // would leave the player a truncated client. Write beside it, verify the size,
     // then swap the two names in one step.
-    const std::string tmp = path + ".mangos-patch.tmp";
+    const std::string tmp = path + ".mep.tmp";
     {
         std::ofstream f(tmp, std::ios::binary | std::ios::trunc);
         if (!f) {

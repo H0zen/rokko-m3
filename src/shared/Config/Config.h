@@ -133,6 +133,17 @@ class Config
          */
         std::string GetFilename() const { return mFilename; }
 
+        /**
+         * @brief Warns when the loaded file is older than this build expects
+         *
+         * One check for mangosd.conf, realmd.conf and ahbot.conf; the three used
+         * to warn in three wordings and with three different comparisons.
+         *
+         * @param expected ConfVersion this build was generated with
+         * @return bool True when the file is current, false when it warned
+         */
+        bool CheckVersion(uint32 expected);
+
     private:
 
         /// One [section] and its key/value pairs. Within a section the last assignment

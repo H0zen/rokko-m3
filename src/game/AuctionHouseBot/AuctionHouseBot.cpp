@@ -32,7 +32,7 @@
 #include "Log.h"
 #include "ObjectMgr.h"
 #include "AuctionHouseMgr.h"
-#include "BuildInfo.h"
+#include "Common/ServerDefines.h"
 #include "SQLStorages.h"
 #include "World.h"
 
@@ -42,7 +42,7 @@
  */
 
 
-#include "Common/GitRevision.h"
+#include "Common/Version.h"
 #include "Policies/Singleton.h"
 
   /**
@@ -439,7 +439,7 @@ class AuctionBotSeller : public AuctionBotAgent
 /**
  * @brief Constructor - initializes AuctionBotConfig with default values
  */
-AuctionBotConfig::AuctionBotConfig() : m_configFileName(AUCTIONHOUSEBOT_CONFIG_LOCATION)
+AuctionBotConfig::AuctionBotConfig() : m_configFileName(Version::GetAhbotConfigFile())
 {
 }
 
@@ -586,13 +586,7 @@ void AuctionBotConfig::setConfig(AuctionBotConfigBoolValues index, char const* f
  */
 void AuctionBotConfig::GetConfigFromFile()
 {
-    // Check config file version. AHBOT_CONFIG_VERSION is generated from
-    // cmake/MangosVersions.cmake into the same ahbot.conf.dist this compares
-    // against, so a bump reaches both sides.
-    if (m_AhBotCfg.GetIntDefault("ConfVersion", 0) != int32(GitRevision::GetAhbotConfigVersion()))
-    {
-        sLog.outError("AHBot: Configuration file version doesn't match expected version. Some config variables may be wrong or missing.");
-    }
+    m_AhBotCfg.CheckVersion(Version::GetAhbotConfigVersion());
 
     setConfigMax(CONFIG_UINT32_AHBOT_ALLIANCE_ITEM_AMOUNT_RATIO , "AuctionHouseBot.Alliance.Items.Amount.Ratio" , 100, 10000);
     setConfigMax(CONFIG_UINT32_AHBOT_HORDE_ITEM_AMOUNT_RATIO    , "AuctionHouseBot.Horde.Items.Amount.Ratio"    , 100, 10000);

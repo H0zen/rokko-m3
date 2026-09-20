@@ -23,7 +23,7 @@
  * and lore are copyrighted by Blizzard Entertainment, Inc.
  */
 
-#include "Common/GitRevision.h"
+#include "Common/Version.h"
 #include "Common/Locales.h"
 #include "Utilities/Errors.h"
 #include <string>
@@ -146,7 +146,7 @@ void LoadDB2Stores(const std::string& dataPath)
         !sItemExtendedCostStore.LookupEntry(3872)  )        // last item extended cost added in 4.3.4 (15595)
     {
         sLog.outString("");
-        sLog.outError("Please extract correct db2 files from build %s", GitRevision::GetAcceptedClientBuildsStr().c_str());
+        sLog.outError("Please extract correct db2 files from build %s", Version::GetAcceptedClientBuildsStr().c_str());
         exit(1);
     }
 

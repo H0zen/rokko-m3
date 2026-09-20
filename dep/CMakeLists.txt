@@ -74,7 +74,7 @@ add_subdirectory(utf8cpp)
 # navmesh stage, and the baker always builds, so this is not gated.
 add_subdirectory(recastnavigation)
 
-# The MPQ reader is not gated either: mangos-extractor is what produces the
+# The MPQ reader is not gated either: mep is what produces the
 # tiles the server reads, so it is always built rather than being an optional
 # extra that a fresh clone can leave out and then have nothing to run on.
 add_subdirectory(StormLib)

@@ -1,23 +1,3 @@
-# SPDX-License-Identifier: GPL-3.0-or-later
-#
-# MaNGOS is a full featured server for World of Warcraft, supporting
-# the following clients: 1.12.x, 2.4.3, 3.3.5a, 4.3.4a and 5.4.8
-#
-# Copyright (C) 2005-2026 MaNGOS <https://www.getmangos.eu>
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <https://www.gnu.org/licenses/>.
-
 if(NOT DEFINED SOURCE_ROOT)
     get_filename_component(SOURCE_ROOT "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
 endif()
@@ -70,13 +50,18 @@ if(SESSION_DECLARATION_POSITION EQUAL -1)
 endif()
 
 file(READ "${HANDLER_SOURCE}" HANDLER_TEXT)
-string(REPLACE "\r\n" "\n" HANDLER_TEXT "${HANDLER_TEXT}")
-set(EXPECTED_HANDLER
-    "void WorldSession::HandleWardenDataOpcode(WorldPacket& recv_data)\n{\n    recv_data.rfinish();\n}")
-string(FIND "${HANDLER_TEXT}" "${EXPECTED_HANDLER}" HANDLER_POSITION)
-if(HANDLER_POSITION EQUAL -1)
+
+string(REGEX MATCH
+    "void[ 	
+]*WorldSession::HandleWardenDataOpcode[^{]*{([^}]*)}"
+    UNUSED "${HANDLER_TEXT}")
+set(HANDLER_BODY "${CMAKE_MATCH_1}")
+string(REGEX REPLACE "[ 	
+]" "" HANDLER_BODY "${HANDLER_BODY}")
+
+if(NOT HANDLER_BODY STREQUAL "recv_data.rfinish();")
     message(FATAL_ERROR
-        "Warden handler must drain the complete packet without interpreting it")
+        "Warden handler must drain the complete packet and do nothing else, but its body is: ${HANDLER_BODY}")
 endif()
 
 foreach(FORBIDDEN_PATTERN

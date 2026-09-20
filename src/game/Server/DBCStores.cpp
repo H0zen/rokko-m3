@@ -23,7 +23,7 @@
  * and lore are copyrighted by Blizzard Entertainment, Inc.
  */
 
-#include "Common/GitRevision.h"
+#include "Common/Version.h"
 #include "Utilities/MathDefines.h"
 #include "Common/Locales.h"
 #include <cmath>
@@ -487,13 +487,13 @@ void LoadDBCStores(const std::string& dataPath)
     uint32 build = ReadDBCBuild(dbcPath,defaultLocaleNameStr);
 
     // Check the expected DBC version
-    if (!GitRevision::IsAcceptedClientBuild(build))
+    if (!Version::IsAcceptedClientBuild(build))
     {
         if (build)
-            sLog.outError("Found DBC files for build %u but mangosd expected DBC for one from builds: %s Please extract correct DBC files.", build, GitRevision::GetAcceptedClientBuildsStr().c_str());
+            sLog.outError("Found DBC files for build %u but mangosd expected DBC for one from builds: %s Please extract correct DBC files.", build, Version::GetAcceptedClientBuildsStr().c_str());
         else
         {
-            sLog.outError("Incorrect DataDir value in mangosd.conf or not found build info (outdated DBC files). Required one from builds: %s Please extract correct DBC files.", GitRevision::GetAcceptedClientBuildsStr().c_str());
+            sLog.outError("Incorrect DataDir value in mangosd.conf or not found build info (outdated DBC files). Required one from builds: %s Please extract correct DBC files.", Version::GetAcceptedClientBuildsStr().c_str());
         }
         Log::WaitBeforeContinueIfNeed();
         exit(1);
@@ -1033,7 +1033,7 @@ void LoadDBCStores(const std::string& dataPath)
         !sMapStore.LookupEntry(980)                ||       // last map added in 4.3.4
         !sSpellStore.LookupEntry(121820)           )        // last added spell in 4.3.4
     {
-        sLog.outError("\nYou have mixed version DBC files. Please re-extract DBC files for one from client build: %s", GitRevision::GetAcceptedClientBuildsStr().c_str());
+        sLog.outError("\nYou have mixed version DBC files. Please re-extract DBC files for one from client build: %s", Version::GetAcceptedClientBuildsStr().c_str());
         Log::WaitBeforeContinueIfNeed();
         exit(1);
     }

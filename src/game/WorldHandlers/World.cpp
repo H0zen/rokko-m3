@@ -54,7 +54,6 @@
 #include "Database/DatabaseEnv.h"
 #include "Config/Config.h"
 #include "Platform/Define.h"
-#include "BuildInfo.h"
 #include "Log.h"
 #include "Opcodes.h"
 #include "WorldNetwork.h"
@@ -105,7 +104,7 @@
 #include "DisableMgr.h"
 #include "Language.h"
 #include "CommandMgr.h"
-#include "GitRevision.h"
+#include "Version.h"
 #include "UpdateTime.h"
 #include "GameTime.h"
 #include <cstdarg>
@@ -265,7 +264,7 @@ void World::SetInitialWorldSettings()
             (m_configUint32Values[CONFIG_UINT32_EXPANSION] >= EXPANSION_WOTLK &&
               !MapManager::ExistMapAndVMap(609, 2355.84f, -5664.77f)))              // Death Knight
     {
-        sLog.outError("Baked tiles not found in '%stiles'. Run mangos-extractor against a 4.3.4 client, or correct DataDir in mangosd.conf.", m_dataPath.c_str());
+        sLog.outError("Baked tiles not found in '%stiles'. Run 'mep bake' against a 4.3.4 client, or correct DataDir in mangosd.conf.", m_dataPath.c_str());
         Log::WaitBeforeContinueIfNeed();
         exit(1);
     }
@@ -832,8 +831,8 @@ void World::showFooter()
     modules_.insert("      ScriptDev3 (SD3) : Enabled");
 #endif
 
-    std::string thisClientVersion (GitRevision::GetClientVersion());
-    std::string thisClientBuilds = GitRevision::GetAcceptedClientBuildsStr();
+    std::string thisClientVersion (Version::GetClientVersion());
+    std::string thisClientBuilds = Version::GetAcceptedClientBuildsStr();
 
     std::string sModules;
     for (std::set<std::string>::const_iterator it = modules_.begin(); it != modules_.end(); ++it)
@@ -855,7 +854,7 @@ void World::showFooter()
         "\n"
         "         Module Status -\n%s\n"
         "_______________________________________________________\n"
-        , GitRevision::GetProductVersionStr(), GitRevision::GetWorldDBVersion(), GitRevision::GetWorldDBStructure(), GitRevision::GetWorldDBContent(),
+        , Version::GetFullVersion(), Version::GetWorldDBVersion(), Version::GetWorldDBStructure(), Version::GetWorldDBContent(),
             thisClientVersion.c_str(), thisClientBuilds.c_str(), sModules.c_str());
 }
 

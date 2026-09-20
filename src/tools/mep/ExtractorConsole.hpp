@@ -53,12 +53,18 @@ namespace world::terrain
             bool goModels = false;
             bool vessels = false;
             bool nav = false;
+            /// Mint the realm keypair and write its public half into the client.
+            /// Never part of "extract all": it is the one choice that writes
+            /// outside the output folder.
+            bool patchClient = false;
             int mapFilter = -1;
             std::string src;
             std::string dest;
             /// Empty means "leave the command line's value alone".
             std::string vesselList;
             std::string offMesh;
+            /// The client binary to patch. Empty means "work it out from src".
+            std::string clientExe;
         };
         // `dest` is the output root, so the menu can see what has ALREADY been baked:
         // nav needs tiles and tiles need gomodels, but a run yesterday satisfies that

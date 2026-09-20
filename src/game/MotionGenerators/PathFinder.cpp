@@ -55,24 +55,39 @@ PathFinder::PathFinder(const Unit* owner, uint32 mapId) :
 {
     DEBUG_FILTER_LOG(LOG_FILTER_PATHFINDING, "++ PathFinder::PathInfo for %u \n", m_sourceUnit->GetGUIDLow());
 
-    BindMesh();
+    // No BindMesh() here any more. It cached two pointers that nothing would read before
+    // the first calculate() rebound them anyway, and holding them outside a Route is
+    // precisely what is not safe: between construction and the first route a grid can
+    // unload and free the mesh they name.
     createFilter();
 }
 
-void PathFinder::BindMesh()
+MMAP::MMapManager::Route PathFinder::BindMesh()
 {
     // Looked up afresh before every route: a PathFinder can outlive its map (a behaviour
     // survives a teleport), and an instance torn down and recreated under the same ids
     // gets a new query while a pointer taken earlier would point at freed memory.
+    //
+    // The Route the caller gets back is not a formality -- it holds the mmap manager's
+    // read lock, and the two pointers below are only valid while it lives. Detour walks
+    // the mesh's tile array for the length of a query, and a grid load on ANOTHER
+    // instance of this same map calls dtNavMesh::addTile() on that same array. Keep the
+    // Route on the stack until the last findPath/findStraightPath has returned.
     m_navMesh = NULL;
     m_navMeshQuery = NULL;
 
-    if (MMAP::MMapFactory::IsPathfindingEnabled(m_mapId, m_sourceUnit))
+    if (!MMAP::MMapFactory::IsPathfindingEnabled(m_mapId, m_sourceUnit))
     {
-        MMAP::MMapManager* mmap = MMAP::MMapFactory::createOrGetMMapManager();
-        m_navMesh = mmap->GetNavMesh(m_mapId);
-        m_navMeshQuery = mmap->GetNavMeshQuery(m_mapId, m_sourceUnit->GetInstanceId());
+        return MMAP::MMapManager::Route();
     }
+
+    MMAP::MMapManager* mmap = MMAP::MMapFactory::createOrGetMMapManager();
+    MMAP::MMapManager::Route route = mmap->OpenRoute(m_mapId, m_sourceUnit->GetInstanceId());
+
+    m_navMesh = route.Mesh();
+    m_navMeshQuery = route.Query();
+
+    return route;
 }
 
 /**
@@ -130,7 +145,10 @@ bool PathFinder::calculate(float startX, float startY, float startZ, float destX
 
     DEBUG_FILTER_LOG(LOG_FILTER_PATHFINDING, "++ PathFinder::calculate() for %u \n", m_sourceUnit->GetGUIDLow());
 
-    BindMesh();
+    // Lives until this function returns, and everything below runs under it: the tile
+    // checks, BuildPolyPath, BuildPointPath, findSmoothPath. No tile can enter or leave
+    // the mesh in between, so the polys Detour hands back stay the polys it walks.
+    MMAP::MMapManager::Route route = BindMesh();
 
     // make sure navMesh works - we can run on map w/o mmap
     // check if the start and end point have a .mmtile loaded (can we pass via not loaded tile on the way?)

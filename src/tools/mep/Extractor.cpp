@@ -40,6 +40,15 @@
 #include "stores/MapDbcStore.hpp"
 #include "terrain/TileSerializer.hpp"
 
+// The client patcher and the key mint, linked rather than shelled out to: these
+// used to be two separate executables an operator had to find, run in the right
+// order, and hand the right file to. They are one tick box now.
+#include "ClientFile.h"
+#include "Hash.h"
+#include "KeyMint.h"
+#include "Patch.h"
+#include "SecretFile.h"
+
 #include <algorithm>
 #include <chrono>
 #include <cstdio>
@@ -71,6 +80,14 @@ namespace
         bool goModels = false;
         bool vessels = false;
         bool nav = false;
+        /// Mint the realm keypair into <dest>/keys and write its public half
+        /// into the client binary. Reads no archive, so it needs no MPQ.
+        bool patchClient = false;
+        /// Empty: derived from --src, which points inside the client install.
+        std::string clientExe;
+        /// Mint a new keypair over an existing one. Locks out every client
+        /// already patched with the old key, so it is never implied.
+        bool forceKeys = false;
         std::string vesselList;
 
         // Whether the command line named components itself. Naming them is an
@@ -142,10 +159,10 @@ namespace
     void Usage()
     {
         std::printf(
-"mangos-extractor -- bakes a WoW client into the caches mangosd reads.\n"
+"mep bake -- bakes a WoW client into the caches mangosd reads.\n"
 "  built for: " MANGOS_CLIENT_NAME "\n"
 "\n"
-"  usage: mangos-extractor [component ...] [option ...]\n"
+"  usage: mep bake [component ...] [option ...]\n"
 "\n"
 "COMPONENTS -- name none and it bakes them all.\n"
 "\n"
@@ -161,6 +178,13 @@ namespace
 "  nav        the navmesh, built FROM THE TILES, never from the client, so\n"
 "             the pathfinder walks exactly the surface collision answers with.\n"
 "  all        every one of the above, in that order.\n"
+"\n"
+"  patch      NOT part of `all`, because it is the one component that writes\n"
+"             outside --dest. Mints this realm's redirect keypair into\n"
+"             <dest>/keys (keeping any pair already there) and writes its\n"
+"             public half into the client binary, which a 4.3.4 client needs\n"
+"             before it will open its second world connection at all. Reads no\n"
+"             archive, so it runs first and on its own.\n"
 "\n"
 "WHERE\n"
 "\n"
@@ -188,6 +212,14 @@ namespace
 "  --threads <n>   worker threads                    (default: all cores)\n"
 "  --no-menu       never ask, even on a terminal.\n"
 "\n"
+"PATCH ONLY\n"
+"\n"
+"  --client <exe>  the client binary to patch. Default: the Wow executable\n"
+"                  beside the Data folder --src names.\n"
+"  --force-keys    mint a new keypair over the one in <dest>/keys. EVERY\n"
+"                  client patched with the old key stops being able to log\n"
+"                  in, so this is never implied.\n"
+"\n"
 "On a terminal, naming no component opens the menu -- that is the front door\n"
 "and it explains every choice. With no terminal to open it on (a pipe, a CI\n"
 "log) everything is baked instead, so an unattended run needs no arguments.\n");
@@ -205,11 +237,17 @@ namespace
             else if (a == "gomodels") { out.goModels = out.named = true; }
             else if (a == "trans" || a == "vessels") { out.vessels = out.named = true; }
             else if (a == "nav") { out.nav = out.named = true; }
+            else if (a == "patch") { out.patchClient = out.named = true; }
             else if (a == "all")
             {
+                // Deliberately NOT patch. Every other component writes into
+                // --dest; this one writes into somebody's game install. A word
+                // that means "bake the lot" must not also mean "edit Wow.exe".
                 out.dbc = out.tiles = out.goModels = out.vessels = out.nav =
                     out.named = true;
             }
+            else if (a == "--client" && hasValue) { out.clientExe = argv[++i]; }
+            else if (a == "--force-keys") { out.forceKeys = true; }
             else if (a == "--vessels" && hasValue) { out.vesselList = argv[++i]; }
             else if (a == "--src" && hasValue) { out.src = argv[++i]; }
             else if (a == "--dest" && hasValue) { out.dest = argv[++i]; }
@@ -426,7 +464,7 @@ namespace
     {
         std::error_code ec;
         std::filesystem::path exe = std::filesystem::absolute(
-            argv0 ? argv0 : "mangos-extractor", ec);
+            argv0 ? argv0 : "mep", ec);
         if (ec)
         {
             return name;
@@ -634,6 +672,190 @@ namespace
                       name.c_str(), written, failed ? " (SOME FAILED)" : "");
         if (failed) { g_console.Warn(msg); } else { g_console.Detail(msg); }
     }
+
+    /**
+     * @brief The Wow executable belonging to the Data folder @p dataDir.
+     *
+     * --src names `<install>/Data`, so the binary is its parent's. Both the 32-
+     * and 64-bit names are tried because a 4.3.4 install ships both and either
+     * may be the one a person actually launches; whichever is found first is
+     * reported, and --client overrides the guess outright.
+     *
+     * Empty when nothing plausible is there, which is a refusal rather than a
+     * default: writing a modulus into the wrong binary is not something to do
+     * on a hunch.
+     */
+    std::string DefaultClientExe(const std::string& dataDir)
+    {
+        std::error_code ec;
+        const std::filesystem::path data(dataDir);
+        std::filesystem::path root = data.parent_path();
+        if (root.empty())
+        {
+            root = std::filesystem::path(".");
+        }
+
+        static const char* const names[] = { "Wow.exe", "Wow-64.exe", "WoW.exe" };
+        for (const char* name : names)
+        {
+            const std::filesystem::path candidate = root / name;
+            if (std::filesystem::exists(candidate, ec) &&
+                std::filesystem::is_regular_file(candidate, ec))
+            {
+                return ExtractorConsole::ToUnixPath(candidate.string());
+            }
+        }
+        return std::string();
+    }
+
+    /**
+     * @brief Mint this realm's redirect keypair, then write its public half into
+     *        the client.
+     *
+     * Two things a 4.3.4 realm cannot run without, and which used to be two
+     * separate command-line tools run in the right order with the right file
+     * passed between them. The failure mode when they were not -- a client
+     * patched from one generation against a server running another -- is a login
+     * that hangs at the loading screen with nothing in any log to explain it,
+     * which is precisely the sort of thing an operator should not be able to do
+     * by accident. Here the mint feeds the patch directly and neither half can be
+     * pointed at the wrong file.
+     *
+     * Runs before any archive is opened. A locked, missing or foreign client
+     * binary should be reported in the first second of a run, not after three
+     * hours of navmesh.
+     */
+    bool PatchClient(const Options& opt)
+    {
+        // Qualified, not a `using namespace`: this file already opens
+        // world::terrain at global scope, and names like Inspect or Apply are
+        // exactly the sort both a terrain engine and a patcher would spell the
+        // same way.
+        namespace patcher = mangos::patcher;
+
+        g_console.SetStage("patch");
+        g_console.Progress(-1);
+
+        const std::string keysDir = opt.dest + "/keys";
+        g_console.Activity("minting the realm keypair");
+
+        const mangos::keys::MintOutcome minted =
+            mangos::keys::EnsureKeypair(keysDir, opt.forceKeys);
+        if (!minted.ok)
+        {
+            g_console.Error("  " + minted.error);
+            return false;
+        }
+
+        if (minted.generated)
+        {
+            g_console.Success("  keys: minted a new pair in " + keysDir);
+        }
+        else
+        {
+            g_console.Log("  keys: the pair already in " + keysDir +
+                          " was kept -- clients patched with it still work");
+        }
+        g_console.Detail("  the server reads " + minted.serverSecret +
+                         " from its DataDir; there is no setting to point at it");
+
+        std::string exe = opt.clientExe;
+        if (exe.empty())
+        {
+            exe = DefaultClientExe(opt.src);
+            if (exe.empty())
+            {
+                g_console.Error("  no Wow executable beside " + opt.src +
+                                " -- name it with --client");
+                return false;
+            }
+            g_console.Detail("  client: " + exe + " (found beside --src)");
+        }
+        else
+        {
+            g_console.Detail("  client: " + exe);
+        }
+
+        std::string modulusHex;
+        std::string digestHex;
+        std::string error;
+        if (!patcher::ReadSecretField(minted.clientSecret, "Modulus", modulusHex, error) ||
+            !patcher::ReadSecretField(minted.clientSecret, "Digest", digestHex, error))
+        {
+            g_console.Error("  " + error);
+            return false;
+        }
+
+        patcher::ApplyOptions apply;
+        if (!patcher::FromHex(modulusHex, apply.modulus_le) || !patcher::FromHex(digestHex, apply.digest20))
+        {
+            g_console.Error("  " + minted.clientSecret + " does not hold hex");
+            return false;
+        }
+        // The secret files state the modulus the way the server does, as a
+        // big-endian number. The client stores it the other way round.
+        std::reverse(apply.modulus_le.begin(), apply.modulus_le.end());
+
+        patcher::ClientFile file;
+        if (!patcher::ClientFile::Load(exe, file, error))
+        {
+            g_console.Error("  " + error);
+            return false;
+        }
+
+        const patcher::ClientReport report = patcher::Inspect(file);
+        if (report.target == nullptr)
+        {
+            g_console.Error("  " + exe + ": no patch layout for this image (" +
+                            report.machine + ")");
+            return false;
+        }
+        if (report.HasForbiddenEdits())
+        {
+            // The forbidden sites are not what a stock 15595 client has there. Two
+            // things produce that and this cannot tell them apart: a MaNGOSPatcher-
+            // style edit, which forces every opcode onto stream 0 so the client
+            // cannot speak the dual-stream protocol at all, or a binary that is not
+            // a 4.3.4 client in the first place -- `target` is matched on machine
+            // type, so any x64 PE gets this far. Both are refusals, and naming only
+            // the first sends someone hunting for a patcher they never ran.
+            g_console.Error("  " + exe + ": not a stock 4.3.4 client. Either it is not "
+                            "a WoW 15595 binary at all, or it carries a "
+                            "MaNGOSPatcher-style edit that collapses both world "
+                            "streams onto one. Point --client at a stock client.");
+            return false;
+        }
+        if (!report.sha256_is_stock)
+        {
+            g_console.Warn("  " + exe + " is not a stock image; patching the sites this "
+                           "build knows about");
+        }
+
+        const patcher::ApplyResult result = patcher::Apply(file, report, apply);
+        for (const std::string& action : result.actions)
+        {
+            g_console.Detail("  " + action);
+        }
+        if (!result.ok)
+        {
+            g_console.Error("  " + result.error);
+            return false;
+        }
+        if (!result.changed)
+        {
+            g_console.Success("  client already patched with this key; nothing written");
+            return true;
+        }
+
+        if (!file.Save(exe, true, error))
+        {
+            g_console.Error("  " + error);
+            return false;
+        }
+
+        g_console.Success("  patched " + exe + " (backup " + exe + ".bak)");
+        return true;
+    }
 }
 
 
@@ -656,7 +878,7 @@ namespace
     }
 }
 
-int main(int argc, char** argv)
+int BakeMain(int argc, char** argv)
 {
     // Unbuffered when stdout is NOT a terminal. A pipe makes the C runtime buffer in
     // 4K blocks, so a GUI or a CI log reading this sees nothing for minutes and then
@@ -704,6 +926,11 @@ int main(int argc, char** argv)
         opt.goModels = choice.goModels;
         opt.vessels = choice.vessels;
         opt.nav = choice.nav;
+        opt.patchClient = choice.patchClient;
+        if (!choice.clientExe.empty())
+        {
+            opt.clientExe = choice.clientExe;
+        }
         if (choice.mapFilter >= 0)
         {
             opt.mapFilter = choice.mapFilter;
@@ -721,10 +948,21 @@ int main(int argc, char** argv)
     {
         // Bare invocation is "do the whole job", vessels included -- leaving trans out
         // of this was how 02 shipped a default bake that produced no ship decks.
+        // Not the client patch: an unattended run must not edit somebody's game.
         opt.dbc = opt.tiles = opt.goModels = opt.vessels = opt.nav = true;
     }
 
-    // THE SAME REFUSAL THE MENU MAKES, for the command line. "mangos-extractor nav"
+    // FIRST, and before any archive is opened. It reads no MPQ, it is over in
+    // seconds, and everything that can go wrong with it -- no keypair, a client
+    // that is not where --src implies, a binary already mangled by another
+    // patcher -- is something to learn now rather than after a navmesh.
+    if (opt.patchClient && !PatchClient(opt))
+    {
+        g_console.Stop();
+        return 1;
+    }
+
+    // THE SAME REFUSAL THE MENU MAKES, for the command line. "mep nav"
     // with no tiles on disk parses fine, runs, and writes nothing -- a successful run
     // that produced an empty navmesh. An earlier bake counts: what is checked is whether
     // the input will exist, not whether it was named on this command line.
