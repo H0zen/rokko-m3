@@ -123,6 +123,32 @@ InstanceData* WorldObject::GetInstanceData() const
 }
 
 /**
+ * @brief The map id an update packet sent to a client must carry (see Object.h).
+ *
+ * A hull map is the server's own; the client knows only the world the vessel sails. An update
+ * header naming the hull makes the 4.3.4 client change worlds, which destroys its active player
+ * and faults on the next frame -- the zeppelin crash of 2026-09-14 and the login crash of
+ * 2026-09-20. TransportMap's own senders already carry the vessel's world map id; this is the
+ * same rule for every generic sender.
+ * @return The vessel's world map id when this object stands on a hull, else its own map id.
+ */
+uint32 WorldObject::GetClientMapId() const
+{
+    Map const* map = FindMap();
+    if (!map)
+    {
+        return GetMapId();
+    }
+    TransportMap const* hull = map->AsTransport();
+    if (!hull)
+    {
+        return GetMapId();
+    }
+    Transport const* vessel = hull->Vessel();
+    return vessel && vessel->FindMap() ? vessel->GetMapId() : GetMapId();
+}
+
+/**
  * @brief A random ground point around a centre, in this object's own frame.
  *
  * The roll is injected rather than drawn here, so the pick stays pinnable in a test.

@@ -467,7 +467,7 @@ void Object::BuildUpdateDataForPlayer(Player* pl, UpdateDataMapType& update_play
 
     if (iter == update_players.end())
     {
-        std::pair<UpdateDataMapType::iterator, bool> p = update_players.insert(UpdateDataMapType::value_type(pl, UpdateData(pl->GetMapId())));
+        std::pair<UpdateDataMapType::iterator, bool> p = update_players.insert(UpdateDataMapType::value_type(pl, UpdateData(pl->GetClientMapId())));
         MANGOS_ASSERT(p.second);
         iter = p.first;
     }

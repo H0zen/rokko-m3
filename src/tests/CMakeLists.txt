@@ -240,6 +240,14 @@ add_test(NAME motion_blocked_masks
         -DSOURCE_ROOT=${CMAKE_SOURCE_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckBlockedMasks.cmake)
 
+# An update packet's header map id is acted on by the 4.3.4 client: a foreign id is a world
+# change that destroys its active player. A passenger's GetMapId() is the vessel's hull map,
+# so every sender must build its UpdateData from WorldObject::GetClientMapId().
+add_test(NAME client_map_id
+    COMMAND ${CMAKE_COMMAND}
+        -DSOURCE_ROOT=${CMAKE_SOURCE_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckClientMapId.cmake)
+
 # The console may only stop the world on EOF when stdin is a terminal. A service
 # manager passes /dev/null, which is EOF at once; treating that as an operator
 # shutdown request stops every headless deployment a second after start-up, and

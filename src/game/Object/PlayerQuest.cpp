@@ -3107,7 +3107,7 @@ void Player::UpdateForQuestWorldObjects()
         return;
     }
 
-    UpdateData udata(GetMapId());
+    UpdateData udata(GetClientMapId());
     WorldPacket packet;
     for (GuidSet::const_iterator itr = m_clientGUIDs.begin(); itr != m_clientGUIDs.end(); ++itr)
     {

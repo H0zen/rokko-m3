@@ -250,6 +250,9 @@ class TransportMap : public Map
 
         Transport* m_vessel;
 
+        /// The passenger Embark is putting aboard right now, if any: he walked on, so his
+        /// client attached him itself and must not be sent a create of his own (see Add).
+        Player* m_walkingAboard = NULL;
         bool m_commissioned = false;
 
         float m_hullRadius = 0.0f;

@@ -433,7 +433,22 @@ bool TransportMap::Add(Player* passenger)
     // vessel is map membership, and the elimination sweep must never learn she exists.
     UpdateData data(WorldMapIdOf(m_vessel));
     m_vessel->BuildCreateUpdateBlockForPlayer(&data, passenger);
-    passenger->BuildCreateUpdateBlockForPlayer(&data, passenger);
+    if (m_walkingAboard != passenger)
+    {
+        // ONLY for a client that holds nothing yet: login aboard, or the far side of a seam,
+        // where the world has just been loaded and the man himself must be introduced.
+        //
+        // Never for a man who WALKED aboard. A create block naming the active player whose
+        // movement carries a transport makes the 4.3.4 client raise a loading screen and
+        // re-stream every terrain tile: its update handler notes that the block was the
+        // active player's, then asks her for a transport guid and, finding one, loads
+        // (sub_1400B5A70 -> sub_1401AE880 -> sub_1403FC630). That is the loading screen on
+        // every boarding the live test of 2026-09-20 found -- eleven boardings, eleven
+        // screens, none when stepping ashore, and no transfer packet anywhere near them.
+        // He attached himself and told us so (CMSG_MOVE_CHNG_TRANSPORT); retail never sends
+        // a player his own transport block at all.
+        passenger->BuildCreateUpdateBlockForPlayer(&data, passenger);
+    }
 
     WorldPacket packet;
     data.BuildPacket(&packet);
@@ -481,7 +496,9 @@ void TransportMap::Embark(Player* passenger)
                      DescribeSpatially(passenger).c_str());
 
     passenger->GetMap()->Remove(passenger, false);
+    m_walkingAboard = passenger;
     Add(passenger);
+    m_walkingAboard = NULL;
 
     // His minions come with him, NOW. UpdateMinions reconciles this once per tick and is
     // the safety net for the half-dozen other ways one arrives -- but a pet that waits a

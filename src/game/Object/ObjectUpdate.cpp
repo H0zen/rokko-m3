@@ -166,7 +166,7 @@ void Object::BuildCreateUpdateBlockForPlayer(UpdateData* data, Player* target) c
 void Object::SendCreateUpdateToPlayer(Player* player)
 {
     // send create update to player
-    UpdateData upd(player->GetMapId());
+    UpdateData upd(player->GetClientMapId());
     WorldPacket packet;
 
     BuildCreateUpdateBlockForPlayer(&upd, player);

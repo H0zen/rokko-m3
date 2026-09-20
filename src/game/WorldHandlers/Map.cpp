@@ -1851,7 +1851,7 @@ void Map::SendInitSelf(Player* player)
 {
     DETAIL_LOG("Creating player data for himself %u", player->GetGUIDLow());
 
-    UpdateData data(player->GetMapId());
+    UpdateData data(player->GetClientMapId());
 
     // attach to player data current transport data
     if (Transport* transport = player->GetTransport())
@@ -1930,7 +1930,7 @@ void Map::SendRemoveTransports(Player* player)
         return;
     }
 
-    UpdateData transData(player->GetMapId());
+    UpdateData transData(player->GetClientMapId());
 
     MapManager::TransportSet& tset = tmap[player->GetMapId()];
 
@@ -1945,7 +1945,7 @@ void Map::SendRemoveTransports(Player* player)
     transData.BuildPacket(&packet);
 
     // Prevent sending transport maps in player update object
-    if (packet.ReadUInt16() != player->GetMapId())
+    if (packet.ReadUInt16() != player->GetClientMapId())
     {
         return;
     }

@@ -701,6 +701,18 @@ class WorldObject : public Object
 
 
         uint32 GetMapId() const { return m_mapId; }
+        /**
+         * @brief The map id an update packet sent to a client must carry: the WORLD map, even
+         * for a unit standing on a vessel's hull map.
+         *
+         * A hull map (TransportMap) exists server-side only. The 4.3.4 client was never told it
+         * exists, and its update handler treats a header naming a map other than the one it is
+         * on as a world change: it builds a fresh object manager, destroying the active player,
+         * and the next frame dereferences that null pointer. So the hull's own id may never
+         * reach the wire (TransportMap's own senders already use the vessel's world map id).
+         * @return The vessel's world map id when this object is on a hull, else its own map id.
+         */
+        uint32 GetClientMapId() const;
         uint32 GetInstanceId() const { return m_InstanceId; }
 
         virtual void SetPhaseMask(uint32 newPhaseMask, bool update);
