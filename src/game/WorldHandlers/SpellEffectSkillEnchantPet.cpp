@@ -312,13 +312,19 @@ void Spell::EffectDistract(SpellEffectEntry const* /*effect*/)
         return;
     }
 
-    unitTarget->SetFacingTo(unitTarget->Where().BearingTo(Geometry::Vector2(m_targets.m_destX, m_targets.m_destY)));
     unitTarget->GetMotionMaster()->ClearMovingLatches();
 
     if (unitTarget->GetTypeId() == TYPEID_UNIT)
     {
         unitTarget->GetMotionMaster()->MoveDistract(damage * IN_MILLISECONDS);
     }
+
+    // AFTER the distract, never before it. Installing the distract suspends whatever ran,
+    // and a suspend interrupts the mover: that stop packet carries the facing the unit had
+    // and cancels a turn sent a moment earlier, so the creature stood there still looking
+    // the way it was walking (the live test of 2026-09-20). The distract's own tick sends
+    // nothing, so a turn sent now is the last word.
+    unitTarget->SetFacingTo(unitTarget->Where().BearingTo(Geometry::Vector2(m_targets.m_destX, m_targets.m_destY)));
 }
 
 /**

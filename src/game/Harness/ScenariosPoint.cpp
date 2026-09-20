@@ -28,9 +28,14 @@
 #include "Creature.h"
 #include "MotionMaster.h"
 #include "Log.h"
+#include "movement/MoveSpline.h"
+#include "Utilities/MathDefines.h"
 
+#include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <memory>
+#include <string>
 #include <vector>
 
 // The point family of the old harness: S5 point-inform-after-interrupt, S9
@@ -44,6 +49,14 @@ namespace Harness
         const uint32 KOBOLD = 6;
 
         struct Pt { float x, y, z; };
+
+        /// The shorter way round between two facings, in radians.
+        float AngleDiff(float a, float b)
+        {
+            float d = fabsf(a - b);
+            while (d > M_PI_F) { d = fabsf(d - 2.0f * M_PI_F); }
+            return d;
+        }
         const Pt SD = { -3122.6f, -261.3f, 46.0f };
         const Pt A4 = { -3257.5f, -351.6f, 47.8f };
         const Pt B4 = { -2891.0f, -416.7f, 47.9f };
@@ -403,10 +416,107 @@ namespace Harness
         };
     }
 
+        /// S61 (the live test of 2026-09-20): Distract is cast at a SPOT on the ground (target
+        /// mask 0x40, implicit target 16: every enemy within the 10 yd circle), and each creature
+        /// it catches must turn to face the circle's centre and stand there for its duration.
+        /// Live, the creature stood but kept looking the way it had been walking.
+        ///
+        /// The cast must be the real one: EffectDistract reads its own m_targets destination, so
+        /// a scenario that merely calls SetFacingTo + MoveDistract by hand passes either way and
+        /// proves nothing. It must also catch the creature MID-LEG, which is the other half of
+        /// the bug: installing the distract suspends the leg that ran, and a suspended behaviour
+        /// stops the mover (NativeBehaviour::PerformOutcome). StopMoving freezes the unit at the
+        /// spline's position AND its orientation -- and a facing-only spline carries its angle at
+        /// the END, so a turn launched an instant earlier is still at its initial orientation and
+        /// the stop cancels it. Hence the order in EffectDistract: distract first, turn after.
+        class DistractTurnsToTheSpot : public Scenario
+        {
+        public:
+            DistractTurnsToTheSpot() : Scenario("distract-turns-to-the-spot", 61) {}
+
+            void Prepare() override
+            {
+                struct St
+                {
+                    float wanted;      ///< the bearing from the creature to the circle centre
+                    float atHalf;      ///< its facing half a second after the cast
+                    float atTwo;       ///< and two seconds after it
+                    bool  moving;      ///< a leg really was under way when the circle landed
+                    bool  distracted;  ///< the effect really did land (it is a Distract now)
+                };
+                const uint32 DISTRACT = 1725;
+                Creature* a = Spawn(WOLF, SD.x, SD.y, Ground(SD.x, SD.y, SD.z), 0.0f);
+                Creature* rogue = Spawn(KOBOLD, SD.x + 25.0f, SD.y, Ground(SD.x + 25.0f, SD.y, SD.z), 3.1f);
+                if (!a || !rogue) { Verdict("distractLanded=INVALID(spawn failed) | turnsToTheSpot=INVALID(spawn failed) | holdsTheTurn=INVALID(spawn failed)"); return; }
+                Silence(a);
+                Silence(rogue);
+                // A human faction on the caster: Distract picks its targets as enemies around
+                // the circle, and two neutral creatures are no enemies of one another. This is
+                // the rogue the live cast came from, standing in for her.
+                a->setFaction(14);       // Monster
+                rogue->setFaction(1);    // Human: an enemy of Monster, as the live rogue was
+                const ObjectGuid g = a->GetObjectGuid();
+                const ObjectGuid r = rogue->GetObjectGuid();
+                auto st = std::make_shared<St>();
+                st->wanted = st->atHalf = st->atTwo = 0.0f;
+                st->moving = st->distracted = false;
+
+                // A leg first: live, the creature had been walking when the circle caught it.
+                At(500, [this, g]()
+                {
+                    if (Creature* a = Get(g))
+                    {
+                        a->GetMotionMaster()->MovePoint(61, SD.x - 30.0f, SD.y, Ground(SD.x - 30.0f, SD.y, SD.z), true);
+                        Log("walking west from (%.1f, %.1f)", a->Where().X(), a->Where().Y());
+                    }
+                });
+                // The circle lands 8 yd NORTH of the creature, across its direction of travel,
+                // so the turn it owes is a quarter turn and unmistakable.
+                At(1500, [this, g, r, st, DISTRACT]()
+                {
+                    Creature* a = Get(g); Creature* rogue = Get(r);
+                    if (!a || !rogue) { return; }
+                    st->moving = !a->movespline->Finalized();
+                    const float spotX = a->Where().X();
+                    const float spotY = a->Where().Y() + 4.0f;
+                    const float spotZ = Ground(spotX, spotY, SD.z);
+                    st->wanted = a->Where().BearingTo(Geometry::Vector2(spotX, spotY));
+                    rogue->CastSpell(spotX, spotY, spotZ, DISTRACT, true);
+                    Log("cast %u at the spot (%.1f, %.1f), 4 yd off, inside its 10 yd circle; moving=%d, "
+                        "wanted facing %.2f rad, facing now %.2f",
+                        DISTRACT, spotX, spotY, st->moving ? 1 : 0, st->wanted, a->Where().Facing());
+                });
+                At(2000, [this, g, st]()
+                {
+                    if (Creature* a = Get(g))
+                    {
+                        st->distracted = strcmp(TypeName(a), "Distract") == 0;
+                        st->atHalf = a->Where().Facing();
+                        Log("+500ms after the cast: facing %.2f rad, mt=%s", st->atHalf, TypeName(a));
+                    }
+                });
+                At(3500, [this, g, st]()
+                {
+                    if (Creature* a = Get(g)) { st->atTwo = a->Where().Facing(); Log("+2000ms after the cast: facing %.2f rad, mt=%s", st->atTwo, TypeName(a)); }
+                });
+                At(4000, [this, st]()
+                {
+                    const float tol = 0.20f;   // a fifth of a radian: a turn either happened or it did not
+                    const char* landed = st->distracted ? "OK" : "BUG(the circle never caught it)";
+                    const char* turned = !st->moving ? "INVALID(no leg was under way)"
+                                                     : (AngleDiff(st->atHalf, st->wanted) <= tol ? "OK" : "BUG(kept the walking facing)");
+                    const char* held = AngleDiff(st->atTwo, st->wanted) <= tol ? "OK" : "BUG(turned away again)";
+                    Verdict(std::string("distractLanded=") + landed + " | turnsToTheSpot=" + turned + " | holdsTheTurn=" + held);
+                });
+            }
+        };
+
+
     void RegisterPointScenarios(Runner& r)
     {
         r.Register(new PointInformAfterInterrupt());
         r.Register(new LongPoint());
         r.Register(new UnreachablePoint());
+        r.Register(new DistractTurnsToTheSpot());
     }
 }
