@@ -1201,7 +1201,7 @@ class Player : public Unit
         void TaxiSeamPassed();
         /// The map crossing: the far teleport onto the next map's first path node. Asked from inside
         /// the motion update it is deferred to the end of Update() and the Taxi binding survives it;
-        /// the worldport ack resumes the flight (MotionMaster::TaxiContinue). False when refused.
+        /// the worldport ack resumes the flight (UnitMovement::TaxiContinue). False when refused.
         bool TaxiCross(uint32 mapId, float x, float y, float z, float o);
         /// The landing, scheduled by the flight's finish and performed by Update() once the
         /// teleport-deferral window has closed; `snap` when the destination node carries a position.

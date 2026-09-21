@@ -545,7 +545,7 @@ void Unit::Update(uint32 update_diff, uint32 p_time)
     }
 
     UpdateSplineMovement(p_time);
-    i_motionMaster.UpdateMotion(p_time);
+    i_movement.UpdateMotion(p_time);
 }
 
 /**
@@ -4483,7 +4483,7 @@ void Unit::SetDeathState(DeathState s)
         UnsummonAllTotems();
 
         StopMoving();
-        i_motionMaster.Die();
+        i_movement.Die();
 
         // Unsummon vehicle accessories
         if (IsVehicle())
@@ -4515,7 +4515,7 @@ void Unit::SetDeathState(DeathState s)
 
     if (s == JUST_ALIVED || s == ALIVE)
     {
-        i_motionMaster.Uninhibit(Motion::Inhibition::Dead, Motion::kDeathSource);
+        i_movement.Uninhibit(Motion::Inhibition::Dead, Motion::kDeathSource);
     }
 
     m_deathState = s;
@@ -5784,16 +5784,16 @@ void Unit::SendPetAIReaction()
 /**
  * @brief Whether the unit is rooted to the ground (can't move): the kernel's one answer.
  * @return True while any source holds the Rooted inhibition.
- * \see MotionMaster::Inhibited
+ * \see UnitMovement::Inhibited
  */
 bool Unit::IsRooted() const
 {
-    return i_motionMaster.Inhibited(Motion::Inhibition::Rooted);
+    return i_movement.Inhibited(Motion::Inhibition::Rooted);
 }
 
 void Unit::StopMoving(bool forceSendStop /*=false*/)
 {
-    i_motionMaster.ClearMovingLatches();   // the legs the moving mask held (P5-C3)
+    i_movement.Halt();
 
     // not need send any packets if not in world
     if (!IsInWorld())

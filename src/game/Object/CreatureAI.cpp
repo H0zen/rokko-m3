@@ -250,7 +250,6 @@ void CreatureAI::HandleMovementOnAttackStart(Unit* victim)
     {
         creatureMotion->MoveChase(victim, m_attackDistance, m_attackAngle);
     }
-    // TODO - adapt this to only stop OOC-MMGens when MotionMaster rewrite is finished
     else if (kind == Motion::Kind::Patrol || kind == Motion::Kind::Wander)
     {
         creatureMotion->MoveIdle();

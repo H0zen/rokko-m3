@@ -73,7 +73,7 @@
 #include "ThreatManager.h"
 #include "HostileRefManager.h"
 #include "Utilities/EventProcessor.h"
-#include "MotionMaster.h"
+#include "UnitMovement.h"
 #include "State.h"
 #include "DBCStructure.h"
 #include "Path.h"
@@ -502,12 +502,10 @@ enum DeathState
 };
 
 /**
- * internal state flags for some auras and the movement behaviours, other. The kernel's block
- * (rooted, stunned, a feign, possessed, feared, confused, distracted, on a taxi) is not here: the
- * facade publishes it (MotionMaster::Published) and Unit reads it through Blocked,
- * IsFeigningDeath, CannotMove, CannotReact, LostControl and IsTaxiFlying (P5-C2). Nor are the
- * natives' presence and leg bits: the facade's latch bank holds them (MotionMaster::Latches,
- * P5-C3), read through IsStopped, FollowLatched and the bank's fields.
+ * What forbids a unit to move, and what it is doing instead. Both live in one place --
+ * UnitMovement -- and are read from there. There is no published copy and no latch bank:
+ * the pair of mirrors this replaced had to be kept equal by hand, and when one of them
+ * stopped being written every reader of it silently began answering "nothing is forbidden".
  */
 enum UnitState
 {
@@ -526,7 +524,7 @@ enum UnitState
     // masks (for check or reset)
 
     UNIT_STAT_ALL_STATE       = 0xFFFFFFFF,
-    // the Home native's first-tick wipe (MotionMaster::WipeLatches): the melee, attack-player and isolated bits
+    // the Home native's first-tick wipe (UnitMovement::Wipe): the melee, attack-player and isolated bits
     UNIT_STAT_ALL_DYN_STATES  = UNIT_STAT_ALL_STATE & ~(UNIT_STAT_NO_COMBAT_MOVEMENT | UNIT_STAT_RUNNING | UNIT_STAT_WAYPOINT_PAUSED | UNIT_STAT_IGNORE_PATHFINDING),
 
 };
@@ -1693,23 +1691,23 @@ class Unit : public WorldObject
             // kNoFreeMoveReasons is the old UNIT_STAT_NO_FREE_MOVE less its feign bit, which the
             // published state carries apart (IsFeigningDeath): a real death does not deny free
             // movement, only a feign does.
-            return !(GetMotionMaster()->Mobility().reasons & Motion::kNoFreeMoveReasons) &&
+            return !(i_movement.Reasons() & Motion::kNoFreeMoveReasons) &&
                    !IsFeigningDeath() && !GetOwnerGuid();
         }
 
         /**
          * The shell's view of the kernel's block (P5-C2): whether any of these Motion::Reason bits
-         * was held at the end of the last movement commit (MotionMaster::Published). A
+         * is held right now, read from UnitMovement::Reasons. A
          * reader inside a nested facade call sees the previous commit's answer, as the unit-state
-         * bits it replaces did; the kernel's live state is MotionMaster::Inhibited/HoldsControl.
+         * bits it replaces did; the live state is UnitMovement::Inhibited.
          * @param reasons Motion::Reason bits (Motion::ReasonStunned, ...) or a named mask
          * @return true if any of them was held
          */
-        bool Blocked(uint32 reasons) const { return (i_motionMaster.Published().reasons & reasons) != 0; }
+        bool Blocked(uint32 reasons) const { return (i_movement.Reasons() & reasons) != 0; }
         /// A UnitState passed here would be read as reason bits (UNIT_STAT_ISOLATED is ReasonConfused's bit): refused at compile time.
         bool Blocked(UnitState) const = delete;
         /// Feigning death, as of the last movement commit: the old UNIT_STAT_DIED (a feign alone; a real death is IsAlive()'s).
-        bool IsFeigningDeath() const { return i_motionMaster.Published().feign; }
+        bool IsFeigningDeath() const { return i_movement.Feigning(); }
         /// Rooted, stunned or feigning death: the old UNIT_STAT_CAN_NOT_MOVE.
         bool CannotMove() const { return Blocked(Motion::kCannotMoveReasons) || IsFeigningDeath(); }
         /// Stunned, feared, confused or feigning death: the old UNIT_STAT_CAN_NOT_REACT.
@@ -3137,9 +3135,9 @@ class Unit : public WorldObject
         bool IsWalking() const { return m_movementInfo.HasMovementFlag(MOVEFLAG_WALK_MODE); }
         /**
          * Whether the kernel's Rooted inhibition is held (P5-A): the one answer to "is this unit
-         * rooted", independent of MOVEFLAG_ROOT, which MotionMaster::ProjectClientRoot projects from it.
+         * rooted", independent of MOVEFLAG_ROOT.
          * @return true if the \ref Unit is rooted to the ground (can't move), false otherwise
-         * \see MotionMaster::Inhibited
+         * \see UnitMovement::Inhibited
          */
         bool IsRooted() const;
 
@@ -3946,15 +3944,25 @@ class Unit : public WorldObject
 
         float CalculateLevelPenalty(SpellEntry const* spellProto) const;
 
-        MotionMaster* GetMotionMaster() { return &i_motionMaster; }
-        MotionMaster const* GetMotionMaster() const { return &i_motionMaster; }
+        UnitMovement* GetMotionMaster() { return &i_movement; }
+        UnitMovement const* GetMotionMaster() const { return &i_movement; }
+        /// The same component under the name that says what it is. `GetMotionMaster` is the
+        /// spelling two thousand call sites already use and is kept for them.
+        UnitMovement& Movement() { return i_movement; }
+        UnitMovement const& Movement() const { return i_movement; }
 
         /// No leg in flight (the old UNIT_STAT_MOVING, negated): no roaming, chase, follow or fear
-        /// leg is latched (MotionMaster::LatchBank::Moving); the confuse's lurch was never counted.
-        bool IsStopped() const { return !i_motionMaster.Latches().Moving(); }
+        /// route is in flight; there is no separate latch to keep in step with it.
+        bool IsStopped() const { return !i_movement.IsMoving(); }
         /// A follow native is active (the old UNIT_STAT_FOLLOW): latched at its activation, cleared
-        /// at its suspension or its finish, or by a whole-state wipe (MotionMaster::LatchBank::follow).
-        bool FollowLatched() const { return i_motionMaster.Latches().follow; }
+        /// at its suspension or its finish, or by a whole-state wipe.
+        /// A follow is what is running right now. There is no separate latch to keep in
+        /// step with it any more -- that pair was the mirror this component removed.
+        bool FollowLatched() const
+        {
+            Move::Kind running = Move::Kind::Count;
+            return i_movement.Running(running) && running == Move::Kind::Follow;
+        }
         void StopMoving(bool forceSendStop = false);
         void InterruptMoving(bool forceSendStop = false);
         bool CommitSplinePosition(); ///< Take the running spline's position: the seat pose at once, the placement on the next Update. False when no spline runs.
@@ -3974,7 +3982,7 @@ class Unit : public WorldObject
         void SendPetAIReaction();
         ///----------End of Pet responses methods----------
 
-        void PropagateSpeedChange() { GetMotionMaster()->PropagateSpeedChange(); }
+        void PropagateSpeedChange() { i_movement.PropagateSpeedChange(); }
 
         // reactive attacks
         void ClearAllReactives();
@@ -4087,7 +4095,7 @@ class Unit : public WorldObject
 
         virtual SpellSchoolMask GetMeleeDamageSchoolMask() const;
 
-        MotionMaster i_motionMaster;
+        UnitMovement i_movement;
 
         uint32 m_reactiveTimer[MAX_REACTIVE];
         uint32 m_regenTimer;

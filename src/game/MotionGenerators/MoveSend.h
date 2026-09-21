@@ -75,7 +75,7 @@ class MoveSend
         /// in the creature's create block instead of in a MonsterMove. It has to describe
         /// the SAME leg -- same points, same duration, same start -- or that player's
         /// client builds a second spline that drifts from everyone else's. Both halves read
-        /// the mover's own MotionMaster, which is the single description there is.
+        /// the mover's own UnitMovement, which is the single description there is.
         static void CreateBits(Unit const& unit, ByteBuffer& data);
         static void CreateBytes(Unit const& unit, ByteBuffer& data);
 };

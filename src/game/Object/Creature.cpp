@@ -765,10 +765,9 @@ void Creature::Update(uint32 update_diff, uint32 diff)
                 {
                     SetDeathState(JUST_DIED);
                     SetHealth(0);
-                    i_motionMaster.Clear();
+                    i_movement.Clear();
                     clearUnitState(UNIT_STAT_ALL_STATE);
-                    i_motionMaster.ClearPublished();   // the wipe takes the published state with the bits (P5-C2)
-                    i_motionMaster.ClearAllLatches();   // and every latch, as it cleared their bits (P5-C3)
+                    i_movement.Wipe();
                     LoadCreatureAddon(true);
                 }
                 else
@@ -1131,7 +1130,7 @@ bool Creature::AIM_Initialize()
     }
 
     CreatureAI* oldAI = i_AI;
-    i_motionMaster.Initialize();
+    i_movement.Initialize();
     i_AI = FactorySelector::selectAI(this);
     delete oldAI;
 
@@ -2038,7 +2037,7 @@ void Creature::SetDeathState(DeathState s)
 
         if (CanFly())
         {
-            i_motionMaster.MoveFall();
+            i_movement.MoveFall();
         }
 
         Unit::SetDeathState(CORPSE);
@@ -2047,8 +2046,7 @@ void Creature::SetDeathState(DeathState s)
     if (s == JUST_ALIVED)
     {
         clearUnitState(UNIT_STAT_ALL_STATE);
-        i_motionMaster.ClearPublished();   // the wipe takes the published state with the bits (P5-C2)
-        i_motionMaster.ClearAllLatches();   // and every latch, as it cleared their bits (P5-C3)
+        i_movement.Wipe();
 
         Unit::SetDeathState(ALIVE);
 
@@ -2072,7 +2070,7 @@ void Creature::SetDeathState(DeathState s)
         RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
 
         SetWalk(true, true);
-        i_motionMaster.Initialize();
+        i_movement.Initialize();
     }
 }
 
@@ -3022,7 +3020,7 @@ uint8 Creature::getRace() const
  */
 bool Creature::IsInEvadeMode() const
 {
-    return i_motionMaster.ActiveKind() == Motion::Kind::Home;
+    return i_movement.ActiveKind() == Motion::Kind::Home;
 }
 
 /**

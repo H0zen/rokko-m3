@@ -897,7 +897,7 @@ void Aura::HandleAuraModRoot(bool apply, bool Real)
         // The kernel's block state is what the movement gates read: without it a rooted
         // creature stopped once and its generator laid the next leg, and a stun's end
         // unrooted a still-rooted player. The client root follows the aggregate's edges
-        // (MotionMaster::ProjectClientRoot).
+        // (UnitMovement::Inhibit).
         //
         // This Inhibit may run before the movement-flag wipe below (unlike the stun handler's
         // M1, which wipes first): a player's root is a desired flag awaiting the ack, not part

@@ -57,7 +57,7 @@ namespace Motion
 
     /// The reasons that deny a player free movement for the client's own requests (a logout, a
     /// chain target): the old UNIT_STAT_NO_FREE_MOVE less its feign bit, which the shell's
-    /// published state carries apart (MotionMaster::PublishedState::feign).
+    /// component tells apart by source (UnitMovement::Feigning).
     const uint8 kNoFreeMoveReasons = ReasonRooted | ReasonStunned | ReasonFeared | ReasonConfused | ReasonOnTaxi;
 
     /// The shell's old unit-state composites as reasons (P5-C2), each less its feign bit, which

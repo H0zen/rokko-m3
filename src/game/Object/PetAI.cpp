@@ -261,7 +261,7 @@ void PetAI::UpdateAI(const uint32 diff)
                 && HasLineOfSight(*m_creature, *victim))
         {
             // stop moving
-            m_creature->GetMotionMaster()->ClearMovingLatches();
+            m_creature->GetMotionMaster()->Halt();
 
             // auto turn to target
             m_creature->SetInFront(victim);

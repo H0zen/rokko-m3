@@ -292,7 +292,7 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
         // Nothing lands on a passenger (reference §8.4): the arbiter refuses a control request
         // under a flight, so neither the flag nor the client's revoke is taken for a claim that
         // will never be held; the aura's removal then finds nothing to give back.
-        if (GetMotionMaster()->Mobility().reasons & Motion::ReasonOnTaxi)
+        if (GetMotionMaster()->Reasons() & Motion::ReasonOnTaxi)
         {
             return;
         }
@@ -377,7 +377,7 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 
     if (apply)
     {
         // As for a fear: refused under a flight, so no flag and no revoke for a claim never held.
-        if (GetMotionMaster()->Mobility().reasons & Motion::ReasonOnTaxi)
+        if (GetMotionMaster()->Reasons() & Motion::ReasonOnTaxi)
         {
             return;
         }

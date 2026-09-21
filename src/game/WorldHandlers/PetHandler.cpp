@@ -282,7 +282,7 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
 
             _player->SetInCombatState(true, unit_target);
 
-            pet->GetMotionMaster()->ClearMovingLatches();
+            pet->GetMotionMaster()->Halt();
 
             Spell* spell = new Spell(pet, spellInfo, false);
 
@@ -858,7 +858,7 @@ void WorldSession::HandlePetCastSpellOpcode(WorldPacket& recvPacket)
 
     targets.ReadAdditionalData(recvPacket, cast_flags);
 
-    pet->GetMotionMaster()->ClearMovingLatches();
+    pet->GetMotionMaster()->Halt();
 
     Spell* spell = new Spell(pet, spellInfo, triggeredByAura ? true : false, pet->GetObjectGuid(), triggeredByAura ? triggeredByAura->GetSpellProto() : NULL);
     spell->m_cast_count = cast_count;                       // probably pending spell cast

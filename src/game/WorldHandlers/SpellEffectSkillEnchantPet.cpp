@@ -312,7 +312,7 @@ void Spell::EffectDistract(SpellEffectEntry const* /*effect*/)
         return;
     }
 
-    unitTarget->GetMotionMaster()->ClearMovingLatches();
+    unitTarget->GetMotionMaster()->Halt();
 
     if (unitTarget->GetTypeId() == TYPEID_UNIT)
     {

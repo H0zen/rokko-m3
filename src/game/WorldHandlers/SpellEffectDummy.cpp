@@ -2083,7 +2083,7 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
 
                     if (pTargetDummy)
                     {
-                        if (unitTarget->GetMotionMaster()->Latches().follow || unitTarget->GetMotionMaster()->Latches().followLeg)
+                        if (unitTarget->GetMotionMaster()->IsFollowing())
                         {
                             unitTarget->GetMotionMaster()->MovementExpired();
                         }
@@ -3302,7 +3302,7 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                 // The same two-part test CanFreeMove() runs (Unit.h): kNoFreeMoveReasons plus the
                 // published feign (IsFeigningDeath); CanFreeMove() itself does not apply here, as its
                 // extra owner-guid check has no place in this caster-state test.
-                if ((m_caster->GetMotionMaster()->Mobility().reasons & Motion::kNoFreeMoveReasons) ||
+                if ((m_caster->GetMotionMaster()->Reasons() & Motion::kNoFreeMoveReasons) ||
                     m_caster->IsFeigningDeath())
                 {
                     return;

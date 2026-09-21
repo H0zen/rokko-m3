@@ -25,6 +25,26 @@
 
 #pragma once
 
+// ONE COMPONENT PER UNIT, AND IT OWNS EVERYTHING ABOUT ITS MOTION.
+//
+// A unit used to keep its movement in five places that had to agree with each other: what
+// it was trying to do, the flags on the wire, the acknowledgements the client owed, the
+// speeds, and a published copy of "what is forbidden" that the arbiter mirrored into the
+// unit's state bits. Two of those were mirrors, and a mirror is a promise that two things
+// stay equal. When the arbiter was deleted the mirror stayed behind, empty, and every
+// reader of it -- CannotMove, CannotReact, LostControl, IsTaxiFlying -- quietly began
+// answering "no" to everything. A root stopped rooting.
+//
+// So the rule this file exists to enforce is not "one object", it is ONE WRITER. Nothing is
+// copied anywhere, so nothing can diverge. What is forbidden is counted here, by source,
+// and read from here; there is no second copy to forget to update.
+//
+// AUTHORITY IS A STATE, NOT A TYPE. A creature is always driven by the server; a player
+// drives itself -- until a taxi, a knockback, a fear or a root takes it over, and then the
+// server drives it and must hand it back. That is not two classes: a player needs the whole
+// server-driven machinery for the seized case anyway, and swapping the object mid-flight
+// would lose the pending state exactly when it matters. It is three states and a counter.
+//
 // WHAT THE GAME ASKS OF MOVEMENT.
 //
 // The old engine -- the arbiter, the fifteen behaviour classes, the driver, the frame
@@ -51,6 +71,7 @@
 #include "Mobility.h"
 #include "WaypointManager.h"
 #include "Move/Movement.h"
+#include "Mobility.h"
 
 #include <sstream>
 #include <vector>
@@ -111,12 +132,20 @@ namespace Motion
     }
 }
 
-/// The requests the game makes of movement, translated into the six shapes and nothing more.
-class MotionMaster
+/// Who is driving a unit right now.
+enum class Authority : uint8
+{
+    Server,   ///< a creature, always: the server decides and the client draws
+    Client,   ///< a player driving itself: the server validates and relays
+    Seized    ///< a player the server has taken over: a taxi, a knockback, a fear, a root
+};
+
+/// One unit's movement, whole.
+class UnitMovement
 {
     public:
-        explicit MotionMaster(Unit* unit) : m_unit(unit) {}
-        ~MotionMaster();
+        explicit UnitMovement(Unit* unit) : m_unit(unit) {}
+        ~UnitMovement();
 
         void Initialize();
         /// Called from the unit's own update. Costs one comparison for a mover with nothing
@@ -149,9 +178,21 @@ class MotionMaster
         bool MoveJump(Geometry::Position&, float, float, uint32 = 0) { return false; }
         bool MoveJump(float, float, float, float, float, float, Unit*) { return false; }
 
-        void Inhibit(Motion::Inhibition, uint64) {}
-        void Uninhibit(Motion::Inhibition, uint64) {}
-        bool Inhibited(Motion::Inhibition) const { return false; }
+        // ---- WHAT IS FORBIDDEN, counted by source. A reason holds while any source holds
+        // it, so two roots from two casters need two releases. Read straight from here:
+        // there is no published copy, which is the whole point of this class.
+        void Inhibit(Motion::Inhibition what, uint64 source);
+        void Uninhibit(Motion::Inhibition what, uint64 source);
+        bool Inhibited(Motion::Inhibition what) const { return m_blocks.Inhibited(what); }
+        void DropDomain(Motion::SourceDomain domain);
+
+        /// Every active reason as Reason bits: the counted inhibitions, plus the ones a held
+        /// behaviour IS -- a fear is not a source anyone registered, it is a fear running.
+        uint8 Reasons() const;
+        bool MayMove() const { return (Reasons() & Motion::kCannotMoveReasons) == 0; }
+        bool MayReact() const { return (Reasons() & Motion::kCannotReactReasons) == 0; }
+        /// A Dead source that is not the death itself: a feign.
+        bool Feigning() const;
 
         void PropagateSpeedChange() {}
         bool SetNextWaypoint(uint32 pointId);
@@ -162,45 +203,36 @@ class MotionMaster
         uint32 SelectedPatrolNode() const;
         bool GetDestination(float& x, float& y, float& z);
 
-        void Die() {}
+        // ---- WHO IS DRIVING
+        Authority Driver() const { return m_authority; }
+        void TakenByClient() { m_authority = Authority::Client; m_seizeAck = 0; }
+
+        /// The server takes a player over. Answers the counter the client must echo; until
+        /// that acknowledgement arrives the server's route is the truth and movement packets
+        /// that contradict it are refused, because for that window the unit has two possible
+        /// positions and only one of them is ours.
+        uint32 Seize();
+        /// The acknowledgement came back. A counter that is not the one being waited for is
+        /// ignored: a late ack for a seizure that already ended must not release this one.
+        bool Released(uint32 counter);
+        /// Hand control back without waiting: the flight landed, the knockback ended.
+        void Release();
+        /// True while a seizure is announced but unacknowledged -- the window in which a
+        /// client packet describes a world the server has already left.
+        bool AwaitingHandover() const { return m_authority == Authority::Seized && m_seizeAck != 0; }
+        /// Should a movement packet from this unit's client be believed right now?
+        bool TrustsClient() const { return m_authority == Authority::Client; }
+
+        void Die();
         void CancelControl(Motion::Kind) {}
         void ExpireCombat() {}
         bool ReleaseControl(uint64) { return false; }
         bool HoldsControl(Motion::Kind) const { return false; }
         void RelocateSelected(float, float, float, float) {}
 
-        /// The state the old engine published about a unit. Permanently empty: a unit that
-        /// never moves is never rooted, feared or distracted by anything movement knows.
-        struct PublishedState
-        {
-            uint8 reasons = 0;
-            bool feign = false;
-        };
-        PublishedState const& Published() const { return m_published; }
-        void ClearPublished() {}
-        void PublishTaxiEnded() {}
-        Motion::MobilityDecision Mobility() const { return Motion::MobilityDecision(); }
-
-        /// Which legs were in flight. Nothing flies, so every one of these is false and
-        /// `Moving()` is the answer the rest of the server reads: a unit is always stopped.
-        struct LatchBank
-        {
-            bool chase = false;
-            bool chaseLeg = false;
-            bool follow = false;
-            bool followLeg = false;
-            bool roaming = false;
-            bool roamingLeg = false;
-            bool fearLeg = false;
-            bool confusedLeg = false;
-            bool Moving() const { return false; }
-            bool RunningLeg() const { return false; }
-        };
-        LatchBank const& Latches() const { return m_latches; }
-        void ClearMovingLatches() {}
-        void ClearAllLatches() {}
-        void WipeLatches() {}
-        void WriteLatches(Motion::Kind, uint8, uint8) {}
+        /// An outside wipe of a unit's state -- a respawn, a revive -- drops every source
+        /// of every reason and hands authority back.
+        void Wipe();
 
         struct HeldView
         {
@@ -209,7 +241,7 @@ class MotionMaster
             bool reachable = true;
             uint64 target = 0;
         };
-        std::vector<HeldView> Held() const { return std::vector<HeldView>(); }
+        std::vector<HeldView> Held() const;
 
         Motion::Kind ActiveKind() const;
         bool IsChasing() const;
@@ -248,8 +280,17 @@ class MotionMaster
         /// Ask the selected behaviour, then send or refuse what it asked for.
         void Serve(bool legEnded, bool cut);
 
+        /// Halt whatever is running because it just became forbidden.
+        void Forbidden();
+
         Unit* m_unit;
         Move::Movement m_movement;
+        /// What is forbidden, counted by source. The only copy there is.
+        Motion::Mobility m_blocks;
+        Authority m_authority = Authority::Server;
+        /// The counter a seized client must echo, 0 when nothing is outstanding.
+        uint32 m_seizeAck = 0;
+        uint32 m_seizeNext = 1;
         /// A pursuit reads its target through this, and holds a reference for its life, so
         /// it outlives the call that made it. Raw rather than a smart pointer because the
         /// header must not need the definition to declare the member.
@@ -265,6 +306,4 @@ class MotionMaster
         Move::Facing m_sentFacing;
         uint32 m_legEndsAt = 0;
         bool m_legRunning = false;
-        PublishedState m_published;
-        LatchBank m_latches;
 };

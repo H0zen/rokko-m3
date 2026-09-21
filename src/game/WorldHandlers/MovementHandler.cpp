@@ -476,6 +476,16 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recv_data)
     // only that one; anything else is dropped and counted before it is validated.
     if (!Movers().MovesAs(movementInfo.GetGuid().GetRawValue()))
     {
+        if (movementInfo.GetStatusInfo().hasTransportData)
+        {
+            static bool toldMover = false;
+            if (!toldMover)
+            {
+                toldMover = true;
+                sLog.outError("Transport: deck packet for a guid this session does not move, "
+                              "dropped (said once)");
+            }
+        }
         return;
     }
     Unit* mover = SelectedMover();
@@ -758,12 +768,22 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo) const
     MovementInfo::StatusInfo const& si = movementInfo.GetStatusInfo();
     if (si.hasTransportData)
     {
+        // WHY A DECK PACKET WAS THROWN AWAY. Refusing one silently is indistinguishable
+        // from the client never sending it, and the two have opposite causes. Each reason
+        // is said once and then stays quiet, so a client that argues every tick cannot
+        // bury the log.
+        static bool toldEmpty = false, toldExtent = false, toldCoord = false;
         // The wire's gate, not the guid, decides whether a transport block is
         // present -- and the writer forwards it on that gate. A block announced
         // with an empty guid names no transport the server knows; it is dropped
         // here rather than relayed as one.
         if (movementInfo.GetTransportGuid().IsEmpty())
         {
+            if (!toldEmpty)
+            {
+                toldEmpty = true;
+                sLog.outError("Transport: deck packet with no guid, dropped (said once)");
+            }
             return false;
         }
 
@@ -794,12 +814,25 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo) const
         if (std::fabs(onDeck->X()) > extent || std::fabs(onDeck->Y()) > extent ||
             std::fabs(onDeck->Z()) > extent)
         {
+            if (!toldExtent)
+            {
+                toldExtent = true;
+                sLog.outError("Transport: deck position (%.2f %.2f %.2f) outside hull extent "
+                              "%.2f for guid %s, dropped (said once)",
+                              onDeck->X(), onDeck->Y(), onDeck->Z(), extent,
+                              movementInfo.GetTransportGuid().GetString().c_str());
+            }
             return false;
         }
 
         if (!MaNGOS::IsValidMapCoord(movementInfo.GetPos()->X() + movementInfo.GetTransportPos()->X(), movementInfo.GetPos()->Y() + movementInfo.GetTransportPos()->Y(),
                                      movementInfo.GetPos()->Z() + movementInfo.GetTransportPos()->Z(), movementInfo.GetPos()->Facing() + movementInfo.GetTransportPos()->Facing()))
         {
+            if (!toldCoord)
+            {
+                toldCoord = true;
+                sLog.outError("Transport: deck packet sums to an invalid map coord, dropped (said once)");
+            }
             return false;
         }
     }
@@ -853,11 +886,18 @@ void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo
         {
             if (!plMover->m_transport)
             {
+                // THE GUID ARRIVED BUT MAY NAME NOTHING WE HOLD. A global transport that was
+                // never registered in this set cannot be found here, and the failure is
+                // silent: the passenger simply never boards, stays on the world map, and
+                // watches the hull sail out from under him. Said once per guid.
+                bool found = false;
+
                 // elevators also cause the client to send transport guid - just unmount if the guid can be found in the transport list
                 for (MapManager::TransportSet::const_iterator iter = sMapMgr.m_Transports.begin(); iter != sMapMgr.m_Transports.end(); ++iter)
                 {
                     if ((*iter)->GetObjectGuid() == movementInfo.GetTransportGuid())
                     {
+                        found = true;
                         plMover->m_transport = (*iter);
 
                         // He walked aboard, so his client already has the vessel and is
@@ -868,6 +908,20 @@ void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo
                             hull->Embark(plMover);
                         }
                         break;
+                    }
+                }
+
+                if (!found)
+                {
+                    static ObjectGuid toldAbout;
+                    if (toldAbout != movementInfo.GetTransportGuid())
+                    {
+                        toldAbout = movementInfo.GetTransportGuid();
+                        sLog.outError("Transport: %s reports deck guid %s, which is in NO "
+                                      "registered transport (%u held). He will not board.",
+                                      plMover->GetName(),
+                                      movementInfo.GetTransportGuid().GetString().c_str(),
+                                      uint32(sMapMgr.m_Transports.size()));
                     }
                 }
             }

@@ -665,7 +665,7 @@ bool Player::TaxiCross(uint32 mapId, float x, float y, float z, float o)
 {
     // Inside the motion update the teleport is deferred (SetDelayedTeleportFlagIfCan) and runs
     // at the end of Update(); the Taxi binding survives the map change and
-    // WorldSession::HandleMoveWorldportAckOpcode resumes it through MotionMaster::TaxiContinue.
+    // WorldSession::HandleMoveWorldportAckOpcode resumes it through UnitMovement::TaxiContinue.
     return TeleportTo(mapId, x, y, z, o);
 }
 
@@ -730,7 +730,7 @@ void Player::TaxiAbort()
 {
     // The flight's end published early (the commit that finishes it agrees at its end): the pet's
     // resummon and the hostile-state change below must not see a flight in progress.
-    GetMotionMaster()->PublishTaxiEnded();
+    GetMotionMaster()->Release();
     m_taxiLandingPending = false;
     RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE | UNIT_FLAG_TAXI_FLIGHT);
     RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_NOT_MOUNTED);

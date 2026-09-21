@@ -34,7 +34,7 @@
 #include "Vehicle.h"
 #include "TransportMap.h"
 #include "Map.h"
-#include "MotionMaster.h"
+#include "UnitMovement.h"
 #include "Geometry/Placement.h"
 
 namespace
@@ -254,7 +254,7 @@ void MoveSend::Face(Unit& unit, float orientation)
 
 void MoveSend::CreateBits(Unit const& unit, ByteBuffer& data)
 {
-    MotionMaster const* motion = unit.GetMotionMaster();
+    UnitMovement const* motion = unit.GetMotionMaster();
     const bool moving = motion && motion->IsMoving();
     if (!data.WriteBit(moving))
     {
@@ -305,7 +305,7 @@ void MoveSend::CreateBits(Unit const& unit, ByteBuffer& data)
 
 void MoveSend::CreateBytes(Unit const& unit, ByteBuffer& data)
 {
-    MotionMaster const* motion = unit.GetMotionMaster();
+    UnitMovement const* motion = unit.GetMotionMaster();
     const bool moving = motion && motion->IsMoving();
 
     if (moving)

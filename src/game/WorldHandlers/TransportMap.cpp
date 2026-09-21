@@ -40,7 +40,7 @@
 #include "MapManager.h"
 #include "MapPhase.h"
 #include "DBCStores.h"
-#include "MotionGenerators/MotionMaster.h"
+#include "MotionGenerators/UnitMovement.h"
 #include "WorldPacket.h"
 #include "Log.h"
 #include "terrain/GoModelStore.hpp"
@@ -240,7 +240,7 @@ namespace
         // MoveFollow and MoveIdle each clear the stack themselves, and correctly. Clearing
         // it here first with all=true emptied it down to and including the idle behaviour,
         // and the Clear inside MoveFollow then asserted on !empty() -- a crash on every
-        // step ashore, from MotionMaster::DirectClean.
+        // step ashore, from UnitMovement::Halt.
         if (c->GetCharmInfo() && c->GetCharmInfo()->HasCommandState(COMMAND_STAY))
         {
             c->GetMotionMaster()->MoveIdle();
