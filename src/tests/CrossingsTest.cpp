@@ -26,7 +26,7 @@
 #include "TestHarness.h"
 
 #include "Move/Crossings.h"
-#include "Move/Leg.h"
+#include "Move/Route.h"
 
 #include <cmath>
 #include <limits>
@@ -36,7 +36,7 @@
 using Geometry::Vector3;
 using Move::CellCrossings;
 using Move::Grid;
-using Move::Leg;
+using Move::Route;
 
 namespace
 {
@@ -221,7 +221,7 @@ TEST(TheCellChangesAtEveryReportedDistanceAndNowhereElse)
                                       Vector3(sx + 70.f, sy + 20.f, 0.f),
                                       Vector3(sx + 70.f, sy + 90.f, 0.f)};
 
-    Leg leg;
+    Route leg;
     REQUIRE(leg.Launch(pts.data(), uint16_t(pts.size()), 7.0f, 1000));
 
     const std::vector<float> at = Crossings(pts);
@@ -264,7 +264,7 @@ TEST(EveryCrossingBecomesADueTimeInsideTheLeg)
     const float sx = BoundaryAt(3) + 4.0f;
     const std::vector<Vector3> pts = {Vector3(sx, 0.f, 0.f), Vector3(sx + 100.f, 0.f, 0.f)};
 
-    Leg leg;
+    Route leg;
     REQUIRE(leg.Launch(pts.data(), 2, 5.0f, 40000));
 
     const std::vector<float> at = Crossings(pts);

@@ -25,28 +25,32 @@
 
 #pragma once
 
-// NOTHING MOVES.
+// WHAT THE GAME ASKS OF MOVEMENT.
 //
-// There is no movement engine. The arbitration, the fifteen behaviours, the driver, the
-// frame adapters and the nine-thousand-line harness that existed to exercise them are
-// deleted, not disabled -- about eighteen thousand lines. What remains here is the shape of
-// the requests the game makes, and every one of them does nothing.
+// The old engine -- the arbiter, the fifteen behaviour classes, the driver, the frame
+// adapters and the nine-thousand-line scenario harness, about eighteen thousand lines in
+// all -- is deleted. This is the whole of what replaced it on the game's side: a thin
+// surface that turns a request into one of the six shapes in src/shared/Move and gets out
+// of the way.
 //
-// This file is deliberately not an engine and must not grow into one. It exists so that
-// the two thousand places that ask for movement still say what they want: a script asking
-// a creature to walk to a point is a statement about the game, not about how movement
-// works, and those statements are the specification the replacement will be written
-// against. Deleting them would destroy the requirement along with the implementation.
+// The two thousand call sites are kept deliberately. A script asking a creature to walk to
+// a point is a statement about the GAME, not about how movement works; those statements are
+// the specification the new engine serves, and deleting them would have thrown away the
+// requirement along with the implementation.
 //
-// Consequently: every command returns without acting, every query answers "no" or zero,
-// and the server moves nothing. A player walking still works: that is the client telling
-// the server where it went, handled by the movement protocol in src/motion -- the
-// acknowledgements, the mover authority and the time base -- which is not an engine and
-// was kept.
+// Nothing here decides anything. Move::Movement holds which behaviour is selected and the
+// route in flight; Move::MoveWriter decides what may go on the wire and refuses what would
+// make the client teleport the mover; MoveSend puts it there. This file only translates
+// vocabulary.
+//
+// Player movement never passed through here and still does not: that is the client telling
+// the server where it went, handled by the protocol in src/motion -- acknowledgements,
+// mover authority, time base -- which is not an engine and was kept.
 
 #include "Platform/Define.h"
 #include "Mobility.h"
 #include "WaypointManager.h"
+#include "Move/Movement.h"
 
 #include <sstream>
 #include <vector>
@@ -107,28 +111,32 @@ namespace Motion
     }
 }
 
-/// The requests the game makes of movement, and nothing behind them.
+/// The requests the game makes of movement, translated into the six shapes and nothing more.
 class MotionMaster
 {
     public:
         explicit MotionMaster(Unit* unit) : m_unit(unit) {}
+        ~MotionMaster();
 
-        void Initialize() {}
-        void UpdateMotion(uint32 /*diff*/) {}
-        void Clear(bool /*reset*/ = true, bool /*all*/ = false) {}
-        void MovementExpired(bool /*reset*/ = true) {}
+        void Initialize();
+        /// Called from the unit's own update. Costs one comparison for a mover with nothing
+        /// due, which is almost all of them almost all of the time: a creature walking a
+        /// forty-yard leg has nothing to do for the eight seconds it takes.
+        void UpdateMotion(uint32 diff);
+        void Clear(bool reset = true, bool all = false);
+        void MovementExpired(bool reset = true);
 
-        void MoveIdle() {}
-        void MoveRandomAroundPoint(float, float, float, float, float = 0.0f) {}
-        void MoveTargetedHome() {}
-        void MoveFollow(Unit*, float, float) {}
-        void MoveChase(Unit*, float = 0.0f, float = 0.0f) {}
-        void MoveConfused(uint64 = 0) {}
-        void MoveFleeing(Unit*, uint32 = 0, uint64 = 0) {}
-        void MovePoint(uint32, float, float, float, bool = true) {}
-        void MoveSeekAssistance(float, float, float) {}
+        void MoveIdle();
+        void MoveRandomAroundPoint(float x, float y, float z, float radius, float verticalZ = 0.0f);
+        void MoveTargetedHome();
+        void MoveFollow(Unit* target, float dist, float angle);
+        void MoveChase(Unit* target, float dist = 0.0f, float angle = 0.0f);
+        void MoveConfused(uint64 = 0);
+        void MoveFleeing(Unit* enemy, uint32 timeLimit = 0, uint64 = 0);
+        void MovePoint(uint32 id, float x, float y, float z, bool generatePath = true);
+        void MoveSeekAssistance(float x, float y, float z);
         void MoveSeekAssistanceDistract(uint32) {}
-        void MoveWaypoint(int32 = 0, uint32 = 0, uint32 = 0, uint32 = 0) {}
+        void MoveWaypoint(int32 pathId = 0, uint32 source = 0, uint32 initialDelay = 0, uint32 overwriteEntry = 0);
         bool PauseWaypoints(int32) { return false; }
         void MoveTaxiFlight(std::vector<uint32> const&, uint32, uint32) {}
         void TaxiContinue() {}
@@ -203,18 +211,34 @@ class MotionMaster
         };
         std::vector<HeldView> Held() const { return std::vector<HeldView>(); }
 
-        Motion::Kind ActiveKind() const { return Motion::Kind::Idle; }
-        bool IsChasing() const { return false; }
+        Motion::Kind ActiveKind() const;
+        bool IsChasing() const;
         Unit* ChaseTarget() const { return 0; }
-        bool IsFollowing() const { return false; }
+        bool IsFollowing() const;
         Unit* FollowTarget() const { return 0; }
-        bool IsPatrolling() const { return false; }
+        bool IsPatrolling() const;
         bool IsOnTaxi() const { return false; }
         bool IsReachable() const { return true; }
         void CombatStarted() {}
 
+        /// Where the mover is at this instant. While a route runs this is arithmetic over
+        /// the polyline the client was sent -- the same arithmetic the client does -- so the
+        /// two agree to the millisecond instead of to the last position write.
+        bool LivePosition(Geometry::Vector3& out) const;
+        bool IsMoving() const { return m_movement.InFlight().Running(); }
+
     private:
+        /// Ask the selected behaviour, then send or refuse what it asked for.
+        void Serve(bool legEnded, bool cut);
+
         Unit* m_unit;
+        Move::Movement m_movement;
+        /// A pursuit reads its target through this, and holds a reference for its life, so
+        /// it outlives the call that made it. Raw rather than a smart pointer because the
+        /// header must not need the definition to declare the member.
+        class MoveSighting* m_sighting = 0;
+        uint32 m_legEndsAt = 0;
+        bool m_legRunning = false;
         PublishedState m_published;
         LatchBank m_latches;
 };
