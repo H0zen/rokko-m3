@@ -117,7 +117,7 @@ Log::Log() :
     logfile(NULL), gmLogfile(NULL), charLogfile(NULL), dberLogfile(NULL),
     eventAiErLogfile(NULL), scriptErrLogFile(NULL), worldLogfile(NULL),
     m_consoleBody(NULL), m_consoleThread(NULL), m_consoleAsync(false), m_colored(false),
-    m_includeTime(false), m_gmlog_per_account(false), m_scriptLibName(NULL)
+    m_includeTime(false), m_bootComplaints(0), m_gmlog_per_account(false), m_scriptLibName(NULL)
 {
     Initialize();
 }
@@ -434,6 +434,18 @@ void Log::ConsoleEmitBlank(bool toStdout)
 
 void Log::ConsoleEmitRaw(const std::string& bytes)
 {
+    // A progress bar redrawing itself would land on top of the boot line being drawn, and
+    // the bar is the loudest thing the console does not need. Nothing is lost: what the
+    // bar was counting is what the step reports when it settles.
+    if (BootRunning())
+    {
+        return;
+    }
+    ConsoleEmitRawNow(bytes);
+}
+
+void Log::ConsoleEmitRawNow(const std::string& bytes)
+{
     // Verbatim console passthrough: NO time prefix, NO color, NO appended
     // newline. The bytes (a full progress-bar redraw, carrying their own
     // '\r'/'\n') are handed to the writer thread as ONE atomic record so they
@@ -459,6 +471,150 @@ void Log::ConsoleEmitRaw(const std::string& bytes)
         fwrite(bytes.data(), 1, bytes.size(), stdout);
         fflush(stdout);
     }
+}
+
+// --------------------------------------------------------------- boot progress
+
+namespace
+{
+    // All one width, so the names line up in a column under each other.
+    const char* const BOOT_BUSY = "[      ] ";
+    const char* const BOOT_OK   = "[  OK  ] ";
+    const char* const BOOT_WARN = "[ WARN ] ";
+    const char* const BOOT_FAIL = "[FAILED] ";
+
+    /// The count out of a ">> Loaded 25008 game object templates" tally. Empty when the
+    /// line is not one of those, which many are not -- a table that is empty says so in
+    /// words and has no number to show.
+    std::string TallyOf(const std::string& line)
+    {
+        const size_t at = line.find(">> ");
+        if (at == std::string::npos)
+        {
+            return std::string();
+        }
+
+        size_t i = at + 3;
+        while (i < line.size() && (line[i] < '0' || line[i] > '9'))
+        {
+            ++i;
+        }
+
+        const size_t start = i;
+        while (i < line.size() && line[i] >= '0' && line[i] <= '9')
+        {
+            ++i;
+        }
+        return line.substr(start, i - start);
+    }
+}
+
+void Log::ConsoleEmitMarked(const std::string& marker, Color markerColor,
+                            const std::string& text)
+{
+    if (m_consoleAsync && m_consoleBody)
+    {
+        ConsoleLogRecord rec;
+        rec.text = text;
+        rec.marker = marker;
+        rec.markerColor = markerColor;
+        rec.applyColor = false;
+        rec.toStdout = true;
+        m_consoleBody->Enqueue(rec);
+    }
+    else
+    {
+        Log::SetColor(true, markerColor);
+        fwrite(marker.data(), 1, marker.size(), stdout);
+        Log::ResetColor(true);
+        fwrite(text.data(), 1, text.size(), stdout);
+        fputc('\n', stdout);
+        fflush(stdout);
+    }
+}
+
+void Log::BootStep(const char* name)
+{
+    BootSettle(true);
+
+    m_bootName = name ? name : "";
+    m_bootTally.clear();
+    m_bootComplaints = 0;
+
+    // The FILE keeps the shape it always had: a header line, then everything the step had
+    // to say underneath it. Nothing is lost by tidying the console; it all lands here.
+    if (logfile && !m_bootName.empty())
+    {
+        std::lock_guard<std::mutex> fileGuard(m_fileMtx);
+        outTimestamp(logfile);
+        fprintf(logfile, "Loading %s...\n", m_bootName.c_str());
+    }
+
+    // The name goes up BEFORE the work starts. A step that never returns is then named on
+    // the screen, rather than leaving a blank where its answer should have been.
+    if (m_colored && !m_bootName.empty())
+    {
+        ConsoleEmitRawNow(std::string(BOOT_BUSY) + m_bootName);
+    }
+}
+
+void Log::BootSettle(bool ok)
+{
+    if (m_bootName.empty())
+    {
+        return;
+    }
+
+    std::string line = m_bootName;
+    if (!m_bootTally.empty())
+    {
+        line += "  ";
+        line += m_bootTally;
+    }
+    if (m_bootComplaints)
+    {
+        char tail[96];
+        std::snprintf(tail, sizeof(tail), "  (%u complaint%s, in the log)",
+                      m_bootComplaints, m_bootComplaints == 1 ? "" : "s");
+        line += tail;
+    }
+
+    const char* mark = !ok ? BOOT_FAIL : (m_bootComplaints ? BOOT_WARN : BOOT_OK);
+    const Color colour = !ok ? RED : (m_bootComplaints ? BROWN : GREEN);
+
+    // The carriage return lands on the busy line this step drew when it opened. With no
+    // colours no busy line was drawn, and the verdict IS the line.
+    ConsoleEmitMarked(m_colored ? std::string("\r") + mark : std::string(mark), colour, line);
+
+    m_bootName.clear();
+    m_bootTally.clear();
+    m_bootComplaints = 0;
+}
+
+void Log::BootDone()
+{
+    BootSettle(true);
+}
+
+bool Log::BootSwallow(bool complaint, const char* fmt, va_list* ap)
+{
+    if (m_bootName.empty())
+    {
+        return false;
+    }
+
+    if (complaint)
+    {
+        ++m_bootComplaints;
+        return true;
+    }
+
+    const std::string tally = TallyOf(vutf8format(fmt, ap));
+    if (!tally.empty())
+    {
+        m_bootTally = tally;
+    }
+    return true;
 }
 
 void Log::StartConsoleThread()
@@ -678,6 +834,11 @@ std::string Log::GetTimestampStr()
 
 void Log::outString()
 {
+    if (BootRunning())
+    {
+        return;
+    }
+
     ConsoleEmitBlank(true);
     if (logfile)
     {
@@ -697,8 +858,15 @@ void Log::outString(const char* str, ...)
     va_list ap;
 
     va_start(ap, str);
-    ConsoleEmit(true, LogNormal, m_colored, str, &ap);
+    const bool swallowed = BootSwallow(false, str, &ap);
     va_end(ap);
+
+    if (!swallowed)
+    {
+        va_start(ap, str);
+        ConsoleEmit(true, LogNormal, m_colored, str, &ap);
+        va_end(ap);
+    }
 
     if (logfile)
     {
@@ -721,6 +889,8 @@ void Log::outError(const char* err, ...)
 
     va_list ap;
 
+    BootSettle(false);
+
     va_start(ap, err);
     ConsoleEmit(false, LogError, m_colored, err, &ap);
     va_end(ap);
@@ -741,6 +911,11 @@ void Log::outError(const char* err, ...)
 
 void Log::outErrorDb()
 {
+    if (BootRunning())
+    {
+        return;
+    }
+
     ConsoleEmitBlank(false);
 
     if (logfile)
@@ -768,8 +943,15 @@ void Log::outErrorDb(const char* err, ...)
     va_list ap;
 
     va_start(ap, err);
-    ConsoleEmit(false, LogError, m_colored, err, &ap);
+    const bool swallowed = BootSwallow(true, err, &ap);
     va_end(ap);
+
+    if (!swallowed)
+    {
+        va_start(ap, err);
+        ConsoleEmit(false, LogError, m_colored, err, &ap);
+        va_end(ap);
+    }
 
     if (logfile)
     {
@@ -800,6 +982,11 @@ void Log::outErrorDb(const char* err, ...)
 
 void Log::outErrorEventAI()
 {
+    if (BootRunning())
+    {
+        return;
+    }
+
     ConsoleEmitBlank(false);
 
     if (logfile)
@@ -827,8 +1014,15 @@ void Log::outErrorEventAI(const char* err, ...)
     va_list ap;
 
     va_start(ap, err);
-    ConsoleEmit(false, LogError, m_colored, err, &ap);
+    const bool swallowed = BootSwallow(true, err, &ap);
     va_end(ap);
+
+    if (!swallowed)
+    {
+        va_start(ap, err);
+        ConsoleEmit(false, LogError, m_colored, err, &ap);
+        va_end(ap);
+    }
 
     if (logfile)
     {
@@ -868,8 +1062,15 @@ void Log::outBasic(const char* str, ...)
     {
         va_list ap;
         va_start(ap, str);
-        ConsoleEmit(true, LogDetails, m_colored, str, &ap);
+        const bool swallowed = BootSwallow(false, str, &ap);
         va_end(ap);
+
+        if (!swallowed)
+        {
+            va_start(ap, str);
+            ConsoleEmit(true, LogDetails, m_colored, str, &ap);
+            va_end(ap);
+        }
     }
 
     if (logfile && m_logFileLevel >= LOG_LVL_BASIC)
@@ -895,8 +1096,15 @@ void Log::outDetail(const char* str, ...)
     {
         va_list ap;
         va_start(ap, str);
-        ConsoleEmit(true, LogDetails, m_colored, str, &ap);
+        const bool swallowed = BootSwallow(false, str, &ap);
         va_end(ap);
+
+        if (!swallowed)
+        {
+            va_start(ap, str);
+            ConsoleEmit(true, LogDetails, m_colored, str, &ap);
+            va_end(ap);
+        }
     }
 
     if (logfile && m_logFileLevel >= LOG_LVL_DETAIL)
@@ -924,8 +1132,15 @@ void Log::outDebug(const char* str, ...)
     {
         va_list ap;
         va_start(ap, str);
-        ConsoleEmit(true, LogDebug, m_colored, str, &ap);
+        const bool swallowed = BootSwallow(false, str, &ap);
         va_end(ap);
+
+        if (!swallowed)
+        {
+            va_start(ap, str);
+            ConsoleEmit(true, LogDebug, m_colored, str, &ap);
+            va_end(ap);
+        }
     }
 
     if (logfile && m_logFileLevel >= LOG_LVL_DEBUG)
@@ -1016,6 +1231,11 @@ void Log::outChar(const char* str, ...)
 
 void Log::outErrorScriptLib()
 {
+    if (BootRunning())
+    {
+        return;
+    }
+
     ConsoleEmitBlank(false);
 
     if (logfile)
@@ -1050,8 +1270,15 @@ void Log::outErrorScriptLib(const char* err, ...)
     va_list ap;
 
     va_start(ap, err);
-    ConsoleEmit(false, LogError, m_colored, err, &ap);
+    const bool swallowed = BootSwallow(true, err, &ap);
     va_end(ap);
+
+    if (!swallowed)
+    {
+        va_start(ap, err);
+        ConsoleEmit(false, LogError, m_colored, err, &ap);
+        va_end(ap);
+    }
 
     if (logfile)
     {

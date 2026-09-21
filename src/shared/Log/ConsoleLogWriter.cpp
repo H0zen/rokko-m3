@@ -168,7 +168,9 @@ void ConsoleLogWriter::Emit(const ConsoleLogRecord& rec)
         }
         else
         {
-            MaNGOS::Console::ConsoleUI::Instance().PushLog(rec.text, StyleFor(rec.type));
+            // The full-screen console styles a line as a whole, so the verdict rides in
+            // front of the text rather than in its own colour.
+            MaNGOS::Console::ConsoleUI::Instance().PushLog(rec.marker + rec.text, StyleFor(rec.type));
         }
         return;
     }
@@ -185,6 +187,16 @@ void ConsoleLogWriter::Emit(const ConsoleLogRecord& rec)
         }
         return;
     }
+    // A verdict in front of plain text: coloured on its own and reset before the text, so
+    // a boot line reads as a green marker against an uncoloured name rather than a whole
+    // green line.
+    if (!rec.marker.empty())
+    {
+        Log::SetColor(rec.toStdout, rec.markerColor);
+        fwrite(rec.marker.data(), 1, rec.marker.size(), out);
+        Log::ResetColor(rec.toStdout);
+    }
+
     if (rec.applyColor)
     {
         Log::SetColor(rec.toStdout, rec.color);

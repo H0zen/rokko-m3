@@ -164,7 +164,12 @@ struct ConsoleLogRecord
     bool toStdout; /**< true => stdout, false => stderr */
     bool isRaw; /**< Raw passthrough: write text verbatim with NO color and NO appended newline (used for progress-bar redraws, which carry their own '\r'/'\n' and must not be reformatted) */
 
-    ConsoleLogRecord() : color(WHITE), type(LogNormal), applyColor(false), toStdout(true), isRaw(false) {}
+    std::string marker; /**< Short prefix written in markerColor, then reset, before text.
+                            Empty = none. This is how a boot line gets a green verdict in
+                            front of plain text without colouring the whole line */
+    Color markerColor; /**< Colour of marker */
+
+    ConsoleLogRecord() : color(WHITE), type(LogNormal), applyColor(false), toStdout(true), isRaw(false), markerColor(GREEN) {}
 };
 
 /**
@@ -226,6 +231,27 @@ class Log : public MaNGOS::Singleton<Log>
          *
          */
         void outString();
+
+        /// BOOT PROGRESS, PRINTED THE WAY AN OPERATING SYSTEM PRINTS IT.
+        ///
+        /// One line per step with its verdict stamped in front of it. A verdict is only
+        /// known once the step comes back, so on a coloured console the name goes up first
+        /// behind an empty marker -- which is what tells you WHICH step is hanging when one
+        /// hangs -- and the verdict is written over it when it returns.
+        ///
+        /// OPENING A STEP CLOSES THE ONE BEFORE IT. That is what keeps a call site to a
+        /// single line; the alternative was a scope around each of the hundred and
+        /// thirty-six of them.
+        ///
+        /// While a step is open the console hears nothing else. The per-record complaints,
+        /// the progress bars and the ">> Loaded N" tallies that made up most of the old
+        /// screen still go to the log file, where they are worth having; what the step
+        /// loaded and how many times it complained come back on the one line instead.
+        void BootStep(const char* name);
+        /// Close the last step and let the console speak freely again.
+        void BootDone();
+        /// True while a step is open.
+        bool BootRunning() const { return !m_bootName.empty(); }
         /**
          * @brief any log level
          *
@@ -521,6 +547,20 @@ class Log : public MaNGOS::Singleton<Log>
         /// Emit a blank console line (time prefix + newline) via the writer / fallback.
         void ConsoleEmitBlank(bool toStdout);
 
+        /// One console line whose first few characters carry their own colour.
+        void ConsoleEmitMarked(const std::string& marker, Color markerColor,
+                               const std::string& text);
+        /// Stamp the open step with its verdict and forget it. No-op when none is open.
+        /// `ok` false is a real error arriving mid-step: the line settles as FAILED so the
+        /// error that follows is not printed over a half-drawn one.
+        void BootSettle(bool ok);
+        /// Console output while a step is open: swallowed, and remembered -- a ">> Loaded
+        /// N" tally becomes the number on the right of the line, a data complaint becomes
+        /// part of its count. @return True when the caller should print nothing.
+        bool BootSwallow(bool complaint, const char* fmt, va_list* ap);
+        /// The raw console path with no boot gate in front of it.
+        void ConsoleEmitRawNow(const std::string& bytes);
+
         /**
          * @brief Build the "HH:MM:SS " console time prefix, or an empty string
          *        when LogTime is disabled. Mirrors outTime().
@@ -547,6 +587,9 @@ class Log : public MaNGOS::Singleton<Log>
         LogLevel m_logLevel; /**< log/console control */
         LogLevel m_logFileLevel; /**< TODO */
         bool m_colored; /**< TODO */
+        std::string m_bootName; /**< The boot step in flight; empty when none is */
+        std::string m_bootTally; /**< What the step reported loading, for the right of the line */
+        uint32 m_bootComplaints; /**< How many times it complained while running */
         bool m_includeTime; /**< TODO */
         Color m_colors[4]; /**< TODO */
         uint32 m_logFilter; /**< TODO */
