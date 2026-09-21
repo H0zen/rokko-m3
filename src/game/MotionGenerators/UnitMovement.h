@@ -223,16 +223,16 @@ class UnitMovement
         /// Should a movement packet from this unit's client be believed right now?
         bool TrustsClient() const { return m_authority == Authority::Client; }
 
-        void Die();
         void CancelControl(Motion::Kind) {}
         void ExpireCombat() {}
         bool ReleaseControl(uint64) { return false; }
         bool HoldsControl(Motion::Kind) const { return false; }
         void RelocateSelected(float, float, float, float) {}
 
-        /// An outside wipe of a unit's state -- a respawn, a revive -- drops every source
-        /// of every reason and hands authority back.
-        void Wipe();
+        /// A respawn or a revive: every source of every restriction is released and control
+        /// goes back to whoever normally has it. Nothing that held this unit before it died
+        /// still applies afterwards.
+        void ReleaseEveryRestriction();
 
         struct HeldView
         {

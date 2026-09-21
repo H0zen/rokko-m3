@@ -4483,7 +4483,7 @@ void Unit::SetDeathState(DeathState s)
         UnsummonAllTotems();
 
         StopMoving();
-        i_movement.Die();
+        i_movement.Clear();
 
         // Unsummon vehicle accessories
         if (IsVehicle())

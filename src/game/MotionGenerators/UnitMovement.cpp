@@ -656,12 +656,11 @@ void UnitMovement::Forbidden()
     }
 }
 
-void UnitMovement::Wipe()
+void UnitMovement::ReleaseEveryRestriction()
 {
-    for (uint8 i = 0; i < uint8(Motion::Inhibition::Count); ++i)
-    {
-        m_blocks.DropDomain(Motion::SourceDomain(i));
-    }
+    // Every source of every reason, by domain, because a respawn or a revive is the one
+    // moment when nothing that held this unit before still applies -- not the aura that
+    // rooted it, not the death, not the seat it was sitting in.
     m_blocks.DropDomain(Motion::SourceDomain::Aura);
     m_blocks.DropDomain(Motion::SourceDomain::Death);
     m_blocks.DropDomain(Motion::SourceDomain::Possession);
@@ -669,12 +668,6 @@ void UnitMovement::Wipe()
     m_blocks.DropDomain(Motion::SourceDomain::FixedVehicle);
     m_blocks.DropDomain(Motion::SourceDomain::Script);
     Release();
-}
-
-void UnitMovement::Die()
-{
-    m_movement.Clear();
-    Halt();
 }
 
 std::vector<UnitMovement::HeldView> UnitMovement::Held() const

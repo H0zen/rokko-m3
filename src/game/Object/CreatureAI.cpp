@@ -244,7 +244,7 @@ void CreatureAI::SetCombatMovement(bool enable, bool stopOrStartMovement /*=fals
  */
 void CreatureAI::HandleMovementOnAttackStart(Unit* victim)
 {
-    MotionMaster* creatureMotion = m_creature->GetMotionMaster();
+    UnitMovement* creatureMotion = m_creature->GetMotionMaster();
     const Motion::Kind kind = creatureMotion->ActiveKind();
     if (m_isCombatMovement)
     {

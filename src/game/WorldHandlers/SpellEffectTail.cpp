@@ -141,7 +141,7 @@ void Spell::EffectSummonDeadPet(SpellEffectEntry const* /*effect*/)
     pet->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
     pet->SetDeathState(ALIVE);
     pet->clearUnitState(UNIT_STAT_ALL_STATE);
-    pet->GetMotionMaster()->Wipe();
+    pet->GetMotionMaster()->ReleaseEveryRestriction();
     pet->SetHealth(uint32(pet->GetMaxHealth() * (float(damage) / 100)));
 
     pet->AIM_Initialize();

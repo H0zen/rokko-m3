@@ -767,7 +767,7 @@ void Creature::Update(uint32 update_diff, uint32 diff)
                     SetHealth(0);
                     i_movement.Clear();
                     clearUnitState(UNIT_STAT_ALL_STATE);
-                    i_movement.Wipe();
+                    i_movement.ReleaseEveryRestriction();
                     LoadCreatureAddon(true);
                 }
                 else
@@ -2046,7 +2046,7 @@ void Creature::SetDeathState(DeathState s)
     if (s == JUST_ALIVED)
     {
         clearUnitState(UNIT_STAT_ALL_STATE);
-        i_movement.Wipe();
+        i_movement.ReleaseEveryRestriction();
 
         Unit::SetDeathState(ALIVE);
 
