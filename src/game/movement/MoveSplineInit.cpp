@@ -217,21 +217,35 @@ namespace Movement
         // A LINEAR path must agree exactly: both measure the same chords. A SMOOTH one is
         // expected to differ, because MoveSpline measures the Catmull-Rom curve and a Leg
         // measures the chords between its points, so only the linear case is reported.
+        //
+        // A FALLING one is not a comparison at all. isSmooth() only tests the Catmullrom
+        // bit, so a fall passes for linear -- but its duration comes from FallInitializer,
+        // which solves the drop against gravity and never looks at args.velocity. Asking a
+        // Leg to match that is asking the wrong question, and the answer was three log
+        // lines of up to 196 ms that meant nothing.
+        //
+        // The 1 ms is CommonInitializer seeding its accumulator at minimal_duration, so
+        // every spline duration is exactly one millisecond longer than the distance it
+        // covers. That constant was the whole content of sixty-nine reports: on a leg of
+        // ten milliseconds it is ten percent, which cleared a threshold meant to catch
+        // real disagreement. Take it off before comparing.
+        //
         // Silence here is the evidence; a line is a discrepancy worth reading.
-        if (!args.flags.isSmooth() && args.path.size() > 1)
+        if (!args.flags.isSmooth() && !args.flags.falling && args.path.size() > 1)
         {
             Move::Leg shadow;
             if (shadow.Launch(&args.path[0], uint16(args.path.size()), args.velocity, 0))
             {
-                const int32 theirs = move_spline.Duration();
+                const int32 theirs = move_spline.Duration() - 1;
                 const int32 ours = int32(shadow.Duration());
                 const int32 drift = ours > theirs ? ours - theirs : theirs - ours;
                 if (theirs > 0 && drift * 20 > theirs)
                 {
                     sLog.outError("Move::Leg shadow: %s over %u point(s) at %.2f yd/s -- "
-                                  "spline says %d ms, leg says %d ms (%d ms apart)",
+                                  "spline says %d ms, leg says %d ms (%d ms apart, "
+                                  "flags 0x%08X)",
                                   unit.GetGuidStr().c_str(), uint32(args.path.size()),
-                                  args.velocity, theirs, ours, drift);
+                                  args.velocity, theirs, ours, drift, args.flags.raw());
                 }
             }
         }
