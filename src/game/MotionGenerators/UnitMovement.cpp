@@ -646,13 +646,17 @@ void UnitMovement::Forbid(Motion::Inhibition what, uint64 source)
     StopIfForbidden();
 }
 
-void UnitMovement::Allow(Motion::Inhibition what, uint64 source)
+bool UnitMovement::Allow(Motion::Inhibition what, uint64 source)
 {
-    m_blocks.Uninhibit(what, source);
+    const bool wasTheLast = m_blocks.Uninhibit(what, source);
+
+    // Asked on every call, not only on the last release: a reason can be clear while its
+    // behaviour still runs, and the two are the same fact -- they end together.
     if (!m_blocks.Inhibited(what))
     {
         EndWhatItWasRunning(what);
     }
+    return wasTheLast;
 }
 
 void UnitMovement::AllowAll(Motion::Inhibition what)

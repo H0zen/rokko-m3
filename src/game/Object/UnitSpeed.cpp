@@ -314,7 +314,7 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
     }
     else
     {
-        Movement()->Allow(Motion::Inhibition::Feared, claim);
+        const bool released = Movement()->Allow(Motion::Inhibition::Feared, claim);
         if (Movement()->Reasons() & Motion::ReasonFeared)
         {
             return;   // another fear drives (reference §3.6): the flag stays, control stays taken
@@ -401,7 +401,7 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 
     }
     else
     {
-        Movement()->Allow(Motion::Inhibition::Confused, claim);
+        const bool released = Movement()->Allow(Motion::Inhibition::Confused, claim);
         if (Movement()->Reasons() & Motion::ReasonConfused)
         {
             return;   // another confuse drives: the flag stays, control stays taken

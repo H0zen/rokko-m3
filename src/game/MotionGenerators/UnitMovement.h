@@ -234,7 +234,10 @@ class UnitMovement
         /// Release ONE source of a reason. If it was the last, whatever behaviour that
         /// reason was running ends here -- in this same call, so the reason and the thing it
         /// caused can never disagree. Two casters fearing the same target means two of these.
-        void Allow(Motion::Inhibition what, uint64 source);
+        /// @return True when THIS call let the reason go. False when another source still
+        /// holds it, and false when the source held nothing at all -- a fear refused at apply
+        /// releases nothing on removal, and must not be allowed to change what the unit chases.
+        bool Allow(Motion::Inhibition what, uint64 source);
         /// Release EVERY source of a reason, whoever imposed it, and end what it was running.
         /// Possession is the case: it overrides whatever else held the unit.
         void AllowAll(Motion::Inhibition what);
