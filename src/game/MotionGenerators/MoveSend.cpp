@@ -31,6 +31,7 @@
 #include "MoveStats.h"
 #include "wire/MonsterMoveCodec.h"
 #include "Transports.h"
+#include "Vehicle.h"
 #include "TransportMap.h"
 #include "Map.h"
 #include "MotionMaster.h"
