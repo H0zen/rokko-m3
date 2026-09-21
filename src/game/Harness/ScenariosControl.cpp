@@ -54,6 +54,7 @@ namespace Harness
         const uint32 FLYER = 1512;     // Duskbat: InhabitType 5 (ground+air), the template flyer-falls-at-death uses
         const uint32 FEAR = 5782;      // the warlock's Fear: any MOD_FEAR spell id serves as the claim's key
         const uint32 POLYMORPH = 118;  // a MOD_CONFUSE spell id for the confuse's claim
+        const uint32 FEIGN = 5384;     // the hunter's Feign Death: its one effect is SPELL_AURA_FEIGN_DEATH on the CASTER
 
         const Pt SE = { -3200.0f, -300.0f, 47.0f };
 
@@ -1889,6 +1890,432 @@ namespace Harness
     };
 
 
+    namespace
+    {
+        /// player-feign's three fixed moments, as the TIMELINE counts them: absolute offsets
+        /// from the scenario's own start, which is what Scenario::At takes. Its own pair rather
+        /// than player-confuse's, for the reason player-confuse gives for not taking
+        /// player-fear's: a shared constant would make one scenario the other's hostage.
+        ///
+        /// ONE TIME BASE IN THE LOG, and it is not this one: every "+Nms" line this scenario
+        /// prints is N ms AFTER THE CAST, because the cast is the event every reading is about,
+        /// and a step that logs an absolute moment subtracts it.
+        ///
+        /// The combat opens 200 ms BEFORE the cast rather than inside the cast's own step, and
+        /// that gap is load-bearing twice. It lets two world updates pass with the player in
+        /// combat, so combatEnded reads a state that had settled instead of one set in the same
+        /// breath as the feign that ends it; and it is what gives the hostile reference below
+        /// something to do, because a player in combat whom nothing hates is swept back out of
+        /// it by Unit::Update's own combat timer (Unit.cpp:474-491) on the very next tick.
+        const uint32 kFeignCombatAt = 300;
+        const uint32 kFeignCastAt = 500;
+        const uint32 kFeignPullAt = 4000;
+
+        /// What the scenario writes into the player's movement flags just before the cast, so
+        /// that the line under test (UnitSpeed.cpp:536) has something to clear. A session-less
+        /// player's flag word is otherwise MOVEFLAG_NONE already, and a clear that clears
+        /// nothing proves nothing.
+        ///
+        /// TWO bits, not one, because the line sets the WHOLE WORD to MOVEFLAG_NONE and a single
+        /// bit could not tell that from a targeted clear: the creature side of the same `if`
+        /// reaches MoveSplineInit::Stop, which removes MOVEFLAG_FORWARD and only that
+        /// (MoveSplineInit.cpp:261). These two, because they are what a client driving a running
+        /// character actually sends, which is the state the branch exists to erase.
+        ///
+        /// Nothing else on this path writes either of them. MoveSplineInit::Launch adds
+        /// MOVEFLAG_FORWARD when a spline starts (MoveSplineInit.cpp:167) and this player never
+        /// gets one -- he must not, since Player::SetPosition removes SPELL_AURA_FEIGN_DEATH
+        /// outright on any relocation (Player.cpp:3589), so a player who moved would end his own
+        /// feign. And both sit in movementFlagsMask, so Player::isMoving() reads true while they
+        /// are on: that is deliberate, it is what a driving player looks like, and it cannot
+        /// refuse the cast -- SpellChecks.cpp:199 turns a moving player's cast down only for an
+        /// autorepeat spell or one carrying AURA_INTERRUPT_FLAG_NOT_SEATED, and 5384's aura
+        /// interrupt flags are 0x3c3c, which is neither.
+        const MovementFlags kDrivingFlags = MovementFlags(MOVEFLAG_FORWARD | MOVEFLAG_STRAFE_LEFT);
+    }
+
+    /// S68 (the harness's third player): the feign's PLAYER BRANCH, the half of
+    /// Unit::SetFeignDeath no creature can exercise. A creature that feigns is STOPPED
+    /// (UnitSpeed.cpp:532); a player has his MOVEMENT FLAGS CLEARED instead
+    /// (UnitSpeed.cpp:536), because he is the one driving and the server cannot simply halt a
+    /// spline he owns. Every feign the harness had run until today was a creature's --
+    /// ScenariosBlock's feign-keeps-follow calls Creature::SetFeignDeath -- so that `else` is
+    /// the one side of the `if` no scenario had ever taken.
+    ///
+    /// The player casts 5384 ON HIMSELF, and there is no choice about that: feign death's one
+    /// effect carries implicit target 1, the caster, so a kobold casting it at the player the
+    /// way player-fear and player-confuse cast theirs would put the aura on the KOBOLD. It is
+    /// still the SPELL and not the entry point ScenariosBlock calls, which is the point: casting
+    /// is what puts Aura::HandleFeignDeath (SpellAuraControl.cpp:391) on the path, and a
+    /// self-cast is besides the only shape that takes the caster==target branch at
+    /// UnitSpeed.cpp:552-555 at all. Taken, though with nothing to finish: the harness's cast is
+    /// TRIGGERED and a triggered spell is never put in a current-spell slot (Spell::Prepare), so
+    /// the FinishSpell inside that branch finds no generic spell to end here. A hunter pressing
+    /// the button casts it untriggered, and there it has one.
+    ///
+    /// Around that branch sit two behaviours shared with the creature side that no player had
+    /// been watched under either: the kernel's Dead inhibition (raised at UnitSpeed.cpp:546,
+    /// lifted at 570) and the CombatStop() that ends his fight (UnitSpeed.cpp:547). The
+    /// ExpireCombat() beside it (UnitSpeed.cpp:548) ends a chase in the Combat layer, and this
+    /// player holds none, so there is nothing here for it to show; it is named so that the next
+    /// reader does not go hunting for a category that was never available to write.
+    ///
+    /// The scenario samples for six seconds and pulls the aura 3.5 s after the cast
+    /// (kFeignPullAt, absolute +4 s), so the lift falls inside that window instead of waiting on
+    /// the spell's own six minutes.
+    class PlayerFeign : public Scenario
+    {
+    public:
+        /// Order 902, the next in the reserved player block behind player-fear's 900 and
+        /// player-confuse's 901, for the reason that block exists: the runner refuses
+        /// `MVTEST all` when a player scenario is queued before one that holds no player
+        /// (Harness.cpp Start), so player scenarios take high contiguous orders of their own and
+        /// the creature families go on growing from 64 without ever colliding with them.
+        PlayerFeign() : Scenario("player-feign", 902) {}
+
+        /// The runner owes a player scenario two things: the last place in the queue and the
+        /// map's grids reset behind it. A player in world promotes the grids around him to full
+        /// state and changes Map::Update's own visitation order, and no scenario that holds none
+        /// may read that.
+        bool UsesPlayer() const override { return true; }
+
+        void Prepare() override
+        {
+            struct St
+            {
+                bool   castRan;         ///< the cast step resolved the player and really cast
+                uint32 flagsBefore;     ///< the driving flags, read BACK after the scenario wrote them and before the cast
+                uint32 flagsAtApply;    ///< the same word the instant the cast returned
+                bool   auraAtApply;     ///< the 5384 holder was on him the instant the cast returned
+                bool   feignBefore;     ///< already feigning before the cast: published, or the kernel's own Dead
+                bool   victimBefore;    ///< the kobold was his victim before the cast
+                bool   combatBefore;    ///< ...and UNIT_FLAG_IN_COMBAT was on him
+                bool   refsBefore;      ///< ...and something still hated him (the kobold's threat list)
+                bool   victimAtApply;   ///< a victim the instant the cast returned
+                bool   combatAtApply;   ///< in combat the instant the cast returned
+                bool   refsAtApply;     ///< anything hating him the instant the cast returned
+                uint32 auraSamples;     ///< samples before the pull with the 5384 holder on him
+                uint32 unblocked;       ///< ...on which the published feign was NOT held
+                uint32 disagreed;       ///< ...on which the published feign and the kernel's Dead inhibition differed
+                uint32 feignSamples;    ///< samples with the block published
+                uint32 afterSamples;    ///< samples since the block was LAST seen published
+                bool   allClearAfter;   ///< the kernel's Dead inhibition was down on every one of those
+                uint32 endedAt;         ///< when the block went for the last time
+                bool   pulled;          ///< the scenario's own RemoveAurasDueToSpell has run
+                uint32 flickers;        ///< times the block went unpublished BEFORE the pull and came back
+                uint32 discarded;       ///< samples those re-anchorings took back out of the after-window
+                uint32 backAfterPull;   ///< samples with the block published AFTER the pull: a failure, never a flicker
+            };
+            Player* p = SpawnPlayer(SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+            Creature* k = p ? Spawn(KOBOLD, SE.x + 3.0f, SE.y, Ground(SE.x + 3.0f, SE.y, SE.z), 3.1f) : NULL;
+            if (!p || !k)
+            {
+                Verdict("flagsCleared=INVALID(spawn failed) | blockHeld=INVALID(spawn failed) | blockLifted=INVALID(spawn failed) | combatEnded=INVALID(spawn failed)");
+                return;
+            }
+            Silence(k);
+            const ObjectGuid g = p->GetObjectGuid(), gk = k->GetObjectGuid();
+            auto st = std::make_shared<St>();
+            st->castRan = st->auraAtApply = st->feignBefore = false;
+            st->victimBefore = st->combatBefore = st->refsBefore = false;
+            st->victimAtApply = st->combatAtApply = st->refsAtApply = false;
+            st->flagsBefore = st->flagsAtApply = 0;
+            st->auraSamples = st->unblocked = st->disagreed = 0;
+            st->allClearAfter = true;
+            st->feignSamples = st->afterSamples = st->endedAt = 0;
+            st->pulled = false;
+            st->flickers = st->discarded = st->backAfterPull = 0;
+            Log("the player %s stands at (%.1f, %.1f), the kobold 3 yd east", g.GetString().c_str(),
+                p->Where().X(), p->Where().Y());
+
+            At(kFeignCombatAt, [this, g, gk, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Creature* k = Get(gk);
+                if (!p || !k) { return; }
+                // A victim without a swing. Unit::Attack is the row itself -- it sets m_attacking
+                // and nothing more, combat state included -- so the two halves are asked for
+                // separately, and the melee half is left out on purpose: a swinging player would
+                // be dealing damage through the whole window, and every reading below would then
+                // have the fight's own progress as an alternative explanation.
+                p->Attack(k, false);
+                p->SetInCombatWith(k);
+                // The kobold's threat list, not the player's: a player cannot have one
+                // (Unit::CanHaveThreatList refuses anything but a creature), and what this call
+                // really builds is the HostileReference on the far side, which registers itself
+                // in the PLAYER's HostileRefManager. That reference is the only reason the
+                // combat opened above survives to the cast at all (Unit.cpp:474-491), and it is
+                // also what UnitSpeed.cpp:557 deletes.
+                k->AddThreat(p, 1000.0f);
+                Log("+%4ums before the cast: victim=%d in combat=%d anything hating him=%d",
+                    kFeignCastAt - kFeignCombatAt, p->getVictim() ? 1 : 0, p->IsInCombat() ? 1 : 0,
+                    p->GetHostileRefManager().isEmpty() ? 0 : 1);
+            });
+            At(kFeignCastAt, [this, g, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                // Written, then READ BACK, and the read is what the verdict uses. The write
+                // could be undone between here and the cast by anything that touched the word,
+                // and a category that assumed its own setup held would report the feign's
+                // success over a state the feign never saw.
+                p->m_movementInfo.SetMovementFlags(kDrivingFlags);
+                st->flagsBefore = uint32(p->m_movementInfo.GetMovementFlags());
+                // Read before the cast, because it is the whole meaning of the block that
+                // follows: a player already feigning cannot have a feign raised on him, and a
+                // scenario that skipped this would pass on a server that was never clear.
+                st->feignBefore = p->IsFeigningDeath() || p->GetMotionMaster()->Inhibited(Motion::Inhibition::Dead);
+                st->victimBefore = p->getVictim() != NULL;
+                st->combatBefore = p->IsInCombat();
+                st->refsBefore = !p->GetHostileRefManager().isEmpty();
+                p->CastSpell(p, FEIGN, true);
+                // EVERY READING BELOW IS TAKEN HERE, in the cast's own step, and combatEnded
+                // depends on that. A triggered instant spell applies its aura inside this call
+                // (Spell::Prepare -> cast(true)), so this is the state SetFeignDeath left behind
+                // and nothing else has run yet. Sampled 100 ms later instead, the combat reading
+                // would be worthless: Unit::Update's combat timer ends the combat of a player
+                // nobody hates on the next tick anyway (UnitSpeed.cpp:557 empties that list), so
+                // a CombatStop() that never happened and one that did look identical from the
+                // next step onwards. Only the synchronous read tells them apart -- measured, not
+                // assumed: with CombatStop() removed the flag still reads ON here and OFF at the
+                // very next sample.
+                //
+                // And of the two combat readings, THE FLAG IS THE ONE THAT DISCRIMINATES. The
+                // victim is over-determined on this spell: 5384 carries
+                // SPELL_ATTR_STOP_ATTACK_TARGET (its Attributes are 0x02150100, and the bit is
+                // 0x00100000), so Spell::finish calls AttackStop() on the caster of its own
+                // accord (SpellCast.cpp:1184) after the effects and before this line runs.
+                // getVictim() is therefore NULL here whether CombatStop() ran or not, and it is
+                // kept only because a victim standing after both of those would be a real
+                // finding. Nobody should read "no victim" in this verdict as evidence of
+                // CombatStop(); UNIT_FLAG_IN_COMBAT is what carries that.
+                st->castRan = true;
+                st->flagsAtApply = uint32(p->m_movementInfo.GetMovementFlags());
+                st->auraAtApply = p->HasAura(FEIGN);
+                st->victimAtApply = p->getVictim() != NULL;
+                st->combatAtApply = p->IsInCombat();
+                st->refsAtApply = !p->GetHostileRefManager().isEmpty();
+                Log("the player casts %u on himself: flags 0x%08x -> 0x%08x, aura=%d feigning=%d dead-inhibited=%d victim=%d in combat=%d hated=%d",
+                    FEIGN, st->flagsBefore, st->flagsAtApply, st->auraAtApply ? 1 : 0,
+                    p->IsFeigningDeath() ? 1 : 0, p->GetMotionMaster()->Inhibited(Motion::Inhibition::Dead) ? 1 : 0,
+                    st->victimAtApply ? 1 : 0, st->combatAtApply ? 1 : 0, st->refsAtApply ? 1 : 0);
+            });
+            At(kFeignCastAt + 100, [this, g, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                Log("+ 100ms after the cast: aura=%d feigning=%d dead-inhibited=%d flags 0x%08x in combat=%d",
+                    p->HasAura(FEIGN) ? 1 : 0, p->IsFeigningDeath() ? 1 : 0,
+                    p->GetMotionMaster()->Inhibited(Motion::Inhibition::Dead) ? 1 : 0,
+                    uint32(p->m_movementInfo.GetMovementFlags()), p->IsInCombat() ? 1 : 0);
+            });
+            // Registered before the sampler so it runs first at its own moment (the timeline
+            // orders a tie by insertion): the sample at +3500 after the cast is then already an
+            // after-sample.
+            At(kFeignPullAt, [this, g, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                p->RemoveAurasDueToSpell(FEIGN);
+                // The moment that divides the scenario in two for the sampler below: before it,
+                // a gap in the block is a flicker inside a feign that is still meant to be
+                // running; after it, the block coming back at all is a failure.
+                st->pulled = true;
+                Log("+%4ums after the cast the aura pulled: aura=%d feigning=%d dead-inhibited=%d",
+                    kFeignPullAt - kFeignCastAt, p->HasAura(FEIGN) ? 1 : 0, p->IsFeigningDeath() ? 1 : 0,
+                    p->GetMotionMaster()->Inhibited(Motion::Inhibition::Dead) ? 1 : 0);
+            });
+            for (uint32 i = 1; i <= 60; ++i)
+            {
+                At(kFeignCastAt + i * 100, [this, g, st, i]()
+                {
+                    Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                    const uint32 t = i * 100;
+                    // Three readings of one thing, and they are not interchangeable. The aura is
+                    // the CAUSE and keys blockHeld's window; the published feign
+                    // (MotionMaster::PublishedState::feign) is the shell's view of the block and
+                    // is what player-confuse's Blocked() reads for its own claim; the arbiter's
+                    // Dead inhibition is the kernel's live answer. A category that read only one
+                    // of the last two could not see the two disagree, which is the failure a
+                    // published state exists to be able to have.
+                    const bool auraNow = p->HasAura(FEIGN);
+                    const bool heldNow = p->IsFeigningDeath();
+                    const bool kernelNow = p->GetMotionMaster()->Inhibited(Motion::Inhibition::Dead);
+                    if (auraNow && !st->pulled)
+                    {
+                        ++st->auraSamples;
+                        if (!heldNow) { ++st->unblocked; }
+                        if (heldNow != kernelNow) { ++st->disagreed; }
+                    }
+                    if (heldNow && !st->pulled)
+                    {
+                        ++st->feignSamples;
+                        // THE AFTER-WINDOW IS ANCHORED TO THE END OF THE FEIGN, not to the first
+                        // gap in it -- player-fear's rule, corrected on player-confuse, and
+                        // inherited here rather than rediscovered. A block that reads unpublished
+                        // on one sample and published again on the next -- BEFORE the scenario
+                        // pulls the aura, while the feign is still meant to be running -- was a
+                        // flicker, not the lift, and everything counted since that gap belongs to
+                        // the feign's own window, where the block is CORRECTLY up. Counted as
+                        // after-samples they would read "still blocked after the aura went" and
+                        // this category would print BUG on a working server. So the window
+                        // re-anchors here, and what it discards is counted and said.
+                        if (st->afterSamples)
+                        {
+                            ++st->flickers;
+                            st->discarded += st->afterSamples;
+                        }
+                        st->afterSamples = 0;
+                        st->endedAt = 0;
+                        st->allClearAfter = true;
+                    }
+                    else if (heldNow)
+                    {
+                        // The block is published AFTER the scenario pulled the aura. That is not
+                        // a flicker in anything: the feign was ended, on purpose, at a moment
+                        // this scenario chose, so a block standing again is a failure in its own
+                        // right and is reported as one. Above all it must NOT re-anchor -- the
+                        // failing samples gathered since the pull are exactly the evidence a
+                        // re-anchoring would erase, turning a genuine BUG into OK, which is the
+                        // worse direction to be wrong in.
+                        // Nor does it touch auraSamples or unblocked. Those answer blockHeld,
+                        // which asks about the block at ONSET; a stale block long after the pull
+                        // is blockLifted's finding, and letting it reach the other category would
+                        // make one event print BUG twice, once falsely.
+                        ++st->backAfterPull;
+                    }
+                    else if (st->feignSamples)
+                    {
+                        if (!st->endedAt) { st->endedAt = t; }
+                        ++st->afterSamples;
+                        // The published block is down on every sample that reaches here, by the
+                        // branch above; the kernel's own is the reading this window is left to
+                        // take, and the one a lift that forgot to Uninhibit would fail.
+                        if (kernelNow) { st->allClearAfter = false; }
+                    }
+                    if (i % 10 == 0)
+                    {
+                        Log("+%4ums aura=%d feigning=%d dead-inhibited=%d flags 0x%08x victim=%d in combat=%d", t,
+                            auraNow ? 1 : 0, heldNow ? 1 : 0, kernelNow ? 1 : 0,
+                            uint32(p->m_movementInfo.GetMovementFlags()), p->getVictim() ? 1 : 0, p->IsInCombat() ? 1 : 0);
+                    }
+                });
+            }
+            At(kFeignCastAt + 6100, [this, st]()
+            {
+                char flags[224], held[272], lifted[320], combat[288];
+                // Every branch below is reachable, and the INVALIDs come first wherever a
+                // reading could not be taken at all: a step that never ran, a spell that never
+                // landed, a setup the feign never saw. An OK printed over any of those would be
+                // the one failure a harness cannot afford -- a scenario that passes without an
+                // actor.
+                if (!st->castRan)
+                {
+                    snprintf(flags, sizeof(flags), "INVALID(the cast step never ran: the player went unresolvable)");
+                    snprintf(held, sizeof(held), "INVALID(the cast step never ran)");
+                    snprintf(combat, sizeof(combat), "INVALID(the cast step never ran)");
+                }
+                else
+                {
+                    if (!st->flagsBefore)
+                    {
+                        snprintf(flags, sizeof(flags), "INVALID(the driving flags did not stay on him up to the cast: 0x%08x, so the feign had nothing to clear)", st->flagsBefore);
+                    }
+                    else if (!st->auraAtApply)
+                    {
+                        snprintf(flags, sizeof(flags), "INVALID(no %u holder on him when the cast returned, so Aura::HandleFeignDeath was never on the path)", FEIGN);
+                    }
+                    else
+                    {
+                        snprintf(flags, sizeof(flags), "%s(0x%08x on him before the cast, 0x%08x the instant it returned)",
+                                 st->flagsAtApply == uint32(MOVEFLAG_NONE) ? "OK" : "BUG", st->flagsBefore, st->flagsAtApply);
+                    }
+                    if (!st->auraSamples)
+                    {
+                        snprintf(held, sizeof(held), "INVALID(the feign aura never held: on him when the cast returned=%d)", st->auraAtApply ? 1 : 0);
+                    }
+                    else if (st->feignBefore)
+                    {
+                        snprintf(held, sizeof(held), "BUG(he was already feigning before the cast, so the block had nothing to raise)");
+                    }
+                    else if (st->unblocked)
+                    {
+                        snprintf(held, sizeof(held), "BUG(the block was down on %u of the %u samples the aura was on him)", st->unblocked, st->auraSamples);
+                    }
+                    else if (st->disagreed)
+                    {
+                        snprintf(held, sizeof(held), "BUG(the published feign and the kernel's Dead inhibition differed on %u of the %u samples the aura was on him)", st->disagreed, st->auraSamples);
+                    }
+                    else
+                    {
+                        snprintf(held, sizeof(held), "OK(not feigning before the cast, the published feign and the kernel's Dead inhibition both held on all %u samples the aura was on him)", st->auraSamples);
+                    }
+                    if (!st->victimBefore || !st->combatBefore)
+                    {
+                        snprintf(combat, sizeof(combat), "INVALID(he was not in combat with a victim before the cast: victim=%d in combat=%d hated=%d, so there was nothing for CombatStop to end)",
+                                 st->victimBefore ? 1 : 0, st->combatBefore ? 1 : 0, st->refsBefore ? 1 : 0);
+                    }
+                    else if (st->victimAtApply || st->combatAtApply)
+                    {
+                        snprintf(combat, sizeof(combat), "BUG(the instant the cast returned he still had victim=%d in combat=%d; hated=%d)",
+                                 st->victimAtApply ? 1 : 0, st->combatAtApply ? 1 : 0, st->refsAtApply ? 1 : 0);
+                    }
+                    else
+                    {
+                        // The flag is named first and named as the flag, because it is the half
+                        // only CombatStop() can clear here (see the cast step): the victim is
+                        // gone either way on a spell carrying SPELL_ATTR_STOP_ATTACK_TARGET.
+                        snprintf(combat, sizeof(combat), "OK(in combat with a victim before the cast, UNIT_FLAG_IN_COMBAT and the victim both gone the instant it returned; hated %d -> %d)",
+                                 st->refsBefore ? 1 : 0, st->refsAtApply ? 1 : 0);
+                    }
+                }
+                if (!st->feignSamples)
+                {
+                    snprintf(lifted, sizeof(lifted), "INVALID(the block never held)");
+                }
+                else
+                {
+                    // The flicker note, appended to whichever branch fires below. A block that
+                    // went unpublished mid-feign and came back is worth seeing even though the
+                    // window no longer counts it -- it is a finding about the block, just not
+                    // this category's -- and on a healthy run there is nothing to say.
+                    char flicker[128];
+                    if (st->flickers)
+                    {
+                        snprintf(flicker, sizeof(flicker), "; the block flickered %u time(s) before the pull, re-anchoring the window past %u sample(s)",
+                                 st->flickers, st->discarded);
+                    }
+                    else
+                    {
+                        flicker[0] = '\0';
+                    }
+                    // First, and ahead of the sample-count INVALID: a block standing again after
+                    // the aura was pulled is a hard failure, and reporting "too few samples" over
+                    // the top of it would hide the one thing that went wrong.
+                    if (st->backAfterPull)
+                    {
+                        snprintf(lifted, sizeof(lifted), "BUG(the block was published again on %u sample(s) AFTER the aura was pulled, so the feign did not end when it was ended; of the %u sample(s) since the pull the kernel's Dead inhibition was down on %s%s)",
+                                 st->backAfterPull, st->afterSamples, st->allClearAfter ? "all" : "not all", flicker);
+                    }
+                    else if (st->afterSamples < 5)
+                    {
+                        snprintf(lifted, sizeof(lifted), "INVALID(only %u samples after the block went%s)", st->afterSamples, flicker);
+                    }
+                    else if (st->allClearAfter)
+                    {
+                        snprintf(lifted, sizeof(lifted), "OK(the published block and the kernel's Dead inhibition were both down from the first of the %u samples after it went, %u ms after the cast%s)",
+                                 st->afterSamples, st->endedAt, flicker);
+                    }
+                    else
+                    {
+                        snprintf(lifted, sizeof(lifted), "BUG(the kernel's Dead inhibition was still held on at least one of the %u samples after the published block went, %u ms after the cast%s)",
+                                 st->afterSamples, st->endedAt, flicker);
+                    }
+                }
+                std::string text = std::string("flagsCleared=") + flags + " | blockHeld=" + held + " | blockLifted=" + lifted + " | combatEnded=" + combat;
+                Verdict(text);
+            });
+        }
+    };
+
+
     void RegisterControlScenarios(Runner& r)
     {
         r.Register(new FearBoltsAway());
@@ -1902,5 +2329,6 @@ namespace Harness
         r.Register(new FearSpeedFollowsTheClaim());
         r.Register(new PlayerFear());
         r.Register(new PlayerConfuse());
+        r.Register(new PlayerFeign());
     }
 }
