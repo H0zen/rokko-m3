@@ -202,7 +202,13 @@ void MoveSend::CreateBits(Unit const& unit, ByteBuffer& data)
 
     const bool hasStartTime = (motion->SentFlags() & (Move::SPLINE_PARABOLA | Move::SPLINE_ANIMATION)) != 0;
     data.WriteBit(hasStartTime);
-    data.WriteBits(uint32(route.Count()), 22);
+
+    // ONE MORE POINT THAN THE PATH HAS. A linear spline's point array carries a trailing
+    // duplicate of its last point -- the virtual point the evaluator needs to have a
+    // segment to end on -- and the create block has always been written from that padded
+    // array, so that is the shape the client has been fed for as long as this packet has
+    // existed. Sending the bare polyline is one point short of it.
+    data.WriteBits(uint32(route.Count()) + 1, 22);
 
     switch (facing.mode)
     {
@@ -259,6 +265,12 @@ void MoveSend::CreateBytes(Unit const& unit, ByteBuffer& data)
             data << float(at.x);
             data << float(at.y);
         }
+
+        // The trailing virtual point announced above: the last point again.
+        Geometry::Vector3 const& tail = route.End();
+        data << float(tail.z);
+        data << float(tail.x);
+        data << float(tail.y);
 
         if (facing.mode == Move::Facing::Mode::Spot)
         {
