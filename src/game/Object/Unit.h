@@ -3956,13 +3956,9 @@ class Unit : public WorldObject
         bool IsStopped() const { return !i_movement.IsMoving(); }
         /// A follow native is active (the old UNIT_STAT_FOLLOW): latched at its activation, cleared
         /// at its suspension or its finish, or by a whole-state wipe.
-        /// A follow is what is running right now. There is no separate latch to keep in
-        /// step with it any more -- that pair was the mirror this component removed.
-        bool FollowLatched() const
-        {
-            Move::Kind running = Move::Kind::Count;
-            return i_movement.Running(running) && running == Move::Kind::Follow;
-        }
+        /// A follow is simply what is running right now. There is no separate latch to keep
+        /// in step with it any more -- that pair was the mirror this component removed.
+        bool FollowLatched() const { return i_movement.IsFollowing(); }
         void StopMoving(bool forceSendStop = false);
         void InterruptMoving(bool forceSendStop = false);
         bool CommitSplinePosition(); ///< Take the running spline's position: the seat pose at once, the placement on the next Update. False when no spline runs.
