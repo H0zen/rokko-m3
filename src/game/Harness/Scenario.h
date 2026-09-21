@@ -27,6 +27,7 @@
 #define MANGOS_HARNESS_SCENARIO_H
 
 #include "Timeline.h"
+#include "Ownership.h"
 #include "ObjectGuid.h"
 #include "MotionMaster.h"
 #include "Arbiter.h"
@@ -37,6 +38,7 @@
 class Creature;
 class Map;
 class Player;
+class WorldSession;
 
 namespace Harness
 {
@@ -77,6 +79,21 @@ namespace Harness
         bool       wasListed;
     };
 
+    /// One player SpawnPlayer built, and the scenario's handle on BOTH halves of him: the
+    /// Player, the WorldSession allocated under him, and the guid he was created on. These
+    /// two allocations are the scenario's own -- nothing else in the server made them and
+    /// nothing else will free them -- so the teardown works from this record instead of
+    /// looking the player up again in the global registry, which indexes logged-in players
+    /// and is nobody's ownership table (Ownership.h). The guid is kept beside the pointer
+    /// because it stays readable after the object does not: it is what the teardown asks the
+    /// registry about and what its error lines name.
+    struct OwnedPlayer
+    {
+        ObjectGuid    guid;
+        Player*       player;
+        WorldSession* session;
+    };
+
     /**
      * One headless scenario (design v2 §12): it spawns its actors, drives the
      * MotionMaster facade from a step timeline, samples positions and behaviour
@@ -103,10 +120,12 @@ namespace Harness
         void Abandon(char const* reason = "BROKEN(no verdict: the timeline ran dry)") { Verdict(reason); }
         /// Every guid Spawn handed out: the runner despawns them at the end.
         std::vector<ObjectGuid> const& Spawned() const { return m_spawned; }
-        /// Every guid SpawnPlayer handed out. Kept apart from Spawned() because a player
-        /// leaves by a different door: the runner unregisters him, removes him from the map
-        /// and deletes his session, where a creature is simply unsummoned.
-        std::vector<ObjectGuid> const& SpawnedPlayers() const { return m_players; }
+        /// Every player SpawnPlayer built, owned. Kept apart from Spawned() -- which holds
+        /// guids, because a creature is the map's to own and the runner only asks it to
+        /// unsummon one -- because a player leaves by a different door and through allocations
+        /// that are the scenario's: the runner revokes his movers, unregisters him, removes
+        /// him from the map and deletes the session underneath him.
+        std::vector<OwnedPlayer> const& SpawnedPlayers() const { return m_players; }
         /// True for a scenario that puts a player on the map (SpawnPlayer). A player
         /// promotes the grids around it to full state and changes Map::Update's own
         /// visitation order for as long as he is in world, so the runner requires every
@@ -171,14 +190,14 @@ namespace Harness
         Map* GetMap() const;
 
     private:
-        char const*             m_name;
-        int                     m_order;
-        Timeline                m_timeline;
-        bool                    m_finished;
-        std::vector<ObjectGuid> m_spawned;
-        std::vector<ObjectGuid> m_players;
-        std::vector<FoundActor> m_found;
-        std::vector<Inform>     m_informs;
+        char const*              m_name;
+        int                      m_order;
+        Timeline                 m_timeline;
+        bool                     m_finished;
+        std::vector<ObjectGuid>  m_spawned;
+        std::vector<OwnedPlayer> m_players;
+        std::vector<FoundActor>  m_found;
+        std::vector<Inform>      m_informs;
     };
 }
 

@@ -121,6 +121,12 @@ namespace Harness
     private:
         void Begin(Scenario* s);
         void End(Scenario* s);
+        /// The harness map's grids put back to a known state, and the ONE place that decision
+        /// is written: Start makes it before the first scenario and End again behind a player
+        /// scenario, and the two have to agree to the word -- the same three branches and the
+        /// same three log lines -- or a reader comparing one run's log with another is
+        /// comparing two different rules. It was two copies once; this is what that cost.
+        void ResetGrids();
 
         std::vector<Scenario*> m_registry;
         std::vector<Scenario*> m_queue;

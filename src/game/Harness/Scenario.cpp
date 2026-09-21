@@ -248,7 +248,15 @@ namespace Harness
         // player is a silent no-op and the scenario would pass while proving nothing.
         player->SetClientControl(player, 1);
 
-        m_players.push_back(player->GetObjectGuid());
+        // Both halves, recorded together and now: from here on the scenario owns this player
+        // and this session, and the runner's teardown works from this record rather than
+        // rediscovering either of them (Scenario.h OwnedPlayer, Ownership.h). Recorded after
+        // every refusal above, so a record only ever describes a player who exists.
+        OwnedPlayer owned;
+        owned.guid = player->GetObjectGuid();
+        owned.player = player;
+        owned.session = session;
+        m_players.push_back(owned);
         return player;
     }
 

@@ -25,6 +25,7 @@
 
 #include "Harness.h"
 #include "Scenario.h"
+#include "Ownership.h"
 #include "HarnessAI.h"
 #include "MapManager.h"
 #include "Map.h"
@@ -109,6 +110,41 @@ namespace Harness
         }
     }
 
+    void Runner::ResetGrids()
+    {
+        // Boot force-loads the grids of map 1's always-active creatures
+        // (ObjectMgr::LoadActiveEntities); a bare map skips their spawns but still loads
+        // their terrain, vmap and mmap tiles, and those grids' unload timers start in real
+        // time at boot. A run starting after a real-time delay that differs between two
+        // launches would then see a boot-loaded grid near the scenario area unload at a
+        // different virtual moment each time, so terrain and vmap queries at its edge would
+        // answer differently. A bare map holds no objects yet, so unloading every grid is
+        // safe: from here every grid loads on demand at a deterministic virtual moment (a
+        // scenario's `Load` call or an actor's spawn) and its unload timer counts from there.
+        // The terrain caches' reclaim passes were phased the same way -- the fused tile
+        // cache's sweep and the navmesh purge both fell at boot-phased virtual moments -- so
+        // RestartTerrainCleanUp reclaims every unheld tile now and restarts both, so the
+        // passes count from here too.
+        if (!m_map->IsBare())
+        {
+            // A live GM may still run scenarios on a full map; only the launcher's
+            // headless, stepped runs need the map bare to read alike twice (P0-D).
+            sLog.outString("MVTEST WARN: map %u carries the world's spawns; two runs will not read alike (the launcher sets Movement.HarnessBareMap = %u)", kMapId, kMapId);
+        }
+        else if (m_map->HavePlayers())
+        {
+            // UnloadAll(true) force-deletes a player's own NGridType, so a GM logged in on
+            // the bare map keeps its grids instead.
+            sLog.outString("MVTEST WARN: map %u has players; grids kept, two runs will not read alike", kMapId);
+        }
+        else
+        {
+            m_map->UnloadAll(true);
+            m_map->RestartTerrainCleanUp();
+            sLog.outString("MVTEST map %u grids reset: every grid loads at a scenario's own moment, terrain reclaim restarted", kMapId);
+        }
+    }
+
     bool Runner::Start(std::string const& what, uint32 seedBase)
     {
         if (Running() || m_settle)
@@ -176,27 +212,36 @@ namespace Harness
         // guid that a real character already owns would have the run write over him the first
         // time anything saved. The registry cannot answer this: an offline character is invisible
         // to it, so the characters table is the only witness.
-        QueryResult* taken = CharacterDatabase.PQuery(
-            "SELECT COUNT(*) FROM `characters` WHERE `guid` BETWEEN %u AND %u",
-            kHarnessPlayerGuidFirst, kHarnessPlayerGuidFirst + kHarnessPlayerGuidCount - 1);
-        // A guard that fails open is not a guard: a lost connection or a missing table returns
-        // NULL, and reading that as "the block is free" is exactly the case where the answer is
-        // unknown and a real character may be standing in it. Refuse instead.
-        if (!taken)
+        // Asked only of a queue that actually holds a player scenario, which `lastPlayerScenario`
+        // above is non-NULL for exactly when it does. The 62-plus scenarios that hold no player
+        // draw nothing from the block, and giving every one of them a new refusal path for a
+        // character-database outage would be a failure mode bought for nothing. Nor can a
+        // scenario slip a player past the gate: SpawnPlayer refuses outright unless the scenario
+        // declares UsesPlayer() (Scenario.cpp), which is the same flag this reads.
+        if (lastPlayerScenario)
         {
-            sLog.outString("MVTEST refused: the harness guid block %u..%u could not be checked against `characters` (no result: connection or schema)",
-                           kHarnessPlayerGuidFirst, kHarnessPlayerGuidFirst + kHarnessPlayerGuidCount - 1);
-            m_queue.clear();
-            return false;
-        }
-        const uint32 rows = taken->Fetch()[0].GetUInt32();
-        delete taken;
-        if (rows)
-        {
-            sLog.outString("MVTEST refused: %u character(s) occupy the harness guid block %u..%u",
-                           rows, kHarnessPlayerGuidFirst, kHarnessPlayerGuidFirst + kHarnessPlayerGuidCount - 1);
-            m_queue.clear();
-            return false;
+            QueryResult* taken = CharacterDatabase.PQuery(
+                "SELECT COUNT(*) FROM `characters` WHERE `guid` BETWEEN %u AND %u",
+                kHarnessPlayerGuidFirst, kHarnessPlayerGuidFirst + kHarnessPlayerGuidCount - 1);
+            // A guard that fails open is not a guard: a lost connection or a missing table returns
+            // NULL, and reading that as "the block is free" is exactly the case where the answer is
+            // unknown and a real character may be standing in it. Refuse instead.
+            if (!taken)
+            {
+                sLog.outString("MVTEST refused: the harness guid block %u..%u could not be checked against `characters` (no result: connection or schema)",
+                               kHarnessPlayerGuidFirst, kHarnessPlayerGuidFirst + kHarnessPlayerGuidCount - 1);
+                m_queue.clear();
+                return false;
+            }
+            const uint32 rows = taken->Fetch()[0].GetUInt32();
+            delete taken;
+            if (rows)
+            {
+                sLog.outString("MVTEST refused: %u character(s) occupy the harness guid block %u..%u",
+                               rows, kHarnessPlayerGuidFirst, kHarnessPlayerGuidFirst + kHarnessPlayerGuidCount - 1);
+                m_queue.clear();
+                return false;
+            }
         }
         m_map = sMapMgr.CreateMap(kMapId, NULL);
         if (!m_map)
@@ -206,42 +251,7 @@ namespace Harness
             return false;
         }
         sLog.outString("MVTEST map %u bare=%d", kMapId, m_map->IsBare() ? 1 : 0);
-        if (!m_map->IsBare())
-        {
-            // A live GM may still run scenarios on a full map; only the launcher's
-            // headless, stepped runs need the map bare to read alike twice (P0-D).
-            sLog.outString("MVTEST WARN: map %u carries the world's spawns; two runs will not read alike (the launcher sets Movement.HarnessBareMap = %u)", kMapId, kMapId);
-        }
-        else
-        {
-            // Boot force-loads the grids of map 1's always-active creatures
-            // (ObjectMgr::LoadActiveEntities); a bare map skips their spawns but
-            // still loads their terrain, vmap and mmap tiles, and those grids'
-            // unload timers start in real time at boot. A run starting after a
-            // real-time delay that differs between two launches would then see a
-            // boot-loaded grid near the scenario area unload at a different
-            // virtual moment each time, so terrain and vmap queries at its edge
-            // would answer differently. A bare map holds no objects yet, so
-            // unloading every grid here is safe: from here every grid loads on
-            // demand at a deterministic virtual moment (a scenario's `Load` call
-            // or an actor's spawn) and its unload timer counts from there. The
-            // terrain caches' reclaim passes were phased the same way -- the fused
-            // tile cache's sweep and the navmesh purge both fell at boot-phased
-            // virtual moments -- so RestartTerrainCleanUp below reclaims every
-            // unheld tile now and restarts both, so the passes count from here too.
-            // UnloadAll(true) force-deletes a player's own NGridType, so a GM
-            // logged in on the bare map keeps its grids instead.
-            if (m_map->HavePlayers())
-            {
-                sLog.outString("MVTEST WARN: map %u has players; grids kept, two runs will not read alike", kMapId);
-            }
-            else
-            {
-                m_map->UnloadAll(true);
-                m_map->RestartTerrainCleanUp();
-                sLog.outString("MVTEST map %u grids reset: every grid loads at a scenario's own moment, terrain reclaim restarted", kMapId);
-            }
-        }
+        ResetGrids();
         // The chicken's square (S7, S19), the old runner's template rows, as an
         // external path under the harness's own path id: id 0 is the one a script
         // would use for entry 621's external path, and AddExternalNode keys by
@@ -386,98 +396,140 @@ namespace Harness
             }
         }
         // The scenario's players go last, after every actor that could still be pointing at one
-        // has left. Before the session goes: ~WorldSession runs LogoutPlayer(true) when a player
-        // is still attached (WorldSession.cpp:296-298), which would drive the whole logout
-        // cascade -- the online flag, the group and guild broadcasts -- against a character that
-        // never existed. Map::Remove(player, true) deletes the player itself (DeleteFromWorld,
-        // Map.cpp:479-483), so the session pointer is taken while he is still alive.
-        // inWorld = false, and a miss is an error rather than a shrug: the default lookup hides
-        // a player who is registered but out of the world, and skipping him leaks both him and
-        // his session. Worse than a leak -- Scenario::Reset clears the scenario's list and the
-        // guids restart at kHarnessPlayerGuidFirst, so the next scenario builds a second live
-        // Player on the same guid and PlayerRegistry::Add overwrites the entry, putting the
-        // leaked one permanently out of reach of this loop and of everything else.
-        std::vector<ObjectGuid> const& players = s->SpawnedPlayers();
+        // has left, and they are torn down from the scenario's OWN record of each of them --
+        // the Player and the WorldSession it allocated under him -- and not from a lookup. The
+        // player registry indexes logged-in players; it is not an ownership table, and using it
+        // as one loses the session the moment anything ends the player by the normal door:
+        // Map::Remove(player, true) ends in Map::DeleteFromWorld, which unregisters and deletes
+        // him (Map.cpp:479-483) and never looks at a session allocated separately, so the lookup
+        // would miss, and the session -- which nothing else in the server frees -- would dangle
+        // over freed memory with the next scenario about to build a second Player on the same
+        // reserved guid.
+        //
+        // THE ORDER BELOW IS EXACT, and every step of it was paid for:
+        //
+        // 1. RevokeAllMovers while the player is still alive and still his session's _player.
+        //    Nothing else does it for him: Unit::RemoveFromWorld skips the revoke for a player
+        //    on purpose ("revoked by LogoutPlayer", Unit.cpp:4965-4969) and the harness never
+        //    logs anybody out. Left undone, ~Unit reports "still had a mover session" once per
+        //    player run, and ~WorldSession folds an added/removed pair that never balanced into
+        //    the process-wide authority totals -- poisoning the one signal (added != removed)
+        //    the campaign reads to spot a leaked mover. Both neighbouring placements are wrong:
+        //    after `delete session` it is a use-after-free, since RevokeAllMovers dereferences
+        //    _player (WorldSession.cpp:168-180) and the removal has already deleted him, and it
+        //    also resolves the other members through ObjectLookup, which reads the registry;
+        //    after SetPlayer(NULL) it is a silent no-op, with `removed` still never counted.
+        //    `now` is the same clock every other revoke passes -- LogoutPlayer
+        //    (WorldSession.cpp:806) and Unit::RemoveFromWorld both pass
+        //    GameTime::GetGameTimeMS() -- and it stays deterministic here because GameMSTime is
+        //    refreshed from WorldClock, which only Step() moves while the harness runs.
+        // 2. The registry removal, while the guid still resolves to him.
+        // 3. Map::Remove(player, true), which deletes the player itself.
+        // 4. SetPlayer(NULL): ~WorldSession runs LogoutPlayer(true) when a player is still
+        //    attached (WorldSession.cpp:293-298), which would drive the whole logout cascade --
+        //    the online flag, the group and guild broadcasts -- against a character that never
+        //    existed, through a pointer that by now is freed.
+        // 5. delete session.
+        //
+        // Steps 4 and 5 are NOT unconditional. They are right for the player this teardown
+        // ended itself, and right for one it finds already destroyed, and WRONG for one that
+        // may still be alive -- each branch below says which it is and why.
+        std::vector<OwnedPlayer> const& players = s->SpawnedPlayers();
         for (size_t i = 0; i < players.size(); ++i)
         {
-            Player* player = sPlayerRegistry.Find(players[i], false);
-            if (!player)
+            OwnedPlayer const& owned = players[i];
+            // Asked before anything follows the pointer, because by here it may be freed
+            // memory: the registry is the witness that the object is still alive, and identity
+            // is what is compared rather than presence. Ownership.h carries the argument for
+            // both, and the inWorld = false lookup is part of it.
+            const Ownership state = ClassifyOwnership(owned.player, sPlayerRegistry.Find(owned.guid, false));
+            if (state == Ownership::Held)
             {
-                sLog.outString("MVTEST ERR %s: harness player %s is not in the registry at teardown; it and its session are leaked, and the next scenario will reuse the guid",
-                               s->Name(), players[i].GetString().c_str());
-                continue;
+                if (owned.session)
+                {
+                    owned.session->RevokeAllMovers(GameTime::GetGameTimeMS());
+                }
+                sPlayerRegistry.Remove(owned.player);
+                // FindMap, not GetMap: the classification above does not filter on IsInWorld, so
+                // the record can still be Held for a player whose map reference has already been
+                // cleared (Map::Remove ends in ResetMap), and GetMap asserts on that. Off every
+                // map there is no removal left to make -- delete him here, as
+                // Map::DeleteFromWorld would have.
+                if (Map* map = owned.player->FindMap())
+                {
+                    map->Remove(owned.player, true);
+                }
+                else
+                {
+                    sLog.outString("MVTEST ERR %s: harness player %s held no map at teardown; deleted without a map removal",
+                                   s->Name(), owned.guid.GetString().c_str());
+                    delete owned.player;
+                }
+                // Steps 4 and 5, and only on this branch: the player we owned is gone by our
+                // own hand, so nothing can be reaching for the session any more.
+                if (owned.session)
+                {
+                    owned.session->SetPlayer(NULL);
+                    delete owned.session;
+                }
             }
-            WorldSession* session = player->GetSession();
-            // The session's movers go back now, while the player is still alive and still
-            // his session's _player. Nothing else does it for him: Unit::RemoveFromWorld
-            // skips the revoke for a player on purpose ("revoked by LogoutPlayer",
-            // Unit.cpp:4965-4969) and the harness never logs anybody out. Left undone,
-            // ~Unit reports "still had a mover session" once per player run, and
-            // ~WorldSession folds an added/removed pair that never balanced into the
-            // process-wide authority totals -- poisoning the one signal (added != removed)
-            // the campaign reads to spot a leaked mover.
-            // The two neighbouring placements are both wrong, so this one is exact:
-            // after `delete session` below it is a use-after-free, since RevokeAllMovers
-            // dereferences _player (WorldSession.cpp:168-180) and Map::Remove(player, true)
-            // has already deleted him; after SetPlayer(NULL) it is a silent no-op, since
-            // _player is NULL and `removed` is still never counted.
-            // `now` is the same clock every other revoke passes -- LogoutPlayer
-            // (WorldSession.cpp:806) and Unit::RemoveFromWorld both pass
-            // GameTime::GetGameTimeMS() -- and it stays deterministic here because
-            // GameMSTime is refreshed from WorldClock, which only Step() moves while the
-            // harness runs.
-            if (session)
+            else if (state == Ownership::Destroyed)
             {
-                session->RevokeAllMovers(GameTime::GetGameTimeMS());
-            }
-            sPlayerRegistry.Remove(player);
-            // FindMap, not GetMap: the lookup above no longer filters on IsInWorld, so it can
-            // hand back a player whose map reference has already been cleared (Map::Remove ends
-            // in ResetMap), and GetMap asserts on that. Off every map there is no removal left
-            // to make -- delete him here, as Map::DeleteFromWorld would have.
-            if (Map* map = player->FindMap())
-            {
-                map->Remove(player, true);
+                // Nothing answers the guid, and in this tree only one thing ever unregisters a
+                // player: Map::DeleteFromWorld (Map.cpp:481, the sole caller of
+                // PlayerRegistry::Remove outside this teardown), whose next statement deletes
+                // him. So the object really is gone, no live player can still be reaching for
+                // this session, and closing it is the correct end rather than a leak. SetPlayer
+                // is a plain assignment (WorldSession.h:480-483), so it is safe over a _player
+                // that is already freed, and it is what keeps ~WorldSession's LogoutPlayer(true)
+                // off that freed memory.
+                sLog.outString("MVTEST ERR %s: harness player %s was destroyed by something else before the teardown reached him; he is not touched, and the session the scenario allocated is closed here",
+                               s->Name(), owned.guid.GetString().c_str());
+                if (owned.session)
+                {
+                    owned.session->SetPlayer(NULL);
+                    delete owned.session;
+                }
             }
             else
             {
-                sLog.outString("MVTEST ERR %s: harness player %s held no map at teardown; deleted without a map removal",
-                               s->Name(), players[i].GetString().c_str());
-                delete player;
-            }
-            if (session)
-            {
-                session->SetPlayer(NULL);
-                delete session;
+                // Replaced: another object answers the guid. That says our player was replaced
+                // IN THE REGISTRY -- it does NOT say he died. He may be alive and in the map
+                // this instant, and Map::Update calls plr->GetSession()->Update(...) for every
+                // in-world player on it (Map.cpp:913-923), so deleting this session would hand
+                // a live player a freed one on the very next tick. A leaked session is bad; a
+                // live player holding a freed session is worse, so THE SESSION IS LEFT ALONE,
+                // deliberately, and the line below says so in as many words.
+                //
+                // Not detached either. SetPlayer(NULL) would not crash -- a harness session's
+                // Update is a no-op whatever _player holds, since the packet loop and
+                // UpdateSecondStream both return on the null socket and MapSessionFilter never
+                // runs the logout -- but it would buy nothing and cost something. Nothing will
+                // ever delete this session now, so there is no ~WorldSession to protect from
+                // the pointer; and the player's own m_session cannot be cleared from here
+                // without touching a player we have just decided we may not touch, so detaching
+                // would leave a live player whose session denies him, which any code doing
+                // GetSession()->GetPlayer() would then read as nobody.
+                //
+                // The leak is visible twice over: this line, and the mover authority totals,
+                // which a session that is never destroyed never folds back, so the campaign's
+                // added != removed signal will also be off by this player's grants.
+                sLog.outString("MVTEST ERR %s: harness player %s was replaced in the registry by another player object before the teardown reached him; he is not touched and HIS SESSION IS LEAKED ON PURPOSE -- he may still be alive and in the map, and Map::Update would call straight into a freed session. Do not 'fix' this into a delete. The classification is a best effort: it compares the pointer this scenario recorded with what the registry answers now, and an address can be handed out twice",
+                               s->Name(), owned.guid.GetString().c_str());
             }
         }
         // The player himself is gone now, above, but a player promotes the grids around
         // him to full state and changes Map::Update's own visitation order for as long as
         // he was in world (F4); the grids he touched and their expiry phases are still
-        // whatever he left them at. Whatever runs next must not inherit that, so repeat
-        // Start's own reset here and log it in the same words, guarded exactly as Start
-        // guards it: a live GM's own full map is left alone, and a real player's own grid
-        // is never force-deleted out from under him.
+        // whatever he left them at. Whatever runs next must not inherit that, so the same
+        // reset Start makes runs again here -- the same call, so the two cannot drift apart.
         // The condition trusts the flag OR the evidence: SpawnPlayer now refuses a scenario
         // that has not declared UsesPlayer(), but a player that got onto the map some other
         // way still gets his grids reset behind him rather than leaving the next scenario to
         // inherit them.
         if (s->UsesPlayer() || !s->SpawnedPlayers().empty())
         {
-            if (!m_map->IsBare())
-            {
-                sLog.outString("MVTEST WARN: map %u carries the world's spawns; two runs will not read alike (the launcher sets Movement.HarnessBareMap = %u)", kMapId, kMapId);
-            }
-            else if (m_map->HavePlayers())
-            {
-                sLog.outString("MVTEST WARN: map %u has players; grids kept, two runs will not read alike", kMapId);
-            }
-            else
-            {
-                m_map->UnloadAll(true);
-                m_map->RestartTerrainCleanUp();
-                sLog.outString("MVTEST map %u grids reset: every grid loads at a scenario's own moment, terrain reclaim restarted", kMapId);
-            }
+            ResetGrids();
         }
         ++m_verdicts;
         ++m_index;

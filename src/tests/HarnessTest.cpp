@@ -1,7 +1,9 @@
 // The GM harness's pure parts (movement P0-C): the step timeline every scenario
-// runs on, the verdict line. Nothing here touches a map.
+// runs on, the verdict line, and the rule the teardown classifies an owned player by.
+// Nothing here touches a map.
 #include "TestHarness.h"
 #include "Timeline.h"
+#include "Ownership.h"
 
 #include <string>
 #include <vector>
@@ -73,6 +75,51 @@ TEST(HarnessDist2_is_planar)
 {
     CHECK_EQ(Harness::Dist2(0.0f, 0.0f, 3.0f, 4.0f), 5.0f);
     CHECK_EQ(Harness::Dist2(-3122.6f, -261.3f, -3122.6f, -261.3f), 0.0f);
+}
+
+// The teardown's own rule: what a scenario still owns of a harness player by the time
+// Runner::End reaches its record. Addresses stand in for the objects because that is
+// exactly what the rule is about -- the question is asked where following the pointer
+// would be a use-after-free, so nothing here may be more than an address.
+namespace
+{
+    void const* const kOwnedPlayer = reinterpret_cast<void const*>(0x1000);
+    void const* const kAnotherPlayer = reinterpret_cast<void const*>(0x2000);
+}
+
+TEST(HarnessOwnership_the_registered_object_is_the_one_we_own)
+{
+    CHECK(Harness::ClassifyOwnership(kOwnedPlayer, kOwnedPlayer) == Harness::Ownership::Held);
+}
+
+TEST(HarnessOwnership_nothing_registered_means_somebody_else_destroyed_him)
+{
+    // Map::Remove(player, true) -> Map::DeleteFromWorld unregisters and then deletes, so an
+    // empty answer is the only sign the teardown gets that its Player* is now freed memory.
+    CHECK(Harness::ClassifyOwnership(kOwnedPlayer, NULL) == Harness::Ownership::Destroyed);
+}
+
+TEST(HarnessOwnership_a_different_object_on_the_guid_is_not_ours_to_touch)
+{
+    // The harness hands out guids from one small reserved block and restarts at the bottom
+    // of it for every scenario, so a later player can answer an earlier one's guid. Presence
+    // is not identity: tearing THAT one down would be worse than the leak it avoided.
+    // And this outcome says nothing about whether OUR player is still alive -- he may be, and
+    // being updated every tick -- so the teardown frees nothing on the strength of it, not
+    // even the session it allocated itself.
+    CHECK(Harness::ClassifyOwnership(kOwnedPlayer, kAnotherPlayer) == Harness::Ownership::Replaced);
+    // And the classification is not symmetric in some accidental way: swap the roles and it
+    // is still the record's pointer that decides.
+    CHECK(Harness::ClassifyOwnership(kAnotherPlayer, kOwnedPlayer) == Harness::Ownership::Replaced);
+}
+
+TEST(HarnessOwnership_an_empty_record_never_reads_as_held)
+{
+    // Unreachable through SpawnPlayer, which records only a player it built; pinned anyway,
+    // because the one outcome that must never come out of a NULL record is the branch that
+    // dereferences it.
+    CHECK(Harness::ClassifyOwnership(NULL, NULL) == Harness::Ownership::Destroyed);
+    CHECK(Harness::ClassifyOwnership(NULL, kOwnedPlayer) == Harness::Ownership::Replaced);
 }
 
 TEST(HarnessSeed_derives_from_the_base_and_the_order)
