@@ -230,7 +230,7 @@ void hyjalAI::EnterEvadeMode()
 
     if (m_creature->IsAlive())
     {
-        m_creature->GetMotionMaster()->MoveTargetedHome();
+        m_creature->Movement()->GoHome();
     }
 
     m_creature->SetLootRecipient(nullptr);
@@ -324,7 +324,7 @@ void hyjalAI::JustSummoned(Creature* pSummoned)
         fZ = randSpot1.z;
 
         pSummoned->SetWalk(false);
-        pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+        pSummoned->Movement()->GoTo(0, fX, fY, fZ);
     }
 
     // Check if creature is a boss.
@@ -556,7 +556,7 @@ void hyjalAI::UpdateAI(const uint32 uiDiff)
                     }
 
                     pTemp->SetWalk(false);
-                    pTemp->GetMotionMaster()->MovePoint(1, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
+                    pTemp->Movement()->GoTo(1, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
                 }
             }
             m_uiWaveMoveTimer = 10000;

@@ -152,7 +152,7 @@ struct boss_sladran : public CreatureScript
             }
 
             pSummoned->SetWalk(false);
-            pSummoned->GetMotionMaster()->MovePoint(0, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), false);
+            pSummoned->Movement()->GoTo(0, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), false);
         }
 
         void UpdateAI(const uint32 uiDiff) override

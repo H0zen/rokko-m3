@@ -233,7 +233,7 @@ struct is_zulaman : public InstanceScript
                                     else
                                     {
                                         pNalorakk->SetWalk(false);
-                                        pNalorakk->GetMotionMaster()->MovePoint(1, aBearEventInfo[m_uiBearEventPhase].fX, aBearEventInfo[m_uiBearEventPhase].fY, aBearEventInfo[m_uiBearEventPhase].fZ);
+                                        pNalorakk->Movement()->GoTo(1, aBearEventInfo[m_uiBearEventPhase].fX, aBearEventInfo[m_uiBearEventPhase].fY, aBearEventInfo[m_uiBearEventPhase].fZ);
                                     }
                                 }
                             }
@@ -500,7 +500,7 @@ struct is_zulaman : public InstanceScript
                             fX = randSpot1.x;
                             fY = randSpot1.y;
                             fZ = randSpot1.z;
-                            pTemp->GetMotionMaster()->MoveJump(fX, fY, fZ, pTemp->GetSpeed(MOVE_RUN) * 2, 5.0f);
+                            pTemp->Movement()->JumpTo(fX, fY, fZ, pTemp->GetSpeed(MOVE_RUN) * 2, 5.0f);
                         }
                     }
                 }

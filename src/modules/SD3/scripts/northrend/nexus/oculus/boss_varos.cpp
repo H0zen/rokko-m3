@@ -282,7 +282,7 @@ struct event_spell_call_captain : public MapEventScript
                     if (Creature* pGuardian = pVaros->SummonCreature(NPC_AZURE_RING_CAPTAIN, aVarosCaptainData[i].fX, aVarosCaptainData[i].fY, aVarosCaptainData[i].fZ, aVarosCaptainData[i].fO, TEMPSPAWN_DEAD_DESPAWN, 0))
                     {
                         pGuardian->SetWalk(false);
-                        pGuardian->GetMotionMaster()->MovePoint(1, aVarosCaptainData[i].fDestX, aVarosCaptainData[i].fDestY, aVarosCaptainData[i].fDestZ);
+                        pGuardian->Movement()->GoTo(1, aVarosCaptainData[i].fDestX, aVarosCaptainData[i].fDestY, aVarosCaptainData[i].fDestZ);
                     }
 
                     return true;
@@ -378,7 +378,7 @@ struct npc_arcane_beam : public CreatureScript
 
                 if (Player* pSummoner = m_creature->GetMap()->GetPlayer(pTemporary->GetSummonerGuid()))
                 {
-                    m_creature->GetMotionMaster()->MoveFollow(pSummoner, 0, 0);
+                    m_creature->Movement()->Follow(pSummoner, 0, 0);
                 }
             }
 

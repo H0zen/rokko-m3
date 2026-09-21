@@ -167,7 +167,7 @@ struct boss_viscidus : public CreatureScript
                 fX = m_creature->Spawn().X();
                 fY = m_creature->Spawn().Y();
                 fZ = m_creature->Spawn().Z();
-                pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                pSummoned->Movement()->GoTo(1, fX, fY, fZ);
                 m_lGlobesGuidList.push_back(pSummoned->GetObjectGuid());
             }
             else if (pSummoned->GetEntry() == NPC_VISCIDUS_TRIGGER)
@@ -269,7 +269,7 @@ struct boss_viscidus : public CreatureScript
                     m_uiExplodeDelayTimer = 2000;
 
                     SetCombatMovement(false);
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
                     m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
                 }
             }

@@ -75,7 +75,7 @@ bool ChatHandler::HandleComeToMeCommand(char* /*args*/)
 
     Player* pl = m_session->GetPlayer();
 
-    caster->GetMotionMaster()->MovePoint(0, pl->Where().X(), pl->Where().Y(), pl->Where().Z());
+    caster->Movement()->GoTo(0, pl->Where().X(), pl->Where().Y(), pl->Where().Z());
     return true;
 }
 
@@ -680,7 +680,7 @@ bool ChatHandler::HandleNpcMoveCommand(char* args)
             const_cast<CreatureData*>(data)->orientation = o;
         }
         pCreature->GetMap()->CreatureRelocation(pCreature, x, y, z, o);
-        pCreature->GetMotionMaster()->Initialize();
+        pCreature->Movement()->UseDefault();
         if (pCreature->IsAlive())                           // dead creature will reset movement generator at respawn
         {
             pCreature->SetDeathState(JUST_DIED);
@@ -790,7 +790,7 @@ bool ChatHandler::HandleNpcSetMoveTypeCommand(char* args)
     if (pCreature)
     {
         pCreature->SetDefaultMovementType(move_type);
-        pCreature->GetMotionMaster()->Initialize();
+        pCreature->Movement()->UseDefault();
         if (pCreature->IsAlive())                           // dead creature will reset movement generator at respawn
         {
             pCreature->SetDeathState(JUST_DIED);
@@ -934,7 +934,7 @@ bool ChatHandler::HandleNpcSpawnDistCommand(char* args)
 
     pCreature->SetRespawnRadius((float)option);
     pCreature->SetDefaultMovementType(mtype);
-    pCreature->GetMotionMaster()->Initialize();
+    pCreature->Movement()->UseDefault();
     if (pCreature->IsAlive())                               // dead creature will reset movement generator at respawn
     {
         pCreature->SetDeathState(JUST_DIED);
@@ -996,7 +996,7 @@ bool ChatHandler::HandleNpcFollowCommand(char* /*args*/)
     }
 
     // Follow player - Using pet's default dist and angle
-    creature->GetMotionMaster()->MoveFollow(player, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+    creature->Movement()->Follow(player, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
 
     PSendSysMessage(LANG_CREATURE_FOLLOW_YOU_NOW, creature->GetName());
     return true;
@@ -1020,8 +1020,8 @@ bool ChatHandler::HandleNpcUnFollowCommand(char* /*args*/)
         return false;
     }
 
-    UnitMovement* creatureMotion = creature->GetMotionMaster();
-    if (creatureMotion->ActiveKind() != Motion::Kind::Follow || creatureMotion->FollowTarget() != player)   // Finish ends the selection, so the follow must be what runs now
+    UnitMovement* creatureMotion = creature->Movement();
+    if (creatureMotion->Doing() != Motion::Kind::Follow || creatureMotion->FollowTarget() != player)   // Finish ends the selection, so the follow must be what runs now
     {
         PSendSysMessage(LANG_CREATURE_NOT_FOLLOW_YOU, creature->GetName());
         SetSentErrorMessage(true);
@@ -1400,7 +1400,7 @@ namespace
                                 target->IsInWorld() ? "yes" : "no",
                                 target->IsActiveObject() ? "yes" : "no");
         handler.PSendSysMessage("  movement=%s in-combat=%s combat-timer=%u",
-                                Motion::KindName(target->GetMotionMaster()->ActiveKind()),
+                                Motion::KindName(target->Movement()->Doing()),
                                 target->IsInCombat() ? "yes" : "no",
                                 target->GetCombatTimer());
 
@@ -1481,7 +1481,7 @@ bool ChatHandler::HandleNpcWatchCommand(char* /*args*/)
                     target->IsInWorld() ? "yes" : "no",
                     target->IsActiveObject() ? "yes" : "no");
     PSendSysMessage("  movement=%s in-combat=%s combat-timer=%u",
-                    Motion::KindName(target->GetMotionMaster()->ActiveKind()),
+                    Motion::KindName(target->Movement()->Doing()),
                     target->IsInCombat() ? "yes" : "no",
                     target->GetCombatTimer());
 

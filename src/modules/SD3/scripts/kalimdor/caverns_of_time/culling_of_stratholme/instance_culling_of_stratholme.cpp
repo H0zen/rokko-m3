@@ -644,21 +644,21 @@ struct is_culling_of_stratholme : public InstanceScript
                                     if (Creature* pRoger = GetSingleCreatureFromStorage(NPC_ROGER_OWENS))
                                     {
                                         pRoger->SetStandState(UNIT_STAND_STATE_STAND);
-                                        pRoger->GetMotionMaster()->MoveWaypoint();
+                                        pRoger->Movement()->WalkPath();
                                     }
                                     break;
                                 case 2:
                                     // Start NPC_SERGEANT_MORIGAN  Event
                                     if (Creature* pMorigan = GetSingleCreatureFromStorage(NPC_SERGEANT_MORIGAN))
                                     {
-                                        pMorigan->GetMotionMaster()->MoveWaypoint();
+                                        pMorigan->Movement()->WalkPath();
                                     }
                                     break;
                                 case 3:
                                     // Start NPC_JENA_ANDERSON Event
                                     if (Creature* pJena = GetSingleCreatureFromStorage(NPC_JENA_ANDERSON))
                                     {
-                                        pJena->GetMotionMaster()->MoveWaypoint();
+                                        pJena->Movement()->WalkPath();
                                     }
                                     break;
                                 case 4:
@@ -669,7 +669,7 @@ struct is_culling_of_stratholme : public InstanceScript
                                     // Start NPC_BARTLEBY_BATTSON Event
                                     if (Creature* pBartleby = GetSingleCreatureFromStorage(NPC_BARTLEBY_BATTSON))
                                     {
-                                        pBartleby->GetMotionMaster()->MoveWaypoint();
+                                        pBartleby->Movement()->WalkPath();
                                     }
                                     break;
                             }
@@ -925,31 +925,31 @@ struct is_culling_of_stratholme : public InstanceScript
                     if (Creature* pArthas = GetSingleCreatureFromStorage(NPC_ARTHAS))
                     {
                         pArthas->SetWalk(false);
-                        pArthas->GetMotionMaster()->MoveWaypoint();
+                        pArthas->Movement()->WalkPath();
                     }
 
                     // spawn Jaina and Uther
                     if (Creature* pJaina = pSummoner->SummonCreature(NPC_JAINA_PROUDMOORE, m_aIntroActorsSpawnLocs[0].m_fX, m_aIntroActorsSpawnLocs[0].m_fY, m_aIntroActorsSpawnLocs[0].m_fZ, m_aIntroActorsSpawnLocs[0].m_fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000))
                     {
-                        pJaina->GetMotionMaster()->MoveWaypoint();
+                        pJaina->Movement()->WalkPath();
                     }
                     if (Creature* pUther = pSummoner->SummonCreature(NPC_UTHER_LIGHTBRINGER, m_aIntroActorsSpawnLocs[1].m_fX, m_aIntroActorsSpawnLocs[1].m_fY, m_aIntroActorsSpawnLocs[1].m_fZ, m_aIntroActorsSpawnLocs[1].m_fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000))
                     {
                         pUther->SetWalk(false);
-                        pUther->GetMotionMaster()->MoveWaypoint();
+                        pUther->Movement()->WalkPath();
 
                         // spawn the knights
                         if (Creature* pKnight = pSummoner->SummonCreature(NPC_KNIGHT_SILVERHAND, m_aIntroActorsSpawnLocs[2].m_fX, m_aIntroActorsSpawnLocs[2].m_fY, m_aIntroActorsSpawnLocs[2].m_fZ, m_aIntroActorsSpawnLocs[2].m_fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000))
                         {
-                            pKnight->GetMotionMaster()->MoveFollow(pUther, pKnight->Where().DistanceTo(pUther->Where()), 2 * M_PI_F - pKnight->Where().BearingTo(pUther->Where()));
+                            pKnight->Movement()->Follow(pUther, pKnight->Where().DistanceTo(pUther->Where()), 2 * M_PI_F - pKnight->Where().BearingTo(pUther->Where()));
                         }
                         if (Creature* pKnight = pSummoner->SummonCreature(NPC_KNIGHT_SILVERHAND, m_aIntroActorsSpawnLocs[3].m_fX, m_aIntroActorsSpawnLocs[3].m_fY, m_aIntroActorsSpawnLocs[3].m_fZ, m_aIntroActorsSpawnLocs[3].m_fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000))
                         {
-                            pKnight->GetMotionMaster()->MoveFollow(pUther, pKnight->Where().DistanceTo(pUther->Where()), 2 * M_PI_F - pKnight->Where().BearingTo(pUther->Where()));
+                            pKnight->Movement()->Follow(pUther, pKnight->Where().DistanceTo(pUther->Where()), 2 * M_PI_F - pKnight->Where().BearingTo(pUther->Where()));
                         }
                         if (Creature* pKnight = pSummoner->SummonCreature(NPC_KNIGHT_SILVERHAND, m_aIntroActorsSpawnLocs[4].m_fX, m_aIntroActorsSpawnLocs[4].m_fY, m_aIntroActorsSpawnLocs[4].m_fZ, m_aIntroActorsSpawnLocs[4].m_fO, TEMPSPAWN_CORPSE_TIMED_DESPAWN, 10000))
                         {
-                            pKnight->GetMotionMaster()->MoveFollow(pUther, pKnight->Where().DistanceTo(pUther->Where()), 2 * M_PI_F - pKnight->Where().BearingTo(pUther->Where()));
+                            pKnight->Movement()->Follow(pUther, pKnight->Where().DistanceTo(pUther->Where()), 2 * M_PI_F - pKnight->Where().BearingTo(pUther->Where()));
                         }
                     }
                 }
@@ -1007,7 +1007,7 @@ struct is_culling_of_stratholme : public InstanceScript
 
                             if (Creature* pUndead = pSummoner->SummonCreature(uiEntry, fX, fY, fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0))
                             {
-                                pUndead->GetMotionMaster()->Wander(pUndead->Where().X(), pUndead->Where().Y(), pUndead->Where().Z(), 10.0f);
+                                pUndead->Movement()->Wander(pUndead->Where().X(), pUndead->Where().Y(), pUndead->Where().Z(), 10.0f);
                             }
                         }
                     }
@@ -1016,7 +1016,7 @@ struct is_culling_of_stratholme : public InstanceScript
                     {
                         if (Creature* pUndead = pSummoner->SummonCreature(uiEntry, m_aBurningScourgeLocs[i].m_fX, m_aBurningScourgeLocs[i].m_fY, m_aBurningScourgeLocs[i].m_fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0))
                         {
-                            pUndead->GetMotionMaster()->Wander(pUndead->Where().X(), pUndead->Where().Y(), pUndead->Where().Z(), 10.0f);
+                            pUndead->Movement()->Wander(pUndead->Where().X(), pUndead->Where().Y(), pUndead->Where().Z(), 10.0f);
                         }
                     }
 
@@ -1030,7 +1030,7 @@ struct is_culling_of_stratholme : public InstanceScript
 
                         if (Creature* pUndead = pSummoner->SummonCreature(NPC_ZOMBIE, fX, fY, fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0))
                         {
-                            pUndead->GetMotionMaster()->Wander(pUndead->Where().X(), pUndead->Where().Y(), pUndead->Where().Z(), 10.0f);
+                            pUndead->Movement()->Wander(pUndead->Where().X(), pUndead->Where().Y(), pUndead->Where().Z(), 10.0f);
                         }
                     }
                 }
@@ -1051,7 +1051,7 @@ struct is_culling_of_stratholme : public InstanceScript
                         if (Creature* pMichael = GetSingleCreatureFromStorage(NPC_MICHAEL_BELFAST))
                         {
                             pMichael->SetStandState(UNIT_STAND_STATE_STAND);
-                            pMichael->GetMotionMaster()->MoveWaypoint();
+                            pMichael->Movement()->WalkPath();
                         }
                         m_bStartedInnEvent = true;
                         break;

@@ -184,7 +184,7 @@ struct boss_deathbringer_saurfang : public CreatureScript
         {
             if (!m_bIsIntroDone && pWho->GetTypeId() == TYPEID_PLAYER && !((Player*)pWho)->isGameMaster() && m_creature->Where().DistanceTo(pWho->Where(), false) < 50.0f)
             {
-                m_creature->GetMotionMaster()->MovePoint(POINT_ID_INTRO, fIntroPosition[0], fIntroPosition[1], fIntroPosition[2]);
+                m_creature->Movement()->GoTo(POINT_ID_INTRO, fIntroPosition[0], fIntroPosition[1], fIntroPosition[2]);
                 if (m_pInstance)
                 {
                     m_pInstance->DoUseDoorOrButton(GO_SAURFANG_DOOR);
@@ -236,7 +236,7 @@ struct boss_deathbringer_saurfang : public CreatureScript
             // Boss needs to evade to the point in front of the door
             if (m_creature->IsAlive())
             {
-                m_creature->GetMotionMaster()->MovePoint(POINT_ID_EVADE, fIntroPosition[0], fIntroPosition[1], fIntroPosition[2]);
+                m_creature->Movement()->GoTo(POINT_ID_EVADE, fIntroPosition[0], fIntroPosition[1], fIntroPosition[2]);
             }
 
             m_creature->SetLootRecipient(nullptr);

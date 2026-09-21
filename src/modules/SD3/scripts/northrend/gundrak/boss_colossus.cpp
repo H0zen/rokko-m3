@@ -248,8 +248,8 @@ struct boss_drakkari_colossus : public CreatureScript
                 m_creature->RemoveAurasDueToSpell(SPELL_FREEZE_ANIM);
 
                 SetCombatMovement(true);
-                m_creature->GetMotionMaster()->StopAndDefault();
-                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                m_creature->Movement()->StopAndDefault();
+                m_creature->Movement()->Chase(m_creature->getVictim());
                 ((Creature*)pCaster)->ForcedDespawn();
             }
         }
@@ -313,7 +313,7 @@ struct boss_drakkari_colossus : public CreatureScript
             if (DoCastSpellIfCan(m_creature, SPELL_EMERGE, CAST_INTERRUPT_PREVIOUS) == CAST_OK)
             {
                 SetCombatMovement(false);
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->Stop();
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                 DoCastSpellIfCan(m_creature, SPELL_FREEZE_ANIM, CAST_TRIGGERED);
             }
@@ -448,7 +448,7 @@ struct npc_living_mojo : public CreatureScript
                     }
 
                     m_creature->SetWalk(false);
-                    m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                    m_creature->Movement()->GoTo(1, fX, fY, fZ);
                 }
             }
         }

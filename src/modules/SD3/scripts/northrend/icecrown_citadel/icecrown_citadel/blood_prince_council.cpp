@@ -179,7 +179,7 @@ struct npc_queen_lanathel_intro : public CreatureScript
             switch (iEntry)
             {
                 case SAY_COUNCIL_INTRO_2:
-                    m_creature->GetMotionMaster()->MovePoint(1, aLanathelFlyPos[0], aLanathelFlyPos[1], aLanathelFlyPos[2]);
+                    m_creature->Movement()->GoTo(1, aLanathelFlyPos[0], aLanathelFlyPos[1], aLanathelFlyPos[2]);
                     break;
                 case NPC_BLOOD_ORB_CONTROL:
                     if (m_pInstance)
@@ -295,7 +295,7 @@ struct npc_ball_of_flame : public CreatureScript
                 if (DoCastSpellIfCan(m_creature, SPELL_FLAMES) == CAST_OK)
                 {
                     m_bHasFlamesCasted = true;
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
                     m_creature->ForcedDespawn(1000);
                 }
             }
@@ -736,7 +736,7 @@ struct boss_valanar_icc : public CreatureScript
             {
                 // Handle Kinetic bomb movement
                 pSummoned->SetLevitate(true);
-                pSummoned->GetMotionMaster()->MovePoint(1, pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z() - 20.0f, false);
+                pSummoned->Movement()->GoTo(1, pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z() - 20.0f, false);
             }
         }
 
@@ -950,7 +950,7 @@ struct boss_taldaram_icc : public CreatureScript
                 }
 
                 DoScriptText(EMOTE_FLAMES, pSummoned, pTarget);
-                pSummoned->GetMotionMaster()->MoveFollow(pTarget, 0, 0);
+                pSummoned->Movement()->Follow(pTarget, 0, 0);
             }
         }
 

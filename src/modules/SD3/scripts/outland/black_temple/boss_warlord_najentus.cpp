@@ -129,7 +129,7 @@ struct boss_najentus : public CreatureScript
                 SetCombatMovement(true);
                 if (m_creature->getVictim())
                 {
-                    m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                    m_creature->Movement()->Chase(m_creature->getVictim());
                 }
             }
         }
@@ -157,7 +157,7 @@ struct boss_najentus : public CreatureScript
                 m_bIsShielded = false;
 
                 SetCombatMovement(true);
-                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                m_creature->Movement()->Chase(m_creature->getVictim());
             }
 
             if (m_uiEnrageTimer < uiDiff)
@@ -209,8 +209,8 @@ struct boss_najentus : public CreatureScript
             {
                 DoCastSpellIfCan(m_creature, SPELL_TIDAL_SHIELD, CAST_INTERRUPT_PREVIOUS | CAST_TRIGGERED);
 
-                m_creature->GetMotionMaster()->Stop();
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->Stop();
+                m_creature->Movement()->Stop();
                 SetCombatMovement(false);
 
                 m_bIsShielded = true;

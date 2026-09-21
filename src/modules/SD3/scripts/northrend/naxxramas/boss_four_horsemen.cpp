@@ -148,7 +148,7 @@ struct boss_lady_blaumeux : CreatureScript
 
             SetCombatMovement(false);
             m_creature->SetWalk(false);
-            m_creature->GetMotionMaster()->MovePoint(1, aHorseMenMoveCoords[0][0], aHorseMenMoveCoords[0][1], aHorseMenMoveCoords[0][2]);
+            m_creature->Movement()->GoTo(1, aHorseMenMoveCoords[0][0], aHorseMenMoveCoords[0][1], aHorseMenMoveCoords[0][2]);
 
             if (m_pInstance)
             {
@@ -194,8 +194,8 @@ struct boss_lady_blaumeux : CreatureScript
 
             // Stop moving when it reaches the corner
             m_bIsCornerMovement = false;
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->Stop();
         }
 
         void UpdateAI(const uint32 uiDiff) override
@@ -301,7 +301,7 @@ struct boss_rivendare_naxx : public CreatureScript
 
             SetCombatMovement(false);
             m_creature->SetWalk(false);
-            m_creature->GetMotionMaster()->MovePoint(1, aHorseMenMoveCoords[1][0], aHorseMenMoveCoords[1][1], aHorseMenMoveCoords[1][2]);
+            m_creature->Movement()->GoTo(1, aHorseMenMoveCoords[1][0], aHorseMenMoveCoords[1][1], aHorseMenMoveCoords[1][2]);
 
             if (m_pInstance)
             {
@@ -348,10 +348,10 @@ struct boss_rivendare_naxx : public CreatureScript
             // Start moving when it reaches the corner
             SetCombatMovement(true);
             m_bIsCornerMovement = false;
-            m_creature->GetMotionMaster()->StopAndDefault();
+            m_creature->Movement()->StopAndDefault();
             if (m_creature->getVictim())
             {
-                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                m_creature->Movement()->Chase(m_creature->getVictim());
             }
         }
 
@@ -434,7 +434,7 @@ struct boss_thane_korthazz : public CreatureScript
 
             SetCombatMovement(false);
             m_creature->SetWalk(false);
-            m_creature->GetMotionMaster()->MovePoint(1, aHorseMenMoveCoords[2][0], aHorseMenMoveCoords[2][1], aHorseMenMoveCoords[2][2]);
+            m_creature->Movement()->GoTo(1, aHorseMenMoveCoords[2][0], aHorseMenMoveCoords[2][1], aHorseMenMoveCoords[2][2]);
 
             if (m_pInstance)
             {
@@ -481,10 +481,10 @@ struct boss_thane_korthazz : public CreatureScript
             // Start moving when it reaches the corner
             SetCombatMovement(true);
             m_bIsCornerMovement = false;
-            m_creature->GetMotionMaster()->StopAndDefault();
+            m_creature->Movement()->StopAndDefault();
             if (m_creature->getVictim())
             {
-                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                m_creature->Movement()->Chase(m_creature->getVictim());
             }
         }
 
@@ -569,7 +569,7 @@ struct boss_sir_zeliek :CreatureScript
 
             SetCombatMovement(false);
             m_creature->SetWalk(false);
-            m_creature->GetMotionMaster()->MovePoint(1, aHorseMenMoveCoords[3][0], aHorseMenMoveCoords[3][1], aHorseMenMoveCoords[3][2]);
+            m_creature->Movement()->GoTo(1, aHorseMenMoveCoords[3][0], aHorseMenMoveCoords[3][1], aHorseMenMoveCoords[3][2]);
 
             if (m_pInstance)
             {
@@ -615,8 +615,8 @@ struct boss_sir_zeliek :CreatureScript
 
             // Stop moving when it reaches the corner
             m_bIsCornerMovement = false;
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->Stop();
         }
 
         void UpdateAI(const uint32 uiDiff) override

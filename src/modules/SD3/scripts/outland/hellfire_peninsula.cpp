@@ -554,7 +554,7 @@ struct npc_fel_guard_hound : public CreatureScript
                 }
 
                 m_bIsPooActive = true;
-                m_creature->GetMotionMaster()->MovePoint(1, pInvoker->Where().X(), pInvoker->Where().Y(), pInvoker->Where().Z());
+                m_creature->Movement()->GoTo(1, pInvoker->Where().X(), pInvoker->Where().Y(), pInvoker->Where().Z());
             }
         }
 
@@ -798,7 +798,7 @@ struct npc_anchorite_barada : public CreatureScript
                     {
                         m_creature->SetFacingToObject(pColonel);
                     }
-                    m_creature->GetMotionMaster()->StopAndDefault();
+                    m_creature->Movement()->StopAndDefault();
                     m_creature->SetStandState(UNIT_STAND_STATE_KNEEL);
                     m_bEventComplete = true;
                     break;
@@ -810,7 +810,7 @@ struct npc_anchorite_barada : public CreatureScript
             switch (iEntry)
             {
                 case QUEST_ID_EXORCISM:
-                    m_creature->GetMotionMaster()->MoveWaypoint();
+                    m_creature->Movement()->WalkPath();
                     break;
                 case SPELL_BARADA_COMMANDS:
                     DoCastSpellIfCan(m_creature, SPELL_BARADA_COMMANDS);
@@ -821,7 +821,7 @@ struct npc_anchorite_barada : public CreatureScript
                     if (Creature* pColonel = m_creature->GetMap()->GetCreature(m_colonelGuid))
                     {
                         pColonel->SetLevitate(true);
-                        pColonel->GetMotionMaster()->MovePoint(0, pColonel->Where().X(), pColonel->Where().Y(), pColonel->Where().Z() + 2.0f);
+                        pColonel->Movement()->GoTo(0, pColonel->Where().X(), pColonel->Where().Y(), pColonel->Where().Z() + 2.0f);
                     }
                     break;
                 case SPELL_JULES_THREATENS:
@@ -843,7 +843,7 @@ struct npc_anchorite_barada : public CreatureScript
                     if (Creature* pColonel = m_creature->GetMap()->GetCreature(m_colonelGuid))
                     {
                         pColonel->CastSpell(pColonel, SPELL_JULES_VOMITS, true);
-                        pColonel->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 3.0f, 5.0f);
+                        pColonel->Movement()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 3.0f, 5.0f);
                     }
                     break;
                 case NPC_COLONEL_JULES:
@@ -861,7 +861,7 @@ struct npc_anchorite_barada : public CreatureScript
                         pColonel->RemoveAurasDueToSpell(SPELL_JULES_THREATENS);
                         pColonel->RemoveAurasDueToSpell(SPELL_JULES_RELEASE_DARKNESS);
                         pColonel->RemoveAurasDueToSpell(SPELL_JULES_VOMITS);
-                        pColonel->GetMotionMaster()->MoveTargetedHome();
+                        pColonel->Movement()->GoHome();
                         pColonel->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
                     }
                     break;
@@ -991,7 +991,7 @@ struct spell_just_release_darkness : public SpellScript
             // spawn a Darkness Released npc and move around the room
             if (Creature* pDarkness = pCreatureTarget->SummonCreature(NPC_DARKNESS_RELEASED, 0, 0, 0, 0, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 20000))
             {
-                pDarkness->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                pDarkness->Movement()->GoTo(0, fX, fY, fZ);
             }
 
             // always return true when we are handling this spell and effect
@@ -1050,7 +1050,7 @@ struct npc_caretaker_dilandrus : public CreatureScript
                 {
                     // time to visit grave
                     uGraveNumber = rand() % 9 + 1;
-                    m_creature->GetMotionMaster()->MovePoint(0, aGraveYardLocation[uGraveNumber][0], aGraveYardLocation[uGraveNumber][1], aGraveYardLocation[uGraveNumber][2]);
+                    m_creature->Movement()->GoTo(0, aGraveYardLocation[uGraveNumber][0], aGraveYardLocation[uGraveNumber][1], aGraveYardLocation[uGraveNumber][2]);
                     uLastGraveVisited = uGraveNumber;
                     uCurrentStage = 2;
                     uVisitGraveTimer = 10000;
@@ -1100,7 +1100,7 @@ struct npc_caretaker_dilandrus : public CreatureScript
                 }
                 else if (uCurrentStage == 6) // go back to start
                 {
-                    m_creature->GetMotionMaster()->MovePoint(0, aGraveYardLocation[0][0], aGraveYardLocation[0][1], aGraveYardLocation[0][2]);
+                    m_creature->Movement()->GoTo(0, aGraveYardLocation[0][0], aGraveYardLocation[0][1], aGraveYardLocation[0][2]);
                     m_creature->SetFacingTo(aGraveYardLocation[0][3]);
                     uVisitGraveTimer = 900000; // visit a grave every 15 minutes
                     uCurrentStage = 1;
@@ -1188,11 +1188,11 @@ struct npc_magister_aledis : public CreatureScript
                 if (!m_bIsDefeated)
                 {
                     m_creature->SetWalk(true);
-                    m_creature->GetMotionMaster()->MoveWaypoint();
+                    m_creature->Movement()->WalkPath();
                 }
                 else
                 {
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
                 }
             }
 

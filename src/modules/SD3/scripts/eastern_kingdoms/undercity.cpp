@@ -101,7 +101,7 @@ struct npc_lady_sylvanas_windrunner : public CreatureScript
                 pSummoned->CastSpell(pSummoned, SPELL_HIGHBORNE_AURA, false);
 
                 pSummoned->SetLevitate(true);
-                pSummoned->GetMotionMaster()->MovePoint(0, pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z() + 5.0f);
+                pSummoned->Movement()->GoTo(0, pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z() + 5.0f);
             }
         }
 

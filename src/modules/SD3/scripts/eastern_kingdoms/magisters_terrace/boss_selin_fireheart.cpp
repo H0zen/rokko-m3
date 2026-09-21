@@ -116,7 +116,7 @@ struct boss_selin_fireheart : public CreatureScript
                 float fX, fY, fZ;
                 SetCombatMovement(false);
                 ContactPointNear(*m_creature, pCrystal, fX, fY, fZ, INTERACTION_DISTANCE);
-                m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                m_creature->Movement()->GoTo(1, fX, fY, fZ);
                 m_bDrainingCrystal = true;
 
                 return true;
@@ -189,7 +189,7 @@ struct boss_selin_fireheart : public CreatureScript
             {
                 m_bDrainingCrystal = false;
                 SetCombatMovement(true);
-                m_creature->GetMotionMaster()->StopAndDefault();
+                m_creature->Movement()->StopAndDefault();
                 DoStartMovement(m_creature->getVictim());
             }
         }

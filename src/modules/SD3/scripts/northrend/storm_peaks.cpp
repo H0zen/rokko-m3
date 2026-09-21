@@ -73,7 +73,7 @@ struct npc_floating_spirit : public CreatureScript
             m_creature->SetLevitate(true);
             m_creature->ForcedDespawn(5000);
 
-            m_creature->GetMotionMaster()->MovePoint(0, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 50.0f);
+            m_creature->Movement()->GoTo(0, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 50.0f);
         }
     };
 

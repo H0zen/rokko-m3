@@ -321,7 +321,7 @@ struct npc_iron_construct : public CreatureScript
                     DoCastSpellIfCan(m_creature, SPELL_STRENGTH_REMOVE, CAST_TRIGGERED);
 
                     m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
                     m_bHasShattered = true;
                 }
             }

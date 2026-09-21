@@ -94,10 +94,10 @@ struct npc_kyle_the_frenzied : public CreatureScript
                     m_playerGuid = pCaster->GetObjectGuid();
                 }
 
-                if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
+                if (m_creature->Movement()->Doing() == Motion::Kind::Patrol)
                 {
-                    m_creature->GetMotionMaster()->Finish();
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Finish();
+                    m_creature->Movement()->Stop();
                     m_creature->StopMoving();
                 }
 
@@ -156,7 +156,7 @@ struct npc_kyle_the_frenzied : public CreatureScript
                                     float fX, fY, fZ;
                                     ContactPointNear(*pGo, m_creature, fX, fY, fZ, CONTACT_DISTANCE);
 
-                                    m_creature->GetMotionMaster()->MovePoint(POINT_ID, fX, fY, fZ);
+                                    m_creature->Movement()->GoTo(POINT_ID, fX, fY, fZ);
                                 }
                             }
                             break;
@@ -180,7 +180,7 @@ struct npc_kyle_the_frenzied : public CreatureScript
                         case 5:
                             m_creature->HandleEmote(EMOTE_STATE_NONE);
                             Reset();
-                            m_creature->GetMotionMaster()->StopAndDefault();
+                            m_creature->Movement()->StopAndDefault();
                             break;
                     }
                 }

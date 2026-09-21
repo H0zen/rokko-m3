@@ -272,7 +272,7 @@ struct boss_zuljin : public CreatureScript
                     // Attack random target
                     if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                     {
-                        pSummoned->GetMotionMaster()->MoveFollow(pTarget, 0, 0);
+                        pSummoned->Movement()->Follow(pTarget, 0, 0);
                     }
                     break;
                 case NPC_COLUMN_OF_FIRE:
@@ -319,8 +319,8 @@ struct boss_zuljin : public CreatureScript
                     SetCombatMovement(true);
                     if (m_creature->getVictim())
                     {
-                        m_creature->GetMotionMaster()->StopAndDefault();
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->StopAndDefault();
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                     }
                 }
                 // In Eagle phase we just cast Energy storm and summon 4 Feather cyclones; Boss doesn't move in this phase
@@ -358,7 +358,7 @@ struct boss_zuljin : public CreatureScript
                 m_bIsInTransition = true;
 
                 SetCombatMovement(false);
-                m_creature->GetMotionMaster()->MovePoint(POINT_ID_CENTER, fZuljinMoveLoc[0], fZuljinMoveLoc[1], fZuljinMoveLoc[2]);
+                m_creature->Movement()->GoTo(POINT_ID_CENTER, fZuljinMoveLoc[0], fZuljinMoveLoc[1], fZuljinMoveLoc[2]);
 
                 // Despawn vortexes and remvoe the energy storm after eagle phase is complete
                 if (m_uiPhase == PHASE_EAGLE)
@@ -580,7 +580,7 @@ struct npc_feather_vortex : public CreatureScript
                     // Change target on player hit
                     if (Unit* pTarget = pZuljin->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                     {
-                        m_creature->GetMotionMaster()->MoveFollow(pTarget, 0, 0);
+                        m_creature->Movement()->Follow(pTarget, 0, 0);
                     }
                 }
             }

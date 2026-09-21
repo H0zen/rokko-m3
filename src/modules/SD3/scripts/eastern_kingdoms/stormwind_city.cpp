@@ -316,7 +316,7 @@ struct npc_squire_rowe : public CreatureScript
             if (pSummoned->GetEntry() == NPC_WINDSOR)
             {
                 pSummoned->SetWalk(false);
-                pSummoned->GetMotionMaster()->MovePoint(1, aWindsorMoveLoc[0], aWindsorMoveLoc[1], aWindsorMoveLoc[2]);
+                pSummoned->Movement()->GoTo(1, aWindsorMoveLoc[0], aWindsorMoveLoc[1], aWindsorMoveLoc[2]);
 
                 m_windsorGuid = pSummoned->GetObjectGuid();
                 m_bIsEventInProgress = true;
@@ -384,7 +384,7 @@ struct npc_squire_rowe : public CreatureScript
                     if (Creature* pHorse = m_creature->GetMap()->GetCreature(m_horseGuid))
                     {
                         pHorse->SetWalk(false);
-                        pHorse->GetMotionMaster()->MovePoint(1, aWindsorSpawnLoc[0], aWindsorSpawnLoc[1], aWindsorSpawnLoc[2]);
+                        pHorse->Movement()->GoTo(1, aWindsorSpawnLoc[0], aWindsorSpawnLoc[1], aWindsorSpawnLoc[2]);
                     }
                     break;
                 case QUEST_STORMWIND_RENDEZVOUS:
@@ -718,7 +718,7 @@ struct npc_reginald_windsor : public CreatureScript
 
                         pJonathan->SetWalk(false);
                         pJonathan->Unmount();
-                        pJonathan->GetMotionMaster()->MovePoint(0, aMoveLocations[0][0], aMoveLocations[0][1], aMoveLocations[0][2]);
+                        pJonathan->Movement()->GoTo(0, aMoveLocations[0][0], aMoveLocations[0][1], aMoveLocations[0][2]);
                     }
                     break;
                 case 1:
@@ -738,7 +738,7 @@ struct npc_reginald_windsor : public CreatureScript
                     {
                         pJonathan->SetWalk(true);
                         pJonathan->SetStandState(UNIT_STAND_STATE_STAND);
-                        pJonathan->GetMotionMaster()->MoveTargetedHome();
+                        pJonathan->Movement()->GoHome();
                     }
                     break;
                 case 22:
@@ -818,11 +818,11 @@ struct npc_reginald_windsor : public CreatureScript
                     }
                     if (Creature* pGuard = m_creature->GetMap()->GetCreature(m_guardsGuid[4]))
                     {
-                        pGuard->GetMotionMaster()->MovePoint(1, aMoveLocations[1][0], aMoveLocations[1][1], aMoveLocations[1][2]);
+                        pGuard->Movement()->GoTo(1, aMoveLocations[1][0], aMoveLocations[1][1], aMoveLocations[1][2]);
                     }
                     if (Creature* pGuard = m_creature->GetMap()->GetCreature(m_guardsGuid[3]))
                     {
-                        pGuard->GetMotionMaster()->MovePoint(2, aMoveLocations[2][0], aMoveLocations[2][1], aMoveLocations[2][2]);
+                        pGuard->Movement()->GoTo(2, aMoveLocations[2][0], aMoveLocations[2][1], aMoveLocations[2][2]);
                     }
                     break;
                 case SAY_JON_DIALOGUE_9:
@@ -838,11 +838,11 @@ struct npc_reginald_windsor : public CreatureScript
                     }
                     if (Creature* pGuard = m_creature->GetMap()->GetCreature(m_guardsGuid[1]))
                     {
-                        pGuard->GetMotionMaster()->MovePoint(3, aMoveLocations[3][0], aMoveLocations[3][1], aMoveLocations[3][2]);
+                        pGuard->Movement()->GoTo(3, aMoveLocations[3][0], aMoveLocations[3][1], aMoveLocations[3][2]);
                     }
                     if (Creature* pGuard = m_creature->GetMap()->GetCreature(m_guardsGuid[0]))
                     {
-                        pGuard->GetMotionMaster()->MovePoint(4, aMoveLocations[4][0], aMoveLocations[4][1], aMoveLocations[4][2]);
+                        pGuard->Movement()->GoTo(4, aMoveLocations[4][0], aMoveLocations[4][1], aMoveLocations[4][2]);
                     }
                     break;
                 case SAY_JON_DIALOGUE_10:
@@ -861,7 +861,7 @@ struct npc_reginald_windsor : public CreatureScript
                     if (Creature* pJonathan = m_pScriptedMap->GetSingleCreatureFromStorage(NPC_JONATHAN))
                     {
                         pJonathan->SetWalk(true);
-                        pJonathan->GetMotionMaster()->MovePoint(0, aMoveLocations[5][0], aMoveLocations[5][1], aMoveLocations[5][2]);
+                        pJonathan->Movement()->GoTo(0, aMoveLocations[5][0], aMoveLocations[5][1], aMoveLocations[5][2]);
                     }
                     break;
                 case EMOTE_ONESHOT_KNEEL:
@@ -914,7 +914,7 @@ struct npc_reginald_windsor : public CreatureScript
                     {
                         pWrynn->SetWalk(false);
                         pWrynn->ForcedDespawn(15000);
-                        pWrynn->GetMotionMaster()->MovePoint(0, aMoveLocations[6][0], aMoveLocations[6][1], aMoveLocations[6][2]);
+                        pWrynn->Movement()->GoTo(0, aMoveLocations[6][0], aMoveLocations[6][1], aMoveLocations[6][2]);
 
                         // Store all the nearby guards, in order to transform them into Onyxia guards
                         std::list<Creature*> lGuardsList;
@@ -944,7 +944,7 @@ struct npc_reginald_windsor : public CreatureScript
                     if (Creature* pBolvar = m_pScriptedMap->GetSingleCreatureFromStorage(NPC_BOLVAR))
                     {
                         pBolvar->SetWalk(false);
-                        pBolvar->GetMotionMaster()->MovePoint(0, aMoveLocations[7][0], aMoveLocations[7][1], aMoveLocations[7][2]);
+                        pBolvar->Movement()->GoTo(0, aMoveLocations[7][0], aMoveLocations[7][1], aMoveLocations[7][2]);
                     }
                     break;
                 case SAY_BOLVAR_KEEP_10:
@@ -1000,8 +1000,8 @@ struct npc_reginald_windsor : public CreatureScript
 
                     m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                     m_creature->ClearAllReactives();
-                    m_creature->GetMotionMaster()->StopAndDefault();
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->StopAndDefault();
+                    m_creature->Movement()->Stop();
                     m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
                     break;
                 case SAY_PRESTOR_KEEP_14:
@@ -1015,14 +1015,14 @@ struct npc_reginald_windsor : public CreatureScript
                 case NPC_GUARD_ONYXIA:
                     if (Creature* pBolvar = m_pScriptedMap->GetSingleCreatureFromStorage(NPC_BOLVAR))
                     {
-                        pBolvar->GetMotionMaster()->MovePoint(0, aMoveLocations[7][0], aMoveLocations[7][1], aMoveLocations[7][2]);
+                        pBolvar->Movement()->GoTo(0, aMoveLocations[7][0], aMoveLocations[7][1], aMoveLocations[7][2]);
                     }
                     break;
                 case NPC_BOLVAR:
                     if (Creature* pBolvar = m_pScriptedMap->GetSingleCreatureFromStorage(NPC_BOLVAR))
                     {
                         pBolvar->SetWalk(true);
-                        pBolvar->GetMotionMaster()->MovePoint(0, aMoveLocations[8][0], aMoveLocations[8][1], aMoveLocations[8][2]);
+                        pBolvar->Movement()->GoTo(0, aMoveLocations[8][0], aMoveLocations[8][1], aMoveLocations[8][2]);
                     }
                     break;
                 case SAY_BOLVAR_KEEP_15:
@@ -1045,14 +1045,14 @@ struct npc_reginald_windsor : public CreatureScript
                     {
                         pBolvar->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
                         pBolvar->SetStandState(UNIT_STAND_STATE_STAND);
-                        pBolvar->GetMotionMaster()->MoveTargetedHome();
+                        pBolvar->Movement()->GoHome();
                     }
                     if (Creature* pWrynn = m_pScriptedMap->GetSingleCreatureFromStorage(NPC_WRYNN))
                     {
                         pWrynn->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
                         pWrynn->Respawn();
                         pWrynn->SetWalk(true);
-                        pWrynn->GetMotionMaster()->MoveTargetedHome();
+                        pWrynn->Movement()->GoHome();
                     }
                     // Onyxia will respawn by herself in about 30 min, so just reset flags
                     if (Creature* pOnyxia = m_pScriptedMap->GetSingleCreatureFromStorage(NPC_PRESTOR))

@@ -282,12 +282,18 @@ namespace MaNGOS
                     return;
                 }
 
-                float x, y, z;
+                Geometry::Vector3 heading;
+                float x, y;
 
-                if (c->IsStopped() || !c->GetMotionMaster()->GetDestination(x, y, z))
+                if (c->IsStopped() || !c->Movement()->Destination(heading))
                 {
                     x = c->Where().X();
                     y = c->Where().Y();
+                }
+                else
+                {
+                    x = heading.x;
+                    y = heading.y;
                 }
 
                 add(c, x, y);

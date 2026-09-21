@@ -249,8 +249,8 @@ struct boss_sapphiron : public CreatureScript
                             m_Phase = PHASE_LIFT_OFF;
                             m_creature->InterruptNonMeleeSpells(false);
                             SetCombatMovement(false);
-                            m_creature->GetMotionMaster()->Stop();
-                            m_creature->GetMotionMaster()->MovePoint(1, aLiftOffPosition[0], aLiftOffPosition[1], aLiftOffPosition[2]);
+                            m_creature->Movement()->Stop();
+                            m_creature->Movement()->GoTo(1, aLiftOffPosition[0], aLiftOffPosition[1], aLiftOffPosition[2]);
                             // TODO This should clear the target, too
 
                             return;
@@ -340,8 +340,8 @@ struct boss_sapphiron : public CreatureScript
                         m_Phase = PHASE_GROUND;
 
                         SetCombatMovement(true);
-                        m_creature->GetMotionMaster()->Stop();
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Stop();
+                        m_creature->Movement()->Chase(m_creature->getVictim());
 
                         m_uiFlyTimer = 67000;
                         m_uiLandTimer = 0;

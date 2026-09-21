@@ -316,7 +316,7 @@ struct mob_soaring_eagle : public CreatureScript
                 fZ = randSpot1.z;
 
                 m_creature->SetWalk(false);
-                m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                m_creature->Movement()->GoTo(1, fX, fY, fZ);
             }
         }
 

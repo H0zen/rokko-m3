@@ -182,7 +182,7 @@ struct boss_mandokir : public CreatureScript
             // should evade to bottom of the stairs when raid fail
             if (m_creature->IsAlive())
             {
-                m_creature->GetMotionMaster()->MovePoint(0, aMandokirDownstairsPos[0], aMandokirDownstairsPos[1], aMandokirDownstairsPos[2]);
+                m_creature->Movement()->GoTo(0, aMandokirDownstairsPos[0], aMandokirDownstairsPos[1], aMandokirDownstairsPos[2]);
             }
 
             m_creature->SetLootRecipient(nullptr);

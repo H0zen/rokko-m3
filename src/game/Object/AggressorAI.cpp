@@ -143,9 +143,9 @@ void AggressorAI::EnterEvadeMode()
         m_creature->RemoveAllAurasOnEvade();
 
         // A held chase, masked or not, is dropped for the run home
-        if (m_creature->GetMotionMaster()->IsChasing())
+        if (m_creature->Movement()->IsChasing())
         {
-            m_creature->GetMotionMaster()->MoveTargetedHome();
+            m_creature->Movement()->GoHome();
         }
     }
 

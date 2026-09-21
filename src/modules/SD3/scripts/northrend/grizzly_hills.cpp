@@ -107,12 +107,12 @@ struct aura_charge_golem : public AuraScript
             if (bApply)
             {
                 DoScriptText(SAY_GOLEM_CHARGE, pCreature);
-                pCreature->GetMotionMaster()->Inhibit(Motion::Inhibition::Stunned, Motion::ControlClaim(pAura->GetId(), 0, pAura->GetCasterGuid().GetCounter()));
+                pCreature->Movement()->Forbid(Motion::Inhibition::Stunned, Motion::ControlClaim(pAura->GetId(), 0, pAura->GetCasterGuid().GetCounter()));
             }
             else
             {
                 DoScriptText(SAY_GOLEM_COMPLETE, pCreature);
-                pCreature->GetMotionMaster()->Uninhibit(Motion::Inhibition::Stunned, Motion::ControlClaim(pAura->GetId(), 0, pAura->GetCasterGuid().GetCounter()));
+                pCreature->Movement()->Allow(Motion::Inhibition::Stunned, Motion::ControlClaim(pAura->GetId(), 0, pAura->GetCasterGuid().GetCounter()));
 
                 // targets master
                 pCreature->CastSpell(pCreature, SPELL_GOLEM_CHARGE_CREDIT, true);
@@ -287,7 +287,7 @@ struct npc_harrison_jones : public CreatureScript
                     if (Creature* pAdarrah = m_creature->GetMap()->GetCreature(m_adarrahGuid))
                     {
                         pAdarrah->SetWalk(false);
-                        pAdarrah->GetMotionMaster()->MovePoint(0, 4878.416f, -4793.893f, 32.549f);
+                        pAdarrah->Movement()->GoTo(0, 4878.416f, -4793.893f, 32.549f);
                         pAdarrah->ForcedDespawn(5000);
                     }
                     break;
@@ -495,7 +495,7 @@ struct npc_emily : public CreatureScript
                         float fX, fY, fZ;
                         ContactPointNear(*pFloppy, pSummoned, fX, fY, fZ);
                         pSummoned->SetWalk(false);
-                        pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                        pSummoned->Movement()->GoTo(1, fX, fY, fZ);
                     }
                     break;
             }
@@ -511,7 +511,7 @@ struct npc_emily : public CreatureScript
                     // resume follow after vehicle unboard
                     if (Creature* pFloppy = m_creature->GetMap()->GetCreature(m_floppyGuid))
                     {
-                        pFloppy->GetMotionMaster()->MoveFollow(m_creature, pFloppy->Where().DistanceTo(m_creature->Where()), M_PI_F - pFloppy->Where().BearingTo(m_creature->Where()));
+                        pFloppy->Movement()->Follow(m_creature, pFloppy->Where().DistanceTo(m_creature->Where()), M_PI_F - pFloppy->Where().BearingTo(m_creature->Where()));
                     }
                     break;
                 case NPC_HUNGRY_WORG:

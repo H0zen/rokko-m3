@@ -238,7 +238,7 @@ struct boss_onyxia : public CreatureScript
                 fX = randSpot1.x;
                 fY = randSpot1.y;
                 fZ = randSpot1.z;
-                pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                pSummoned->Movement()->GoTo(1, fX, fY, fZ);
             }
             else
             {
@@ -278,7 +278,7 @@ struct boss_onyxia : public CreatureScript
                 SD3_SpellId(pSpell) == SPELL_BREATH_NORTH_TO_SOUTH)
             {
                 // This was sent with SendMonsterMove - which resulted in better speed than now
-                m_creature->GetMotionMaster()->MovePoint(m_uiMovePoint, aMoveData[m_uiMovePoint].fX, aMoveData[m_uiMovePoint].fY, aMoveData[m_uiMovePoint].fZ);
+                m_creature->Movement()->GoTo(m_uiMovePoint, aMoveData[m_uiMovePoint].fX, aMoveData[m_uiMovePoint].fY, aMoveData[m_uiMovePoint].fZ);
                 DoCastSpellIfCan(m_creature, SPELL_HEATED_GROUND, CAST_TRIGGERED);
             }
         }
@@ -455,11 +455,11 @@ struct boss_onyxia : public CreatureScript
                         m_uiPhase = PHASE_TO_LIFTOFF;
                         DoScriptText(SAY_PHASE_2_TRANS, m_creature);
                         SetCombatMovement(false);
-                        m_creature->GetMotionMaster()->MoveIdle();
+                        m_creature->Movement()->Stop();
                         m_creature->SetTargetGuid(ObjectGuid());
 
                         float fGroundZ = m_creature->GetMap()->GetHeight(m_creature->GetPhaseMask(), aMoveData[POINT_ID_SOUTH].fX, aMoveData[POINT_ID_SOUTH].fY, aMoveData[POINT_ID_SOUTH].fZ);
-                        m_creature->GetMotionMaster()->MovePoint(POINT_ID_LIFTOFF, aMoveData[POINT_ID_SOUTH].fX, aMoveData[POINT_ID_SOUTH].fY, fGroundZ);
+                        m_creature->Movement()->GoTo(POINT_ID_LIFTOFF, aMoveData[POINT_ID_SOUTH].fX, aMoveData[POINT_ID_SOUTH].fY, fGroundZ);
                         return;
                     }
 
@@ -474,7 +474,7 @@ struct boss_onyxia : public CreatureScript
                         DoScriptText(SAY_PHASE_3_TRANS, m_creature);
 
                         float fGroundZ = m_creature->GetMap()->GetHeight(m_creature->GetPhaseMask(), m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
-                        m_creature->GetMotionMaster()->MoveFlyOrLand(POINT_ID_LAND, m_creature->Where().X(), m_creature->Where().Y(), fGroundZ, false);
+                        m_creature->Movement()->FlyTo(POINT_ID_LAND, m_creature->Where().X(), m_creature->Where().Y(), fGroundZ, false);
                         return;
                     }
 
@@ -503,7 +503,7 @@ struct boss_onyxia : public CreatureScript
                         }
 
                         m_uiMovementTimer = urand(15000, 25000);
-                        m_creature->GetMotionMaster()->MovePoint(m_uiMovePoint, aMoveData[m_uiMovePoint].fX, aMoveData[m_uiMovePoint].fY, aMoveData[m_uiMovePoint].fZ);
+                        m_creature->Movement()->GoTo(m_uiMovePoint, aMoveData[m_uiMovePoint].fX, aMoveData[m_uiMovePoint].fY, aMoveData[m_uiMovePoint].fZ);
                     }
                     else
                     {
@@ -579,10 +579,10 @@ struct boss_onyxia : public CreatureScript
                                 {
                                     m_pInstance->SetData(TYPE_ONYXIA, DATA_LIFTOFF);
                                 }
-                                m_creature->GetMotionMaster()->MoveFlyOrLand(POINT_ID_IN_AIR, aMoveData[POINT_ID_SOUTH].fX, aMoveData[POINT_ID_SOUTH].fY, aMoveData[POINT_ID_SOUTH].fZ, true);
+                                m_creature->Movement()->FlyTo(POINT_ID_IN_AIR, aMoveData[POINT_ID_SOUTH].fX, aMoveData[POINT_ID_SOUTH].fY, aMoveData[POINT_ID_SOUTH].fZ, true);
                                 break;
                             case PHASE_BREATH_PRE:
-                                m_creature->GetMotionMaster()->MovePoint(POINT_ID_INIT_NORTH, aMoveData[POINT_ID_NORTH].fX, aMoveData[POINT_ID_NORTH].fY, aMoveData[POINT_ID_NORTH].fZ);
+                                m_creature->Movement()->GoTo(POINT_ID_INIT_NORTH, aMoveData[POINT_ID_NORTH].fX, aMoveData[POINT_ID_NORTH].fY, aMoveData[POINT_ID_NORTH].fZ);
                                 break;
                             case PHASE_BREATH_POST:
                                 m_uiPhase = PHASE_END;

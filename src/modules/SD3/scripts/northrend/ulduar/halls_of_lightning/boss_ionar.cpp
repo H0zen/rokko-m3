@@ -158,7 +158,7 @@ struct boss_ionar : public CreatureScript
 
                 if (m_creature->GetVisibility() != VISIBILITY_OFF)
                 {
-                    m_creature->GetMotionMaster()->MoveChase(pWho);
+                    m_creature->Movement()->Chase(pWho);
                 }
             }
         }
@@ -227,7 +227,7 @@ struct boss_ionar : public CreatureScript
                             pSparkAI->SetCombatMovement(false);
                         }
 
-                        pSpark->GetMotionMaster()->MovePoint(POINT_CALLBACK, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
+                        pSpark->Movement()->GoTo(POINT_CALLBACK, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
                     }
                 }
             }
@@ -284,11 +284,11 @@ struct boss_ionar : public CreatureScript
                         m_bIsSplitPhase = true;
                         m_bIsDesperseCasting = false;
 
-                        if (m_creature->GetMotionMaster()->ActiveKind() != Motion::Kind::Chase)
+                        if (m_creature->Movement()->Doing() != Motion::Kind::Chase)
                         {
                             if (m_creature->getVictim())
                             {
-                                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                                m_creature->Movement()->Chase(m_creature->getVictim());
                             }
                         }
                     }
@@ -375,9 +375,9 @@ struct spell_ionar_disperse : public SpellScript
             pCreatureTarget->AttackStop();
             pCreatureTarget->SetVisibility(VISIBILITY_OFF);
 
-            if (pCreatureTarget->GetMotionMaster()->ActiveKind() == Motion::Kind::Chase)
+            if (pCreatureTarget->Movement()->Doing() == Motion::Kind::Chase)
             {
-                pCreatureTarget->GetMotionMaster()->Finish();
+                pCreatureTarget->Movement()->Finish();
             }
 
             return true;

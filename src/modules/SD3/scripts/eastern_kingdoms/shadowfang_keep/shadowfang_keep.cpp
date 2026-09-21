@@ -276,7 +276,7 @@ struct mob_arugal_voidwalker : public CreatureScript
             Creature* pLeader = m_creature->GetMap()->GetCreature(m_leaderGuid);
             if (pLeader && pLeader->IsAlive())
             {
-                m_creature->GetMotionMaster()->MoveFollow(pLeader, 1.0f, M_PI / 2 * m_uiPosition);
+                m_creature->Movement()->Follow(pLeader, 1.0f, M_PI / 2 * m_uiPosition);
             }
             else
             {
@@ -310,7 +310,7 @@ struct mob_arugal_voidwalker : public CreatureScript
                     }
                     else
                     {
-                        m_creature->GetMotionMaster()->MoveFollow(pNewLeader, 1.0f, M_PI / 2 * m_uiPosition);
+                        m_creature->Movement()->Follow(pNewLeader, 1.0f, M_PI / 2 * m_uiPosition);
                     }
                 }
                 else
@@ -334,7 +334,7 @@ struct mob_arugal_voidwalker : public CreatureScript
         {
             if (m_bIsLeader && m_bWPDone)
             {
-                m_creature->GetMotionMaster()->MovePoint(m_uiCurrentPoint, VWWaypoints[m_uiCurrentPoint].fX,
+                m_creature->Movement()->GoTo(m_uiCurrentPoint, VWWaypoints[m_uiCurrentPoint].fX,
                     VWWaypoints[m_uiCurrentPoint].fY, VWWaypoints[m_uiCurrentPoint].fZ);
                 m_bWPDone = false;
             }
@@ -828,10 +828,10 @@ struct boss_arugal : public CreatureScript
                 m_creature->SendMeleeAttackStop(victim);
             }
 
-            if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Chase)
+            if (m_creature->Movement()->Doing() == Motion::Kind::Chase)
             {
-                m_creature->GetMotionMaster()->Stop();
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->Stop();
+                m_creature->Movement()->Stop();
                 m_creature->StopMoving();
             }
         }
@@ -843,10 +843,10 @@ struct boss_arugal : public CreatureScript
                 m_creature->SendMeleeAttackStart(victim);
             }
 
-            if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Idle)
+            if (m_creature->Movement()->Doing() == Motion::Kind::Idle)
             {
-                m_creature->GetMotionMaster()->Stop();
-                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), 0.0f, 0.0f);
+                m_creature->Movement()->Stop();
+                m_creature->Movement()->Chase(m_creature->getVictim(), 0.0f, 0.0f);
             }
         }
     };

@@ -139,7 +139,7 @@ struct boss_razorscale : public CreatureScript
             m_bIsRegularMode = pCreature->GetMap()->IsRegularDifficulty();
             m_uiMaxHarpoons = m_bIsRegularMode ? 2 : 4;
 
-            m_creature->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 10.0f);
+            m_creature->Movement()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 10.0f);
         }
 
         ScriptedInstance* m_pInstance;
@@ -225,7 +225,7 @@ struct boss_razorscale : public CreatureScript
                 m_pInstance->SetData(TYPE_RAZORSCALE, FAIL);
             }
 
-            m_creature->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 10.0f);
+            m_creature->Movement()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 10.0f);
         }
 
         void JustSummoned(Creature* pSummoned) override
@@ -266,7 +266,7 @@ struct boss_razorscale : public CreatureScript
                     uint32 uiSpeedRate = m_creature->GetSpeedRate(MOVE_RUN);
                     m_creature->SetWalk(false);
                     m_creature->SetSpeedRate(MOVE_RUN, SPEED_RATE_RAZORSCALE);
-                    m_creature->GetMotionMaster()->MoveFlyOrLand(1, afRazorscaleGroundPos[0], afRazorscaleGroundPos[1], afRazorscaleGroundPos[2], false);
+                    m_creature->Movement()->FlyTo(1, afRazorscaleGroundPos[0], afRazorscaleGroundPos[1], afRazorscaleGroundPos[2], false);
                     m_creature->SetSpeedRate(MOVE_RUN, uiSpeedRate);
 
                     m_uiPhase = PHASE_TRANSITION;
@@ -562,7 +562,7 @@ struct boss_razorscale : public CreatureScript
                                     // use upgraded speed rate for FlyOrLand. This isn't supported by DB but it's confirmed to happen on retail
                                     uint32 uiSpeedRate = m_creature->GetSpeedRate(MOVE_RUN);
                                     m_creature->SetSpeedRate(MOVE_RUN, SPEED_RATE_RAZORSCALE);
-                                    m_creature->GetMotionMaster()->MoveFlyOrLand(1, fX, fY, fZ, true);
+                                    m_creature->Movement()->FlyTo(1, fX, fY, fZ, true);
                                     m_creature->SetSpeedRate(MOVE_RUN, uiSpeedRate);
 
                                     // reset timers

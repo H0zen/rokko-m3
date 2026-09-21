@@ -176,7 +176,7 @@ struct boss_alythess : public CreatureScript
                 pWho->SetInCombatWith(m_creature);
 
                 // Only range attack
-                m_creature->GetMotionMaster()->MoveChase(pWho, 10.0f);
+                m_creature->Movement()->Chase(pWho, 10.0f);
             }
         }
 

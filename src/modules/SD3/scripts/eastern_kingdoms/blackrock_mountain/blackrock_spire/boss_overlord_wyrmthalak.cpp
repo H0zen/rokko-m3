@@ -158,12 +158,12 @@ struct boss_overlordwyrmthalak : public CreatureScript
                 if (pGuard1)
                 {
                     pGuard1->SetWalk(false);
-                    pGuard1->GetMotionMaster()->MovePoint(0, afLocations[2][0], afLocations[2][1], afLocations[2][2]);
+                    pGuard1->Movement()->GoTo(0, afLocations[2][0], afLocations[2][1], afLocations[2][2]);
                 }
                 if (pGuard2)
                 {
                     pGuard1->SetWalk(false);
-                    pGuard1->GetMotionMaster()->MovePoint(0, afLocations[3][0], afLocations[3][1], afLocations[3][2]);
+                    pGuard1->Movement()->GoTo(0, afLocations[3][0], afLocations[3][1], afLocations[3][2]);
                 }
 
                 m_bSummoned = true;

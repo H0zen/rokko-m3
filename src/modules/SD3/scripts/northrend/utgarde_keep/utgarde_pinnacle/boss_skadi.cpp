@@ -221,7 +221,7 @@ struct boss_skadi : public CreatureScript
                 case NPC_YMIRJAR_WARRIOR:
                 case NPC_YMIRJAR_WITCH_DOCTOR:
                     pSummon->SetWalk(false);
-                    pSummon->GetMotionMaster()->MoveWaypoint();
+                    pSummon->Movement()->WalkPath();
                     break;
             }
         }
@@ -272,7 +272,7 @@ struct boss_skadi : public CreatureScript
                     if (Creature* pYmirjar = m_creature->SummonCreature(aSkadiIntroData[i].uiCreatureId, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z(), 0, TEMPSPAWN_DEAD_DESPAWN, 0))
                     {
                         pYmirjar->SetWalk(false);
-                        pYmirjar->GetMotionMaster()->MovePoint(1, aSkadiIntroData[i].fX, aSkadiIntroData[i].fY, aSkadiIntroData[i].fZ);
+                        pYmirjar->Movement()->GoTo(1, aSkadiIntroData[i].fX, aSkadiIntroData[i].fY, aSkadiIntroData[i].fZ);
                     }
                 }
 
@@ -534,7 +534,7 @@ struct npc_grauf : public CreatureScript
                     m_creature->SetLevitate(true);
                     m_creature->SetWalk(false);
                     m_creature->SetByteValue(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
-                    m_creature->GetMotionMaster()->MoveWaypoint();
+                    m_creature->Movement()->WalkPath();
                     m_uiFlightDelayTimer = 0;
                 }
                 else

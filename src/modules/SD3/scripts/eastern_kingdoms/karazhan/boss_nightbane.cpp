@@ -394,7 +394,7 @@ struct boss_nightbane : public CreatureScript
                     fX = trigger->Where().X();
                     fY = trigger->Where().Y();
                     fZ = trigger->Where().Z();
-                    m_creature->GetMotionMaster()->MovePoint(bGround ? POINT_ID_GROUND : POINT_ID_AIR, fX, fY, fZ);
+                    m_creature->Movement()->GoTo(bGround ? POINT_ID_GROUND : POINT_ID_AIR, fX, fY, fZ);
                 }
             }
     };

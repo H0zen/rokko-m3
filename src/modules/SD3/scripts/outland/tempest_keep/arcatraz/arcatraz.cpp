@@ -167,7 +167,7 @@ struct npc_millhouse_manastorm : public CreatureScript
             // Boss should evade in the center of the room
             if (m_creature->IsAlive())
             {
-                m_creature->GetMotionMaster()->MovePoint(1, fRoomCenterCoords[0], fRoomCenterCoords[1], fRoomCenterCoords[2]);
+                m_creature->Movement()->GoTo(1, fRoomCenterCoords[0], fRoomCenterCoords[1], fRoomCenterCoords[2]);
             }
 
             m_creature->SetLootRecipient(nullptr);
@@ -199,7 +199,7 @@ struct npc_millhouse_manastorm : public CreatureScript
                     break;
                 case POINT_ID_CENTER:
                     m_creature->SetWalk(false);
-                    m_creature->GetMotionMaster()->MovePoint(1, fRoomCenterCoords[0], fRoomCenterCoords[1], fRoomCenterCoords[2]);
+                    m_creature->Movement()->GoTo(1, fRoomCenterCoords[0], fRoomCenterCoords[1], fRoomCenterCoords[2]);
                     break;
             }
         }

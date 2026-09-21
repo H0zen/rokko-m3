@@ -407,7 +407,7 @@ struct boss_kiggler_the_crazed : public CreatureScript
                 m_creature->SetInCombatWith(pWho);
                 pWho->SetInCombatWith(m_creature);
 
-                m_creature->GetMotionMaster()->MoveChase(pWho, 20.0f);
+                m_creature->Movement()->Chase(pWho, 20.0f);
             }
         }
 
@@ -588,7 +588,7 @@ struct boss_krosh_firehand : public CreatureScript
                 m_creature->SetInCombatWith(pWho);
                 pWho->SetInCombatWith(m_creature);
 
-                m_creature->GetMotionMaster()->MoveChase(pWho, 30.0f);
+                m_creature->Movement()->Chase(pWho, 30.0f);
             }
         }
 

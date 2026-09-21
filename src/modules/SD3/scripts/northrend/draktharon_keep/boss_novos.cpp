@@ -430,7 +430,7 @@ struct npc_crystal_channel_target : public CreatureScript
                     fX = randSpot1.x;
                     fY = randSpot1.y;
                     fZ = randSpot1.z;
-                    pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                    pSummoned->Movement()->GoTo(1, fX, fY, fZ);
                 }
             }
         }

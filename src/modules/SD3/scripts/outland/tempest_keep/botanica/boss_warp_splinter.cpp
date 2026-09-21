@@ -109,7 +109,7 @@ struct boss_warp_splinter : public CreatureScript
         {
             if (pSummoned->GetEntry() == NPC_SAPLING)
             {
-                pSummoned->GetMotionMaster()->MoveFollow(m_creature, 0, 0);
+                pSummoned->Movement()->Follow(m_creature, 0, 0);
             }
         }
 

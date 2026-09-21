@@ -4873,7 +4873,7 @@ void Player::SummonIfPossible(bool agree)
     // stop taxi flight at summon
     if (IsTaxiFlying())
     {
-        GetMotionMaster()->Finish();
+        Movement()->Finish();
         m_taxi.ClearTaxiDestinations();
     }
 

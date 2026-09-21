@@ -171,7 +171,7 @@ struct boss_grandmaster_vorpil : public CreatureScript
         {
             if (pSummoned->GetEntry() == NPC_VOID_TRAVELER)
             {
-                pSummoned->GetMotionMaster()->MoveFollow(m_creature, 0.0f, 0.0f);
+                pSummoned->Movement()->Follow(m_creature, 0.0f, 0.0f);
             }
 
             if (pSummoned->GetEntry() == NPC_VOID_PORTAL)

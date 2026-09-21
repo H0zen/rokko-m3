@@ -341,7 +341,7 @@ struct boss_freya : public CreatureScript
 
             if (m_creature->IsAlive() && !m_bEventFinished)
             {
-                m_creature->GetMotionMaster()->MoveTargetedHome();
+                m_creature->Movement()->GoHome();
             }
 
             m_creature->SetLootRecipient(nullptr);
@@ -818,8 +818,8 @@ struct three_nature_alliesAI : public ScriptedAI
             m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             m_creature->ClearAllReactives();
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->Stop();
             m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
 
             DoScriptText(EMOTE_REGEN_ALLIES, m_creature);

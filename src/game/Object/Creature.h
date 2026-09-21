@@ -115,7 +115,7 @@ enum CreatureFlagsExtra
 
 /**
  * creature_template.MovementType / creature.MovementType: what a creature does by default. The
- * DB's vocabulary, not the kernel's; UnitMovement::Initialize maps it to a Motion::Kind (idle,
+ * DB's vocabulary, not the kernel's; UnitMovement::UseDefault turns it into a shape (standing still,
  * a wander around the spawn, the default waypoint path).
  */
 enum CreatureMovementType : uint8

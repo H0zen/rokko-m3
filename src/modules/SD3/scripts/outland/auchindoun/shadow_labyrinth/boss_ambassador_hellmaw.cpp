@@ -132,7 +132,7 @@ struct boss_ambassador_hellmaw : public CreatureScript
                     if (m_pInstance->GetData(TYPE_IS_UNBANISHED))
                     {
                         m_creature->RemoveAurasDueToSpell(SPELL_BANISH);
-                        m_creature->GetMotionMaster()->MoveWaypoint();
+                        m_creature->Movement()->WalkPath();
                         m_uiBanishTimer = 0;
                     }
                 }

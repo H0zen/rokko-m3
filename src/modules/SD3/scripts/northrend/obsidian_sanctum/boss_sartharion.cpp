@@ -319,7 +319,7 @@ struct boss_sartharion : public CreatureScript
             if (pTene && pTene->IsAlive() && !pTene->getVictim())
             {
                 ++uiCountFetchableDragons;
-                pTene->GetMotionMaster()->MovePoint(POINT_ID_INIT, m_aTene[0].m_fX, m_aTene[0].m_fY, m_aTene[0].m_fZ);
+                pTene->Movement()->GoTo(POINT_ID_INIT, m_aTene[0].m_fX, m_aTene[0].m_fY, m_aTene[0].m_fZ);
 
                 if (!pTene->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE))
                 {
@@ -330,7 +330,7 @@ struct boss_sartharion : public CreatureScript
             if (pShad && pShad->IsAlive() && !pShad->getVictim())
             {
                 ++uiCountFetchableDragons;
-                pShad->GetMotionMaster()->MovePoint(POINT_ID_INIT, m_aShad[0].m_fX, m_aShad[0].m_fY, m_aShad[0].m_fZ);
+                pShad->Movement()->GoTo(POINT_ID_INIT, m_aShad[0].m_fX, m_aShad[0].m_fY, m_aShad[0].m_fZ);
 
                 if (!pShad->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE))
                 {
@@ -341,7 +341,7 @@ struct boss_sartharion : public CreatureScript
             if (pVesp && pVesp->IsAlive() && !pVesp->getVictim())
             {
                 ++uiCountFetchableDragons;
-                pVesp->GetMotionMaster()->MovePoint(POINT_ID_INIT, m_aVesp[0].m_fX, m_aVesp[0].m_fY, m_aVesp[0].m_fZ);
+                pVesp->Movement()->GoTo(POINT_ID_INIT, m_aVesp[0].m_fX, m_aVesp[0].m_fY, m_aVesp[0].m_fZ);
 
                 if (!pVesp->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE))
                 {
@@ -382,15 +382,15 @@ struct boss_sartharion : public CreatureScript
                     {
                         case NPC_TENEBRON:
                             iTextId = SAY_SARTHARION_CALL_TENEBRON;
-                            pTemp->GetMotionMaster()->MovePoint(POINT_ID_LAND, m_aTene[1].m_fX, m_aTene[1].m_fY, m_aTene[1].m_fZ);
+                            pTemp->Movement()->GoTo(POINT_ID_LAND, m_aTene[1].m_fX, m_aTene[1].m_fY, m_aTene[1].m_fZ);
                             break;
                         case NPC_SHADRON:
                             iTextId = SAY_SARTHARION_CALL_SHADRON;
-                            pTemp->GetMotionMaster()->MovePoint(POINT_ID_LAND, m_aShad[1].m_fX, m_aShad[1].m_fY, m_aShad[1].m_fZ);
+                            pTemp->Movement()->GoTo(POINT_ID_LAND, m_aShad[1].m_fX, m_aShad[1].m_fY, m_aShad[1].m_fZ);
                             break;
                         case NPC_VESPERON:
                             iTextId = SAY_SARTHARION_CALL_VESPERON;
-                            pTemp->GetMotionMaster()->MovePoint(POINT_ID_LAND, m_aVesp[1].m_fX, m_aVesp[1].m_fY, m_aVesp[1].m_fZ);
+                            pTemp->Movement()->GoTo(POINT_ID_LAND, m_aVesp[1].m_fX, m_aVesp[1].m_fY, m_aVesp[1].m_fZ);
                             break;
                     }
 
@@ -714,7 +714,7 @@ struct dummy_dragonAI : public ScriptedAI
         // this is the end (!)
         if (uiPointId == POINT_ID_LAND)
         {
-            m_creature->GetMotionMaster()->StopAndDefault();
+            m_creature->Movement()->StopAndDefault();
             m_bCanMoveFree = false;
             m_creature->SetInCombatWithZone();
             return;
@@ -820,7 +820,7 @@ struct dummy_dragonAI : public ScriptedAI
         {
             if (m_uiMoveNextTimer <= uiDiff)
             {
-                m_creature->GetMotionMaster()->MovePoint(m_uiWaypointId,
+                m_creature->Movement()->GoTo(m_uiWaypointId,
                     m_aDragonCommon[m_uiWaypointId].m_fX, m_aDragonCommon[m_uiWaypointId].m_fY, m_aDragonCommon[m_uiWaypointId].m_fZ);
 
                 debug_log("dummy_dragonAI: %s moving to point %u", m_creature->GetName(), m_uiWaypointId);
@@ -1461,7 +1461,7 @@ struct npc_flame_tsunami : public CreatureScript
                 {
                     // Note: currently the way in which spell 60241 works is unk, so for the moment we'll use simple movement
                     m_creature->SetWalk(false);
-                    m_creature->GetMotionMaster()->MovePoint(1, m_creature->Where().X() < 3250.0f ? m_creature->Where().X() + 86.5f : m_creature->Where().X() - 86.5f,
+                    m_creature->Movement()->GoTo(1, m_creature->Where().X() < 3250.0f ? m_creature->Where().X() + 86.5f : m_creature->Where().X() - 86.5f,
                         m_creature->Where().Y(), m_creature->Where().Z());
 
                     m_uiTsunamiTimer = 0;

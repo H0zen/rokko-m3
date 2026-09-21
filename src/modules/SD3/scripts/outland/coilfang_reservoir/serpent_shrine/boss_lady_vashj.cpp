@@ -215,7 +215,7 @@ struct boss_lady_vashj : public CreatureScript
                     }
                     break;
                 case NPC_ENCHANTED_ELEMENTAL:
-                    pSummoned->GetMotionMaster()->MoveFollow(m_creature, 0, 0);
+                    pSummoned->Movement()->Follow(m_creature, 0, 0);
                     break;
             }
         }
@@ -304,7 +304,7 @@ struct boss_lady_vashj : public CreatureScript
 
                     if (m_creature->getVictim())
                     {
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                     }
 
                     m_uiPhase = PHASE_3;
@@ -384,8 +384,8 @@ struct boss_lady_vashj : public CreatureScript
 
                         SetCombatMovement(false);
 
-                        m_creature->GetMotionMaster()->StopAndDefault();
-                        m_creature->GetMotionMaster()->MovePoint(POINT_MOVE_CENTER, afMiddlePos[0], afMiddlePos[1], afMiddlePos[2]);
+                        m_creature->Movement()->StopAndDefault();
+                        m_creature->Movement()->GoTo(POINT_MOVE_CENTER, afMiddlePos[0], afMiddlePos[1], afMiddlePos[2]);
 
                         m_uiPhase = PHASE_2;
                         m_uiRangedCheckTimer = 10000;

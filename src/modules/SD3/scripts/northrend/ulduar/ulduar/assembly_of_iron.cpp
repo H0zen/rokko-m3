@@ -219,7 +219,7 @@ struct boss_brundir : public CreatureScript
             {
                 pSummoned->CastSpell(pSummoned, SPELL_OVERLOAD_AURA, true);
                 // Visual npc- shouldn't move and should despawn in 6 sec
-                pSummoned->GetMotionMaster()->MoveIdle();
+                pSummoned->Movement()->Stop();
                 pSummoned->ForcedDespawn(6000);
             }
         }
@@ -298,7 +298,7 @@ struct boss_brundir : public CreatureScript
                     SetCombatMovement(true);
                     if (m_creature->getVictim())
                     {
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                     }
 
                     m_creature->RemoveAurasDueToSpell(SPELL_TENDRILS_VISUAL);
@@ -312,8 +312,8 @@ struct boss_brundir : public CreatureScript
         {
             if (pTarget)
             {
-                m_creature->GetMotionMaster()->StopAndDefault();
-                m_creature->GetMotionMaster()->MovePoint(0, pTarget->Where().X(), pTarget->Where().Y(), m_creature->Where().Z());
+                m_creature->Movement()->StopAndDefault();
+                m_creature->Movement()->GoTo(0, pTarget->Where().X(), pTarget->Where().Y(), m_creature->Where().Z());
             }
         }
 
@@ -352,7 +352,7 @@ struct boss_brundir : public CreatureScript
                             DoScriptText(SAY_BRUNDIR_FLY, m_creature);
                             SetCombatMovement(false);
                             m_creature->SetLevitate(true);
-                            m_creature->GetMotionMaster()->MovePoint(POINT_ID_LIFT_OFF, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 15.0f);
+                            m_creature->Movement()->GoTo(POINT_ID_LIFT_OFF, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 15.0f);
                             m_uiTendrilsTimer = 90000;
                             m_uiTendrilsEndTimer = 25000;
                         }
@@ -368,7 +368,7 @@ struct boss_brundir : public CreatureScript
                         {
                             // Get proper Z position and land
                             float fZ = m_creature->GetTerrain()->GetWaterOrGroundLevel(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
-                            m_creature->GetMotionMaster()->MovePoint(POINT_ID_LAND, m_creature->Where().X(), m_creature->Where().Y(), fZ);
+                            m_creature->Movement()->GoTo(POINT_ID_LAND, m_creature->Where().X(), m_creature->Where().Y(), fZ);
                             m_uiOverloadTimer = 40000;
                             m_uiWhirlTimer = 15000;
                             m_uiChainLightningTimer = 3000;

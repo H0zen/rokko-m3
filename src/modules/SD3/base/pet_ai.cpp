@@ -92,7 +92,7 @@ void ScriptedPetAI::AttackStart(Unit* pWho)
 {
     if (pWho && m_creature->Attack(pWho, true))
     {
-        m_creature->GetMotionMaster()->MoveChase(pWho);
+        m_creature->Movement()->Chase(pWho);
     }
 }
 
@@ -123,12 +123,12 @@ void ScriptedPetAI::ResetPetCombat()
 
     if (pOwner && m_creature->GetCharmInfo() && m_creature->GetCharmInfo()->HasCommandState(COMMAND_FOLLOW))
     {
-        m_creature->GetMotionMaster()->MoveFollow(pOwner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+        m_creature->Movement()->Follow(pOwner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
     }
     else
     {
-        m_creature->GetMotionMaster()->Stop();
-        m_creature->GetMotionMaster()->MoveIdle();
+        m_creature->Movement()->Stop();
+        m_creature->Movement()->Stop();
     }
 
     m_creature->AttackStop();
@@ -194,7 +194,7 @@ void ScriptedPetAI::UpdateAI(const uint32 uiDiff)
             // not following, so start follow
             if (!m_creature->IsFollowing())
             {
-                m_creature->GetMotionMaster()->MoveFollow(pOwner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+                m_creature->Movement()->Follow(pOwner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
             }
 
             // update when not in combat

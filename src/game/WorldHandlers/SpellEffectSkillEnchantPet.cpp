@@ -312,11 +312,11 @@ void Spell::EffectDistract(SpellEffectEntry const* /*effect*/)
         return;
     }
 
-    unitTarget->GetMotionMaster()->StopRoute();
+    unitTarget->Movement()->StopRoute();
 
     if (unitTarget->GetTypeId() == TYPEID_UNIT)
     {
-        unitTarget->GetMotionMaster()->Halt();
+        unitTarget->Movement()->Halt();
     }
 
     // AFTER the distract, never before it. Installing the distract suspends whatever ran,

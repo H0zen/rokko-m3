@@ -757,7 +757,7 @@ struct npc_dark_matter : public CreatureScript
         {
             if (pSummoned->GetEntry() == NPC_DARK_MATTER_TARGET)
             {
-                m_creature->GetMotionMaster()->MovePoint(1, pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z());
+                m_creature->Movement()->GoTo(1, pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z());
             }
         }
 

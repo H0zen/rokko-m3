@@ -254,8 +254,8 @@ struct boss_ymiron : public CreatureScript
             // Channeling is finished - resume combat
             if (m_creature->getVictim())
             {
-                m_creature->GetMotionMaster()->StopAndDefault();
-                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                m_creature->Movement()->StopAndDefault();
+                m_creature->Movement()->Chase(m_creature->getVictim());
             }
 
             SetCombatMovement(true);
@@ -390,7 +390,7 @@ struct boss_ymiron : public CreatureScript
                         float fX, fY, fZ;
                         m_uiCurrentSpiritGuid = pSpirit->GetObjectGuid();
                         ContactPointNear(*pSpirit, m_creature, fX, fY, fZ, INTERACTION_DISTANCE);
-                        m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                        m_creature->Movement()->GoTo(1, fX, fY, fZ);
                     }
                 }
 

@@ -749,7 +749,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
     Player* pCurrChar = new Player(this);
 
     /* Initialize a motion generator */
-    pCurrChar->GetMotionMaster()->Initialize();
+    pCurrChar->Movement()->UseDefault();
 
     /* Account ID is validated in LoadFromDB (prevents cheaters logging in to characters not on their account) */
     if (!pCurrChar->LoadFromDB(playerGuid, holder))         /// Could not load character from database, cancel login

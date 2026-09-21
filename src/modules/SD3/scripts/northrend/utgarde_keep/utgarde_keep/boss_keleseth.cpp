@@ -118,7 +118,7 @@ struct mob_vrykul_skeleton : public CreatureScript
 
             if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
             {
-                m_creature->GetMotionMaster()->MoveChase(pTarget);
+                m_creature->Movement()->Chase(pTarget);
             }
 
             DoResetThreat();
@@ -140,7 +140,7 @@ struct mob_vrykul_skeleton : public CreatureScript
                 m_uiReviveTimer = 6000;
                 m_creature->SetHealth(0);
                 m_creature->RemoveAllAurasOnDeath();
-                m_creature->GetMotionMaster()->StopAndDefault();
+                m_creature->Movement()->StopAndDefault();
                 m_creature->SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
                 m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
                 return;
@@ -249,7 +249,7 @@ struct boss_keleseth : public CreatureScript
                 m_creature->SetInCombatWith(pWho);
                 pWho->SetInCombatWith(m_creature);
 
-                m_creature->GetMotionMaster()->MoveChase(pWho, RUN_DISTANCE);
+                m_creature->Movement()->Chase(pWho, RUN_DISTANCE);
             }
         }
 

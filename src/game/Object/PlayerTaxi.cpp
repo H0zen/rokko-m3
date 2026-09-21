@@ -320,7 +320,7 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
     {
         // Stunned or rooted: retail's flight master answers "busy" (the reference §15.6, the taxi
         // notes E.34). A scripted or spell flight on a stunned player is admitted: the kernel
-        // flies it (Mobility::Decide returns before the stun and the root for a taxi).
+        // flies it (Restrictions::Decide returns before the stun and the root for a taxi).
         if (Blocked(Motion::ReasonStunned | Motion::ReasonRooted))
         {
             GetSession()->SendActivateTaxiReply(ERR_TAXIPLAYERBUSY);
@@ -728,9 +728,10 @@ void Player::PerformTaxiLanding()
  */
 void Player::TaxiAbort()
 {
-    // The flight's end published early (the commit that finishes it agrees at its end): the pet's
-    // resummon and the hostile-state change below must not see a flight in progress.
-    GetMotionMaster()->Release();
+    // The flight ends here, whatever the client still thinks: an abort is not negotiated,
+    // so control goes straight back rather than waiting for an echo that may never come.
+    // The pet's resummon and the hostile-state change below must not see a flight running.
+    Movement()->ReleaseEveryRestriction();
     m_taxiLandingPending = false;
     RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE | UNIT_FLAG_TAXI_FLIGHT);
     RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_NOT_MOUNTED);

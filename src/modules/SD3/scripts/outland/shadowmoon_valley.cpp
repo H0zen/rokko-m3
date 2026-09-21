@@ -129,17 +129,17 @@ struct mob_mature_netherwing_drake : public CreatureScript
                 {
                     if (GameObject* pGo = GetClosestGameObjectWithEntry(m_creature, GO_FLAYER_CARCASS, 80.0f))
                     {
-                        if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
+                        if (m_creature->Movement()->Doing() == Motion::Kind::Patrol)
                         {
-                            m_creature->GetMotionMaster()->Finish();
+                            m_creature->Movement()->Finish();
                         }
 
-                        m_creature->GetMotionMaster()->MoveIdle();
+                        m_creature->Movement()->Stop();
 
                         float fX, fY, fZ;
                         ContactPointNear(*pGo, m_creature, fX, fY, fZ, CONTACT_DISTANCE);
 
-                        m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                        m_creature->Movement()->GoTo(1, fX, fY, fZ);
                     }
                     m_uiEatTimer = 0;
                 }
@@ -166,7 +166,7 @@ struct mob_mature_netherwing_drake : public CreatureScript
                     Reset();
                     m_creature->SetLevitate(true);
                     m_creature->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
-                    m_creature->GetMotionMaster()->StopAndDefault();
+                    m_creature->Movement()->StopAndDefault();
                     m_uiCreditTimer = 0;
                 }
                 else
@@ -297,7 +297,7 @@ struct mob_enslaved_netherwing_drake : public CreatureScript
                                     fZ += 25;
                                 }
 
-                                m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                                m_creature->Movement()->GoTo(1, fX, fY, fZ);
                             }
                         }
                         m_uiFlyTimer = 0;
@@ -431,7 +431,7 @@ struct npc_dragonmaw_peon : public CreatureScript
                             ContactPointNear(*pMutton, m_creature, fX, fY, fZ, CONTACT_DISTANCE);
 
                             m_creature->SetWalk(false);
-                            m_creature->GetMotionMaster()->MovePoint(POINT_DEST, fX, fY, fZ);
+                            m_creature->Movement()->GoTo(POINT_DEST, fX, fY, fZ);
                         }
                     }
 
@@ -760,7 +760,7 @@ struct npc_wilda : public CreatureScript
             for (std::list<Creature*>::const_iterator itr = lSpiritsInRange.begin(); itr != lSpiritsInRange.end(); ++itr)
             {
                 (*itr)->RemoveAurasDueToSpell(SPELL_WATER_BUBBLE);
-                (*itr)->GetMotionMaster()->MoveFollow(m_creature, m_creature->Where().DistanceTo((*itr)->Where()) * 0.25f, M_PI_F/2 + m_creature->Where().BearingTo((*itr)->Where()));
+                (*itr)->Movement()->Follow(m_creature, m_creature->Where().DistanceTo((*itr)->Where()) * 0.25f, M_PI_F/2 + m_creature->Where().BearingTo((*itr)->Where()));
                 (*itr)->SetLevitate(false);
             }
         }
@@ -1057,7 +1057,7 @@ struct mob_torloth : public CreatureScript
                         fLocX = pTarget->Where().X();
                         fLocY = pTarget->Where().Y();
                         fLocZ = pTarget->Where().Z();
-                        m_creature->GetMotionMaster()->MovePoint(0, fLocX, fLocY, fLocZ);
+                        m_creature->Movement()->GoTo(0, fLocX, fLocY, fLocZ);
                     }
                     break;
                 }
@@ -1273,7 +1273,7 @@ struct npc_lord_illidan_stormrage : public CreatureScript
                 fLocX = p->Where().X();
                 fLocY = p->Where().Y();
                 fLocZ = p->Where().Z();
-                pSummoned->GetMotionMaster()->MovePoint(0, fLocX, fLocY, fLocZ);
+                pSummoned->Movement()->GoTo(0, fLocX, fLocY, fLocZ);
             }
         }
 
@@ -1547,7 +1547,7 @@ struct npc_totem_of_spirits : public CreatureScript
             // After summoning the spirit soul, make it move towards the totem
             float fX, fY, fZ;
             ContactPointNear(*m_creature, pSummoned, fX, fY, fZ);
-            pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+            pSummoned->Movement()->GoTo(1, fX, fY, fZ);
         }
     };
 
@@ -1800,16 +1800,16 @@ struct npc_spawned_oronok_tornheart : public CreatureScript
                 case NPC_CYRUKH_THE_FIRELORD:
                     // Set them in motion
                     m_creature->SetWalk(false);
-                    m_creature->GetMotionMaster()->MovePoint(POINT_ID_ATTACK_READY, aDamnationLocations[4].m_fX, aDamnationLocations[4].m_fY, aDamnationLocations[4].m_fZ);
+                    m_creature->Movement()->GoTo(POINT_ID_ATTACK_READY, aDamnationLocations[4].m_fX, aDamnationLocations[4].m_fY, aDamnationLocations[4].m_fZ);
                     if (Creature* pBorak = GetClosestCreatureWithEntry(m_creature, NPC_BORAK_SON_OF_ORONOK, 10.0f))
                     {
                         m_borakGuid = pBorak->GetObjectGuid();
-                        pBorak->GetMotionMaster()->MoveFollow(m_creature, 5.0f, -M_PI_F / 2);
+                        pBorak->Movement()->Follow(m_creature, 5.0f, -M_PI_F / 2);
                     }
                     if (Creature* pGromtor = GetClosestCreatureWithEntry(m_creature, NPC_GROMTOR_SON_OF_ORONOK, 10.0f))
                     {
                         m_gromtorGuid = pGromtor->GetObjectGuid();
-                        pGromtor->GetMotionMaster()->MoveFollow(m_creature, 5.0f, M_PI_F / 2);
+                        pGromtor->Movement()->Follow(m_creature, 5.0f, M_PI_F / 2);
                     }
                     break;
                 case NPC_EARTHMENDER_TORLOK:
@@ -1913,13 +1913,13 @@ struct npc_spawned_oronok_tornheart : public CreatureScript
             {
                 if (!pCyrukh->IsAlive())
                 {
-                    m_creature->GetMotionMaster()->MovePoint(POINT_ID_EPILOGUE, aDamnationLocations[6].m_fX, aDamnationLocations[6].m_fY, aDamnationLocations[6].m_fZ);
+                    m_creature->Movement()->GoTo(POINT_ID_EPILOGUE, aDamnationLocations[6].m_fX, aDamnationLocations[6].m_fY, aDamnationLocations[6].m_fZ);
                 }
             }
             else
             {
                 script_error_log("Npc %u couldn't be found or something really bad happened. Epilogue event for quest %u will stop.", NPC_CYRUKH_THE_FIRELORD, QUEST_CIPHER_OF_DAMNATION);
-                m_creature->GetMotionMaster()->MoveTargetedHome();
+                m_creature->Movement()->GoHome();
             }
         }
 
@@ -2046,7 +2046,7 @@ struct npc_spawned_oronok_tornheart : public CreatureScript
         {
             // Note: this movement expects MMaps.
             DoScriptText(SAY_ORONOK_ELEMENTS, pCreature);
-            pCreature->GetMotionMaster()->MovePoint(POINT_ID_ELEMENTS, aDamnationLocations[5].m_fX, aDamnationLocations[5].m_fY, aDamnationLocations[5].m_fZ);
+            pCreature->Movement()->GoTo(POINT_ID_ELEMENTS, aDamnationLocations[5].m_fX, aDamnationLocations[5].m_fY, aDamnationLocations[5].m_fZ);
             pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
 
             pPlayer->CLOSE_GOSSIP_MENU();
@@ -2114,9 +2114,9 @@ struct npc_domesticated_felboar : public CreatureScript
 
                 float fX, fY, fZ;
                 m_creature->SetWalk(false);
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->Stop();
                 ContactPointNear(*pSender, m_creature, fX, fY, fZ);
-                m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                m_creature->Movement()->GoTo(1, fX, fY, fZ);
             }
         }
 

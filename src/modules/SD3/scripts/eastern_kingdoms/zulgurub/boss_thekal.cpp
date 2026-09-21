@@ -116,8 +116,8 @@ struct boss_thekalBaseAI : public ScriptedAI
 
         m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
         m_creature->ClearAllReactives();
-        m_creature->GetMotionMaster()->StopAndDefault();
-        m_creature->GetMotionMaster()->MoveIdle();
+        m_creature->Movement()->StopAndDefault();
+        m_creature->Movement()->Stop();
         m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
 
         m_uiPhase = PHASE_FAKE_DEATH;
@@ -144,7 +144,7 @@ struct boss_thekalBaseAI : public ScriptedAI
         // Assume Attack
         if (m_creature->getVictim())
         {
-            m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+            m_creature->Movement()->Chase(m_creature->getVictim());
         }
 
         OnRevive();

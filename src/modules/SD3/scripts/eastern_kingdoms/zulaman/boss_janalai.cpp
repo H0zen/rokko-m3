@@ -206,11 +206,11 @@ struct boss_janalai : public CreatureScript
                     // If all the eggs from one side are hatched, move to the other side
                     if (m_uiEggsHatchedRight == MAX_EGGS_ON_SIDE)
                     {
-                        pSummoned->GetMotionMaster()->MovePoint(1, m_aHatcherLeft[0].m_fX, m_aHatcherLeft[0].m_fY, m_aHatcherLeft[0].m_fZ);
+                        pSummoned->Movement()->GoTo(1, m_aHatcherLeft[0].m_fX, m_aHatcherLeft[0].m_fY, m_aHatcherLeft[0].m_fZ);
                     }
                     else
                     {
-                        pSummoned->GetMotionMaster()->MovePoint(1, m_aHatcherRight[0].m_fX, m_aHatcherRight[0].m_fY, m_aHatcherRight[0].m_fZ);
+                        pSummoned->Movement()->GoTo(1, m_aHatcherRight[0].m_fX, m_aHatcherRight[0].m_fY, m_aHatcherRight[0].m_fZ);
                     }
                     break;
                 case NPC_AMANI_HATCHER_2:
@@ -218,11 +218,11 @@ struct boss_janalai : public CreatureScript
                     // If all the eggs from one side are hatched, move to the other side
                     if (m_uiEggsHatchedLeft == MAX_EGGS_ON_SIDE)
                     {
-                        pSummoned->GetMotionMaster()->MovePoint(1, m_aHatcherRight[0].m_fX, m_aHatcherRight[0].m_fY, m_aHatcherRight[0].m_fZ);
+                        pSummoned->Movement()->GoTo(1, m_aHatcherRight[0].m_fX, m_aHatcherRight[0].m_fY, m_aHatcherRight[0].m_fZ);
                     }
                     else
                     {
-                        pSummoned->GetMotionMaster()->MovePoint(1, m_aHatcherLeft[0].m_fX, m_aHatcherLeft[0].m_fY, m_aHatcherLeft[0].m_fZ);
+                        pSummoned->Movement()->GoTo(1, m_aHatcherLeft[0].m_fX, m_aHatcherLeft[0].m_fY, m_aHatcherLeft[0].m_fZ);
                     }
                     break;
                 case NPC_FIRE_BOMB:
@@ -249,14 +249,14 @@ struct boss_janalai : public CreatureScript
                     {
                         if (Creature* pHatcer = m_creature->GetMap()->GetCreature(m_hatcherOneGuid))
                         {
-                            pHatcer->GetMotionMaster()->MovePoint(1, m_aHatcherLeft[5].m_fX, m_aHatcherLeft[5].m_fY, m_aHatcherLeft[5].m_fZ);
+                            pHatcer->Movement()->GoTo(1, m_aHatcherLeft[5].m_fX, m_aHatcherLeft[5].m_fY, m_aHatcherLeft[5].m_fZ);
                         }
                     }
                     if (m_uiEggsHatchedLeft == MAX_EGGS_ON_SIDE && m_uiEggsHatchedRight < MAX_EGGS_ON_SIDE)
                     {
                         if (Creature* pHatcer = m_creature->GetMap()->GetCreature(m_hatcherTwoGuid))
                         {
-                            pHatcer->GetMotionMaster()->MovePoint(1, m_aHatcherRight[5].m_fX, m_aHatcherRight[5].m_fY, m_aHatcherRight[5].m_fZ);
+                            pHatcer->Movement()->GoTo(1, m_aHatcherRight[5].m_fX, m_aHatcherRight[5].m_fY, m_aHatcherRight[5].m_fZ);
                         }
                     }
                     break;
@@ -484,7 +484,7 @@ struct npc_amanishi_hatcher : public CreatureScript
             // Used when a hatcher is forced to switch sides
             if (m_bWaypointEnd && uiPointId)
             {
-                m_creature->GetMotionMaster()->StopAndDefault();
+                m_creature->Movement()->StopAndDefault();
                 m_uiHatchlingTimer = 1000;
                 return;
             }
@@ -495,7 +495,7 @@ struct npc_amanishi_hatcher : public CreatureScript
 
             if (uiCount == m_uiWaypoint)
             {
-                m_creature->GetMotionMaster()->StopAndDefault();
+                m_creature->Movement()->StopAndDefault();
                 m_uiHatchlingTimer = 1000;
                 m_bWaypointEnd = true;
             }
@@ -503,11 +503,11 @@ struct npc_amanishi_hatcher : public CreatureScript
             {
                 if (m_creature->GetEntry() == NPC_AMANI_HATCHER_1)
                 {
-                    m_creature->GetMotionMaster()->MovePoint(m_uiWaypoint, m_aHatcherRight[m_uiWaypoint].m_fX, m_aHatcherRight[m_uiWaypoint].m_fY, m_aHatcherRight[m_uiWaypoint].m_fZ);
+                    m_creature->Movement()->GoTo(m_uiWaypoint, m_aHatcherRight[m_uiWaypoint].m_fX, m_aHatcherRight[m_uiWaypoint].m_fY, m_aHatcherRight[m_uiWaypoint].m_fZ);
                 }
                 else
                 {
-                    m_creature->GetMotionMaster()->MovePoint(m_uiWaypoint, m_aHatcherLeft[m_uiWaypoint].m_fX, m_aHatcherLeft[m_uiWaypoint].m_fY, m_aHatcherLeft[m_uiWaypoint].m_fZ);
+                    m_creature->Movement()->GoTo(m_uiWaypoint, m_aHatcherLeft[m_uiWaypoint].m_fX, m_aHatcherLeft[m_uiWaypoint].m_fY, m_aHatcherLeft[m_uiWaypoint].m_fZ);
                 }
             }
         }

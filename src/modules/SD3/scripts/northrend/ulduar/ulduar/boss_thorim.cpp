@@ -230,7 +230,7 @@ struct boss_thorim : public CreatureScript
 
             if (m_creature->IsAlive() && !m_bEventFinished)
             {
-                m_creature->GetMotionMaster()->MoveTargetedHome();
+                m_creature->Movement()->GoHome();
             }
 
             m_creature->SetLootRecipient(nullptr);
@@ -420,7 +420,7 @@ struct boss_thorim : public CreatureScript
                     }
                     break;
                 case PHASE_SOLO:
-                    m_creature->GetMotionMaster()->MoveJump(afArenaCenterLoc[0], afArenaCenterLoc[1], afArenaCenterLoc[2], 45.55969f, 5.0f, 1);
+                    m_creature->Movement()->JumpTo(afArenaCenterLoc[0], afArenaCenterLoc[1], afArenaCenterLoc[2], 45.55969f, 5.0f, 1);
                     break;
                 case SPELL_STORMHAMMER_OUTRO:
                     DoScriptText(SAY_DEFEATED, m_creature);

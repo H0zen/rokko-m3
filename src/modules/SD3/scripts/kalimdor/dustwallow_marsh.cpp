@@ -491,7 +491,7 @@ struct npc_ogron : public CreatureScript
 
             if (pSummoned->GetEntry() == NPC_CALDWELL)
             {
-                pSummoned->GetMotionMaster()->MovePoint(0, m_afMoveTo[0], m_afMoveTo[1], m_afMoveTo[2]);
+                pSummoned->Movement()->GoTo(0, m_afMoveTo[0], m_afMoveTo[1], m_afMoveTo[2]);
             }
             else
             {
@@ -499,7 +499,7 @@ struct npc_ogron : public CreatureScript
                 {
                     // will this conversion work without compile warning/error?
                     size_t iSize = lCreatureList.size();
-                    pSummoned->GetMotionMaster()->MoveFollow(pCaldwell, 0.5f, (M_PI / 2) * (int)iSize);
+                    pSummoned->Movement()->Follow(pCaldwell, 0.5f, (M_PI / 2) * (int)iSize);
                 }
             }
         }
@@ -1124,7 +1124,7 @@ struct boss_tethyr : public CreatureScript
 
                 float fX, fY, fZ;
                 ContactPointNear(*pCaster, m_creature, fX, fY, fZ, uiDistMod * ATTACK_DISTANCE);
-                m_creature->GetMotionMaster()->MovePoint(1, fX, fY, m_creature->Where().Z());
+                m_creature->Movement()->GoTo(1, fX, fY, m_creature->Where().Z());
 
                 m_uiWaterBoltTimer = 10000;
             }

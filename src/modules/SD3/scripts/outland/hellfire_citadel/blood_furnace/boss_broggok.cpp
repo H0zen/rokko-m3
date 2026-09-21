@@ -122,7 +122,7 @@ struct boss_broggok : public CreatureScript
             }
             else
             {
-                m_creature->GetMotionMaster()->MoveTargetedHome();
+                m_creature->Movement()->GoHome();
             }
         }
 

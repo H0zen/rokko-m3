@@ -2249,7 +2249,7 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
                 sLog.outErrorDb("CONDITION_LAST_WAYPOINT (entry %u) is used for non creature source (source %s) by %s", m_entry, source->GetGuidStr().c_str(), player->GetGuidStr().c_str());
                 return false;
             }
-            uint32 lastReachedWp = ((Creature*)source)->GetMotionMaster()->getLastReachedWaypoint();
+            uint32 lastReachedWp = ((Creature*)source)->Movement()->ReachedNode();
             switch (m_value2)
             {
                 case 0: return m_value1 == lastReachedWp;

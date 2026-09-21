@@ -749,7 +749,7 @@ struct npc_rabid_bear : public CreatureScript
             {
                 // Possible related spell: 9455 9372
                 m_creature->ForcedDespawn(1000);
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->Stop();
 
                 return;
             }
@@ -782,7 +782,7 @@ struct npc_rabid_bear : public CreatureScript
                             ((Player*)pTrapOwner)->GetQuestStatus(QUEST_PLAGUED_LANDS) == QUEST_STATUS_INCOMPLETE)
                         {
                             ((Player*)pTrapOwner)->KilledMonsterCredit(m_creature->GetEntry(), m_creature->GetObjectGuid());
-                            m_creature->GetMotionMaster()->MoveFollow(pTrapOwner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+                            m_creature->Movement()->Follow(pTrapOwner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
                         }
                         else                                // Something unexpected happened
                         {

@@ -239,7 +239,7 @@ struct boss_high_astromancer_solarian : public CreatureScript
 
                     // Stop the combat for a small delay
                     SetCombatMovement(false);
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
                 }
             }
 
@@ -270,8 +270,8 @@ struct boss_high_astromancer_solarian : public CreatureScript
                         DoScriptText(SAY_VOIDB, m_creature);
 
                         SetCombatMovement(true);
-                        m_creature->GetMotionMaster()->StopAndDefault();
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->StopAndDefault();
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                     }
 
                     m_uiDelayTimer = 0;
@@ -356,7 +356,7 @@ struct boss_high_astromancer_solarian : public CreatureScript
 
                         // After these 50 seconds she portals to the middle of the room and disappears, leaving 3 light portals behind.
                         // ToDo: check if there are some spells involved in this event!
-                        m_creature->GetMotionMaster()->MoveIdle();
+                        m_creature->Movement()->Stop();
                         SetCombatMovement(false);
                         m_creature->NearTeleportTo(fRoomCenter[0], fRoomCenter[1], fRoomCenter[2], fRoomCenter[3], true);
 
@@ -424,8 +424,8 @@ struct boss_high_astromancer_solarian : public CreatureScript
                             }
 
                             SetCombatMovement(true);
-                            m_creature->GetMotionMaster()->StopAndDefault();
-                            m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                            m_creature->Movement()->StopAndDefault();
+                            m_creature->Movement()->Chase(m_creature->getVictim());
 
                             // Set as visible and reset spells timers
                             m_creature->SetVisibility(VISIBILITY_ON);

@@ -135,7 +135,7 @@ struct npc_eris_havenfire : public CreatureScript
                     fX = randSpot3.x;
                     fY = randSpot3.y;
                     fZ = randSpot3.z;
-                    pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                    pSummoned->Movement()->GoTo(1, fX, fY, fZ);
                 }
                 break;
                 case NPC_SCOURGE_FOOTSOLDIER:
@@ -179,7 +179,7 @@ struct npc_eris_havenfire : public CreatureScript
             }
 
             ++m_uiSaveCounter;
-            pSummoned->GetMotionMaster()->StopAndDefault();
+            pSummoned->Movement()->StopAndDefault();
 
             pSummoned->RemoveAllAuras();
             pSummoned->CastSpell(pSummoned, SPELL_ENTER_THE_LIGHT_DND, false);

@@ -172,15 +172,15 @@ struct at_shadowforge_bridge : public AreaTriggerScript
             if (Creature* pMasterGuard = pPyromancer->SummonCreature(NPC_ANVILRAGE_GUARDMAN, aGuardSpawnPositions[0][0], aGuardSpawnPositions[0][1], aGuardSpawnPositions[0][2], aGuardSpawnPositions[0][3], TEMPSPAWN_DEAD_DESPAWN, 0))
             {
                 pMasterGuard->SetWalk(false);
-                pMasterGuard->GetMotionMaster()->MoveWaypoint();
+                pMasterGuard->Movement()->WalkPath();
                 DoDisplayText(pMasterGuard, SAY_GUARD_AGGRO, pPlayer);
                 float fX, fY, fZ;
                 ContactPointNear(*pPlayer, pMasterGuard, fX, fY, fZ);
-                pMasterGuard->GetMotionMaster()->MovePoint(1,fX, fY, fZ);
+                pMasterGuard->Movement()->GoTo(1,fX, fY, fZ);
 
                 if (Creature* pSlaveGuard = pPyromancer->SummonCreature(NPC_ANVILRAGE_GUARDMAN, aGuardSpawnPositions[1][0], aGuardSpawnPositions[1][1], aGuardSpawnPositions[1][2], aGuardSpawnPositions[1][3], TEMPSPAWN_DEAD_DESPAWN, 0))
                 {
-                    pSlaveGuard->GetMotionMaster()->MoveFollow(pMasterGuard, 2.0f, 0);
+                    pSlaveGuard->Movement()->Follow(pMasterGuard, 2.0f, 0);
                 }
             }
             pInstance->SetData(TYPE_BRIDGE, DONE);
@@ -356,7 +356,7 @@ struct npc_grimstone : public CreatureScript
             fcX = randSpot2.x;
             fcY = randSpot2.y;
             fcZ = randSpot2.z;
-            pSummoned->GetMotionMaster()->MovePoint(1, fcX, fcY, fcZ);
+            pSummoned->Movement()->GoTo(1, fcX, fcY, fcZ);
 
             ++m_uiAliveSummonedMob;
             m_lSummonedGUIDList.push_back(pSummoned->GetObjectGuid());
@@ -858,8 +858,8 @@ struct npc_mistress_nagmaraAI : public ScriptedAI
         m_creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
         pRocknot->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
 
-        m_creature->GetMotionMaster()->MoveIdle();
-        m_creature->GetMotionMaster()->MoveFollow(pRocknot, 2.0f, 0);
+        m_creature->Movement()->Stop();
+        m_creature->Movement()->Follow(pRocknot, 2.0f, 0);
         m_uiPhase = 1;
     }
 
@@ -890,7 +890,7 @@ struct npc_mistress_nagmaraAI : public ScriptedAI
             case 1:     // Phase 1 : Nagmara is moving towards Rocknot
                 if (m_creature->Where().WithinDist(Geometry::Vector2(pRocknot->Where().X(), pRocknot->Where().Y()), 5.0f))
                 {
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
                     m_creature->SetFacingToObject(pRocknot);
                     pRocknot->SetFacingToObject(m_creature);
                     DoScriptText(SAY_NAGMARA_1, m_creature);
@@ -899,7 +899,7 @@ struct npc_mistress_nagmaraAI : public ScriptedAI
                 }
                 else
                 {
-                    m_creature->GetMotionMaster()->MoveFollow(pRocknot, 2.0f, 0);
+                    m_creature->Movement()->Follow(pRocknot, 2.0f, 0);
                 }
                 break;
             case 2:     // Phase 2 : Nagmara is "seducing" Rocknot
@@ -1505,7 +1505,7 @@ struct npc_dughal_stormwing : public CreatureScript
             pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
 
             pCreature->SetWalk(false);
-            pCreature->GetMotionMaster()->MoveWaypoint();
+            pCreature->Movement()->WalkPath();
 
             pPlayer->CLOSE_GOSSIP_MENU();
         }
@@ -1549,7 +1549,7 @@ struct npc_tobias_seecher : public CreatureScript
             pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
 
             pCreature->SetWalk(false);
-            pCreature->GetMotionMaster()->MoveWaypoint();
+            pCreature->Movement()->WalkPath();
 
             pPlayer->CLOSE_GOSSIP_MENU();
         }

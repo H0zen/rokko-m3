@@ -162,7 +162,7 @@ class CreatureAI
         virtual void EnterEvadeMode() {}
 
         /**
-         * Called at reaching home after MoveTargetedHome
+         * Called at reaching home after GoHome
          */
         virtual void JustReachedHome() {}
 
@@ -278,7 +278,7 @@ class CreatureAI
         virtual void SummonedMovementInform(Creature* /*summoned*/, Motion::Kind /*kind*/, uint32 /*id*/) {}
 
         /**
-         * Called as an external waypoint path (a script's MoveWaypoint with a path id) progresses:
+         * Called as an external waypoint path (a script's WalkPath with a path id) progresses:
          * a node reached, a node left for the next one, the last node's wait ended. The harness's
          * recording decorator is the one consumer; the old EXTERNAL_WAYPOINT_* codes never
          * reached a script.

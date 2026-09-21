@@ -130,7 +130,7 @@ struct boss_jeklik : public CreatureScript
                 m_creature->SetLevitate(true);
                 // override MMaps, by allowing the boss to fly up from the ledge
                 m_creature->SetWalk(false);
-                m_creature->GetMotionMaster()->MovePoint(1, -12281.58f, -1392.84f, 146.1f);
+                m_creature->Movement()->GoTo(1, -12281.58f, -1392.84f, 146.1f);
             }
         }
 

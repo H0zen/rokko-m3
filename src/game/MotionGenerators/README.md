@@ -6,7 +6,7 @@ The facade `MotionMaster` is the movement kernel campaign's shim for the vendore
 |---|---|
 | MovePoint | 445 |
 | Clear | 115 |
-| MoveIdle | 97 |
+| Stop | 97 |
 | MoveChase | 70 |
 | MoveFollow | 56 |
 | MoveTargetedHome | 28 |
@@ -23,9 +23,9 @@ The facade `MotionMaster` is the movement kernel campaign's shim for the vendore
 | MoveFleeing | 1 |
 | Inhibit | 1 |
 
-Counted 2026-09-18 on `feat/movement-one-vocabulary` with `grep -rhoE "GetMotionMaster\(\)->[A-Za-z_]+" src/modules/SD3 | sort | uniq -c`. `Inhibit`/`Uninhibit` (P5-A Task 4) joined the promise with `grizzly_hills.cpp`'s stun: the one script that names itself as a source of the kernel's block instead of writing a unit-state bit itself. The gate lists 18 entry points; `MoveRandom`, a method the facade never had, left the list in P5-C.
+Counted 2026-09-18 on `feat/movement-one-vocabulary` with `grep -rhoE "Movement\(\)->[A-Za-z_]+" src/modules/SD3 | sort | uniq -c`. `Inhibit`/`Uninhibit` (P5-A Task 4) joined the promise with `grizzly_hills.cpp`'s stun: the one script that names itself as a source of the kernel's block instead of writing a unit-state bit itself. The gate lists 18 entry points; `MoveRandom`, a method the facade never had, left the list in P5-C.
 
-A script's `Inhibit`/`Uninhibit` pair must balance: a source it never releases holds the creature until it dies (death releases the aura and script sources, `Motion::Mobility::DropDomain`).
+A script's `Inhibit`/`Uninhibit` pair must balance: a source it never releases holds the creature until it dies (death releases the aura and script sources, `Motion::Restrictions::DropDomain`).
 
 ## The shell
 
@@ -33,7 +33,7 @@ Since P3-B the facade's internals are the kernel's Controller: `Motion::Arbiter`
 
 ## Typed queries
 
-Since P3-C the facade answers two kinds of question: `ActiveKind()` is the selected kind — what runs now — and `IsChasing()`/`ChaseTarget()`, `IsFollowing()`/`FollowTarget()`, `IsPatrolling()`, `IsOnTaxi()` say whether the entry is held at all, selected or masked beneath a fear, an effect or a taxi (the end of a control episode resumes the masked chase while it still aims at the victim, and requests a fresh one otherwise). `IsReachable()` asks the selected behaviour; `SelectedVariant()` its variant (the timed flee's 1). `CombatStarted()` is the design's event row: `Unit::Attack` calls it when a new combat begins and the arbiter cancels the Distract layer, which priority selection alone would keep above the chase.
+Since P3-C the facade answers two kinds of question: `Doing()` is the selected kind — what runs now — and `IsChasing()`/`ChaseTarget()`, `IsFollowing()`/`FollowTarget()`, `IsPatrolling()`, `IsOnTaxi()` say whether the entry is held at all, selected or masked beneath a fear, an effect or a taxi (the end of a control episode resumes the masked chase while it still aims at the victim, and requests a fresh one otherwise). `IsReachable()` asks the selected behaviour; `SelectedVariant()` its variant (the timed flee's 1). `CombatStarted()` is the design's event row: `Unit::Attack` calls it when a new combat begins and the arbiter cancels the Distract layer, which priority selection alone would keep above the chase.
 
 The behavioral net over the same facade is `src/game/Harness` (`.debug movement scenario`).
 

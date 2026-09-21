@@ -147,7 +147,7 @@ struct npc_nesingwary_trapper : public CreatureScript
                                 ContactPointNear(*pTrap, m_creature, fX, fY, fZ);
 
                                 m_creature->SetWalk(false);
-                                m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                                m_creature->Movement()->GoTo(1, fX, fY, fZ);
                             }
                             m_uiPhaseTimer = 0;
                             break;
@@ -252,7 +252,7 @@ struct npc_oil_stained_wolf : public CreatureScript
                         if (m_bCanCrapInPublic)
                         {
                             DoCastSpellIfCan(m_creature, SPELL_SUMMON_DROPPINGS);
-                            m_creature->GetMotionMaster()->StopAndDefault();
+                            m_creature->Movement()->StopAndDefault();
                             Reset();
                         }
                         else
@@ -295,11 +295,11 @@ struct spell_throw_wolf_batt : public SpellScript
                 pCreatureTarget->SetFactionTemporary(FACTION_MONSTER);
                 pCreatureTarget->SetWalk(false);
 
-                pCreatureTarget->GetMotionMaster()->MoveIdle();
+                pCreatureTarget->Movement()->Stop();
 
                 float fX, fY, fZ;
                 ContactPointNear(*pCaster, pCreatureTarget, fX, fY, fZ, CONTACT_DISTANCE);
-                pCreatureTarget->GetMotionMaster()->MovePoint(POINT_DEST, fX, fY, fZ);
+                pCreatureTarget->Movement()->GoTo(POINT_DEST, fX, fY, fZ);
                 return true;
             }
         }
@@ -672,7 +672,7 @@ struct aura_arcane_chains_cancel : public AuraScript
 
             // follow the caster
             ((Player*)pCaster)->KilledMonsterCredit(NPC_CAPTURED_BERYL_SORCERER);
-            pCreature->GetMotionMaster()->MoveFollow(pCaster, pCreature->Where().DistanceTo(pCaster->Where()), M_PI_F - pCreature->Where().BearingTo(pCaster->Where()));
+            pCreature->Movement()->Follow(pCaster, pCreature->Where().DistanceTo(pCaster->Where()), M_PI_F - pCreature->Where().BearingTo(pCaster->Where()));
             return true;
         }
 
@@ -982,8 +982,8 @@ struct spell_drake_turn_in : public SpellScript
             pCreatureTarget->CastSpell(pRaelorasz, SPELL_DRAKE_COMPLETION_PING, true);
             float fX, fY, fZ;
             ContactPointNear(*pRaelorasz, pCreatureTarget, fX, fY, fZ, CONTACT_DISTANCE);
-            pCreatureTarget->GetMotionMaster()->Stop();
-            pCreatureTarget->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+            pCreatureTarget->Movement()->Stop();
+            pCreatureTarget->Movement()->GoTo(0, fX, fY, fZ);
         }
         return true;
     }
@@ -1138,11 +1138,11 @@ struct aura_reinforced_net : public AuraScript
             }
 
             // move the flamespitter to the ground level
-            pCreature->GetMotionMaster()->StopAndDefault();
+            pCreature->Movement()->StopAndDefault();
             pCreature->SetWalk(false);
 
             float fGroundZ = pCreature->GetMap()->GetHeight(pCreature->GetPhaseMask(), pCreature->Where().X(), pCreature->Where().Y(), pCreature->Where().Z());
-            pCreature->GetMotionMaster()->MovePoint(1, pCreature->Where().X(), pCreature->Where().Y(), fGroundZ);
+            pCreature->Movement()->GoTo(1, pCreature->Where().X(), pCreature->Where().Y(), fGroundZ);
             return true;
         }
 
@@ -1312,7 +1312,7 @@ struct npc_jenny : public CreatureScript
 
                     float fX, fY, fZ;
                     ContactPointNear(*pWho, m_creature, fX, fY, fZ);
-                    m_creature->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    m_creature->Movement()->GoTo(0, fX, fY, fZ);
                     m_creature->ForcedDespawn(15000);
 
                     m_bEventComplete = true;

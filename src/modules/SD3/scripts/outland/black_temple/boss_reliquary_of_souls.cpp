@@ -418,7 +418,7 @@ struct essence_base_AI : public ScriptedAI
         m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
         m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
         m_creature->ClearAllReactives();
-        m_creature->GetMotionMaster()->StopAndDefault();
+        m_creature->Movement()->StopAndDefault();
 
         if (!m_pInstance)
         {
@@ -428,7 +428,7 @@ struct essence_base_AI : public ScriptedAI
         // Move to home position
         if (Creature* pReliquary = m_pInstance->GetSingleCreatureFromStorage(NPC_RELIQUARY_OF_SOULS))
         {
-            m_creature->GetMotionMaster()->MovePoint(1, pReliquary->Where().X(), pReliquary->Where().Y(), pReliquary->Where().Z());
+            m_creature->Movement()->GoTo(1, pReliquary->Where().X(), pReliquary->Where().Y(), pReliquary->Where().Z());
         }
 
         m_bIsPhaseFinished = true;

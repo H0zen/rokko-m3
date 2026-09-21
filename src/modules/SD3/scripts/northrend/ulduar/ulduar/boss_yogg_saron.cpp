@@ -1730,7 +1730,7 @@ struct npc_death_ray : public CreatureScript
                     if (DoCastSpellIfCan(m_creature, SPELL_DEATH_RAY_VISUAL_DAMAGE, CAST_INTERRUPT_PREVIOUS) == CAST_OK)
                     {
                         DoCastSpellIfCan(m_creature, SPELL_DEATH_RAY_TRIGG, CAST_TRIGGERED);
-                        m_creature->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 10.0f);
+                        m_creature->Movement()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 10.0f);
                         m_uiDeathRayTimer = 0;
                     }
                 }

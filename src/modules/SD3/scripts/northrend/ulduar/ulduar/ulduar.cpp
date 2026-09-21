@@ -268,7 +268,7 @@ struct npc_brann_ulduar : public CreatureScript
 
                 // set gauntlet in progress; rest of the event is done by DB scripts
                 pInstance->SetData(TYPE_LEVIATHAN_GAUNTLET, IN_PROGRESS);
-                pCreature->GetMotionMaster()->MoveWaypoint();
+                pCreature->Movement()->WalkPath();
             }
 
             pPlayer->CLOSE_GOSSIP_MENU();
@@ -332,11 +332,11 @@ struct npc_keeper_norgannon : public CreatureScript
 
                     if (Creature* pDellorah = pInstance->GetSingleCreatureFromStorage(NPC_EXPLORER_DELLORAH))
                     {
-                        pDellorah->GetMotionMaster()->MoveWaypoint();
+                        pDellorah->Movement()->WalkPath();
                     }
                     if (Creature* pBrann = pInstance->GetSingleCreatureFromStorage(NPC_BRANN_BRONZEBEARD))
                     {
-                        pBrann->GetMotionMaster()->MoveWaypoint();
+                        pBrann->Movement()->WalkPath();
                     }
                 }
 
@@ -461,7 +461,7 @@ struct npc_storm_tempered_keeper : public CreatureScript
                 // move to buddy location and notify about buddy entry
                 if (Creature* pBuddy = m_creature->GetMap()->GetCreature(m_buddyGuid))
                 {
-                    pSummoned->GetMotionMaster()->MoveFollow(pBuddy, 0, 0);
+                    pSummoned->Movement()->Follow(pBuddy, 0, 0);
                     SendAIEvent(AI_EVENT_CUSTOM_A, m_creature, pSummoned, pBuddy->GetEntry());
                 }
             }

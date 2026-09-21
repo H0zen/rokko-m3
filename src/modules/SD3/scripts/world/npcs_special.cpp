@@ -864,12 +864,12 @@ struct npc_injured_patient : public CreatureScript
                     case 12923:
                     case 12924:
                     case 12925:
-                        m_creature->GetMotionMaster()->MovePoint(0, H_RUNTOX, H_RUNTOY, H_RUNTOZ);
+                        m_creature->Movement()->GoTo(0, H_RUNTOX, H_RUNTOY, H_RUNTOZ);
                         break;
                     case 12936:
                     case 12937:
                     case 12938:
-                        m_creature->GetMotionMaster()->MovePoint(0, A_RUNTOX, A_RUNTOY, A_RUNTOZ);
+                        m_creature->Movement()->GoTo(0, A_RUNTOX, A_RUNTOY, A_RUNTOZ);
                         break;
                 }
             }
@@ -1330,8 +1330,8 @@ struct npc_spring_rabbit : public CreatureScript
             float fX, fY, fZ;
             FindFreeSpotNear(*m_creature, m_creature, fX, fY, fZ, m_creature->Where().Extent(), fDist * 0.5f, m_fMoveAngle);
 
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->GoTo(1, fX, fY, fZ);
         }
 
         // Helper to get the Other Bunnies AI
@@ -1414,7 +1414,7 @@ struct npc_spring_rabbit : public CreatureScript
                 }
             }
 
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->Stop();
         }
 
         // Overwrite ScriptedPetAI::UpdateAI, to prevent re-following while the event is active!
@@ -1700,7 +1700,7 @@ struct npc_burster_worm : public CreatureScript
             if (DoCastSpellIfCan(m_creature, SPELL_SANDWORM_SUBMERGE_VISUAL, CAST_FORCE_CAST | CAST_AURA_NOT_PRESENT) == CAST_OK)
             {
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-                m_creature->GetMotionMaster()->MoveTargetedHome();
+                m_creature->Movement()->GoHome();
             }
 
             Reset();
@@ -1760,7 +1760,7 @@ struct npc_burster_worm : public CreatureScript
                         m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                         m_uiPhase = PHASE_CHASE;
                         SetCombatMovement(true);
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                         m_uiChaseTimer = 0;
                     }
                     else
@@ -1838,7 +1838,7 @@ struct npc_burster_worm : public CreatureScript
 
                     if (DoCastSpellIfCan(m_creature, SPELL_BIRTH) == CAST_OK)
                     {
-                        m_creature->GetMotionMaster()->MoveIdle();
+                        m_creature->Movement()->Stop();
                         SetCombatMovement(false);
                         m_uiPhase = PHASE_COMBAT;
                         m_uiBirthDelayTimer = 2000;

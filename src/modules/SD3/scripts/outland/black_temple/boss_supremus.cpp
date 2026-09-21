@@ -189,8 +189,8 @@ struct boss_supremus : public CreatureScript
 
                 if (pTarget)
                 {
-                    pSummoned->GetMotionMaster()->StopAndDefault();
-                    pSummoned->GetMotionMaster()->MoveFollow(pTarget, 0.0f, 0.0f);
+                    pSummoned->Movement()->StopAndDefault();
+                    pSummoned->Movement()->Follow(pTarget, 0.0f, 0.0f);
                     pSummoned->CastSpell(pSummoned, SPELL_MOLTEN_FLAME, false, nullptr, nullptr, m_creature->GetObjectGuid());
                 }
             }

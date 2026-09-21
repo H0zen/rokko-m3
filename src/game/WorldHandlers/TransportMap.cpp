@@ -76,7 +76,7 @@ std::string DescribeSpatially(Unit* u)
              static_cast<unsigned long long>(f.Id()),
              u->Where().X(), u->Where().Y(), u->Where().Z(),
              u->IsInWorld() ? 1 : 0, u->IsAlive() ? 1 : 0,
-             Motion::KindName(u->GetMotionMaster()->ActiveKind()));
+             Motion::KindName(u->Movement()->Doing()));
 
     return buf;
 }
@@ -237,17 +237,17 @@ namespace
         // creature's DEFAULT behaviour -- for a pet that is not following anybody, which is
         // a pet teleported neatly to its master's side and then standing there.
         //
-        // MoveFollow and MoveIdle each clear the stack themselves, and correctly. Clearing
+        // Follow and Stop each clear what is held themselves, and correctly. Clearing
         // it here first with all=true emptied it down to and including the idle behaviour,
-        // and the Clear inside MoveFollow then asserted on !empty() -- a crash on every
+        // and the clear inside Follow then asserted on !empty() -- a crash on every
         // step ashore, from UnitMovement::Halt.
         if (c->GetCharmInfo() && c->GetCharmInfo()->HasCommandState(COMMAND_STAY))
         {
-            c->GetMotionMaster()->MoveIdle();
+            c->Movement()->Stop();
         }
         else
         {
-            c->GetMotionMaster()->MoveFollow(master, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+            c->Movement()->Follow(master, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
         }
 
         c->SendHeartBeat();

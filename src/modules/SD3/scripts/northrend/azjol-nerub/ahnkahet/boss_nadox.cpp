@@ -95,7 +95,7 @@ struct mob_ahnkahar_egg : public CreatureScript
                     fPosY = pElderNadox->Where().Y();
                     fPosZ = pElderNadox->Where().Z();
                     pSummoned->SetWalk(false);
-                    pSummoned->GetMotionMaster()->MovePoint(0, fPosX, fPosY, fPosZ);
+                    pSummoned->Movement()->GoTo(0, fPosX, fPosY, fPosZ);
                 }
             }
         }

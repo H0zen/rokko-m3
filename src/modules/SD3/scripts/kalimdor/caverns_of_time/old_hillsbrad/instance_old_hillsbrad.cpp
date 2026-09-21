@@ -206,7 +206,7 @@ struct is_old_hillsbrad : public InstanceScript
                                             fY = randSpot2.y;
                                             fZ = randSpot2.z;
                                             pOrc->SetWalk(false);
-                                            pOrc->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                            pOrc->Movement()->GoTo(0, fX, fY, fZ);
                                         }
                                     }
                                     for (GuidList::const_iterator itr = m_lLeftPrisonersList.begin(); itr != m_lLeftPrisonersList.end(); ++itr)
@@ -218,7 +218,7 @@ struct is_old_hillsbrad : public InstanceScript
                                             fY = randSpot1.y;
                                             fZ = randSpot1.z;
                                             pOrc->SetWalk(false);
-                                            pOrc->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                            pOrc->Movement()->GoTo(0, fX, fY, fZ);
                                         }
                                     }
                                 }

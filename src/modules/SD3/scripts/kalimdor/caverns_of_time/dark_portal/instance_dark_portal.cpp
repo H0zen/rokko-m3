@@ -143,7 +143,7 @@ struct is_dark_portal : public InstanceScript
                         {
                             float fX, fY, fZ;
                             FindFreeSpotNear(*pMedivh, pMedivh, fX, fY, fZ, 0, 20.0f, pMedivh->Where().BearingTo(pCreature->Where()));
-                            pCreature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                            pCreature->Movement()->GoTo(1, fX, fY, fZ);
                         }
                         break;
                 }

@@ -255,7 +255,7 @@ struct boss_brutallus : public CreatureScript
             {
                 pSummoned->SetWalk(false);
                 pSummoned->SetLevitate(true);
-                pSummoned->GetMotionMaster()->MovePoint(0, aMadrigosaLoc[1].m_fX, aMadrigosaLoc[1].m_fY, aMadrigosaLoc[1].m_fZ, false);
+                pSummoned->Movement()->GoTo(0, aMadrigosaLoc[1].m_fX, aMadrigosaLoc[1].m_fY, aMadrigosaLoc[1].m_fZ, false);
             }
             else if (pSummoned->GetEntry() == NPC_BRUTALLUS_DEATH_CLOUD)
             {
@@ -291,8 +291,8 @@ struct boss_brutallus : public CreatureScript
                 pTarget->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
                 pTarget->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                 pTarget->ClearAllReactives();
-                pTarget->GetMotionMaster()->StopAndDefault();
-                pTarget->GetMotionMaster()->MoveIdle();
+                pTarget->Movement()->StopAndDefault();
+                pTarget->Movement()->Stop();
                 pTarget->SetStandState(UNIT_STAND_STATE_DEAD);
 
                 // Brutallus evades
@@ -325,7 +325,7 @@ struct boss_brutallus : public CreatureScript
                 case YELL_MADR_INTRO:
                     if (Creature* pMadrigosa = m_pInstance->GetSingleCreatureFromStorage(NPC_MADRIGOSA))
                     {
-                        pMadrigosa->GetMotionMaster()->MovePoint(POINT_MOVE_GROUND, aMadrigosaLoc[0].m_fX, aMadrigosaLoc[0].m_fY, aMadrigosaLoc[0].m_fZ);
+                        pMadrigosa->Movement()->GoTo(POINT_MOVE_GROUND, aMadrigosaLoc[0].m_fX, aMadrigosaLoc[0].m_fY, aMadrigosaLoc[0].m_fZ);
                     }
                     break;
                 case YELL_INTRO:
@@ -338,19 +338,19 @@ struct boss_brutallus : public CreatureScript
                     if (Creature* pMadrigosa = m_pInstance->GetSingleCreatureFromStorage(NPC_MADRIGOSA))
                     {
                         pMadrigosa->CastSpell(m_creature, SPELL_FROST_BREATH, false);
-                        pMadrigosa->GetMotionMaster()->MoveIdle();
+                        pMadrigosa->Movement()->Stop();
                     }
                     break;
                 case POINT_MOVE_ICE_BLOCK:
                     m_bCanDoMeleeAttack = false;
                     if (Creature* pMadrigosa = m_pInstance->GetSingleCreatureFromStorage(NPC_MADRIGOSA))
                     {
-                        pMadrigosa->GetMotionMaster()->MovePoint(POINT_MOVE_ICE_BLOCK, aMadrigosaLoc[1].m_fX, aMadrigosaLoc[1].m_fY, aMadrigosaLoc[1].m_fZ);
+                        pMadrigosa->Movement()->GoTo(POINT_MOVE_ICE_BLOCK, aMadrigosaLoc[1].m_fX, aMadrigosaLoc[1].m_fY, aMadrigosaLoc[1].m_fZ);
                         pMadrigosa->HandleEmote(EMOTE_ONESHOT_LIFTOFF);
                         pMadrigosa->SetLevitate(true);
                     }
                     // Temporary! This will make Brutallus not follow Madrigosa through the air until mmaps are implemented
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
                     break;
                 case YELL_MADR_ICE_BLOCK:
                     if (Creature* pMadrigosa = m_pInstance->GetSingleCreatureFromStorage(NPC_MADRIGOSA))
@@ -373,7 +373,7 @@ struct boss_brutallus : public CreatureScript
                 case POINT_MOVE_GROUND:
                     if (Creature* pMadrigosa = m_pInstance->GetSingleCreatureFromStorage(NPC_MADRIGOSA))
                     {
-                        pMadrigosa->GetMotionMaster()->MovePoint(POINT_MOVE_GROUND, aMadrigosaLoc[0].m_fX, aMadrigosaLoc[0].m_fY, aMadrigosaLoc[0].m_fZ);
+                        pMadrigosa->Movement()->GoTo(POINT_MOVE_GROUND, aMadrigosaLoc[0].m_fX, aMadrigosaLoc[0].m_fY, aMadrigosaLoc[0].m_fZ);
                     }
                     m_uiMadrigosaSpellTimer = 0;
                     break;
@@ -389,7 +389,7 @@ struct boss_brutallus : public CreatureScript
                     m_bCanDoMeleeAttack = true;
                     if (m_creature->getVictim())
                     {
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                     }
                     DoCastSpellIfCan(m_creature, SPELL_CHARGE);
                     break;

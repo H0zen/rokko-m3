@@ -136,7 +136,7 @@ struct npc_beast_combat_stalker : public CreatureScript
 
             m_aSummonedBossGuid[m_uiPhase] = pSummoned->GetObjectGuid();
 
-            pSummoned->GetMotionMaster()->MovePoint(m_uiPhase, aMovePositions[m_uiPhase][0], aMovePositions[m_uiPhase][1], aMovePositions[m_uiPhase][2]);
+            pSummoned->Movement()->GoTo(m_uiPhase, aMovePositions[m_uiPhase][0], aMovePositions[m_uiPhase][1], aMovePositions[m_uiPhase][2]);
 
             // Next beasts are summoned only for heroic modes
             if (m_creature->GetMap()->GetDifficulty() == RAID_DIFFICULTY_10MAN_HEROIC || m_creature->GetMap()->GetDifficulty() == RAID_DIFFICULTY_25MAN_HEROIC)

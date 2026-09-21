@@ -498,7 +498,7 @@ struct boss_mimiron : public CreatureScript
                     if (Creature* pLeviathan = m_pInstance->GetSingleCreatureFromStorage(NPC_LEVIATHAN_MK))
                     {
                         pLeviathan->RemoveAurasDueToSpell(SPELL_FREEZE_ANIM_DEFEATED);
-                        pLeviathan->GetMotionMaster()->MovePoint(POINT_ID_CENTER, afTankMovePos[0], afTankMovePos[1], afTankMovePos[2]);
+                        pLeviathan->Movement()->GoTo(POINT_ID_CENTER, afTankMovePos[0], afTankMovePos[1], afTankMovePos[2]);
                     }
                     break;
                 case SPELL_HALF_HEAL:
@@ -518,7 +518,7 @@ struct boss_mimiron : public CreatureScript
                 case NPC_BOMB_BOT:
                     if (Creature* pLeviathan = m_pInstance->GetSingleCreatureFromStorage(NPC_LEVIATHAN_MK))
                     {
-                        pLeviathan->GetMotionMaster()->MovePoint(POINT_ID_CENTER, afCenterMovePos[0], afCenterMovePos[1], afCenterMovePos[2]);
+                        pLeviathan->Movement()->GoTo(POINT_ID_CENTER, afCenterMovePos[0], afCenterMovePos[1], afCenterMovePos[2]);
                     }
                     break;
                 case NPC_BURST_TARGET:
@@ -597,7 +597,7 @@ struct boss_mimiron : public CreatureScript
         {
             if (pSummoned->GetEntry() == NPC_AERIAL_UNIT)
             {
-                pSummoned->GetMotionMaster()->MovePoint(1, afAerialMovePos[0], afAerialMovePos[1], afAerialMovePos[2]);
+                pSummoned->Movement()->GoTo(1, afAerialMovePos[0], afAerialMovePos[1], afAerialMovePos[2]);
             }
         }
 
@@ -953,7 +953,7 @@ struct boss_leviathan_mk2 : public CreatureScript
                     // move to parking position
                     SetCombatMovement(false);
                     m_uiPhase = PHASE_TRANSITION;
-                    m_creature->GetMotionMaster()->MovePoint(POINT_ID_PARK, afTankEvadePos[0], afTankEvadePos[1], afTankEvadePos[2]);
+                    m_creature->Movement()->GoTo(POINT_ID_PARK, afTankEvadePos[0], afTankEvadePos[1], afTankEvadePos[2]);
                 }
                 else if (m_uiPhase == PHASE_FULL_ROBOT)
                 {
@@ -970,7 +970,7 @@ struct boss_leviathan_mk2 : public CreatureScript
                         }
 
                         SetCombatMovement(false);
-                        m_creature->GetMotionMaster()->MoveIdle();
+                        m_creature->Movement()->Stop();
                         m_uiPhase = PHASE_DAMAGED;
                     }
                 }
@@ -984,7 +984,7 @@ struct boss_leviathan_mk2 : public CreatureScript
             {
                 m_creature->RemoveAurasDueToSpell(SPELL_FREEZE_ANIM);
                 SetCombatMovement(true);
-                m_creature->GetMotionMaster()->StopAndDefault();
+                m_creature->Movement()->StopAndDefault();
                 DoStartMovement(m_creature->getVictim());
                 m_uiPhase = PHASE_FULL_ROBOT;
             }
@@ -1643,8 +1643,8 @@ struct boss_aerial_unit : public CreatureScript
                     DoCastSpellIfCan(m_creature, SPELL_HALF_HEAL, CAST_TRIGGERED);
                     m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
 
-                    m_creature->GetMotionMaster()->StopAndDefault();
-                    m_creature->GetMotionMaster()->MovePoint(0, afAerialMovePos[0], afAerialMovePos[1], afAerialMovePos[2]);
+                    m_creature->Movement()->StopAndDefault();
+                    m_creature->Movement()->GoTo(0, afAerialMovePos[0], afAerialMovePos[1], afAerialMovePos[2]);
                     m_uiPhase = PHASE_TRANSITION;
                 }
                 else if (m_uiPhase == PHASE_FULL_ROBOT)
@@ -1678,8 +1678,8 @@ struct boss_aerial_unit : public CreatureScript
                 DoCastSpellIfCan(m_creature, SPELL_MAGNETIC_CORE_VISUAL, CAST_INTERRUPT_PREVIOUS);
                 m_uiMagneticTimer = 20000;
 
-                m_creature->GetMotionMaster()->StopAndDefault();
-                m_creature->GetMotionMaster()->MovePoint(0, pCaster->Where().X(), pCaster->Where().Y(), pCaster->Where().Z());
+                m_creature->Movement()->StopAndDefault();
+                m_creature->Movement()->GoTo(0, pCaster->Where().X(), pCaster->Where().Y(), pCaster->Where().Z());
             }
         }
 
@@ -1741,8 +1741,8 @@ struct boss_aerial_unit : public CreatureScript
             {
                 if (m_uiMagneticTimer <= uiDiff)
                 {
-                    m_creature->GetMotionMaster()->StopAndDefault();
-                    m_creature->GetMotionMaster()->MovePoint(0, m_creature->Where().X(), m_creature->Where().Y(), afAerialMovePos[2]);
+                    m_creature->Movement()->StopAndDefault();
+                    m_creature->Movement()->GoTo(0, m_creature->Where().X(), m_creature->Where().Y(), afAerialMovePos[2]);
 
                     m_creature->RemoveAurasDueToSpell(SPELL_MAGNETIC_CORE_VISUAL);
                     m_uiMagneticTimer = 0;
@@ -1773,8 +1773,8 @@ struct boss_aerial_unit : public CreatureScript
                         float fX, fY, fZ;
                         ContactPointNear(*m_creature->getVictim(), m_creature, fX, fY, fZ, 3 * ATTACK_DISTANCE);
 
-                        m_creature->GetMotionMaster()->StopAndDefault();
-                        m_creature->GetMotionMaster()->MovePoint(0, fX, fY, m_creature->Where().Z());
+                        m_creature->Movement()->StopAndDefault();
+                        m_creature->Movement()->GoTo(0, fX, fY, m_creature->Where().Z());
                     }
                     m_uiCombatMoveTimer = 2000;
                 }

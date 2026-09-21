@@ -763,7 +763,7 @@ struct is_ulduar : public InstanceScript
                                     }
                                     else
                                     {
-                                        pDefender->GetMotionMaster()->MoveTargetedHome();
+                                        pDefender->Movement()->GoHome();
                                     }
                                 }
                             }
@@ -777,7 +777,7 @@ struct is_ulduar : public InstanceScript
                                     }
                                     else
                                     {
-                                        pEngineer->GetMotionMaster()->MoveTargetedHome();
+                                        pEngineer->Movement()->GoHome();
                                     }
                                 }
                             }
@@ -791,7 +791,7 @@ struct is_ulduar : public InstanceScript
                                     }
                                     else
                                     {
-                                        pTrapper->GetMotionMaster()->MoveTargetedHome();
+                                        pTrapper->Movement()->GoHome();
                                     }
                                 }
                             }
@@ -1346,7 +1346,7 @@ struct is_ulduar : public InstanceScript
                             {
                                 pDefender->CastSpell(pDefender, SPELL_THREAT, true);
                                 pDefender->SetWalk(false);
-                                pDefender->GetMotionMaster()->MoveWaypoint();
+                                pDefender->Movement()->WalkPath();
                             }
                         }
                         return;
@@ -1367,7 +1367,7 @@ struct is_ulduar : public InstanceScript
 
                                     // ToDo: maybe there should be some emotes here
                                     pEngineer->SetWalk(false);
-                                    pEngineer->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                                    pEngineer->Movement()->GoTo(1, fX, fY, fZ);
                                     ++uiIndex;
                                 }
                             }
@@ -1378,7 +1378,7 @@ struct is_ulduar : public InstanceScript
                         {
                             if (Creature* pEngineer = instance->GetCreature(*itr))
                             {
-                                pEngineer->GetMotionMaster()->MoveTargetedHome();
+                                pEngineer->Movement()->GoHome();
                             }
                         }
                         return;
@@ -1397,7 +1397,7 @@ struct is_ulduar : public InstanceScript
                                     pTrapper->SetWalk(false);
                                     uiSpeedRate = pTrapper->GetSpeedRate(MOVE_RUN);
                                     pTrapper->SetSpeedRate(MOVE_RUN, SPEED_RATE_HELPERS);
-                                    pTrapper->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                                    pTrapper->Movement()->GoTo(1, fX, fY, fZ);
                                     pTrapper->SetSpeedRate(MOVE_RUN, uiSpeedRate);
                                     ++uiIndex;
                                 }
@@ -2083,7 +2083,7 @@ struct is_ulduar : public InstanceScript
                             float fSpeedRate = pLeviathan->GetSpeedRate(MOVE_RUN);
                             pLeviathan->SetWalk(false);
                             pLeviathan->SetSpeedRate(MOVE_RUN, 5);
-                            pLeviathan->GetMotionMaster()->MovePoint(1, afLeviathanMovePos[0], afLeviathanMovePos[1], afLeviathanMovePos[2]);
+                            pLeviathan->Movement()->GoTo(1, afLeviathanMovePos[0], afLeviathanMovePos[1], afLeviathanMovePos[2]);
                             pLeviathan->SetSpeedRate(MOVE_RUN, fSpeedRate);
 
                             // modify respawn / home position to the center of arena

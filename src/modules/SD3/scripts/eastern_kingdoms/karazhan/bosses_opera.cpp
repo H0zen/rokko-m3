@@ -704,7 +704,7 @@ struct boss_crone : public CreatureScript
         {
             pSummoned->CastSpell(pSummoned, SPELL_CYCLONE, true);
             pSummoned->CastSpell(pSummoned, SPELL_CYCLONE_VISUAL, true);
-            pSummoned->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 15.0f);
+            pSummoned->Movement()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 15.0f);
         }
 
         void UpdateAI(const uint32 uiDiff) override
@@ -1073,8 +1073,8 @@ struct boss_julianne : public CreatureScript
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             m_creature->ClearAllReactives();
             m_creature->SetTargetGuid(ObjectGuid());
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->Stop();
             m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
         }
 
@@ -1085,7 +1085,7 @@ struct boss_julianne : public CreatureScript
 
             m_creature->SetStandState(UNIT_STAND_STATE_STAND);
             m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-            m_creature->GetMotionMaster()->StopAndDefault();
+            m_creature->Movement()->StopAndDefault();
             DoStartMovement(m_creature->getVictim());
         }
 
@@ -1383,8 +1383,8 @@ struct boss_romulo : public CreatureScript
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             m_creature->ClearAllReactives();
             m_creature->SetTargetGuid(ObjectGuid());
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->Stop();
             m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
         }
 
@@ -1395,7 +1395,7 @@ struct boss_romulo : public CreatureScript
 
             m_creature->SetStandState(UNIT_STAND_STATE_STAND);
             m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-            m_creature->GetMotionMaster()->StopAndDefault();
+            m_creature->Movement()->StopAndDefault();
             DoStartMovement(m_creature->getVictim());
         }
 

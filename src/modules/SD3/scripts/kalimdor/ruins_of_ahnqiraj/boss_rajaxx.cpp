@@ -168,7 +168,7 @@ struct npc_general_andorov : public CreatureScript
                 case 1:
                 case 3:
                     ++m_uiPointId;
-                    m_creature->GetMotionMaster()->MovePoint(m_uiPointId, aAndorovMoveLocs[m_uiPointId].m_fX, aAndorovMoveLocs[m_uiPointId].m_fY, aAndorovMoveLocs[m_uiPointId].m_fZ);
+                    m_creature->Movement()->GoTo(m_uiPointId, aAndorovMoveLocs[m_uiPointId].m_fX, aAndorovMoveLocs[m_uiPointId].m_fY, aAndorovMoveLocs[m_uiPointId].m_fZ);
                     break;
                 case POINT_ID_MOVE_INTRO:
                     m_creature->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
@@ -202,12 +202,12 @@ struct npc_general_andorov : public CreatureScript
                 // reset to combat position
                 if (m_uiPointId >= 4)
                 {
-                    m_creature->GetMotionMaster()->MovePoint(POINT_ID_MOVE_ATTACK, aAndorovMoveLocs[4].m_fX, aAndorovMoveLocs[4].m_fY, aAndorovMoveLocs[4].m_fZ);
+                    m_creature->Movement()->GoTo(POINT_ID_MOVE_ATTACK, aAndorovMoveLocs[4].m_fX, aAndorovMoveLocs[4].m_fY, aAndorovMoveLocs[4].m_fZ);
                 }
                 // reset to intro position
                 else
                 {
-                    m_creature->GetMotionMaster()->MovePoint(POINT_ID_MOVE_INTRO, aAndorovMoveLocs[2].m_fX, aAndorovMoveLocs[2].m_fY, aAndorovMoveLocs[2].m_fZ);
+                    m_creature->Movement()->GoTo(POINT_ID_MOVE_INTRO, aAndorovMoveLocs[2].m_fX, aAndorovMoveLocs[2].m_fY, aAndorovMoveLocs[2].m_fZ);
                 }
             }
 
@@ -228,7 +228,7 @@ struct npc_general_andorov : public CreatureScript
         // Wrapper to start the event
         void DoMoveToEventLocation()
         {
-            m_creature->GetMotionMaster()->MovePoint(m_uiPointId, aAndorovMoveLocs[m_uiPointId].m_fX, aAndorovMoveLocs[m_uiPointId].m_fY, aAndorovMoveLocs[m_uiPointId].m_fZ);
+            m_creature->Movement()->GoTo(m_uiPointId, aAndorovMoveLocs[m_uiPointId].m_fX, aAndorovMoveLocs[m_uiPointId].m_fY, aAndorovMoveLocs[m_uiPointId].m_fZ);
             m_creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
             StartNextDialogueText(SAY_ANDOROV_INTRO_1);
         }
@@ -242,7 +242,7 @@ struct npc_general_andorov : public CreatureScript
                 if (m_uiMoveTimer <= uiDiff)
                 {
                     m_creature->SetWalk(false);
-                    m_creature->GetMotionMaster()->MovePoint(m_uiPointId, aAndorovMoveLocs[m_uiPointId].m_fX, aAndorovMoveLocs[m_uiPointId].m_fY, aAndorovMoveLocs[m_uiPointId].m_fZ);
+                    m_creature->Movement()->GoTo(m_uiPointId, aAndorovMoveLocs[m_uiPointId].m_fX, aAndorovMoveLocs[m_uiPointId].m_fY, aAndorovMoveLocs[m_uiPointId].m_fZ);
 
                     DoInitializeFollowers();
                     m_uiMoveTimer = 0;
@@ -386,7 +386,7 @@ struct npc_kaldorei_elite : public CreatureScript
                 {
                     if (pAndorov->IsAlive())
                     {
-                        m_creature->GetMotionMaster()->MoveFollow(pAndorov, m_creature->Where().DistanceTo(pAndorov->Where()), m_creature->Where().BearingTo(pAndorov->Where()));
+                        m_creature->Movement()->Follow(pAndorov, m_creature->Where().DistanceTo(pAndorov->Where()), m_creature->Where().BearingTo(pAndorov->Where()));
                     }
                 }
             }

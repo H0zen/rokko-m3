@@ -209,7 +209,7 @@ struct boss_bronjahm : public CreatureScript
                     if (IsCombatMovement())
                     {
                         SetCombatMovement(false);
-                        m_creature->GetMotionMaster()->MoveIdle();
+                        m_creature->Movement()->Stop();
                         m_creature->StopMoving();
                     }
                     DoCastSpellIfCan(m_creature->getVictim(), SPELL_SHADOW_BOLT);
@@ -219,7 +219,7 @@ struct boss_bronjahm : public CreatureScript
                     if (!IsCombatMovement())
                     {
                         SetCombatMovement(true);
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                         m_uiShadowboltTimer = 2000;             // Give some time to chase
                     }
 
@@ -299,7 +299,7 @@ struct npc_corrupted_soul_fragment : public CreatureScript
                 if (IsCombatMovement())
                 {
                     SetCombatMovement(false);
-                    m_creature->GetMotionMaster()->MoveFollow(pWho, 0.0f, 0.0f);
+                    m_creature->Movement()->Follow(pWho, 0.0f, 0.0f);
                 }
             }
         }

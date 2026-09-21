@@ -166,11 +166,11 @@ struct boss_gruul : public CreatureScript
                     m_bPerformingGroundSlam = false;
 
                     // and correct movement, if not already
-                    if (m_creature->GetMotionMaster()->ActiveKind() != Motion::Kind::Chase)
+                    if (m_creature->Movement()->Doing() != Motion::Kind::Chase)
                     {
                         if (m_creature->getVictim())
                         {
-                            m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                            m_creature->Movement()->Chase(m_creature->getVictim());
                         }
                     }
                 }
@@ -281,8 +281,8 @@ struct boss_gruul : public CreatureScript
                     if (DoCastSpellIfCan(m_creature, SPELL_GROUND_SLAM) == CAST_OK)
                     {
                         DoScriptText(urand(0, 1) ? SAY_SLAM1 : SAY_SLAM2, m_creature);
-                        m_creature->GetMotionMaster()->StopAndDefault();
-                        m_creature->GetMotionMaster()->MoveIdle();
+                        m_creature->Movement()->StopAndDefault();
+                        m_creature->Movement()->Stop();
 
                         m_bPerformingGroundSlam = true;
                         m_uiGroundSlamTimer = 10000;

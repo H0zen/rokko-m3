@@ -253,7 +253,7 @@ struct boss_svala : public CreatureScript
             fZ = m_creature->Spawn().Z();
 
             m_creature->SetLevitate(true);
-            m_creature->GetMotionMaster()->MovePoint(0, fX, fY, fZ + 5.0f);
+            m_creature->Movement()->GoTo(0, fX, fY, fZ + 5.0f);
         }
 
         void UpdateAI(const uint32 uiDiff) override

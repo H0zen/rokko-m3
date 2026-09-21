@@ -350,7 +350,7 @@ struct boss_algalon : public CreatureScript
                 // move Brann to the center of the platform (and override pathfinding because of missing GO support)
                 case NPC_BRANN_ALGALON:
                     pSummoned->SetWalk(false);
-                    pSummoned->GetMotionMaster()->MovePoint(0, 1631.986f, -297.7831f, 417.321f, false);
+                    pSummoned->Movement()->GoTo(0, 1631.986f, -297.7831f, 417.321f, false);
                     break;
                 case NPC_AZEROTH:
                     pSummoned->ForcedDespawn(30000);
@@ -362,7 +362,7 @@ struct boss_algalon : public CreatureScript
                 case NPC_COLLAPSING_STAR:
                     // cast Collapse and move around spawn point
                     pSummoned->CastSpell(pSummoned, SPELL_COLLAPSE, true);
-                    pSummoned->GetMotionMaster()->Wander(pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z(), 30.0f);
+                    pSummoned->Movement()->Wander(pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z(), 30.0f);
                     ++m_uiActiveStars;
                     m_lSummonedGuids.push_back(pSummoned->GetObjectGuid());
                     break;
@@ -470,7 +470,7 @@ struct boss_algalon : public CreatureScript
             m_creature->SetLevitate(true);
             DoCastSpellIfCan(m_creature, SPELL_ARRIVAL, CAST_TRIGGERED);
             DoCastSpellIfCan(m_creature, SPELL_RIDE_LIGHTNING, CAST_TRIGGERED);
-            m_creature->GetMotionMaster()->MovePoint(1, afAlgalonMovePos[0], afAlgalonMovePos[1], afAlgalonMovePos[2]);
+            m_creature->Movement()->GoTo(1, afAlgalonMovePos[0], afAlgalonMovePos[1], afAlgalonMovePos[2]);
         }
 
         // function which summons constellations
@@ -501,7 +501,7 @@ struct boss_algalon : public CreatureScript
                 // follow second top aggro player
                 if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, uint32(0), SELECT_FLAG_PLAYER))
                 {
-                    pConstellation->GetMotionMaster()->MoveFollow(pTarget, CONTACT_DISTANCE, 0);
+                    pConstellation->Movement()->Follow(pTarget, CONTACT_DISTANCE, 0);
                     SendAIEvent(AI_EVENT_CUSTOM_A, m_creature, pConstellation);
                     ++m_uiActiveConstelations;
                 }

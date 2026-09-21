@@ -238,7 +238,7 @@ struct npc_decaying_ghoul : public CreatureScript
             }
 
             // handle the animation and despawn
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->Stop();
             m_creature->HandleEmote(EMOTE_STATE_EAT_NO_SHEATHE);
             m_creature->ForcedDespawn(10000);
 
@@ -262,10 +262,10 @@ struct npc_decaying_ghoul : public CreatureScript
                 // move the ghoul to the feeding target
                 float fX, fY, fZ;
                 m_creature->SetWalk(false);
-                m_creature->GetMotionMaster()->StopAndDefault();
+                m_creature->Movement()->StopAndDefault();
                 ContactPointNear(*pInvoker, m_creature, fX, fY, fZ);
 
-                m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                m_creature->Movement()->GoTo(1, fX, fY, fZ);
                 m_feedingBunnyGuid = pInvoker->GetObjectGuid();
             }
         }

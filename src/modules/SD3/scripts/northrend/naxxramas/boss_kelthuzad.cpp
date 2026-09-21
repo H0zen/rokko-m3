@@ -361,7 +361,7 @@ struct boss_kelthuzad : public CreatureScript
                         {
                             float fX, fY, fZ;
                             GetChamberCenterCoords(fX, fY, fZ);
-                            pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                            pSummoned->Movement()->GoTo(0, fX, fY, fZ);
                         }
                     }
 
@@ -440,7 +440,7 @@ struct boss_kelthuzad : public CreatureScript
 
                         m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
                         SetCombatMovement(true);
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
 
                         DoScriptText(EMOTE_PHASE2, m_creature);
 

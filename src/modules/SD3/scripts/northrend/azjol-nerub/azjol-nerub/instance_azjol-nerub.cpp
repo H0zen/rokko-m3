@@ -136,13 +136,13 @@ struct is_azjol_nerub : public InstanceScript
                     if (Creature* pCrusher = pCreature->SummonCreature(NPC_ANUBAR_CRUSHER, 485.25f, 611.46f, 771.42f, 4.74f, TEMPSPAWN_DEAD_DESPAWN, 0))
                     {
                         pCrusher->SetWalk(false);
-                        pCrusher->GetMotionMaster()->MovePoint(0, 517.51f, 561.439f, 734.0306f);
+                        pCrusher->Movement()->GoTo(0, 517.51f, 561.439f, 734.0306f);
                         pCrusher->HandleEmote(EMOTE_STATE_READYUNARMED);
                     }
                     if (Creature* pCrusher = pCreature->SummonCreature(NPC_ANUBAR_CRUSHER, 575.21f, 611.47f, 771.46f, 3.59f, TEMPSPAWN_DEAD_DESPAWN, 0))
                     {
                         pCrusher->SetWalk(false);
-                        pCrusher->GetMotionMaster()->MovePoint(0, 543.414f, 551.728f, 732.0522f);
+                        pCrusher->Movement()->GoTo(0, 543.414f, 551.728f, 732.0522f);
                         pCrusher->HandleEmote(EMOTE_STATE_READYUNARMED);
                     }
 

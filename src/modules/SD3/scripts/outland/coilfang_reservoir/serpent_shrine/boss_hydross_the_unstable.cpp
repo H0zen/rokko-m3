@@ -165,7 +165,7 @@ struct boss_hydross_the_unstable : public CreatureScript
                     pSummoned->ApplySpellImmune(0, IMMUNITY_SCHOOL, SPELL_SCHOOL_MASK_NATURE, true);
                     break;
                 case NPC_TAINTED_ELEMENTAL:
-                    pSummoned->GetMotionMaster()->MovePoint(POINT_ID_ELEMENTAL_CLEAN, aElementalCleanPoint[0], aElementalCleanPoint[1], aElementalCleanPoint[2]);
+                    pSummoned->Movement()->GoTo(POINT_ID_ELEMENTAL_CLEAN, aElementalCleanPoint[0], aElementalCleanPoint[1], aElementalCleanPoint[2]);
                     break;
             }
 
@@ -200,7 +200,7 @@ struct boss_hydross_the_unstable : public CreatureScript
             if (SD3_SpellId(pSpell) == SPELL_PURIFY_ELEMENTAL)
             {
                 ((Creature*)pTarget)->UpdateEntry(NPC_PURIFIED_ELEMENTAL);
-                pTarget->GetMotionMaster()->MovePoint(POINT_ID_ELEMENTAL_EXIT, aElementalExitPoint[0], aElementalExitPoint[1], aElementalExitPoint[2]);
+                pTarget->Movement()->GoTo(POINT_ID_ELEMENTAL_EXIT, aElementalExitPoint[0], aElementalExitPoint[1], aElementalExitPoint[2]);
             }
         }
 

@@ -130,7 +130,7 @@ struct boss_tyrannus : public CreatureScript
                     pRimefang->AI()->EnterEvadeMode();
                     pRimefang->SetWalk(false);
                     pRimefang->ForcedDespawn(25000);
-                    pRimefang->GetMotionMaster()->MovePoint(0, afRimefangExitPos[0], afRimefangExitPos[1], afRimefangExitPos[2]);
+                    pRimefang->Movement()->GoTo(0, afRimefangExitPos[0], afRimefangExitPos[1], afRimefangExitPos[2]);
                 }
 
                 // Move the general near the boss - ToDo: move the other freed slaves as well
@@ -139,7 +139,7 @@ struct boss_tyrannus : public CreatureScript
                     float fX, fY, fZ;
                     pGeneral->SetWalk(false);
                     ContactPointNear(*m_creature, pGeneral, fX, fY, fZ, INTERACTION_DISTANCE);
-                    pGeneral->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    pGeneral->Movement()->GoTo(0, fX, fY, fZ);
                 }
             }
         }

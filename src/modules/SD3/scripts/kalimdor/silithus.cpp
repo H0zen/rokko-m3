@@ -295,7 +295,7 @@ struct npc_anachronos_the_ancient : public CreatureScript
                         if (Creature* pMerithra = m_creature->GetMap()->GetCreature(m_merithraGuid))
                         {
                             pMerithra->SetWalk(false);
-                            pMerithra->GetMotionMaster()->MovePoint(POINT_ID_DRAGON_ATTACK, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z());
+                            pMerithra->Movement()->GoTo(POINT_ID_DRAGON_ATTACK, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z());
                         }
                     }
                     break;
@@ -318,7 +318,7 @@ struct npc_anachronos_the_ancient : public CreatureScript
                         if (Creature* pArygos = m_creature->GetMap()->GetCreature(m_arygosGuid))
                         {
                             pArygos->SetWalk(false);
-                            pArygos->GetMotionMaster()->MovePoint(POINT_ID_DRAGON_ATTACK, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z());
+                            pArygos->Movement()->GoTo(POINT_ID_DRAGON_ATTACK, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z());
                         }
                     }
                     break;
@@ -328,7 +328,7 @@ struct npc_anachronos_the_ancient : public CreatureScript
                     {
                         pMerithra->SetByteValue(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
                         pMerithra->SetLevitate(true);
-                        pMerithra->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[0].m_fX, aEternalBoardMovement[0].m_fY, aEternalBoardMovement[0].m_fZ);
+                        pMerithra->Movement()->GoTo(POINT_ID_EXIT, aEternalBoardMovement[0].m_fX, aEternalBoardMovement[0].m_fY, aEternalBoardMovement[0].m_fZ);
                         pMerithra->ForcedDespawn(9000);
                     }
                     break;
@@ -350,7 +350,7 @@ struct npc_anachronos_the_ancient : public CreatureScript
                     {
                         pArygos->SetByteValue(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
                         pArygos->SetLevitate(true);
-                        pArygos->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[0].m_fX, aEternalBoardMovement[0].m_fY, aEternalBoardMovement[0].m_fZ);
+                        pArygos->Movement()->GoTo(POINT_ID_EXIT, aEternalBoardMovement[0].m_fX, aEternalBoardMovement[0].m_fY, aEternalBoardMovement[0].m_fZ);
                         pArygos->ForcedDespawn(9000);
                     }
                     break;
@@ -361,7 +361,7 @@ struct npc_anachronos_the_ancient : public CreatureScript
                         if (Creature* pCaelestrasz = m_creature->GetMap()->GetCreature(m_CaelestraszGuid))
                         {
                             pCaelestrasz->SetWalk(false);
-                            pCaelestrasz->GetMotionMaster()->MovePoint(POINT_ID_DRAGON_ATTACK, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z());
+                            pCaelestrasz->Movement()->GoTo(POINT_ID_DRAGON_ATTACK, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z());
                         }
                     }
                     break;
@@ -383,7 +383,7 @@ struct npc_anachronos_the_ancient : public CreatureScript
                     {
                         pCaelestrasz->SetByteValue(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
                         pCaelestrasz->SetLevitate(true);
-                        pCaelestrasz->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[0].m_fX, aEternalBoardMovement[0].m_fY, aEternalBoardMovement[0].m_fZ);
+                        pCaelestrasz->Movement()->GoTo(POINT_ID_EXIT, aEternalBoardMovement[0].m_fX, aEternalBoardMovement[0].m_fY, aEternalBoardMovement[0].m_fZ);
                         pCaelestrasz->ForcedDespawn(9000);
                     }
                     if (Creature* pFandral = m_creature->GetMap()->GetCreature(m_fandralGuid))
@@ -400,14 +400,14 @@ struct npc_anachronos_the_ancient : public CreatureScript
                 case POINT_ID_GATE:
                     // Send Anachronos to the gate
                     m_creature->SetWalk(false);
-                    m_creature->GetMotionMaster()->MovePoint(POINT_ID_GATE, aEternalBoardMovement[1].m_fX, aEternalBoardMovement[1].m_fY, aEternalBoardMovement[1].m_fZ);
+                    m_creature->Movement()->GoTo(POINT_ID_GATE, aEternalBoardMovement[1].m_fX, aEternalBoardMovement[1].m_fY, aEternalBoardMovement[1].m_fZ);
                     break;
                 case NPC_FANDRAL_STAGHELM:
                     // Send Fandral to the gate
                     if (Creature* pFandral = m_creature->GetMap()->GetCreature(m_fandralGuid))
                     {
                         pFandral->SetWalk(false);
-                        pFandral->GetMotionMaster()->MovePoint(POINT_ID_GATE, aEternalBoardMovement[2].m_fX, aEternalBoardMovement[2].m_fY, aEternalBoardMovement[2].m_fZ);
+                        pFandral->Movement()->GoTo(POINT_ID_GATE, aEternalBoardMovement[2].m_fX, aEternalBoardMovement[2].m_fY, aEternalBoardMovement[2].m_fZ);
                     }
                     break;
                 case SPELL_PRISMATIC_BARRIER:
@@ -458,20 +458,20 @@ struct npc_anachronos_the_ancient : public CreatureScript
                     if (Creature* pFandral = m_creature->GetMap()->GetCreature(m_fandralGuid))
                     {
                         pFandral->SetWalk(true);
-                        pFandral->GetMotionMaster()->MovePoint(POINT_ID_SCEPTER_1, aEternalBoardMovement[3].m_fX, aEternalBoardMovement[3].m_fY, aEternalBoardMovement[3].m_fZ);
+                        pFandral->Movement()->GoTo(POINT_ID_SCEPTER_1, aEternalBoardMovement[3].m_fX, aEternalBoardMovement[3].m_fY, aEternalBoardMovement[3].m_fZ);
                     }
                     break;
                 case POINT_ID_EPILOGUE:
                     // Make Fandral leave
                     if (Creature* pFandral = m_creature->GetMap()->GetCreature(m_fandralGuid))
                     {
-                        pFandral->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[7].m_fX, aEternalBoardMovement[7].m_fY, aEternalBoardMovement[7].m_fZ);
+                        pFandral->Movement()->GoTo(POINT_ID_EXIT, aEternalBoardMovement[7].m_fX, aEternalBoardMovement[7].m_fY, aEternalBoardMovement[7].m_fZ);
                     }
                     break;
                 case POINT_ID_SCEPTER_1:
                     // Anachronos collects the pieces
                     m_creature->SetWalk(true);
-                    m_creature->GetMotionMaster()->MovePoint(POINT_ID_SCEPTER_1, aEternalBoardMovement[5].m_fX, aEternalBoardMovement[5].m_fY, aEternalBoardMovement[5].m_fZ);
+                    m_creature->Movement()->GoTo(POINT_ID_SCEPTER_1, aEternalBoardMovement[5].m_fX, aEternalBoardMovement[5].m_fY, aEternalBoardMovement[5].m_fZ);
                     break;
             }
         }
@@ -644,7 +644,7 @@ struct npc_anachronos_the_ancient : public CreatureScript
                         DoUnsummonArmy();
                         break;
                     case POINT_ID_SCEPTER_1:
-                        pSummoned->GetMotionMaster()->MovePoint(POINT_ID_EPILOGUE, aEternalBoardMovement[4].m_fX, aEternalBoardMovement[4].m_fY, aEternalBoardMovement[4].m_fZ);
+                        pSummoned->Movement()->GoTo(POINT_ID_EPILOGUE, aEternalBoardMovement[4].m_fX, aEternalBoardMovement[4].m_fY, aEternalBoardMovement[4].m_fZ);
                         break;
                     case POINT_ID_EXIT:
                         pSummoned->ForcedDespawn();
@@ -690,7 +690,7 @@ struct npc_anachronos_the_ancient : public CreatureScript
                             break;
                         case 1:
                             // Do the epilogue movement
-                            m_creature->GetMotionMaster()->MovePoint(POINT_ID_SCEPTER_2, aEternalBoardMovement[6].m_fX, aEternalBoardMovement[6].m_fY, aEternalBoardMovement[6].m_fZ);
+                            m_creature->Movement()->GoTo(POINT_ID_SCEPTER_2, aEternalBoardMovement[6].m_fX, aEternalBoardMovement[6].m_fY, aEternalBoardMovement[6].m_fZ);
                             m_creature->SetStandState(UNIT_STAND_STATE_STAND);
                             m_uiEventTimer = 0;
                             break;
@@ -706,14 +706,14 @@ struct npc_anachronos_the_ancient : public CreatureScript
                         case 3:
                             // Move to exit
                             m_creature->SetWalk(false);
-                            m_creature->GetMotionMaster()->MovePoint(POINT_ID_EXIT, aEternalBoardMovement[8].m_fX, aEternalBoardMovement[8].m_fY, aEternalBoardMovement[8].m_fZ);
+                            m_creature->Movement()->GoTo(POINT_ID_EXIT, aEternalBoardMovement[8].m_fX, aEternalBoardMovement[8].m_fY, aEternalBoardMovement[8].m_fZ);
                             m_uiEventTimer = 0;
                             break;
                         case 4:
                             // Take off and fly
                             m_creature->SetByteValue(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
                             m_creature->SetLevitate(true);
-                            m_creature->GetMotionMaster()->MovePoint(0, aEternalBoardMovement[9].m_fX, aEternalBoardMovement[9].m_fY, aEternalBoardMovement[9].m_fZ);
+                            m_creature->Movement()->GoTo(0, aEternalBoardMovement[9].m_fX, aEternalBoardMovement[9].m_fY, aEternalBoardMovement[9].m_fZ);
                             m_creature->ForcedDespawn(10000);
                             m_uiEventTimer = 0;
                             break;
@@ -846,10 +846,10 @@ struct npc_solenor_the_slayer : public CreatureScript
                     m_creature->SetRespawnDelay(35 * MINUTE);
                     m_creature->SetRespawnTime(35 * MINUTE);
                     m_creature->NearTeleportTo(-7724.21f, 1676.43f, 7.0571f, 4.80044f);
-                    if (!m_creature->GetMotionMaster()->IsPatrolling())
+                    if (!m_creature->Movement()->IsPatrolling())
                     {
                         m_creature->SetDefaultMovementType(CREATURE_MOVEMENT_WAYPOINT);
-                        m_creature->GetMotionMaster()->Initialize();
+                        m_creature->Movement()->UseDefault();
                     }
 
                     m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
@@ -888,8 +888,8 @@ struct npc_solenor_the_slayer : public CreatureScript
         void BeginEvent(ObjectGuid playerGuid)
         {
             m_hunterGuid = playerGuid;
-            m_creature->GetMotionMaster()->Stop();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->Stop();
+            m_creature->Movement()->Stop();
             m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);
             Player * player = sObjectMgr.GetPlayer(playerGuid);
             m_creature->SetFacingToObject(player);

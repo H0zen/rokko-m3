@@ -106,7 +106,7 @@ struct is_shadow_labyrinth : public InstanceScript
                         {
                             // yell intro and remove banish aura
                             DoScriptText(SAY_HELLMAW_INTRO, pHellmaw);
-                            pHellmaw->GetMotionMaster()->MoveWaypoint();
+                            pHellmaw->Movement()->WalkPath();
                             pHellmaw->RemoveAurasDueToSpell(SPELL_BANISH);
                         }
                     }

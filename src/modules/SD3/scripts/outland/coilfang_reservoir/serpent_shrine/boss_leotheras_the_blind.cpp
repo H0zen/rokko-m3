@@ -165,7 +165,7 @@ struct boss_leotheras_the_blind : public CreatureScript
             if (pSummoned->GetEntry() == NPC_SHADOW_LEO)
             {
                 pSummoned->AI()->AttackStart(m_creature->getVictim());
-                pSummoned->GetMotionMaster()->MoveFollow(m_creature, 0, 0);
+                pSummoned->Movement()->Follow(m_creature, 0, 0);
             }
         }
 
@@ -255,8 +255,8 @@ struct boss_leotheras_the_blind : public CreatureScript
                             DoScriptText(SAY_SWITCH_TO_DEMON, m_creature);
 
                             SetCombatMovement(false);
-                            m_creature->GetMotionMaster()->StopAndDefault();
-                            m_creature->GetMotionMaster()->MoveIdle();
+                            m_creature->Movement()->StopAndDefault();
+                            m_creature->Movement()->Stop();
 
                             DoResetThreat();
                             m_bDemonForm = true;
@@ -354,8 +354,8 @@ struct boss_leotheras_the_blind : public CreatureScript
                 m_creature->HandleEmote(EMOTE_ONESHOT_KNEEL);
 
                 SetCombatMovement(false);
-                m_creature->GetMotionMaster()->StopAndDefault();
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->StopAndDefault();
+                m_creature->Movement()->Stop();
 
                 m_bIsFinalForm = true;
             }

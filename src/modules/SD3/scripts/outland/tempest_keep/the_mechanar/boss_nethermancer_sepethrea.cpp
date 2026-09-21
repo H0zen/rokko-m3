@@ -110,7 +110,7 @@ struct boss_nethermancer_sepethrea : public CreatureScript
                 // ToDo: need to fixate target and make them walk!
                 if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 {
-                    pSummoned->GetMotionMaster()->MoveChase(pTarget);
+                    pSummoned->Movement()->Chase(pTarget);
                 }
             }
         }

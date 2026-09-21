@@ -240,7 +240,7 @@ struct npc_piznik : public CreatureScript
             ++m_uiSummonCount;
 
             // Get waypoint for each creature
-            pSummoned->GetMotionMaster()->MovePoint(0, MovePointsst[m_uiMoveCount].fX, MovePointsst[m_uiMoveCount].fY, MovePointsst[m_uiMoveCount].fZ);
+            pSummoned->Movement()->GoTo(0, MovePointsst[m_uiMoveCount].fX, MovePointsst[m_uiMoveCount].fY, MovePointsst[m_uiMoveCount].fZ);
 
             ++m_uiMoveCount;
         }

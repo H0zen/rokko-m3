@@ -420,7 +420,7 @@ struct npc_twiggy_flathead : public CreatureScript
                 m_bigWillGuid = pSummoned->GetObjectGuid();
                 pSummoned->setFaction(FACTION_FRIENDLY);
                 pSummoned->SetWalk(false);
-                pSummoned->GetMotionMaster()->MovePoint(1, aAffrayChallengerLoc[7][0], aAffrayChallengerLoc[7][1], aAffrayChallengerLoc[7][2]);
+                pSummoned->Movement()->GoTo(1, aAffrayChallengerLoc[7][0], aAffrayChallengerLoc[7][1], aAffrayChallengerLoc[7][2]);
             }
             else
             {
@@ -1298,7 +1298,7 @@ struct horde_defender : public CreatureScript
                 Creature* pCreature = GetClosestCreatureWithEntry(m_creature, NPC_KOLKAR_INVADER, 38.0f);
                 if (!pCreature && m_bCreatureFound)
                 {
-                    m_creature->GetMotionMaster()->MoveTargetedHome();
+                    m_creature->Movement()->GoHome();
                     m_bCreatureFound = false;
                 }
                 if (pCreature)
@@ -1381,7 +1381,7 @@ struct kolkar_invader : public CreatureScript
                 Creature* pCreature = GetClosestCreatureWithEntry(m_creature, NPC_HORDE_DEFENDER |  NPC_HORDE_AXE_THROWER , 38.0f);
                 if (!pCreature && m_bCreatureFound)
                 {
-                    m_creature->GetMotionMaster()->MoveTargetedHome();
+                    m_creature->Movement()->GoHome();
                     m_bCreatureFound = false;
                 }
                 if (pCreature)

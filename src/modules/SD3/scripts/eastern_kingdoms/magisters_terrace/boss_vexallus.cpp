@@ -131,7 +131,7 @@ struct boss_vexallus : public CreatureScript
         {
             if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
             {
-                pSummoned->GetMotionMaster()->MoveFollow(pTarget, 0.0f, 0.0f);
+                pSummoned->Movement()->Follow(pTarget, 0.0f, 0.0f);
             }
 
             pSummoned->CastSpell(pSummoned, SPELL_ENERGY_PASSIVE, true, nullptr, nullptr, m_creature->GetObjectGuid());

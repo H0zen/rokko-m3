@@ -188,7 +188,7 @@ struct boss_anubarak : public CreatureScript
                     pSummoned->SetWalk(false);
                     if (Creature* pTrigger = m_creature->GetMap()->GetCreature(ObjectGuid(m_pInstance->GetData64(DATA64_ANUB_TRIGGER))))
                     {
-                        pSummoned->GetMotionMaster()->MovePoint(0, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z());
+                        pSummoned->Movement()->GoTo(0, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z());
                     }
                     break;
                 case NPC_ANUBAR_DARTER:
@@ -202,7 +202,7 @@ struct boss_anubarak : public CreatureScript
                         fZ = randSpot1.z;
 
                         pSummoned->SetWalk(false);
-                        pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                        pSummoned->Movement()->GoTo(0, fX, fY, fZ);
                     }
                     break;
                 case NPC_IMPALE_TARGET:

@@ -205,8 +205,8 @@ struct boss_felblood_kaelthas : public CreatureScript
             m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             m_creature->ClearAllReactives();
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->Stop();
         }
 
         void MoveInLineOfSight(Unit* pWho) override
@@ -280,7 +280,7 @@ struct boss_felblood_kaelthas : public CreatureScript
                 {
                     if (pSummoned->GetEntry() == NPC_ARCANE_SPHERE)
                     {
-                        pSummoned->GetMotionMaster()->MoveFollow(pTarget, 0, 0);
+                        pSummoned->Movement()->Follow(pTarget, 0, 0);
                     }
                     else
                     {
@@ -419,8 +419,8 @@ struct boss_felblood_kaelthas : public CreatureScript
                     if (DoCastSpellIfCan(m_creature, SPELL_TELEPORT_CENTER, CAST_INTERRUPT_PREVIOUS) == CAST_OK)
                     {
                         SetCombatMovement(false);
-                        m_creature->GetMotionMaster()->StopAndDefault();
-                        m_creature->GetMotionMaster()->MoveIdle();
+                        m_creature->Movement()->StopAndDefault();
+                        m_creature->Movement()->Stop();
 
                         m_bIsFirstPhase = false;
                     }
@@ -562,8 +562,8 @@ struct mob_felkael_phoenix : public CreatureScript
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             m_creature->ClearAllReactives();
             m_creature->SetTargetGuid(ObjectGuid());
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->Stop();
             m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
 
             // Spawn egg and make invisible
@@ -581,7 +581,7 @@ struct mob_felkael_phoenix : public CreatureScript
             if (DoCastSpellIfCan(m_creature, SPELL_REBIRTH_DMG) == CAST_OK)
             {
                 m_creature->SetHealth(m_creature->GetMaxHealth());
-                m_creature->GetMotionMaster()->StopAndDefault();
+                m_creature->Movement()->StopAndDefault();
                 DoStartMovement(m_creature->getVictim());
                 m_bFakeDeath = false;
 
@@ -722,7 +722,7 @@ struct mob_arcane_sphere : public CreatureScript
                 {
                     if (Unit* pTarget = pKael->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                     {
-                        m_creature->GetMotionMaster()->MoveFollow(pTarget, 0, 0);
+                        m_creature->Movement()->Follow(pTarget, 0, 0);
                     }
                 }
 

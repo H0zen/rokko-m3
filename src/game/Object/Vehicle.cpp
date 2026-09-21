@@ -181,7 +181,7 @@ void VehicleInfo::Initialize()
     if (vehicleFlags & VEHICLE_FLAG_FIXED_POSITION)
     {
         // Never released: the vehicle is fixed for its life.
-        pVehicle->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::FixedVehicle, pVehicle->GetObjectGuid().GetCounter()));
+        pVehicle->Movement()->Forbid(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::FixedVehicle, pVehicle->GetObjectGuid().GetCounter()));
     }
 
     // Initialize power type based on DBC values (creatures only)
@@ -485,7 +485,7 @@ void VehicleInfo::Board(Unit* passenger, uint8 seat)
         // SMSG_BREAK_TARGET (?)
     }
 
-    passenger->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), seat));
+    passenger->Movement()->Forbid(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), seat));
 
     // A rider's path is seat-local: MoveSplineInit::Launch starts it from
     // GetTransportInfo()->Seat() -- the boarding offset BoardPassenger just set, wherever the
@@ -561,8 +561,8 @@ void VehicleInfo::SwitchSeat(Unit* passenger, uint8 seat)
     // client never sees an unroot immediately followed by a root. UnBoard(changeVehicle = true)
     // followed by the next vehicle's Board has the same shape across two different vehicles and
     // is left as it is.
-    passenger->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), seat));
-    passenger->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), oldSeat));
+    passenger->Movement()->Forbid(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), seat));
+    passenger->Movement()->Allow(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), oldSeat));
 
     // Set to new seat
     itr->second->SetTransportSeat(seat);
@@ -634,7 +634,7 @@ void VehicleInfo::UnBoard(Unit* passenger, bool changeVehicle)
     // moving straight to another vehicle would otherwise leave this seat's source held forever
     // (nothing ever unboards it a second time to release it); the new vehicle's Board claims
     // its own seat regardless.
-    passenger->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), seat));
+    passenger->Movement()->Allow(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Seat, m_owner->GetObjectGuid().GetCounter(), seat));
 
     if (!changeVehicle)                                     // Send expected unboarding packages
     {
@@ -931,7 +931,7 @@ void VehicleInfo::ApplySeatMods(Unit* passenger, uint32 seatFlags)
             pPlayer->SetCharm(pVehicle);
             pVehicle->SetCharmerGuid(pPlayer->GetObjectGuid());
 
-            pVehicle->GetMotionMaster()->Inhibit(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, pPlayer->GetObjectGuid().GetCounter()));
+            pVehicle->Movement()->Forbid(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, pPlayer->GetObjectGuid().GetCounter()));
             pVehicle->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
 
             // Unconfirmed - default speed handling. Before the grant: a gait change is
@@ -976,8 +976,8 @@ void VehicleInfo::ApplySeatMods(Unit* passenger, uint32 seatFlags)
         ((Creature*)passenger)->AI()->SetCombatMovement(false);
         // Not entirely sure how this must be handled in relation to CONTROL
         // But in any way this at least would require some changes in the movement system most likely
-        passenger->GetMotionMaster()->Stop();
-        passenger->GetMotionMaster()->MoveIdle();
+        passenger->Movement()->Stop();
+        passenger->Movement()->Stop();
     }
 }
 
@@ -1008,7 +1008,7 @@ void VehicleInfo::RemoveSeatMods(Unit* passenger, uint32 seatFlags)
 
             pPlayer->SetClientControl(pVehicle, 0);
 
-            pVehicle->GetMotionMaster()->Uninhibit(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, pPlayer->GetObjectGuid().GetCounter()));
+            pVehicle->Movement()->Allow(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, pPlayer->GetObjectGuid().GetCounter()));
             pVehicle->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
 
             // must be called after movement control unapplying
@@ -1041,7 +1041,7 @@ void VehicleInfo::RemoveSeatMods(Unit* passenger, uint32 seatFlags)
         ((Creature*)passenger)->AI()->SetCombatMovement(true, true);
         if (!passenger->getVictim())
         {
-            passenger->GetMotionMaster()->Initialize();
+            passenger->Movement()->UseDefault();
         }
     }
 }

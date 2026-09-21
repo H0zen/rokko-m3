@@ -522,7 +522,7 @@ void instance_blackrock_depths::SetData(uint32 uiType, uint32 uiData)
                             pSummoned->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
                             // The movement toward the kegs is handled by Hurley EscortAI
                             // and we want the cronies to follow him there
-                            pSummoned->GetMotionMaster()->MoveFollow(pHurley, 1.0f, 0);
+                            pSummoned->Movement()->Follow(pHurley, 1.0f, 0);
                         }
                         SetData(TYPE_HURLEY, IN_PROGRESS);
                     }
@@ -763,8 +763,8 @@ void instance_blackrock_depths::HandleBarPatrol(uint8 uiStep)
                         fX = randSpot1.x;
                         fY = randSpot1.y;
                         fZ = randSpot1.z;
-                        pSummoned->GetMotionMaster()->MoveIdle();
-                        pSummoned->GetMotionMaster()->MovePoint(0,fX, fY, fZ);
+                        pSummoned->Movement()->Stop();
+                        pSummoned->Movement()->GoTo(0,fX, fY, fZ);
                     }
                 }
                 // start timer to handle the yells

@@ -110,7 +110,7 @@ struct boss_high_botanist_freywinn : public CreatureScript
 
                     if (m_creature->getVictim())
                     {
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                     }
 
                     // Interrupt all spells and remove auras
@@ -160,7 +160,7 @@ struct boss_high_botanist_freywinn : public CreatureScript
                     DoCastSpellIfCan(m_creature, SPELL_TREE_FORM, CAST_TRIGGERED);
                     DoScriptText(urand(0, 1) ? SAY_TREE_1 : SAY_TREE_2, m_creature);
 
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
                     m_bCanMoveFree = false;
                     m_uiFrayerTimer = 1000;
                     m_uiTreeFormEndTimer = 45000;
@@ -195,7 +195,7 @@ struct boss_high_botanist_freywinn : public CreatureScript
                 {
                     if (m_creature->getVictim())
                     {
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                     }
                     m_bCanMoveFree = true;
                     m_uiTreeFormEndTimer = 0;

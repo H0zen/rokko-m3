@@ -234,7 +234,7 @@ struct boss_jedoga : public CreatureScript
                         }
 
                         FindFreeSpotNear(*m_creature, m_creature, fX, fY, fZ, 0, fDist, fAngle);
-                        pVolunteer->GetMotionMaster()->MovePoint(POINT_ID_PREPARE, fX, fY, fZ);
+                        pVolunteer->Movement()->GoTo(POINT_ID_PREPARE, fX, fY, fZ);
                     }
                 }
             }
@@ -247,7 +247,7 @@ struct boss_jedoga : public CreatureScript
             if (Creature* pVolunteer = m_creature->SummonCreature(NPC_TWILIGHT_VOLUNTEER, fX, fY, fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0))
             {
                 FindFreeSpotNear(*m_creature, m_creature, fX, fY, fZ, 0, 20.0f, 7 * M_PI_F / 4);
-                pVolunteer->GetMotionMaster()->MovePoint(POINT_ID_PREPARE, fX, fY, fZ);
+                pVolunteer->Movement()->GoTo(POINT_ID_PREPARE, fX, fY, fZ);
             }
         }
 
@@ -272,7 +272,7 @@ struct boss_jedoga : public CreatureScript
                     m_pInstance->SetData(TYPE_DO_JEDOGA, 1);
                 }
 
-                m_creature->GetMotionMaster()->MovePoint(POINT_ID_COMBAT, aJedogaLandingLoc[0], aJedogaLandingLoc[1], aJedogaLandingLoc[2]);
+                m_creature->Movement()->GoTo(POINT_ID_COMBAT, aJedogaLandingLoc[0], aJedogaLandingLoc[1], aJedogaLandingLoc[2]);
             }
         }
 
@@ -318,7 +318,7 @@ struct boss_jedoga : public CreatureScript
                 case POINT_ID_SACRIFICE:
                     DoCastSpellIfCan(m_creature, SPELL_HOVER_FALL);
                     m_creature->SetLevitate(true);
-                    m_creature->GetMotionMaster()->MovePoint(POINT_ID_LEVITATE, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 10.0f);
+                    m_creature->Movement()->GoTo(POINT_ID_LEVITATE, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 10.0f);
                     break;
 
                 // Call a volunteer to sacrifice
@@ -333,7 +333,7 @@ struct boss_jedoga : public CreatureScript
                         pVolunteer->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                         pVolunteer->CastSpell(pVolunteer, SPELL_PILLAR_LIGHTNING, false);
                         pVolunteer->SetWalk(true);
-                        pVolunteer->GetMotionMaster()->MovePoint(POINT_ID_SACRIFICE, aJedogaLandingLoc[0], aJedogaLandingLoc[1], aJedogaLandingLoc[2]);
+                        pVolunteer->Movement()->GoTo(POINT_ID_SACRIFICE, aJedogaLandingLoc[0], aJedogaLandingLoc[1], aJedogaLandingLoc[2]);
                     }
 
                     // Set visual aura
@@ -353,7 +353,7 @@ struct boss_jedoga : public CreatureScript
                     m_creature->SetLevitate(false);
                     if (m_creature->getVictim())
                     {
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                     }
                     break;
             }
@@ -397,7 +397,7 @@ struct boss_jedoga : public CreatureScript
             {
                 SetCombatMovement(false);
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-                m_creature->GetMotionMaster()->MovePoint(POINT_ID_SACRIFICE, aJedogaLandingLoc[0], aJedogaLandingLoc[1], aJedogaLandingLoc[2]);
+                m_creature->Movement()->GoTo(POINT_ID_SACRIFICE, aJedogaLandingLoc[0], aJedogaLandingLoc[1], aJedogaLandingLoc[2]);
                 m_bSacrifice = true;
                 m_bIsSacrificing = true;
             }

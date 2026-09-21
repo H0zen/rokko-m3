@@ -487,7 +487,7 @@ struct npc_thrall_old_hillsbrad : public CreatureScript
                     // For the summons corresponding to the Epoch event, handle movement
                     if (m_pInstance && m_pInstance->GetData(TYPE_ESCORT_INN) == DONE)
                     {
-                        pSummoned->GetMotionMaster()->MovePoint(1, pSummoned->Where().X(), pSummoned->Where().Y() - 10.0f, pSummoned->Where().Z());
+                        pSummoned->Movement()->GoTo(1, pSummoned->Where().X(), pSummoned->Where().Y() - 10.0f, pSummoned->Where().Z());
 
                         // Transform on timer
                         if (!m_uiEpochAttackTimer)
@@ -546,7 +546,7 @@ struct npc_thrall_old_hillsbrad : public CreatureScript
                     break;
                 case NPC_SKARLOC:
                     pSummoned->SetWalk(false);
-                    pSummoned->GetMotionMaster()->MovePoint(1, 2050.029f, 249.9696f, 63.0313f);
+                    pSummoned->Movement()->GoTo(1, 2050.029f, 249.9696f, 63.0313f);
                     break;
                 case NPC_EPOCH:
                     pSummoned->SetLevitate(true);
@@ -560,7 +560,7 @@ struct npc_thrall_old_hillsbrad : public CreatureScript
                         // Allow these to follow Skarloc and attack only on command
                         if (Creature* pSkarloc = m_pInstance->GetSingleCreatureFromStorage(NPC_SKARLOC))
                         {
-                            pSummoned->GetMotionMaster()->MoveFollow(pSkarloc, 5.0f, pSummoned->Where().BearingTo(pSkarloc->Where()) + M_PI_F);
+                            pSummoned->Movement()->Follow(pSkarloc, 5.0f, pSummoned->Where().BearingTo(pSkarloc->Where()) + M_PI_F);
                         }
 
                         pSummoned->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE | UNIT_FLAG_OOC_NOT_ATTACKABLE);
@@ -658,7 +658,7 @@ struct npc_thrall_old_hillsbrad : public CreatureScript
                             pSummoned->Unmount();
                             m_creature->SummonCreature(NPC_SKARLOC_MOUNT, 2047.775f, 253.4088f, 62.91183f, 5.37f, TEMPSPAWN_DEAD_DESPAWN, 0);
                             pSummoned->SetWalk(true);
-                            pSummoned->GetMotionMaster()->MovePoint(2, 2059.899f, 234.2593f, 64.10809f);
+                            pSummoned->Movement()->GoTo(2, 2059.899f, 234.2593f, 64.10809f);
                             break;
                         case 2:
                             // taunt Thrall
@@ -722,7 +722,7 @@ struct npc_thrall_old_hillsbrad : public CreatureScript
                             fX = randSpot1.x;
                             fY = randSpot1.y;
                             fZ = randSpot1.z;
-                            pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                            pTemp->Movement()->GoTo(0, fX, fY, fZ);
                             pTemp->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
                         }
                     }
@@ -887,7 +887,7 @@ struct npc_thrall_old_hillsbrad : public CreatureScript
                     if (Creature* pMount = m_creature->GetMap()->GetCreature(m_skarlocMountGuid))
                     {
                         pMount->SetWalk(false);
-                        pMount->GetMotionMaster()->MovePoint(0, 2517.504f, 506.253f, 42.329f);
+                        pMount->Movement()->GoTo(0, 2517.504f, 506.253f, 42.329f);
                     }
                     m_creature->SetFacingTo(4.66f);
                     // wait for player input

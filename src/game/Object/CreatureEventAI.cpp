@@ -897,15 +897,15 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                         // Melee current victim if flag not set
                         if (!(action.cast.castFlags & CAST_NO_MELEE_IF_OOM))
                         {
-                            switch (m_creature->GetMotionMaster()->ActiveKind())
+                            switch (m_creature->Movement()->Doing())
                             {
                             case Motion::Kind::Chase:
                             case Motion::Kind::Follow:
                                 m_attackDistance = 0.0f;
                                 m_attackAngle = 0.0f;
 
-                                m_creature->GetMotionMaster()->Stop();
-                                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), m_attackDistance, m_attackAngle);
+                                m_creature->Movement()->Stop();
+                                m_creature->Movement()->Chase(m_creature->getVictim(), m_attackDistance, m_attackAngle);
                                 break;
                             default:
                                 break;
@@ -1128,11 +1128,11 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
 
             if (m_isCombatMovement)
             {
-                if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Chase)
+                if (m_creature->Movement()->Doing() == Motion::Kind::Chase)
                 {
                     // The chase that runs now is re-issued with the new distance and angle; a masked chase keeps its mask (the Clear below would cut it)
-                    m_creature->GetMotionMaster()->Stop();
-                    m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), m_attackDistance, m_attackAngle);
+                    m_creature->Movement()->Stop();
+                    m_creature->Movement()->Chase(m_creature->getVictim(), m_attackDistance, m_attackAngle);
                 }
             }
             break;
@@ -1337,13 +1337,13 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
             switch (action.changeMovement.movementType)
             {
                 case CREATURE_MOVEMENT_IDLE:
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
                     break;
                 case CREATURE_MOVEMENT_RANDOM:
-                    m_creature->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), float(action.changeMovement.wanderDistance));
+                    m_creature->Movement()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), float(action.changeMovement.wanderDistance));
                     break;
                 case CREATURE_MOVEMENT_WAYPOINT:
-                    m_creature->GetMotionMaster()->MoveWaypoint();
+                    m_creature->Movement()->WalkPath();
                     break;
             }
             break;
@@ -1451,7 +1451,7 @@ void CreatureEventAI::EnterEvadeMode()
     // only alive creatures that are not on transport can return to home position
     if (m_creature->IsAlive() && !m_creature->IsBoarded())
     {
-        m_creature->GetMotionMaster()->MoveTargetedHome();
+        m_creature->Movement()->GoHome();
     }
 
     m_creature->SetLootRecipient(NULL);

@@ -190,7 +190,7 @@ struct boss_warlord_kalithresh : public CreatureScript
                     {
                         float fX, fY, fZ;
                         ContactPointNear(*pDistiller, m_creature, fX, fY, fZ, INTERACTION_DISTANCE);
-                        m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                        m_creature->Movement()->GoTo(1, fX, fY, fZ);
                         SetCombatMovement(false);
                         m_distillerGuid = pDistiller->GetObjectGuid();
                     }
@@ -257,8 +257,8 @@ struct aura_dummy_warlord_rage : public AuraScript
                 {
                     if (pTarget->getVictim())
                     {
-                        pTarget->GetMotionMaster()->Finish();
-                        pTarget->GetMotionMaster()->MoveChase(pTarget->getVictim());
+                        pTarget->Movement()->Finish();
+                        pTarget->Movement()->Chase(pTarget->getVictim());
                     }
                 }
             }

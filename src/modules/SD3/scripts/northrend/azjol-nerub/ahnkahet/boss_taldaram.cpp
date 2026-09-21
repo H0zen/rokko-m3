@@ -164,7 +164,7 @@ struct boss_taldaram : public CreatureScript
             // should evade on the ground
             if (m_creature->IsAlive())
             {
-                m_creature->GetMotionMaster()->MovePoint(1, aTaldaramLandingLoc[0], aTaldaramLandingLoc[1], aTaldaramLandingLoc[2]);
+                m_creature->Movement()->GoTo(1, aTaldaramLandingLoc[0], aTaldaramLandingLoc[1], aTaldaramLandingLoc[2]);
             }
 
             m_creature->SetLootRecipient(nullptr);
@@ -219,7 +219,7 @@ struct boss_taldaram : public CreatureScript
                     const Geometry::Vector3 near2d1 = pOrb->Where().PointAt(70.0f, (2 * M_PI_F / 3)*uiIndex);
                     fX = near2d1.x;
                     fY = near2d1.y;
-                    pOrb->GetMotionMaster()->MovePoint(0, fX, fY, pOrb->Where().Z());
+                    pOrb->Movement()->GoTo(0, fX, fY, pOrb->Where().Z());
                 }
                 ++uiIndex;
             }

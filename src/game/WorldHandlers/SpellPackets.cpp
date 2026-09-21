@@ -793,7 +793,7 @@ void Spell::SendChannelUpdate(uint32 time)
                 possessed->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
                 possessed->SetCharmerGuid(ObjectGuid());
                 // After the charmer is gone: the block's client-root projection reads it.
-                possessed->GetMotionMaster()->Uninhibit(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, player->GetObjectGuid().GetCounter()));
+                possessed->Movement()->Allow(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, player->GetObjectGuid().GetCounter()));
                 // TODO - Requires more specials for target?
 
                 // Some possessed might want to despawn?

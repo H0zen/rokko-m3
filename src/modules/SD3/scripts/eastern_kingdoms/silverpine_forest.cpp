@@ -279,7 +279,7 @@ struct npc_deathstalker_faerleia : public CreatureScript
             fX = randSpot1.x;
             fY = randSpot1.y;
             fZ = randSpot1.z;
-            pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+            pSummoned->Movement()->GoTo(0, fX, fY, fZ);
         }
 
 

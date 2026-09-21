@@ -242,7 +242,7 @@ struct boss_netherspite : public CreatureScript
                     m_creature->RemoveAurasDueToSpell(SPELL_EMPOWERMENT);
 
                     SetCombatMovement(false);
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
 
                     m_uiActivePhase = BANISH_PHASE;
                     DoScriptText(EMOTE_PHASE_BANISH, m_creature);

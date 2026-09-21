@@ -228,9 +228,9 @@ void CreatureAI::SetCombatMovement(bool enable, bool stopOrStartMovement /*=fals
     {
         if (enable)
         {
-            m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), m_attackDistance, m_attackAngle);
+            m_creature->Movement()->Chase(m_creature->getVictim(), m_attackDistance, m_attackAngle);
         }
-        else if (!enable && m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Chase)
+        else if (!enable && m_creature->Movement()->Doing() == Motion::Kind::Chase)
         {
             m_creature->StopMoving();
         }
@@ -244,15 +244,15 @@ void CreatureAI::SetCombatMovement(bool enable, bool stopOrStartMovement /*=fals
  */
 void CreatureAI::HandleMovementOnAttackStart(Unit* victim)
 {
-    UnitMovement* creatureMotion = m_creature->GetMotionMaster();
-    const Motion::Kind kind = creatureMotion->ActiveKind();
+    UnitMovement* creatureMotion = m_creature->Movement();
+    const Motion::Kind kind = creatureMotion->Doing();
     if (m_isCombatMovement)
     {
-        creatureMotion->MoveChase(victim, m_attackDistance, m_attackAngle);
+        creatureMotion->Chase(victim, m_attackDistance, m_attackAngle);
     }
     else if (kind == Motion::Kind::Patrol || kind == Motion::Kind::Wander)
     {
-        creatureMotion->MoveIdle();
+        creatureMotion->Stop();
         m_creature->StopMoving();
     }
 }

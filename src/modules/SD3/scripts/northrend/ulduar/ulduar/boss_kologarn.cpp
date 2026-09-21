@@ -253,7 +253,7 @@ struct boss_kologarn : public CreatureScript
 
                         if (Unit* pPlayer = m_creature->GetMap()->GetUnit(pTemporary->GetSummonerGuid()))
                         {
-                            pSummoned->GetMotionMaster()->MoveChase(pPlayer);
+                            pSummoned->Movement()->Chase(pPlayer);
                         }
                     }
                     break;

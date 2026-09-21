@@ -142,10 +142,10 @@ struct boss_scarlet_commander_mograine : public CreatureScript
             {
                 m_pInstance->SetData(TYPE_MOGRAINE_AND_WHITE_EVENT, IN_PROGRESS);
 
-                pWhitemane->GetMotionMaster()->MovePoint(1, 1163.113370f, 1398.856812f, 32.527786f);
+                pWhitemane->Movement()->GoTo(1, 1163.113370f, 1398.856812f, 32.527786f);
 
-                m_creature->GetMotionMaster()->Finish();
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->Finish();
+                m_creature->Movement()->Stop();
 
                 m_creature->SetHealth(0);
 
@@ -203,7 +203,7 @@ struct boss_scarlet_commander_mograine : public CreatureScript
 
                 if (m_creature->getVictim())
                 {
-                    m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                    m_creature->Movement()->Chase(m_creature->getVictim());
                 }
 
                 m_bHeal = true;

@@ -164,7 +164,7 @@ struct boss_eregos : public CreatureScript
 
                 if (Unit* pTarget = m_creature->GetMap()->GetUnit(m_vAnomalyTargets[m_uiAnomalyTargetIndex]))
                 {
-                    pSummoned->GetMotionMaster()->MoveFollow(pTarget, 0, 0);
+                    pSummoned->Movement()->Follow(pTarget, 0, 0);
                 }
 
                 if (m_uiAnomalyTargetIndex < m_vAnomalyTargets.size() - 1)

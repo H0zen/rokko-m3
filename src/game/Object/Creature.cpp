@@ -859,7 +859,7 @@ void Creature::Update(uint32 update_diff, uint32 diff)
             // keep the swim flag in sync while moving across liquid;
             // cheap gate: position only changes mid-spline, and a set
             // flag must clear when the water is left
-            if (GetMotionMaster()->IsMoving() || IsSwimming())
+            if (Movement()->IsMoving() || IsSwimming())
             {
                 UpdateSwimmingState();
             }
@@ -1110,7 +1110,7 @@ void Creature::DoFleeToGetAssistance()
         }
         else
         {
-            GetMotionMaster()->MoveSeekAssistance(pCreature->Where().X(), pCreature->Where().Y(), pCreature->Where().Z());
+            Movement()->RunAskingHelp(pCreature->Where().X(), pCreature->Where().Y(), pCreature->Where().Z());
         }
     }
 }
@@ -1130,7 +1130,7 @@ bool Creature::AIM_Initialize()
     }
 
     CreatureAI* oldAI = i_AI;
-    i_movement.Initialize();
+    i_movement.UseDefault();
     i_AI = FactorySelector::selectAI(this);
     delete oldAI;
 
@@ -2037,7 +2037,7 @@ void Creature::SetDeathState(DeathState s)
 
         if (CanFly())
         {
-            i_movement.MoveFall();
+            i_movement.Fall();
         }
 
         Unit::SetDeathState(CORPSE);
@@ -2070,7 +2070,7 @@ void Creature::SetDeathState(DeathState s)
         RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
 
         SetWalk(true, true);
-        i_movement.Initialize();
+        i_movement.UseDefault();
     }
 }
 
@@ -3020,7 +3020,7 @@ uint8 Creature::getRace() const
  */
 bool Creature::IsInEvadeMode() const
 {
-    return i_movement.ActiveKind() == Motion::Kind::Home;
+    return i_movement.Doing() == Motion::Kind::Home;
 }
 
 /**

@@ -470,8 +470,8 @@ struct boss_illidan_stormrage : public CreatureScript
 
             DoCastSpellIfCan(m_creature, SPELL_DEATH, CAST_TRIGGERED);
             DoCastSpellIfCan(m_creature, SPELL_TELEPORT_MAIEV, CAST_TRIGGERED);
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->Stop();
 
             // Signal Maiev to start the outro dialogue
             if (m_pInstance)
@@ -556,8 +556,8 @@ struct boss_illidan_stormrage : public CreatureScript
                     m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                     m_creature->SetTargetGuid(m_creature->getVictim()->GetObjectGuid());
                     SetCombatMovement(false);
-                    m_creature->GetMotionMaster()->StopAndDefault();
-                    m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                    m_creature->Movement()->StopAndDefault();
+                    m_creature->Movement()->Chase(m_creature->getVictim());
                     if (m_pInstance)
                     {
                         if (Creature* pMaiev = m_pInstance->GetSingleCreatureFromStorage(NPC_MAIEV_SHADOWSONG))
@@ -586,7 +586,7 @@ struct boss_illidan_stormrage : public CreatureScript
                 case NPC_ILLIDAN_TARGET:
                     pSummoned->SetWalk(false);
                     pSummoned->CastSpell(pSummoned, SPELL_EYE_BLAST_TRIGGER, true);
-                    pSummoned->GetMotionMaster()->MovePoint(0, m_fTargetMoveX, m_fTargetMoveY, m_fTargetMoveZ);
+                    pSummoned->Movement()->GoTo(0, m_fTargetMoveX, m_fTargetMoveY, m_fTargetMoveZ);
                     DoCastSpellIfCan(pSummoned, SPELL_EYE_BLAST_DUMMY, CAST_TRIGGERED);
                     break;
                 case NPC_SHADOW_DEMON:
@@ -600,7 +600,7 @@ struct boss_illidan_stormrage : public CreatureScript
                         // Move towards target (which is stunned)
                         float fX, fY, fZ;
                         ContactPointNear(*pTarget, pSummoned, fX, fY, fZ);
-                        pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                        pSummoned->Movement()->GoTo(1, fX, fY, fZ);
                     }
                     break;
                 case NPC_MAIEV_SHADOWSONG:
@@ -707,7 +707,7 @@ struct boss_illidan_stormrage : public CreatureScript
                 m_creature->RemoveAllAuras();
                 m_creature->SetLevitate(true);
                 SetCombatMovement(false);
-                m_creature->GetMotionMaster()->StopAndDefault();
+                m_creature->Movement()->StopAndDefault();
                 m_creature->HandleEmote(EMOTE_ONESHOT_LIFTOFF);
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                 return;
@@ -722,8 +722,8 @@ struct boss_illidan_stormrage : public CreatureScript
                     m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
 
                     SetCombatMovement(false);
-                    m_creature->GetMotionMaster()->StopAndDefault();
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->StopAndDefault();
+                    m_creature->Movement()->Stop();
 
                     m_uiPhase = PHASE_TRANSITION;
                     m_uiTransformTimer = 0;
@@ -806,8 +806,8 @@ struct boss_illidan_stormrage : public CreatureScript
                             m_uiShadowDemonTimer = 30000;
 
                             SetCombatMovement(false);
-                            m_creature->GetMotionMaster()->StopAndDefault();
-                            m_creature->GetMotionMaster()->MoveIdle();
+                            m_creature->Movement()->StopAndDefault();
+                            m_creature->Movement()->Stop();
                         }
                     }
                     else
@@ -880,7 +880,7 @@ struct boss_illidan_stormrage : public CreatureScript
                         {
                             // The movement is not very clear - it may be possible that he is moving around the center during this phase
                             // ToDo: this requires additional resarch. For now bring him near home position
-                            m_creature->GetMotionMaster()->MovePoint(0, aCenterLoc[0].fX, aCenterLoc[0].fY, aCenterLoc[0].fZ);
+                            m_creature->Movement()->GoTo(0, aCenterLoc[0].fX, aCenterLoc[0].fY, aCenterLoc[0].fZ);
                             m_uiCenterMoveTimer = 0;
                         }
                         else
@@ -976,8 +976,8 @@ struct boss_illidan_stormrage : public CreatureScript
                             m_uiPhase = PHASE_TRANSITION;
 
                             SetCombatMovement(true);
-                            m_creature->GetMotionMaster()->StopAndDefault();
-                            m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                            m_creature->Movement()->StopAndDefault();
+                            m_creature->Movement()->Chase(m_creature->getVictim());
                         }
                     }
 
@@ -989,8 +989,8 @@ struct boss_illidan_stormrage : public CreatureScript
                             m_uiPhase = PHASE_TRANSITION;
 
                             SetCombatMovement(true);
-                            m_creature->GetMotionMaster()->StopAndDefault();
-                            m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                            m_creature->Movement()->StopAndDefault();
+                            m_creature->Movement()->Chase(m_creature->getVictim());
                         }
                     }
                     else
@@ -1072,7 +1072,7 @@ struct boss_illidan_stormrage : public CreatureScript
                                     m_uiPhase = PHASE_DUAL_NORMAL;
 
                                     SetCombatMovement(true);
-                                    m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                                    m_creature->Movement()->Chase(m_creature->getVictim());
                                     m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                                     m_uiTransformTimer = 64000;
                                     m_uiLandTimer = 0;
@@ -1262,7 +1262,7 @@ struct npc_akama_illidan : public CreatureScript
                         {
                             float fX, fY, fZ;
                             ContactPointNear(*pIllidan, m_creature, fX, fY, fZ);
-                            m_creature->GetMotionMaster()->MovePoint(100, fX, fY, fZ);
+                            m_creature->Movement()->GoTo(100, fX, fY, fZ);
                         }
                     }
                     break;

@@ -170,7 +170,7 @@ struct boss_sjonnir : public CreatureScript
                     fZ = m_creature->Spawn().Z();
 
                     pSummoned->SetWalk(false);
-                    pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                    pSummoned->Movement()->GoTo(1, fX, fY, fZ);
                     break;
                 }
                 case NPC_IRON_TROGG:
@@ -184,7 +184,7 @@ struct boss_sjonnir : public CreatureScript
                     fZ = randSpot1.z;
 
                     pSummoned->SetWalk(false);
-                    pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    pSummoned->Movement()->GoTo(0, fX, fY, fZ);
                     break;
                 }
             }
@@ -197,7 +197,7 @@ struct boss_sjonnir : public CreatureScript
                 return;
             }
 
-            pSummoned->GetMotionMaster()->Wander(pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z(), 10.0f);
+            pSummoned->Movement()->Wander(pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z(), 10.0f);
         }
 
         void KilledUnit(Unit* /*pVictim*/) override

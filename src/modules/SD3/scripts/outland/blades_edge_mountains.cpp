@@ -183,7 +183,7 @@ struct mobs_nether_drake : public CreatureScript
                             // take off to location above
                             m_creature->SetLevitate(true);
                             m_creature->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
-                            m_creature->GetMotionMaster()->MovePoint(1, m_creature->Where().X() + 50.0f, m_creature->Where().Y(), m_creature->Where().Z() + 50.0f);
+                            m_creature->Movement()->GoTo(1, m_creature->Where().X() + 50.0f, m_creature->Where().Y(), m_creature->Where().Z() + 50.0f);
                             break;
                     }
                     ++m_uiNihilSpeechPhase;
@@ -400,9 +400,9 @@ struct npc_bloodmaul_stout_trigger : public CreatureScript
 
                     // Move ogre to the point
                     float fX, fY, fZ;
-                    pOgre->GetMotionMaster()->MoveIdle();
+                    pOgre->Movement()->Stop();
                     ContactPointNear(*m_creature, pOgre, fX, fY, fZ);
-                    pOgre->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    pOgre->Movement()->GoTo(0, fX, fY, fZ);
 
                     switch (urand(0, 2))
                     {

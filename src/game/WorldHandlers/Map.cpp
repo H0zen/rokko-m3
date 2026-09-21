@@ -1500,7 +1500,7 @@ bool Map::CreatureRespawnRelocation(Creature* c)
     Cell resp_cell(resp_val);
 
     c->CombatStop();
-    c->GetMotionMaster()->StopAndDefault();
+    c->Movement()->StopAndDefault();
 
     DEBUG_FILTER_LOG(LOG_FILTER_CREATURE_MOVES, "Creature (GUID: %u Entry: %u) will moved from grid[%u,%u]cell[%u,%u] to respawn grid[%u,%u]cell[%u,%u].", c->GetGUIDLow(), c->GetEntry(), c->GetCurrentCell().GridX(), c->GetCurrentCell().GridY(), c->GetCurrentCell().CellX(), c->GetCurrentCell().CellY(), resp_cell.GridX(), resp_cell.GridY(), resp_cell.CellX(), resp_cell.CellY());
 
@@ -1508,7 +1508,7 @@ bool Map::CreatureRespawnRelocation(Creature* c)
     if (CreatureCellRelocation(c, resp_cell))
     {
         c->Place().MoveTo(resp_x, resp_y, resp_z, resp_o);
-        c->GetMotionMaster()->Initialize();                 // prevent possible problems with default move generators
+        c->Movement()->UseDefault();                 // prevent possible problems with default move generators
         c->OnRelocated();
         return true;
     }

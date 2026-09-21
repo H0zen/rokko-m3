@@ -181,7 +181,7 @@ struct boss_lord_marrowgar : public CreatureScript
                 const Geometry::Vector3 near2d2 = m_creature->Where().PointAt(80.0f, m_creature->Where().BearingTo(pSummoned->Where()));
                 fX = near2d2.x;
                 fY = near2d2.y;
-                pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ, false);
+                pSummoned->Movement()->GoTo(0, fX, fY, fZ, false);
             }
         }
 
@@ -218,7 +218,7 @@ struct boss_lord_marrowgar : public CreatureScript
                             DoScriptText(SAY_BONE_STORM, m_creature);
                             m_uiPhase = PHASE_BONE_STORM_CHARGE;
                             SetCombatMovement(false);
-                            m_creature->GetMotionMaster()->MoveIdle();
+                            m_creature->Movement()->Stop();
                             m_uiBoneStormTimer = 90000;
                         }
                     }
@@ -254,8 +254,8 @@ struct boss_lord_marrowgar : public CreatureScript
                             fX = pTarget->Where().X();
                             fY = pTarget->Where().Y();
                             fZ = pTarget->Where().Z();
-                            m_creature->GetMotionMaster()->StopAndDefault();
-                            m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                            m_creature->Movement()->StopAndDefault();
+                            m_creature->Movement()->GoTo(1, fX, fY, fZ);
                             m_uiBoneStormChargeTimer = 3000;
                             m_uiPhase = PHASE_BONE_STORM_CHARGING;
                         }
@@ -282,7 +282,7 @@ struct boss_lord_marrowgar : public CreatureScript
                                 m_uiBoneStormTimer = 60000;
                                 m_uiBoneSliceTimer = 10000;
                                 SetCombatMovement(true);
-                                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                                m_creature->Movement()->Chase(m_creature->getVictim());
                                 m_uiChargesCount = 0;
                                 m_uiPhase = PHASE_NORMAL;
                             }

@@ -175,7 +175,7 @@ struct is_ruby_sanctum : public InstanceScript
                             // Start outro event by DB script
                             if (Creature* pXerestrasza = GetSingleCreatureFromStorage(NPC_XERESTRASZA))
                             {
-                                pXerestrasza->GetMotionMaster()->MoveWaypoint();
+                                pXerestrasza->Movement()->WalkPath();
                             }
                         }
                         break;

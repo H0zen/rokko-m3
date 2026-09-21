@@ -177,7 +177,7 @@ struct boss_thermaplugg : public CreatureScript
                 float fX, fY;
                 fX = 0.2 * m_afSpawnPos[0] + 0.8 * pSummoned->Where().X();
                 fY = 0.2 * m_afSpawnPos[1] + 0.8 * pSummoned->Where().Y();
-                pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, m_afSpawnPos[2] - 2.0f);
+                pSummoned->Movement()->GoTo(1, fX, fY, m_afSpawnPos[2] - 2.0f);
             }
         }
 
@@ -234,7 +234,7 @@ struct boss_thermaplugg : public CreatureScript
                 {
                     if (Creature* pBomb = m_creature->GetMap()->GetCreature(*itr))
                     {
-                        pBomb->GetMotionMaster()->MoveFollow(m_creature, 0.0f, 0.0f);
+                        pBomb->Movement()->Follow(m_creature, 0.0f, 0.0f);
                     }
                 }
                 m_lLandedBombGUIDs.clear();

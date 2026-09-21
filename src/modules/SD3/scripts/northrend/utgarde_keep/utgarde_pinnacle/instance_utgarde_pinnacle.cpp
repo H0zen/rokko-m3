@@ -172,7 +172,7 @@ struct is_pinnacle : public InstanceScript
                             {
                                 pOrb->SetLevitate(true);
                                 pOrb->CastSpell(pOrb, SPELL_ORB_VISUAL, true);
-                                pOrb->GetMotionMaster()->MovePoint(0, aOrbPositions[0][0], aOrbPositions[0][1], aOrbPositions[0][2]);
+                                pOrb->Movement()->GoTo(0, aOrbPositions[0][0], aOrbPositions[0][1], aOrbPositions[0][2]);
 
                                 m_uiGortokOrbTimer = 2000;
                             }
@@ -191,7 +191,7 @@ struct is_pinnacle : public InstanceScript
                                 }
 
                                 // For some reasone the Orb doesn't evade automatically
-                                pOrb->GetMotionMaster()->MoveTargetedHome();
+                                pOrb->Movement()->GoHome();
                             }
 
                             for (uint8 i = 0; i < MAX_ENCOUNTER; ++i)
@@ -251,7 +251,7 @@ struct is_pinnacle : public InstanceScript
                                 // Reset position
                                 if (Creature* pGrauf = GetSingleCreatureFromStorage(NPC_GRAUF))
                                 {
-                                    pGrauf->GetMotionMaster()->MoveTargetedHome();
+                                    pGrauf->Movement()->GoHome();
                                 }
 
                                 // no break;
@@ -403,7 +403,7 @@ struct is_pinnacle : public InstanceScript
                         {
                             if (Creature* pOrb = instance->GetCreature(m_gortokEventTriggerGuid))
                             {
-                                pOrb->GetMotionMaster()->MovePoint(0, aOrbPositions[1][0], aOrbPositions[1][1], aOrbPositions[1][2]);
+                                pOrb->Movement()->GoTo(0, aOrbPositions[1][0], aOrbPositions[1][1], aOrbPositions[1][2]);
                             }
 
                             m_uiGortokOrbTimer = 18000;

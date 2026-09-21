@@ -23,8 +23,8 @@
  * and lore are copyrighted by Blizzard Entertainment, Inc.
  */
 
-#ifndef MANGOS_MOTION_MOBILITY_H
-#define MANGOS_MOTION_MOBILITY_H
+#ifndef MANGOS_MOTION_RESTRICTIONS_H
+#define MANGOS_MOTION_RESTRICTIONS_H
 
 #include "Platform/Define.h"
 
@@ -38,9 +38,16 @@
  */
 namespace Motion
 {
-    /// What an outside source can impose on a unit; fear, confuse, distract and taxi are
-    /// the arbiter's own entries and are reported as reasons, never stored here.
-    enum class Inhibition : uint8 { Rooted, Stunned, Dead, Possessed, Count };
+    /// What an outside source can impose on a unit, each counted by source: a reason holds
+    /// while any of its sources does, so two casters rooting the same target need two
+    /// releases.
+    ///
+    /// Fear and confusion used to be kept apart from these, as "claims" belonging to the
+    /// arbiter. They are the same thing -- an aura, from a caster, imposing something until
+    /// it ends -- and keeping them in a second mechanism meant two overlapping fears could
+    /// not be told apart: whichever ended first freed the unit while the other was still on
+    /// it. One list, counted the same way.
+    enum class Inhibition : uint8 { Rooted, Stunned, Dead, Possessed, Feared, Confused, Count };
 
     /// The active reasons as a bit set: the four inhibitions, then the arbiter's own.
     enum Reason : uint8
@@ -68,24 +75,9 @@ namespace Motion
     const uint8 kCannotReactReasons = ReasonStunned | ReasonFeared | ReasonConfused;   ///< UNIT_STAT_CAN_NOT_REACT
     const uint8 kLostControlReasons = ReasonFeared | ReasonPossessed;                  ///< UNIT_STAT_LOST_CONTROL
 
-    /// The class of the selected entry, for the table.
-    enum class Selected : uint8 { None, Ordinary, Distract, Control, Taxi };
-
-    /// What the selected behaviour may do right now, and why not.
-    struct MobilityDecision
-    {
-        bool       ticks;      ///< the behaviour's Tick runs (a distract's clock runs under a stun; a flight goes on under a root)
-        bool       mayMove;    ///< it may lay legs and translate the unit
-        bool       mayTurn;    ///< the unit may change its facing
-        Inhibition dominant;   ///< the reason that decided, Count when none blocked
-        uint8      reasons;    ///< every active Reason bit
-    };
-
     /// The bit of an inhibition in Reason.
     uint8 ReasonBit(Inhibition what);
-    /// The table (spec §4.1): what `selected` may do under `reasons`.
-    MobilityDecision Decide(Selected selected, uint8 reasons);
-    /// "Rooted", "Stunned", "Dead", "Possessed", "none".
+    /// The name of an inhibition, for logs and GM output.
     char const* InhibitionName(Inhibition what);
 
     /// The domain of a source, in the value's top nibble. An aura's source is its
@@ -113,7 +105,7 @@ namespace Motion
     const uint64 kDeathSource = InhibitSource(SourceDomain::Death, 1);
 
     /// The reasons, each counted by source: a reason holds while any of its sources holds.
-    class Mobility
+    class Restrictions
     {
         public:
             /// @return True when the reason became active (its first source).

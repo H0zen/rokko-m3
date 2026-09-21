@@ -113,7 +113,7 @@ struct boss_ayamiss : public CreatureScript
         void Aggro(Unit* /*pWho*/) override
         {
             m_creature->SetLevitate(true);
-            m_creature->GetMotionMaster()->MovePoint(0, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 15.0f);
+            m_creature->Movement()->GoTo(0, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 15.0f);
         }
 
         void JustSummoned(Creature* pSummoned) override
@@ -127,7 +127,7 @@ struct boss_ayamiss : public CreatureScript
             else if (pSummoned->GetEntry() == NPC_LARVA)
             {
                 pSummoned->SetWalk(false);
-                pSummoned->GetMotionMaster()->MovePoint(1, aAyamissSpawnLocs[3].m_fX, aAyamissSpawnLocs[3].m_fY, aAyamissSpawnLocs[3].m_fZ);
+                pSummoned->Movement()->GoTo(1, aAyamissSpawnLocs[3].m_fX, aAyamissSpawnLocs[3].m_fY, aAyamissSpawnLocs[3].m_fZ);
             }
             else if (pSummoned->GetEntry() == NPC_HORNET)
             {
@@ -259,7 +259,7 @@ struct boss_ayamiss : public CreatureScript
 
                     if (m_creature->getVictim())
                     {
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                     }
                 }
 

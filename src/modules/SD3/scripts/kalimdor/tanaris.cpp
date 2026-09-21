@@ -566,7 +566,7 @@ struct npc_tooga : public CreatureScript
                                 break;
                             case 6:
                                 DoScriptText(SAY_TORT_POST_6, pTorta);
-                                m_creature->GetMotionMaster()->MovePoint(POINT_ID_TO_WATER, m_afToWaterLoc[0], m_afToWaterLoc[1], m_afToWaterLoc[2]);
+                                m_creature->Movement()->GoTo(POINT_ID_TO_WATER, m_afToWaterLoc[0], m_afToWaterLoc[1], m_afToWaterLoc[2]);
                                 break;
                         }
 
@@ -684,7 +684,7 @@ struct go_inconspicuous_landmark : public GameObjectScript
                     break;
             }
             pCreature->SetWalk(false, true); // run, fat boy, RUN!!!!
-            pCreature->GetMotionMaster()->MovePoint(0, fPlayerX, fPlayerY, fPlayerZ);
+            pCreature->Movement()->GoTo(0, fPlayerX, fPlayerY, fPlayerZ);
         }
     }
 

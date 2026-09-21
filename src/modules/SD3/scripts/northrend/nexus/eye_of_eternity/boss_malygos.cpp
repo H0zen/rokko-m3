@@ -321,10 +321,10 @@ struct boss_malygos : public CreatureScript
             {
                 case NPC_ALEXSTRASZA:
                     pSummoned->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
-                    pSummoned->GetMotionMaster()->MovePoint(0, aAlextraszaMovePos[0], aAlextraszaMovePos[1], aAlextraszaMovePos[2]);
+                    pSummoned->Movement()->GoTo(0, aAlextraszaMovePos[0], aAlextraszaMovePos[1], aAlextraszaMovePos[2]);
                     break;
                 case NPC_POWER_SPARK:
-                    pSummoned->GetMotionMaster()->MoveFollow(m_creature, 0, 0);
+                    pSummoned->Movement()->Follow(m_creature, 0, 0);
                     break;
                 case NPC_ARCANE_OVERLOAD:
                     DoCastSpellIfCan(pSummoned, SPELL_ARCANE_BOMB, CAST_TRIGGERED);
@@ -517,8 +517,8 @@ struct boss_malygos : public CreatureScript
                         m_creature->SetLevitate(true);
                         m_creature->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
                         // Move idle first, so we can avoid evading, because of the waypoint movement
-                        m_creature->GetMotionMaster()->MoveIdle();
-                        m_creature->GetMotionMaster()->MovePoint(0, aCenterMovePos[0], aCenterMovePos[1], aCenterMovePos[2] + 30.0f);
+                        m_creature->Movement()->Stop();
+                        m_creature->Movement()->GoTo(0, aCenterMovePos[0], aCenterMovePos[1], aCenterMovePos[2] + 30.0f);
 
                         StartNextDialogueText(SAY_END_PHASE_1);
                         m_uiPhase = PHASE_TRANSITION_1;
@@ -784,7 +784,7 @@ struct event_go_focusing_iris : public MapEventScript
             // Enter combat area - Move to ground point first, then start chasing target
             float fX, fY, fZ;
             FindFreeSpotNear(*pTrigger, pTrigger, fX, fY, fZ, 0, 30.0f, pTrigger->Where().BearingTo(pMalygos->Where()));
-            pMalygos->GetMotionMaster()->MovePoint(POINT_ID_COMBAT, fX, fY, fZ);
+            pMalygos->Movement()->GoTo(POINT_ID_COMBAT, fX, fY, fZ);
             pMalygos->AI()->AttackStart((Player*)pSource);
 
             return true;

@@ -255,7 +255,7 @@ struct boss_general_vezax : public CreatureScript
                 if (Creature* pVapor = m_creature->GetMap()->GetCreature(*itr))
                 {
                     pVapor->SetWalk(false);
-                    pVapor->GetMotionMaster()->MovePoint(1, pBunny->Where().X(), pBunny->Where().Y(), pBunny->Where().Z());
+                    pVapor->Movement()->GoTo(1, pBunny->Where().X(), pBunny->Where().Y(), pBunny->Where().Z());
                 }
             }
         }

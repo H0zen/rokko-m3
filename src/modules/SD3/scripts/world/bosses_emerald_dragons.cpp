@@ -332,7 +332,7 @@ struct boss_lethon : public CreatureScript
             // Move the shade to lethon
             if (pSummoned->GetEntry() == NPC_SPIRIT_SHADE)
             {
-                pSummoned->GetMotionMaster()->MoveFollow(m_creature, 0.0f, 0.0f);
+                pSummoned->Movement()->Follow(m_creature, 0.0f, 0.0f);
             }
             else
             {

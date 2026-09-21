@@ -340,7 +340,7 @@ struct boss_xt_002 : public CreatureScript
                         m_uiPhase = PHASE_TRANSITION;
 
                         // stop all movement
-                        m_creature->GetMotionMaster()->MoveIdle();
+                        m_creature->Movement()->Stop();
                     }
 
                     DoMeleeAttackIfReady();
@@ -453,7 +453,7 @@ struct boss_heart_deconstructor : public CreatureScript
                 {
                     float fX, fY, fZ;
                     ContactPointNear(*pDeconstructor, pSummoned, fX, fY, fZ, INTERACTION_DISTANCE);
-                    pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    pSummoned->Movement()->GoTo(0, fX, fY, fZ);
                 }
             }
         }

@@ -281,9 +281,9 @@ struct boss_professor_putricide : public CreatureScript
 
                             if (DoCastSpellIfCan(m_creature, spellId) == CAST_OK)
                             {
-                                m_creature->GetMotionMaster()->StopAndDefault();
+                                m_creature->Movement()->StopAndDefault();
                                 SetCombatMovement(false);
-                                m_creature->GetMotionMaster()->MovePoint(POINT_PUTRICIDE_SPAWN, fPutricidePosition[0][0], fPutricidePosition[0][1], fPutricidePosition[0][2]);
+                                m_creature->Movement()->GoTo(POINT_PUTRICIDE_SPAWN, fPutricidePosition[0][0], fPutricidePosition[0][1], fPutricidePosition[0][2]);
                                 m_uiPhase = PHASE_RUNNING_ONE;
                                 return;
                             }
@@ -348,9 +348,9 @@ struct boss_professor_putricide : public CreatureScript
                 case PHASE_TRANSITION_ONE:
                     if (m_uiTransitionTimer <= uiDiff)
                     {
-                        m_creature->GetMotionMaster()->StopAndDefault();
+                        m_creature->Movement()->StopAndDefault();
                         SetCombatMovement(true);
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                         m_uiPhase = PHASE_TWO;
 
                         if (m_pInstance && m_pInstance->GetData(TYPE_DATA_IS_HEROIC))
@@ -379,9 +379,9 @@ struct boss_professor_putricide : public CreatureScript
 
                             if (DoCastSpellIfCan(m_creature, spellId) == CAST_OK)
                             {
-                                m_creature->GetMotionMaster()->StopAndDefault();
+                                m_creature->Movement()->StopAndDefault();
                                 SetCombatMovement(false);
-                                m_creature->GetMotionMaster()->MovePoint(POINT_PUTRICIDE_SPAWN, fPutricidePosition[0][0], fPutricidePosition[0][1], fPutricidePosition[0][2]);
+                                m_creature->Movement()->GoTo(POINT_PUTRICIDE_SPAWN, fPutricidePosition[0][0], fPutricidePosition[0][1], fPutricidePosition[0][2]);
                                 m_uiPhase = PHASE_RUNNING_TWO;
 
                                 // TODO: remove Mutated Abomination
@@ -465,9 +465,9 @@ struct boss_professor_putricide : public CreatureScript
                 case PHASE_TRANSITION_TWO:
                     if (m_uiTransitionTimer <= uiDiff)
                     {
-                        m_creature->GetMotionMaster()->StopAndDefault();
+                        m_creature->Movement()->StopAndDefault();
                         SetCombatMovement(true);
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                         m_uiPhase = PHASE_THREE;
 
                         if (m_pInstance && m_pInstance->GetData(TYPE_DATA_IS_HEROIC))

@@ -327,7 +327,7 @@ struct is_dire_maul : public InstanceScript
                                 if (Creature* pMizzle = pOgre->SummonCreature(NPC_MIZZLE_THE_CRAFTY, afMizzleSpawnLoc[0], afMizzleSpawnLoc[1], afMizzleSpawnLoc[2], afMizzleSpawnLoc[3], TEMPSPAWN_DEAD_DESPAWN, 0, true))
                                 {
                                     pMizzle->SetWalk(false);
-                                    pMizzle->GetMotionMaster()->MoveWaypoint();
+                                    pMizzle->Movement()->WalkPath();
                                 }
 
                                 // change faction to certain ogres

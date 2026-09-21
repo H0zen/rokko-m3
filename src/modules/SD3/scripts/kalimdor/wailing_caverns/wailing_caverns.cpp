@@ -439,7 +439,7 @@ struct npc_disciple_of_naralex : public CreatureScript
                                         pNaralex->SetWalk(false);
 
                                         // Set following
-                                        pNaralex->GetMotionMaster()->MoveFollow(m_creature, 5.0f, 0);
+                                        pNaralex->Movement()->Follow(m_creature, 5.0f, 0);
                                         // Despawn after some time
                                         pNaralex->ForcedDespawn(30000);
                                     }

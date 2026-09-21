@@ -233,7 +233,7 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     GetPlayer()->SendInitialPacketsAfterAddToMap();
 
     // flight fast teleport case
-    if (GetPlayer()->GetMotionMaster()->IsOnTaxi())
+    if (GetPlayer()->Movement()->IsOnTaxi())
     {
         if (!_player->InBattleGround())
         {
@@ -244,7 +244,7 @@ void WorldSession::HandleMoveWorldportAckOpcode()
         }
 
         // battleground state prepare, stop flight (the abort clears the route and returns the control)
-        GetPlayer()->GetMotionMaster()->Finish();
+        GetPlayer()->Movement()->Finish();
     }
 
     if (mInstance)

@@ -418,7 +418,7 @@ struct npc_image_of_medivh : public CreatureScript
             {
                 pSummoned->SetLevitate(true);
                 pSummoned->SetWalk(false);
-                pSummoned->GetMotionMaster()->MovePoint(POINT_ID_INTRO, afArcanagosMoveLoc[0], afArcanagosMoveLoc[1], afArcanagosMoveLoc[2]);
+                pSummoned->Movement()->GoTo(POINT_ID_INTRO, afArcanagosMoveLoc[0], afArcanagosMoveLoc[1], afArcanagosMoveLoc[2]);
                 pSummoned->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
             }
         }
@@ -438,7 +438,7 @@ struct npc_image_of_medivh : public CreatureScript
                 case POINT_ID_DESPAWN:
                     pSummoned->ForcedDespawn();
                     m_creature->ForcedDespawn(10000);
-                    m_creature->GetMotionMaster()->MovePoint(0, afMedivhExitLoc[0], afMedivhExitLoc[1], afMedivhExitLoc[2]);
+                    m_creature->Movement()->GoTo(0, afMedivhExitLoc[0], afMedivhExitLoc[1], afMedivhExitLoc[2]);
                     // complete quest
                     if (Player* pPlayer = m_creature->GetMap()->GetPlayer(m_eventStarterGuid))
                     {
@@ -480,7 +480,7 @@ struct npc_image_of_medivh : public CreatureScript
                     if (Creature* pDragon = m_pInstance->GetSingleCreatureFromStorage(NPC_IMAGE_OF_ARCANAGOS))
                     {
                         DoCastSpellIfCan(pDragon, SPELL_CONFLAG_BLAST, CAST_TRIGGERED);
-                        pDragon->GetMotionMaster()->MovePoint(POINT_ID_DESPAWN, afArcanagosFleeLoc[0], afArcanagosFleeLoc[1], afArcanagosFleeLoc[2]);
+                        pDragon->Movement()->GoTo(POINT_ID_DESPAWN, afArcanagosFleeLoc[0], afArcanagosFleeLoc[1], afArcanagosFleeLoc[2]);
                     }
                     break;
             }

@@ -62,7 +62,7 @@ void FollowerAI::AttackStart(Unit* pWho)
 
         if (IsCombatMovement())
         {
-            m_creature->GetMotionMaster()->MoveChase(pWho);
+            m_creature->Movement()->Chase(pWho);
         }
     }
 }
@@ -216,20 +216,20 @@ void FollowerAI::EnterEvadeMode()
     {
         debug_log("SD3: FollowerAI left combat, returning to CombatStartPosition.");
 
-        if (m_creature->GetMotionMaster()->IsChasing())
+        if (m_creature->Movement()->IsChasing())
         {
             float fPosX, fPosY, fPosZ;
             fPosX = m_creature->CombatAnchor().x;
             fPosY = m_creature->CombatAnchor().y;
             fPosZ = m_creature->CombatAnchor().z;
-            m_creature->GetMotionMaster()->MovePoint(POINT_COMBAT_START, fPosX, fPosY, fPosZ);
+            m_creature->Movement()->GoTo(POINT_COMBAT_START, fPosX, fPosY, fPosZ);
         }
     }
     else
     {
-        if (m_creature->GetMotionMaster()->IsChasing())
+        if (m_creature->Movement()->IsChasing())
         {
-            m_creature->GetMotionMaster()->MoveTargetedHome();
+            m_creature->Movement()->GoHome();
         }
     }
 
@@ -258,7 +258,7 @@ void FollowerAI::UpdateAI(const uint32 uiDiff)
                     debug_log("SD3: FollowerAI is returning to leader.");
 
                     RemoveFollowState(STATE_FOLLOW_RETURNING);
-                    m_creature->GetMotionMaster()->MoveFollow(pPlayer, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+                    m_creature->Movement()->Follow(pPlayer, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
                     return;
                 }
 
@@ -359,18 +359,18 @@ void FollowerAI::StartFollow(Player* pLeader, uint32 uiFactionForFollower, const
 
     m_pQuestForFollow = pQuest;
 
-    if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
+    if (m_creature->Movement()->Doing() == Motion::Kind::Patrol)
     {
-        m_creature->GetMotionMaster()->StopAndDefault();
-        m_creature->GetMotionMaster()->MoveIdle();
-        debug_log("SD3: FollowerAI start with a waypoint default, set to MoveIdle.");
+        m_creature->Movement()->StopAndDefault();
+        m_creature->Movement()->Stop();
+        debug_log("SD3: FollowerAI start with a waypoint default, set to Stop.");
     }
 
     m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);
 
     AddFollowState(STATE_FOLLOW_INPROGRESS);
 
-    m_creature->GetMotionMaster()->MoveFollow(pLeader, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+    m_creature->Movement()->Follow(pLeader, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
 
     debug_log("SD3: FollowerAI start follow %s (Guid %s)", pLeader->GetName(), m_leaderGuid.GetString().c_str());
 }
@@ -408,11 +408,11 @@ Player* FollowerAI::GetLeaderForFollower()
 
 void FollowerAI::SetFollowComplete(bool bWithEndEvent)
 {
-    if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Follow)
+    if (m_creature->Movement()->Doing() == Motion::Kind::Follow)
     {
         m_creature->StopMoving();
-        m_creature->GetMotionMaster()->StopAndDefault();
-        m_creature->GetMotionMaster()->MoveIdle();
+        m_creature->Movement()->StopAndDefault();
+        m_creature->Movement()->Stop();
     }
 
     if (bWithEndEvent)
@@ -441,11 +441,11 @@ void FollowerAI::SetFollowPaused(bool bPaused)
     {
         AddFollowState(STATE_FOLLOW_PAUSED);
 
-        if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Follow)
+        if (m_creature->Movement()->Doing() == Motion::Kind::Follow)
         {
             m_creature->StopMoving();
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->Stop();
         }
     }
     else
@@ -454,7 +454,7 @@ void FollowerAI::SetFollowPaused(bool bPaused)
 
         if (Player* pLeader = GetLeaderForFollower())
         {
-            m_creature->GetMotionMaster()->MoveFollow(pLeader, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+            m_creature->Movement()->Follow(pLeader, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
         }
     }
 }

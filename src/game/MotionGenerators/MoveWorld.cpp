@@ -155,6 +155,7 @@ Move::Quarry MoveSighting::Look(uint64_t rawGuid) const
 
     quarry.known = true;
     quarry.at = target->Where().Pos();
+    quarry.facing = target->Where().Facing();
     quarry.reach = target->Where().Extent();
 
     // The fastest the target could be travelling, which is what the drift bound needs --

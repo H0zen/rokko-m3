@@ -276,7 +276,7 @@ struct boss_volkhan : public CreatureScript
                         {
                             float fX, fY, fZ;
                             ContactPointNear(*pAnvil, m_creature, fX, fY, fZ, INTERACTION_DISTANCE);
-                            m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                            m_creature->Movement()->GoTo(1, fX, fY, fZ);
                         }
                         else
                         {
@@ -365,8 +365,8 @@ struct spell_volkhan_temper : public SpellScript
 
             if (pCaster->getVictim())
             {
-                pCaster->GetMotionMaster()->StopAndDefault();
-                pCaster->GetMotionMaster()->MoveChase(pCaster->getVictim());
+                pCaster->Movement()->StopAndDefault();
+                pCaster->Movement()->Chase(pCaster->getVictim());
             }
 
             // always return true when we are handling this spell and effect

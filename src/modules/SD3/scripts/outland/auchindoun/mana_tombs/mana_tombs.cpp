@@ -138,7 +138,7 @@ struct npc_shaheen : public CreatureScript
                     m_xiraxisGuid = pSummoned->GetObjectGuid();
                     DoScriptText(SAY_XIRAXIS_SPAWN, pSummoned);
                     pSummoned->SetWalk(false);
-                    pSummoned->GetMotionMaster()->MovePoint(1, -67.49f, -74.55f, -0.86f);
+                    pSummoned->Movement()->GoTo(1, -67.49f, -74.55f, -0.86f);
                     break;
                 default:
                     pSummoned->AI()->AttackStart(m_creature);

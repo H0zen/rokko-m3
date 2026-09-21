@@ -209,7 +209,7 @@ struct boss_moira_bronzebeard : public CreatureScript
                 m_creature->SetInCombatWith(pWho);
                 pWho->SetInCombatWith(m_creature);
 
-                m_creature->GetMotionMaster()->MoveChase(pWho, 25.0f);
+                m_creature->Movement()->Chase(pWho, 25.0f);
             }
         }
 

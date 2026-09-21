@@ -185,7 +185,7 @@ struct is_ahnkahet : public InstanceScript
                         {
                             if (Creature* pJedoga = GetSingleCreatureFromStorage(NPC_JEDOGA_SHADOWSEEKER))
                             {
-                                pJedoga->GetMotionMaster()->MovePoint(1, aJedogaLandingLoc[0], aJedogaLandingLoc[1], aJedogaLandingLoc[2]);
+                                pJedoga->Movement()->GoTo(1, aJedogaLandingLoc[0], aJedogaLandingLoc[1], aJedogaLandingLoc[2]);
                             }
 
                             for (GuidList::const_iterator itr = m_lJedogaEventControllersGuidList.begin(); itr != m_lJedogaEventControllersGuidList.end(); ++itr)
@@ -281,7 +281,7 @@ struct is_ahnkahet : public InstanceScript
                                 // Lower Taldaram
                                 if (Creature* pTaldaram = GetSingleCreatureFromStorage(NPC_TALDARAM))
                                 {
-                                    pTaldaram->GetMotionMaster()->MovePoint(1, aTaldaramLandingLoc[0], aTaldaramLandingLoc[1], aTaldaramLandingLoc[2]);
+                                    pTaldaram->Movement()->GoTo(1, aTaldaramLandingLoc[0], aTaldaramLandingLoc[1], aTaldaramLandingLoc[2]);
                                 }
 
                                 // Interrupt the channeling

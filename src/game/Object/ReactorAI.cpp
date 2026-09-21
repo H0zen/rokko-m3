@@ -119,8 +119,8 @@ void ReactorAI::EnterEvadeMode()
     if (!m_creature->IsAlive())
     {
         DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Creature stopped attacking, he is dead [guid=%u]", m_creature->GetGUIDLow());
-        m_creature->GetMotionMaster()->Finish();
-        m_creature->GetMotionMaster()->MoveIdle();
+        m_creature->Movement()->Finish();
+        m_creature->Movement()->Stop();
         i_victimGuid.Clear();
         m_creature->CombatStop(true);
         m_creature->DeleteThreatList();
@@ -153,8 +153,8 @@ void ReactorAI::EnterEvadeMode()
     m_creature->SetLootRecipient(NULL);
 
     // A held chase, masked or not, is dropped for the run home
-    if (m_creature->GetMotionMaster()->IsChasing())
+    if (m_creature->Movement()->IsChasing())
     {
-        m_creature->GetMotionMaster()->MoveTargetedHome();
+        m_creature->Movement()->GoHome();
     }
 }

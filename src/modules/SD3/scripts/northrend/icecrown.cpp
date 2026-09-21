@@ -385,12 +385,12 @@ struct npc_infantry : public CreatureScript
             {
                 if (Creature* pLeader = m_creature->GetMap()->GetCreature(m_squadLeaderGuid))
                 {
-                    m_creature->GetMotionMaster()->MoveFollow(pLeader, m_creature->Where().DistanceTo(pLeader->Where()), M_PI_F / 2 + m_creature->Where().BearingTo(pLeader->Where()));
+                    m_creature->Movement()->Follow(pLeader, m_creature->Where().DistanceTo(pLeader->Where()), M_PI_F / 2 + m_creature->Where().BearingTo(pLeader->Where()));
                 }
             }
             else
             {
-                m_creature->GetMotionMaster()->MoveTargetedHome();
+                m_creature->Movement()->GoHome();
             }
         }
 
@@ -405,7 +405,7 @@ struct npc_infantry : public CreatureScript
             if (eventType == AI_EVENT_CUSTOM_A && (pSender->GetEntry() == NPC_SKYBREAKER_SQUAD_LEADER || pSender->GetEntry() == NPC_KORKRON_SQUAD_LEADER))
             {
                 m_creature->SetStandState(UNIT_STAND_STATE_STAND);
-                m_creature->GetMotionMaster()->MoveFollow(pSender, m_creature->Where().DistanceTo(pSender->Where()), M_PI_F / 2 + m_creature->Where().BearingTo(pSender->Where()));
+                m_creature->Movement()->Follow(pSender, m_creature->Where().DistanceTo(pSender->Where()), M_PI_F / 2 + m_creature->Where().BearingTo(pSender->Where()));
                 m_squadLeaderGuid = pSender->GetObjectGuid();
                 m_bEscortActive = true;
             }
@@ -692,7 +692,7 @@ struct npc_saronite_mine_slave : public CreatureScript
                 pPlayer->KilledMonsterCredit(NPC_SARONITE_KILL_CREDIT_BUNNY);
 
                 pCreature->SetWalk(false);
-                pCreature->GetMotionMaster()->MovePoint(0, afPointSlaveSalvation[0], afPointSlaveSalvation[1], afPointSlaveSalvation[2]);
+                pCreature->Movement()->GoTo(0, afPointSlaveSalvation[0], afPointSlaveSalvation[1], afPointSlaveSalvation[2]);
                 pCreature->ForcedDespawn(20000);
                 break;
             case 3:
@@ -717,13 +717,13 @@ struct npc_saronite_mine_slave : public CreatureScript
                 switch (urand(0, 2))
                 {
                     case 0:
-                        pCreature->GetMotionMaster()->MovePoint(0, afPointSlaveSuicide1[0], afPointSlaveSuicide1[1], afPointSlaveSuicide1[2]);
+                        pCreature->Movement()->GoTo(0, afPointSlaveSuicide1[0], afPointSlaveSuicide1[1], afPointSlaveSuicide1[2]);
                         break;
                     case 1:
-                        pCreature->GetMotionMaster()->MovePoint(0, afPointSlaveSuicide2[0], afPointSlaveSuicide2[1], afPointSlaveSuicide2[2]);
+                        pCreature->Movement()->GoTo(0, afPointSlaveSuicide2[0], afPointSlaveSuicide2[1], afPointSlaveSuicide2[2]);
                         break;
                     case 2:
-                        pCreature->GetMotionMaster()->MovePoint(0, afPointSlaveSuicide3[0], afPointSlaveSuicide3[1], afPointSlaveSuicide3[2]);
+                        pCreature->Movement()->GoTo(0, afPointSlaveSuicide3[0], afPointSlaveSuicide3[1], afPointSlaveSuicide3[2]);
                         break;
                 }
                 pCreature->ForcedDespawn(20000);

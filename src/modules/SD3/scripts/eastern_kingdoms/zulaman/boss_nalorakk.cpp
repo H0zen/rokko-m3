@@ -157,7 +157,7 @@ struct boss_nalorakk : public CreatureScript
             // Boss should evade on the top of the platform
             if (m_creature->IsAlive())
             {
-                m_creature->GetMotionMaster()->MovePoint(1, aBearEventInfo[m_uiCurrentWave].fX, aBearEventInfo[m_uiCurrentWave].fY, aBearEventInfo[m_uiCurrentWave].fZ);
+                m_creature->Movement()->GoTo(1, aBearEventInfo[m_uiCurrentWave].fX, aBearEventInfo[m_uiCurrentWave].fY, aBearEventInfo[m_uiCurrentWave].fZ);
             }
 
             m_creature->SetLootRecipient(nullptr);

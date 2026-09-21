@@ -154,7 +154,7 @@ struct boss_mekgineer_steamrigger : public CreatureScript
         {
             if (pSummoned->GetEntry() == NPC_STEAMRIGGER_MECHANIC)
             {
-                pSummoned->GetMotionMaster()->MoveFollow(m_creature, 0, 0);
+                pSummoned->Movement()->Follow(m_creature, 0, 0);
             }
         }
 

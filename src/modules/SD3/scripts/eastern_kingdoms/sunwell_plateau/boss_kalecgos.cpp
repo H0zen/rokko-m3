@@ -145,7 +145,7 @@ struct boss_kalecgos : public CreatureScript
                 m_creature->LoadCreatureAddon(true);
 
                 m_creature->SetLootRecipient(nullptr);
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->Stop();
                 m_creature->SetStandState(UNIT_STAND_STATE_STAND);
                 return;
             }
@@ -211,7 +211,7 @@ struct boss_kalecgos : public CreatureScript
 
             EnterEvadeMode();
             m_creature->SetFactionTemporary(35, TEMPFACTION_RESTORE_RESPAWN);
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->Stop();
             DoScriptText(SAY_GOOD_PLRWIN, m_creature);
             m_uiExitTimer = 10000;
         }
@@ -261,7 +261,7 @@ struct boss_kalecgos : public CreatureScript
 
                     m_creature->SetByteValue(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
                     m_creature->SetLevitate(true);
-                    m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                    m_creature->Movement()->GoTo(1, fX, fY, fZ);
                     m_uiExitTimer = 0;
                 }
                 else

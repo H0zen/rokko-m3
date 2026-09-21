@@ -507,6 +507,100 @@ namespace Move
         return Decide(nowMs, false, world, out);
     }
 
+    // ------------------------------------------------------------------- Flight
+
+    uint32_t Flight::Decide(uint32_t nowMs, bool, World& world, Plan& out)
+    {
+        if (m_landed || m_at >= m_nodes.size())
+        {
+            return 0;
+        }
+
+        m_points.clear();
+        m_run.clear();
+
+        // The leg starts where the passenger is, because the client will put its own
+        // position in front of ours otherwise and fly a different line than we timed.
+        m_points.push_back(world.Here());
+
+        for (size_t i = m_at; i < m_nodes.size(); ++i)
+        {
+            const size_t before = m_points.size();
+            m_points.push_back(m_nodes[i].at);
+
+            // The packed offsets reach a bounded distance from the midpoint of the ends, and
+            // a flight path is long: this is where one packet stops and the next begins.
+            if (before >= 2 && !Client::PacksWithoutWrapping(&m_points[0], uint16_t(m_points.size())))
+            {
+                m_points.resize(before);
+                break;
+            }
+
+            m_run.push_back(i);
+
+            // A node that pauses, or that fires an event, is somewhere the server has to be
+            // present again -- so the leg ends there.
+            if (m_nodes[i].delayMs != 0 || m_nodes[i].arriveEvent != 0 || m_nodes[i].departEvent != 0)
+            {
+                break;
+            }
+        }
+
+        if (m_points.size() < 2 || m_run.empty())
+        {
+            // Nowhere to go from here: the passenger is already standing on the next node.
+            // Count it and come back, rather than asking for a leg of no length.
+            if (m_at < m_nodes.size())
+            {
+                ++m_at;
+            }
+            return nowMs + 1;
+        }
+
+        out.send = true;
+        out.points = &m_points[0];
+        out.count = uint16_t(m_points.size());
+        out.speed = m_speed;
+        out.gait = GAIT_FLY | GAIT_STRAIGHT;
+        return 0;
+    }
+
+    uint32_t Flight::Arrived(uint32_t nowMs, bool cut, World& world, Plan& out)
+    {
+        if (cut || m_run.empty())
+        {
+            // A flight that was cut is not a flight that landed. The game decides what that
+            // means; this shape only refuses to pretend it arrived.
+            return nowMs;
+        }
+
+        for (size_t i = 0; i < m_run.size(); ++i)
+        {
+            const Node& node = m_nodes[m_run[i]];
+            if (node.arriveEvent)
+            {
+                out.acts.push_back(Plan::Act{ ACT_NODE_REACHED, node.arriveEvent, 0 });
+            }
+        }
+
+        const Node& last = m_nodes[m_run.back()];
+        m_at = m_run.back() + 1;
+        m_run.clear();
+
+        if (m_at >= m_nodes.size())
+        {
+            m_landed = true;
+            out.acts.push_back(Plan::Act{ ACT_LANDED, 0, uint32_t(Kind::Taxi) });
+            return 0;
+        }
+
+        if (last.delayMs != 0)
+        {
+            return nowMs + last.delayMs;
+        }
+        return Decide(nowMs, false, world, out);
+    }
+
     // ------------------------------------------------------------------- Pursue
 
     uint32_t Pursue::DriftDeadline(const Quarry& quarry, float slack)
@@ -548,24 +642,36 @@ namespace Move
             deadline = nowMs + 1;
         }
 
-        // CLOSE ENOUGH IS A RANGE, NOT A LINE. Standing anywhere within the stop distance is
-        // the goal, so the only reason to move is being further out than that by an amount
-        // worth walking. Without the second term every pursuer sitting a hand's breadth past
-        // the line asked for a leg of a few centimetres, which the writer refuses -- that was
-        // every refusal the live server logged once the other shapes were quiet.
-        const Vector3 toward = quarry.at - here;
-        const float span = toward.magnitude();
-        if (span <= stop + POINTLESS_LEG)
+        // WHERE TO STAND. A follow has a slot -- a place round the target, measured from
+        // the target's own facing, which turns when the target turns. A chase has only a
+        // distance, so it closes from wherever it already is.
+        Vector3 aim;
+        if (m_hasSlot)
+        {
+            const float bearing = quarry.facing + m_angle;
+            aim = Vector3(quarry.at.x + std::cos(bearing) * stop,
+                          quarry.at.y + std::sin(bearing) * stop,
+                          quarry.at.z);
+        }
+        else
+        {
+            const Vector3 toward = quarry.at - here;
+            const float span = toward.magnitude();
+            aim = (span > 0.0001f) ? here + toward * ((span - stop) / span) : here;
+        }
+
+        // CLOSE ENOUGH IS A RANGE, NOT A LINE. Being already at the place is the goal, so
+        // the only reason to move is being further from it than is worth walking. Without
+        // that second term every pursuer sitting a hand's breadth out asked for a leg of a
+        // few centimetres, which the writer refuses -- that was every refusal the live
+        // server logged once the other shapes went quiet.
+        if ((aim - here).magnitude() <= POINTLESS_LEG)
         {
             m_aim = here;
             m_aimed = true;
             out.facing = Facing::Upon(m_target);
             return deadline;
         }
-
-        // Aim short of the target rather than at it, so the leg ends where the creature
-        // should stand and not inside the thing it is chasing.
-        const Vector3 aim = here + toward * ((span - stop) / span);
 
         m_points.clear();
         if (!world.Route(here, aim, m_points) || GoesNowhere(m_points))

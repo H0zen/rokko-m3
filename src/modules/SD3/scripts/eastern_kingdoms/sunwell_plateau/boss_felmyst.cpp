@@ -184,7 +184,7 @@ struct boss_felmyst : public CreatureScript
                 m_creature->SetLevitate(true);
                 fX = m_creature->Spawn().X();
                 fY = m_creature->Spawn().Y();
-                m_creature->GetMotionMaster()->MovePoint(PHASE_GROUND, fX, fY, 50.083f, false);
+                m_creature->Movement()->GoTo(PHASE_GROUND, fX, fY, 50.083f, false);
             }
 
             m_creature->SetLootRecipient(nullptr);
@@ -202,7 +202,7 @@ struct boss_felmyst : public CreatureScript
             }
 
             float fGroundZ = m_creature->GetMap()->GetHeight(m_creature->GetPhaseMask(), m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
-            m_creature->GetMotionMaster()->MovePoint(PHASE_TRANSITION, pWho->Where().X(), pWho->Where().Y(), fGroundZ, false);
+            m_creature->Movement()->GoTo(PHASE_TRANSITION, pWho->Where().X(), pWho->Where().Y(), fGroundZ, false);
             m_creature->HandleEmote(EMOTE_ONESHOT_LAND);
         }
 
@@ -250,7 +250,7 @@ struct boss_felmyst : public CreatureScript
                 case PHASE_GROUND:
                     m_creature->SetWalk(false);
                     // ToDo: start WP movement here. Currently disabled because of some MMaps issues
-                    // m_creature->GetMotionMaster()->MoveWaypoint();
+                    // m_creature->Movement()->WalkPath();
                     break;
                 case PHASE_AIR:
                     // switch from ground transition to flight phase
@@ -262,7 +262,7 @@ struct boss_felmyst : public CreatureScript
                     {
                         m_uiPhase = PHASE_TRANSITION;
                         float fGroundZ = m_creature->GetMap()->GetHeight(m_creature->GetPhaseMask(), m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
-                        m_creature->GetMotionMaster()->MovePoint(PHASE_TRANSITION, m_creature->getVictim()->Where().X(), m_creature->getVictim()->Where().Y(), fGroundZ, false);
+                        m_creature->Movement()->GoTo(PHASE_TRANSITION, m_creature->getVictim()->Where().X(), m_creature->getVictim()->Where().Y(), fGroundZ, false);
                         return;
                     }
 
@@ -287,7 +287,7 @@ struct boss_felmyst : public CreatureScript
                         DoScriptText(EMOTE_DEEP_BREATH, m_creature);
                         DoCastSpellIfCan(m_creature, SPELL_SPEED_BURST, CAST_TRIGGERED);
                         DoCastSpellIfCan(m_creature, SPELL_FOG_CORRUPTION, CAST_TRIGGERED);
-                        m_creature->GetMotionMaster()->MovePoint(SUBPHASE_BREATH_MOVE, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z(), false);
+                        m_creature->Movement()->GoTo(SUBPHASE_BREATH_MOVE, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z(), false);
                     }
                 }
                 break;
@@ -303,7 +303,7 @@ struct boss_felmyst : public CreatureScript
                     // Get to the flight trigger on the same side of the arena
                     if (Creature* pTrigger = m_pInstance->GetSingleCreatureFromStorage(!m_bIsLeftSide ? NPC_FLIGHT_TRIGGER_LEFT : NPC_FLIGHT_TRIGGER_RIGHT))
                     {
-                        m_creature->GetMotionMaster()->MovePoint(SUBPHASE_VAPOR, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z(), false);
+                        m_creature->Movement()->GoTo(SUBPHASE_VAPOR, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z(), false);
                     }
 
                     // switch sides
@@ -334,7 +334,7 @@ struct boss_felmyst : public CreatureScript
                 if (m_uiMovementTimer <= uiDiff)
                 {
                     m_creature->SetLevitate(true);
-                    m_creature->GetMotionMaster()->MovePoint(PHASE_GROUND, m_creature->Where().X(), m_creature->Where().Y(), 50.083f, false);
+                    m_creature->Movement()->GoTo(PHASE_GROUND, m_creature->Where().X(), m_creature->Where().Y(), 50.083f, false);
                     m_uiMovementTimer = 0;
                 }
                 else
@@ -426,8 +426,8 @@ struct boss_felmyst : public CreatureScript
 
                         SetCombatMovement(false);
                         m_creature->SetLevitate(true);
-                        m_creature->GetMotionMaster()->MoveIdle();
-                        m_creature->GetMotionMaster()->MovePoint(PHASE_AIR, m_creature->Where().X(), m_creature->Where().Y(), 50.083f, false);
+                        m_creature->Movement()->Stop();
+                        m_creature->Movement()->GoTo(PHASE_AIR, m_creature->Where().X(), m_creature->Where().Y(), 50.083f, false);
 
                         m_uiPhase = PHASE_TRANSITION;
                         m_uiSubPhase = SUBPHASE_VAPOR;
@@ -465,7 +465,7 @@ struct boss_felmyst : public CreatureScript
                                     m_uiSubPhase = SUBPHASE_BREATH_PREPARE;
                                     if (Creature* pTrigger = m_pInstance->GetSingleCreatureFromStorage(m_bIsLeftSide ? NPC_FLIGHT_TRIGGER_LEFT : NPC_FLIGHT_TRIGGER_RIGHT))
                                     {
-                                        m_creature->GetMotionMaster()->MovePoint(SUBPHASE_VAPOR, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z(), false);
+                                        m_creature->Movement()->GoTo(SUBPHASE_VAPOR, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z(), false);
                                     }
                                 }
                                 else
@@ -500,7 +500,7 @@ struct boss_felmyst : public CreatureScript
                                     uint64 guid = m_pInstance->GetData64(m_bIsLeftSide ? TYPE_FELMYST_TRIGGER_LEFT : TYPE_FELMYST_TRIGGER_RIGHT);
                                     if (Creature* pTrigger = m_pInstance->instance->GetCreature(ObjectGuid(guid)))
                                     {
-                                        m_creature->GetMotionMaster()->MovePoint(SUBPHASE_BREATH_PREPARE, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z(), false);
+                                        m_creature->Movement()->GoTo(SUBPHASE_BREATH_PREPARE, pTrigger->Where().X(), pTrigger->Where().Y(), pTrigger->Where().Z(), false);
                                     }
 
                                     m_uiSubPhase = SUBPHASE_BREATH_MOVE;
@@ -552,7 +552,7 @@ struct npc_demonic_vapor : public CreatureScript
 
                 if (Player* pSummoner = m_creature->GetMap()->GetPlayer(pTemporary->GetSummonerGuid()))
                 {
-                    m_creature->GetMotionMaster()->MoveFollow(pSummoner, 0, 0);
+                    m_creature->Movement()->Follow(pSummoner, 0, 0);
                 }
             }
         }

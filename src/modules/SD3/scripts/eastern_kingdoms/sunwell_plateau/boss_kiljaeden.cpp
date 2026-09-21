@@ -255,8 +255,8 @@ struct npc_kiljaeden_controller : public CreatureScript
                 case NPC_KALECGOS:
                     if (Creature* pKalec = m_pInstance->GetSingleCreatureFromStorage(NPC_KALECGOS))
                     {
-                        pKalec->GetMotionMaster()->StopAndDefault();
-                        pKalec->GetMotionMaster()->MoveIdle();
+                        pKalec->Movement()->StopAndDefault();
+                        pKalec->Movement()->Stop();
                         pKalec->CastSpell(pKalec, SPELL_KALEC_TELEPORT, true);
                         pKalec->SetLevitate(false);
                     }
@@ -284,13 +284,13 @@ struct npc_kiljaeden_controller : public CreatureScript
                     if (Creature* pEntropius = m_creature->GetMap()->GetCreature(m_EntropiusGuid))
                     {
                         pEntropius->SetWalk(false);
-                        pEntropius->GetMotionMaster()->MovePoint(1, m_creature->Where().X(), m_creature->Where().Y(), 35.0f);
+                        pEntropius->Movement()->GoTo(1, m_creature->Where().X(), m_creature->Where().Y(), 35.0f);
                     }
                     break;
                 case POINT_MOVE_LIADRIN:
                     if (Creature* pLiadrin = m_pInstance->GetSingleCreatureFromStorage(NPC_LIADRIN))
                     {
-                        pLiadrin->GetMotionMaster()->MovePoint(0, aOutroLocations[4].m_fX, aOutroLocations[4].m_fY, aOutroLocations[4].m_fZ);
+                        pLiadrin->Movement()->GoTo(0, aOutroLocations[4].m_fX, aOutroLocations[4].m_fY, aOutroLocations[4].m_fZ);
                     }
                     break;
                 case SPELL_BLAZE_TO_LIGHT:
@@ -299,14 +299,14 @@ struct npc_kiljaeden_controller : public CreatureScript
                         pEntropius->CastSpell(pEntropius, SPELL_BLAZE_TO_LIGHT, true);
                         pEntropius->RemoveAurasDueToSpell(SPELL_ENTROPIUS_BODY);
                         pEntropius->SetWalk(true);
-                        pEntropius->GetMotionMaster()->MovePoint(2, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
+                        pEntropius->Movement()->GoTo(2, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
                     }
                     break;
                 case POINT_EVENT_EXIT:
                     // Set point id = 1 for the despawn event
                     if (Creature* pVelen = m_pInstance->GetSingleCreatureFromStorage(NPC_VELEN))
                     {
-                        pVelen->GetMotionMaster()->MovePoint(1, aOutroLocations[1].m_fX, aOutroLocations[1].m_fY, aOutroLocations[1].m_fZ);
+                        pVelen->Movement()->GoTo(1, aOutroLocations[1].m_fX, aOutroLocations[1].m_fY, aOutroLocations[1].m_fZ);
                     }
                     break;
             }
@@ -317,7 +317,7 @@ struct npc_kiljaeden_controller : public CreatureScript
             switch (pSummoned->GetEntry())
             {
                 case NPC_VELEN:
-                    pSummoned->GetMotionMaster()->MovePoint(0, aOutroLocations[3].m_fX, aOutroLocations[3].m_fY, aOutroLocations[3].m_fZ);
+                    pSummoned->Movement()->GoTo(0, aOutroLocations[3].m_fX, aOutroLocations[3].m_fY, aOutroLocations[3].m_fZ);
                     // no break here
                 case NPC_LIADRIN:
                     pSummoned->CastSpell(pSummoned, SPELL_TELEPORT_VISUAL, true);
@@ -509,7 +509,7 @@ struct boss_kiljaeden : public CreatureScript
             {
                 DoScriptText(SAY_KALECGOS_INTRO, pSummoned);
                 pSummoned->CastSpell(pSummoned, SPELL_ARCANE_BOLT, true);
-                pSummoned->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), pSummoned->Where().Z(), 30.0f);
+                pSummoned->Movement()->Wander(m_creature->Where().X(), m_creature->Where().Y(), pSummoned->Where().Z(), 30.0f);
             }
             else if (pSummoned->GetEntry() == NPC_SHIELD_ORB)
             {
@@ -529,8 +529,8 @@ struct boss_kiljaeden : public CreatureScript
                 fY = near2d3.y;
 
                 // Move to new position
-                pSummoned->GetMotionMaster()->StopAndDefault();
-                pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, pSummoned->Where().Z());
+                pSummoned->Movement()->StopAndDefault();
+                pSummoned->Movement()->GoTo(1, fX, fY, pSummoned->Where().Z());
             }
             else if (pSummoned->GetEntry() == NPC_SINISTER_REFLECTION)
             {
@@ -887,8 +887,8 @@ struct npc_shield_orb : public CreatureScript
                 fY = near2d1.y;
 
                 // Move to new position
-                m_creature->GetMotionMaster()->StopAndDefault();
-                m_creature->GetMotionMaster()->MovePoint(1, fX, fY, m_creature->Where().Z());
+                m_creature->Movement()->StopAndDefault();
+                m_creature->Movement()->GoTo(1, fX, fY, m_creature->Where().Z());
             }
         }
 

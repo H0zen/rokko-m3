@@ -178,12 +178,12 @@ void PetAI::_stopAttack()
 
     if (owner && m_creature->GetCharmInfo() && m_creature->GetCharmInfo()->HasCommandState(COMMAND_FOLLOW))
     {
-        m_creature->GetMotionMaster()->MoveFollow(owner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+        m_creature->Movement()->Follow(owner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
     }
     else
     {
-        m_creature->GetMotionMaster()->Stop();
-        m_creature->GetMotionMaster()->MoveIdle();
+        m_creature->Movement()->Stop();
+        m_creature->Movement()->Stop();
     }
     m_creature->AttackStop();
 }
@@ -240,7 +240,7 @@ void PetAI::UpdateAI(const uint32 diff)
         {
             if (!m_creature->IsFollowing())
             {
-                m_creature->GetMotionMaster()->MoveFollow(owner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+                m_creature->Movement()->Follow(owner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
             }
 
             return;
@@ -261,7 +261,7 @@ void PetAI::UpdateAI(const uint32 diff)
                 && HasLineOfSight(*m_creature, *victim))
         {
             // stop moving
-            m_creature->GetMotionMaster()->StopRoute();
+            m_creature->Movement()->StopRoute();
 
             // auto turn to target
             m_creature->SetInFront(victim);
@@ -522,8 +522,8 @@ void PetAI::UpdateAI(const uint32 diff)
 
                         if (!m_creature->IsStopped())
                         {
-                            m_creature->GetMotionMaster()->Stop();
-                            m_creature->GetMotionMaster()->MoveIdle();
+                            m_creature->Movement()->Stop();
+                            m_creature->Movement()->Stop();
                         }
                         else if (m_creature->Where().Facing() != StayPosO)
                         {
@@ -532,7 +532,7 @@ void PetAI::UpdateAI(const uint32 diff)
                     }
                     else
                     {
-                        pet->GetMotionMaster()->MovePoint(0, stayPosX, stayPosY, stayPosZ, false);
+                        pet->Movement()->GoTo(0, stayPosX, stayPosY, stayPosZ, false);
                     }
                 }
             }
@@ -540,13 +540,13 @@ void PetAI::UpdateAI(const uint32 diff)
             {
                 if (InReach(*owner, *m_creature, PET_FOLLOW_DIST))
                 {
-                    m_creature->GetMotionMaster()->Stop();
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
+                    m_creature->Movement()->Stop();
                 }
             }
             else if (charmInfo && charmInfo->HasCommandState(COMMAND_FOLLOW)
                 && !InReach(*owner, *m_creature, (PET_FOLLOW_DIST * 2)))
-                m_creature->GetMotionMaster()->MoveFollow(owner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+                m_creature->Movement()->Follow(owner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
         }
     }
 }

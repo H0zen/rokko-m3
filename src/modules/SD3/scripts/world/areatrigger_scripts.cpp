@@ -408,7 +408,7 @@ struct at_murkdeep : public AreaTriggerScript
                     fX = randSpot1.x;
                     fY = randSpot1.y;
                     fZ = randSpot1.z;
-                    pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    pTemp->Movement()->GoTo(0, fX, fY, fZ);
                 }
             }
         }

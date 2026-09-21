@@ -123,7 +123,7 @@ struct boss_dalliah : public CreatureScript
             // should evade to the attack position
             if (m_creature->IsAlive())
             {
-                m_creature->GetMotionMaster()->MovePoint(1, aDalliahStartPos[0], aDalliahStartPos[1], aDalliahStartPos[2]);
+                m_creature->Movement()->GoTo(1, aDalliahStartPos[0], aDalliahStartPos[1], aDalliahStartPos[2]);
             }
 
             if (m_pInstance)

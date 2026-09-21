@@ -265,7 +265,7 @@ struct npc_snufflenose_gopher : public CreatureScript
 
             float fX, fY, fZ;
             ContactPointNear(*pNearestTubber, m_creature, fX, fY, fZ);
-            m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+            m_creature->Movement()->GoTo(1, fX, fY, fZ);
             m_bIsMovementActive = true;
         }
 

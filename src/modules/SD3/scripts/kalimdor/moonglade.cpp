@@ -497,7 +497,7 @@ struct npc_keeper_remulos : public CreatureScript
                     }
                     if (Creature* pEranikus = m_creature->GetMap()->GetCreature(m_eranikusGuid))
                     {
-                        pEranikus->GetMotionMaster()->MovePoint(POINT_ID_ERANIKUS_FLIGHT, aEranikusLocations[1].m_fX, aEranikusLocations[1].m_fY, aEranikusLocations[1].m_fZ);
+                        pEranikus->Movement()->GoTo(POINT_ID_ERANIKUS_FLIGHT, aEranikusLocations[1].m_fX, aEranikusLocations[1].m_fY, aEranikusLocations[1].m_fZ);
                     }
                     SetEscortPaused(false);
                     break;
@@ -607,7 +607,7 @@ struct npc_keeper_remulos : public CreatureScript
                         {
                             pEranikus->SetByteFlag(UNIT_FIELD_BYTES_1, 3, 0);
                             pEranikus->SetLevitate(false);
-                            pEranikus->GetMotionMaster()->MovePoint(POINT_ID_ERANIKUS_COMBAT, aEranikusLocations[2].m_fX, aEranikusLocations[2].m_fY, aEranikusLocations[2].m_fZ);
+                            pEranikus->Movement()->GoTo(POINT_ID_ERANIKUS_COMBAT, aEranikusLocations[2].m_fX, aEranikusLocations[2].m_fY, aEranikusLocations[2].m_fZ);
                         }
                     }
                     else
@@ -840,7 +840,7 @@ struct boss_eranikus : public CreatureScript
                 case NPC_TYRANDE_WHISPERWIND:
                     m_tyrandeGuid = pSummoned->GetObjectGuid();
                     pSummoned->SetWalk(false);
-                    pSummoned->GetMotionMaster()->MovePoint(POINT_ID_TYRANDE_HEAL, aTyrandeLocations[1].m_fX, aTyrandeLocations[1].m_fY, aTyrandeLocations[1].m_fZ);
+                    pSummoned->Movement()->GoTo(POINT_ID_TYRANDE_HEAL, aTyrandeLocations[1].m_fX, aTyrandeLocations[1].m_fY, aTyrandeLocations[1].m_fZ);
                     break;
                 case NPC_ELUNE_PRIESTESS:
                     m_lPriestessList.push_back(pSummoned->GetObjectGuid());
@@ -850,7 +850,7 @@ struct boss_eranikus : public CreatureScript
                     fX = randSpot1.x;
                     fY = randSpot1.y;
                     fZ = randSpot1.z;
-                    pSummoned->GetMotionMaster()->MovePoint(POINT_ID_TYRANDE_HEAL, fX, fY, fZ);
+                    pSummoned->Movement()->GoTo(POINT_ID_TYRANDE_HEAL, fX, fY, fZ);
                     break;
             }
         }
@@ -952,7 +952,7 @@ struct boss_eranikus : public CreatureScript
                             // Move Eranikus in front of Tyrande
                             m_creature->SetStandState(UNIT_STAND_STATE_STAND);
                             m_creature->SetWalk(true);
-                            m_creature->GetMotionMaster()->MovePoint(POINT_ID_ERANIKUS_REDEEMED, aEranikusLocations[3].m_fX, aEranikusLocations[3].m_fY, aEranikusLocations[3].m_fZ);
+                            m_creature->Movement()->GoTo(POINT_ID_ERANIKUS_REDEEMED, aEranikusLocations[3].m_fX, aEranikusLocations[3].m_fY, aEranikusLocations[3].m_fZ);
                             m_uiEventTimer = 0;
                             break;
                         case 4:
@@ -1003,7 +1003,7 @@ struct boss_eranikus : public CreatureScript
                 {
                     if (Creature* pTyrande = m_creature->GetMap()->GetCreature(m_tyrandeGuid))
                     {
-                        pTyrande->GetMotionMaster()->MovePoint(POINT_ID_TYRANDE_ABSOLUTION, aTyrandeLocations[2].m_fX, aTyrandeLocations[2].m_fY, aTyrandeLocations[2].m_fZ);
+                        pTyrande->Movement()->GoTo(POINT_ID_TYRANDE_ABSOLUTION, aTyrandeLocations[2].m_fX, aTyrandeLocations[2].m_fY, aTyrandeLocations[2].m_fZ);
                     }
                     m_uiTyrandeMoveTimer = 0;
                 }

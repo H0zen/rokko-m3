@@ -263,7 +263,7 @@ struct boss_archimonde : public CreatureScript
                     DoScriptText(SAY_EPILOGUE, m_creature);
 
                     // move at home position and start outro
-                    m_creature->GetMotionMaster()->MoveTargetedHome();
+                    m_creature->Movement()->GoHome();
                     SetCombatMovement(false);
                     m_bIsEpilogue = true;
                 }
@@ -443,7 +443,7 @@ struct npc_doomfire_spirit : public CreatureScript
                 {
                     float fX, fY, fZ;
                     FindFreeSpotNear(*pDoomfire, pDoomfire, fX, fY, fZ, 0, 30.0f, m_fAngle + frand(0, M_PI_F * .5));
-                    pDoomfire->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    pDoomfire->Movement()->GoTo(0, fX, fY, fZ);
                 }
 
                 m_uiChangeTargetTimer = 4000;

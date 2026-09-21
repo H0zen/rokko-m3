@@ -800,13 +800,13 @@ struct npc_simone_the_inconspicuousAI : public ScriptedAI
         if (pPrecious)
         {
             pPrecious->SetVisibility(VISIBILITY_ON);
-            pPrecious->GetMotionMaster()->MoveFollow(m_creature, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+            pPrecious->Movement()->Follow(m_creature, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
         }
         else
         {
             pPrecious = m_creature->SummonCreature(NPC_PRECIOUS,
                 m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), m_creature->Where().Facing(), TEMPSPAWN_DEAD_DESPAWN, 0);
-            pPrecious->GetMotionMaster()->MoveFollow(m_creature, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+            pPrecious->Movement()->Follow(m_creature, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
         }
     }
 
@@ -856,7 +856,7 @@ struct npc_simone_the_inconspicuousAI : public ScriptedAI
     void BeginEvent(ObjectGuid playerGuid)
     {
         m_playerGuid = playerGuid;
-        m_creature->GetMotionMaster()->MoveIdle();
+        m_creature->Movement()->Stop();
         m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);
         m_bTransform = true;
     }

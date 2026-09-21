@@ -226,7 +226,7 @@ struct npc_valentine_boss_manager : public CreatureScript
                     float fX, fY, fZ;
                     ContactPointNear(*pVials, pBaxter, fX, fY, fZ, CONTACT_DISTANCE);
                     pBaxter->SetWalk(false);
-                    pBaxter->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                    pBaxter->Movement()->GoTo(1, fX, fY, fZ);
                 }
                 else
                 {
@@ -246,7 +246,7 @@ struct npc_valentine_boss_manager : public CreatureScript
                     float fX, fY, fZ;
                     ContactPointNear(*pChemistry, pFrye, fX, fY, fZ, CONTACT_DISTANCE);
                     pFrye->SetWalk(false);
-                    pFrye->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                    pFrye->Movement()->GoTo(1, fX, fY, fZ);
                 }
                 else
                 {

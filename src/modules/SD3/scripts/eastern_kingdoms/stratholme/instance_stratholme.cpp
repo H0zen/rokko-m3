@@ -300,7 +300,7 @@ struct is_stratholme : public InstanceScript
                                     DoScriptText(SAY_ANNOUNCE_RAMSTEIN, pBaron);
                                     if (Creature* pRamstein = pBaron->SummonCreature(NPC_RAMSTEIN, aStratholmeLocation[2].m_fX, aStratholmeLocation[2].m_fY, aStratholmeLocation[2].m_fZ, aStratholmeLocation[2].m_fO, TEMPSPAWN_DEAD_DESPAWN, 0))
                                     {
-                                        pRamstein->GetMotionMaster()->MovePoint(0, aStratholmeLocation[3].m_fX, aStratholmeLocation[3].m_fY, aStratholmeLocation[3].m_fZ);
+                                        pRamstein->Movement()->GoTo(0, aStratholmeLocation[3].m_fX, aStratholmeLocation[3].m_fY, aStratholmeLocation[3].m_fZ);
                                     }
 
                                     debug_log("SD3: Instance Stratholme - Slaughter event: Ramstein spawned.");
@@ -349,9 +349,9 @@ struct is_stratholme : public InstanceScript
                             for (GuidSet::const_iterator itr = m_sAbomnationGUID.begin(); itr != m_sAbomnationGUID.end(); ++itr)
                             {
                                 Creature* pAbom = instance->GetCreature(*itr);
-                                if (pAbom && pAbom->GetMotionMaster()->ActiveKind() == Motion::Kind::Point)
+                                if (pAbom && pAbom->Movement()->Doing() == Motion::Kind::Point)
                                 {
-                                    pAbom->GetMotionMaster()->Finish();
+                                    pAbom->Movement()->Finish();
                                 }
                             }
                         }
@@ -402,7 +402,7 @@ struct is_stratholme : public InstanceScript
                                 {
                                     DoScriptText(SAY_EPILOGUE, pYsida);
                                     DoUseDoorOrButton(GO_YSIDA_CAGE);
-                                    pYsida->GetMotionMaster()->MovePoint(0, aStratholmeLocation[8].m_fX, aStratholmeLocation[8].m_fY, aStratholmeLocation[8].m_fZ, aStratholmeLocation[8].m_fO);
+                                    pYsida->Movement()->GoTo(0, aStratholmeLocation[8].m_fX, aStratholmeLocation[8].m_fY, aStratholmeLocation[8].m_fZ, aStratholmeLocation[8].m_fO);
                                 }
                             }
 
@@ -424,7 +424,7 @@ struct is_stratholme : public InstanceScript
                             {
                                 DoScriptText(SAY_WARN_BARON, pBarthilas);
                                 pBarthilas->SetWalk(false);
-                                pBarthilas->GetMotionMaster()->MovePoint(0, aStratholmeLocation[0].m_fX, aStratholmeLocation[0].m_fY, aStratholmeLocation[0].m_fZ);
+                                pBarthilas->Movement()->GoTo(0, aStratholmeLocation[0].m_fX, aStratholmeLocation[0].m_fY, aStratholmeLocation[0].m_fZ);
 
                                 m_uiBarthilasRunTimer = 8000;
                             }
@@ -694,7 +694,7 @@ struct is_stratholme : public InstanceScript
                                     fX = randSpot3.x;
                                     fY = randSpot3.y;
                                     fZ = randSpot3.z;
-                                    pGuard->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                    pGuard->Movement()->GoTo(0, fX, fY, fZ);
                                 }
                             }
                         }
@@ -778,7 +778,7 @@ struct is_stratholme : public InstanceScript
                             // Open the cage and let Ysida face her doom
                             if (Creature* pYsida = GetSingleCreatureFromStorage(NPC_YSIDA))
                             {
-                                pYsida->GetMotionMaster()->MovePoint(0, aStratholmeLocation[8].m_fX, aStratholmeLocation[8].m_fY, aStratholmeLocation[8].m_fZ, aStratholmeLocation[8].m_fO);
+                                pYsida->Movement()->GoTo(0, aStratholmeLocation[8].m_fX, aStratholmeLocation[8].m_fY, aStratholmeLocation[8].m_fZ, aStratholmeLocation[8].m_fO);
                                 DoUseDoorOrButton(GO_YSIDA_CAGE);
                             }
                             DoOrSimulateScriptTextForThisInstance(SAY_ANNOUNCE_RUN_FAIL, NPC_BARON);
@@ -823,7 +823,7 @@ struct is_stratholme : public InstanceScript
                                     fX = randSpot2.x;
                                     fY = randSpot2.y;
                                     fZ = randSpot2.z;
-                                    pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                    pTemp->Movement()->GoTo(0, fX, fY, fZ);
                                     m_luiUndeadGUIDs.push_back(pTemp->GetObjectGuid());
                                     ++m_uiMindlessCount;
                                 }
@@ -850,7 +850,7 @@ struct is_stratholme : public InstanceScript
                         {
                             Creature* pAbom = instance->GetCreature(*itr);
                             // Skip killed and already walking Abominations
-                            if (!pAbom || !pAbom->IsAlive() || pAbom->GetMotionMaster()->ActiveKind() == Motion::Kind::Point)
+                            if (!pAbom || !pAbom->IsAlive() || pAbom->Movement()->Doing() == Motion::Kind::Point)
                             {
                                 continue;
                             }
@@ -865,7 +865,7 @@ struct is_stratholme : public InstanceScript
                                     fX = randSpot1.x;
                                     fY = randSpot1.y;
                                     fZ = randSpot1.z;
-                                    pAbom->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                    pAbom->Movement()->GoTo(0, fX, fY, fZ);
                                 }
                             }
                             break;

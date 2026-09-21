@@ -243,10 +243,10 @@ void guardAI::UpdateAI(const uint32 uiDiff)
             if (pSpellInfo && !m_uiGlobalCooldown)
             {
                 // If we are currently moving stop us and set the movement generator
-                if (m_creature->GetMotionMaster()->ActiveKind() != Motion::Kind::Idle)
+                if (m_creature->Movement()->Doing() != Motion::Kind::Idle)
                 {
-                    m_creature->GetMotionMaster()->Stop();
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
+                    m_creature->Movement()->Stop();
                 }
 
                 // Cast spell
@@ -262,12 +262,12 @@ void guardAI::UpdateAI(const uint32 uiDiff)
                 // Set our global cooldown
                 m_uiGlobalCooldown = GENERIC_CREATURE_COOLDOWN;
             }                                               // If no spells available and we arn't moving run to target
-            else if (m_creature->GetMotionMaster()->ActiveKind() != Motion::Kind::Chase)
+            else if (m_creature->Movement()->Doing() != Motion::Kind::Chase)
             {
                 // Cancel our current spell and then mutate new movement generator
                 m_creature->InterruptNonMeleeSpells(false);
-                m_creature->GetMotionMaster()->Stop();
-                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                m_creature->Movement()->Stop();
+                m_creature->Movement()->Chase(m_creature->getVictim());
             }
         }
     }

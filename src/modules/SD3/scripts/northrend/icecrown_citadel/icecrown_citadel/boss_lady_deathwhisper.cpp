@@ -244,7 +244,7 @@ struct boss_lady_deathwhisper : public CreatureScript
             {
                 DoScriptText(SAY_PHASE_TWO, m_creature);
                 SetCombatMovement(true);
-                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                m_creature->Movement()->Chase(m_creature->getVictim());
                 m_bIsPhaseOne = false;
             }
         }

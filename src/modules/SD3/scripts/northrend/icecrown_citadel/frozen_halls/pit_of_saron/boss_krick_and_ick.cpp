@@ -378,7 +378,7 @@ struct boss_krick : public CreatureScript
                     float fX, fY, fZ;
                     pSummoned->SetWalk(false);
                     ContactPointNear(*m_creature, pSummoned, fX, fY, fZ, 2 * INTERACTION_DISTANCE);
-                    pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                    pSummoned->Movement()->GoTo(1, fX, fY, fZ);
                     break;
                 }
                 case NPC_EXPLODING_ORB:

@@ -183,7 +183,7 @@ struct boss_laj : public CreatureScript
 
                     if (m_creature->getVictim())
                     {
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                     }
                     m_uiSummonTimer = 0;
                 }
@@ -209,7 +209,7 @@ struct boss_laj : public CreatureScript
             {
                 if (DoCastSpellIfCan(m_creature, SPELL_TELEPORT_SELF) == CAST_OK)
                 {
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
                     m_uiTeleportTimer = urand(25000, 33000);
                     m_uiSummonTimer = 4000;
                 }

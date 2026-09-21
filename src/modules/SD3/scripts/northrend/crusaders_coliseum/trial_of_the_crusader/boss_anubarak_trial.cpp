@@ -534,8 +534,8 @@ struct npc_anubarak_trial_spike : public CreatureScript
             DoResetThreat();
 
             SetCombatMovement(false);
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->Stop();
         }
 
         void UpdateAI(const uint32 uiDiff) override
@@ -633,7 +633,7 @@ struct npc_anubarak_trial_frostsphere : public CreatureScript
         {
             m_bPermafrost = false;
 
-            m_creature->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 15.0f);
+            m_creature->Movement()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 15.0f);
         }
 
         void MoveInLineOfSight(Unit* /*pWho*/) override {}
@@ -671,8 +671,8 @@ struct npc_anubarak_trial_frostsphere : public CreatureScript
             MaNGOS::NormalizeMapCoord(fZ);
 
             // Note: This should be fall movement
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MovePoint(1, m_creature->Where().X(), m_creature->Where().Y(), fZ);
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->GoTo(1, m_creature->Where().X(), m_creature->Where().Y(), fZ);
             m_bPermafrost = true;
         }
 

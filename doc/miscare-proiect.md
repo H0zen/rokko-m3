@@ -312,7 +312,7 @@ cu adâncime mărginită de numărul de cauze care pot întrerupe simultan.
 **Interdicții, care se numără.** Rădăcinare, amețire, posedare, moarte: cât timp
 o interdicție este ținută de cel puțin o sursă, unitatea nu poate fi mutată de
 nimeni. Este o mulțime de surse per motiv, nu un strat. Partea aceasta există
-deja și funcționează (`src/motion/Mobility.h`) — se păstrează.
+deja și funcționează (`src/motion/Restrictions.h`) — se păstrează.
 
 O înlocuire (o patrulă nouă peste una veche) nu are nevoie de politică: pui
 altceva în locul a ce era, iar ce era dispare. Trei politici distincte descriau
@@ -454,7 +454,7 @@ proveniență verificată:
   `MonsterMoveCodec` este exact alfabetul de ieșire al motorului.
 - **`src/motion/`** rămas — protocolul de mișcare al clientului: confirmări,
   autoritatea moverului, baza de timp, schimbările de flaguri. Clasa B, nu motor.
-- **`Mobility.h`** — interdicțiile numărate pe surse.
+- **`Restrictions.h`** — interdicțiile numărate pe surse.
 - **Navmesh-ul** (`PathFinder`) — geometria, adică **S1**.
 
 Se șterge tot restul: arbitrul, cele cincisprezece comportamente, driverul,
@@ -534,7 +534,7 @@ este refuzat, unul care depășește raza de împachetare este tăiat, unul pest
 plafon este refuzat, unul prea scurt nu este re-cronometrat.
 
 **Pasul 3 — `Movement`.** Stiva de întreruperi, `Path`-ul în zbor, momentul de
-trezire. Interdicțiile se iau din `Mobility.h`, care există.
+trezire. Interdicțiile se iau din `Restrictions.h`, care există.
 
 **Pasul 4 — prima formă: un singur punct.** Cea mai simplă și cea care acoperă
 `MovePoint`, adică 445 din cele 907 apeluri din scripturi. Odată ce merge, o bună

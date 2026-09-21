@@ -30,8 +30,10 @@
 #include "Move/MoveWriter.h"
 #include "Unit.h"
 #include "Creature.h"
+#include "Player.h"
 #include "CreatureAI.h"
 #include "WaypointManager.h"
+#include "DBCStores.h"
 #include "ObjectMgr.h"
 #include "ObjectLookup.h"
 #include "Timer.h"
@@ -83,7 +85,7 @@ UnitMovement::~UnitMovement()
     delete m_sighting;
 }
 
-void UnitMovement::Initialize()
+void UnitMovement::UseDefault()
 {
     // WHAT A CREATURE DOES WHEN NOTHING ELSE IS ASKED OF IT.
     //
@@ -116,7 +118,7 @@ void UnitMovement::Initialize()
             return;
         }
         case CREATURE_MOVEMENT_WAYPOINT:
-            MoveWaypoint(0, PATH_NO_PATH, 0, 0);
+            WalkPath(0, PATH_NO_PATH, 0);
             return;
         case CREATURE_MOVEMENT_IDLE:
         default:
@@ -124,7 +126,7 @@ void UnitMovement::Initialize()
     }
 }
 
-bool UnitMovement::LivePosition(Geometry::Vector3& out) const
+bool UnitMovement::PositionNow(Geometry::Vector3& out) const
 {
     if (!m_movement.InFlight().Running())
     {
@@ -134,7 +136,7 @@ bool UnitMovement::LivePosition(Geometry::Vector3& out) const
     return true;
 }
 
-void UnitMovement::UpdateMotion(uint32 /*diff*/)
+void UnitMovement::Tick(uint32 /*diff*/)
 {
     if (!m_unit || !m_unit->IsInWorld())
     {
@@ -150,14 +152,14 @@ void UnitMovement::UpdateMotion(uint32 /*diff*/)
     Move::Route const& route = m_movement.InFlight();
     if (route.Running() && route.Arrived(now))
     {
-        Serve(true, false);
+        Advance(true, false);
         return;
     }
 
     const uint32 due = m_movement.DueAt();
     if (due != 0 && int32(now - due) >= 0)
     {
-        Serve(false, false);
+        Advance(false, false);
         return;
     }
 
@@ -166,7 +168,7 @@ void UnitMovement::UpdateMotion(uint32 /*diff*/)
     MoveStats::Visited();
 }
 
-void UnitMovement::Serve(bool legEnded, bool cut)
+void UnitMovement::Advance(bool legEnded, bool cut)
 {
     MoveStats::Decided();
     const uint32 now = getMSTime();
@@ -188,22 +190,43 @@ void UnitMovement::Serve(bool legEnded, bool cut)
 
     // What the behaviour asked the game to do. The engine never learns what any of these
     // mean; it names them and the game performs them.
+    Creature* creature = m_unit->GetTypeId() == TYPEID_UNIT ? static_cast<Creature*>(m_unit) : NULL;
+    Player* player = m_unit->GetTypeId() == TYPEID_PLAYER ? static_cast<Player*>(m_unit) : NULL;
+
     for (size_t i = 0; i < plan.acts.size(); ++i)
     {
         const Move::Plan::Act& act = plan.acts[i];
-        Creature* creature = m_unit->GetTypeId() == TYPEID_UNIT ? static_cast<Creature*>(m_unit) : NULL;
-        if (!creature || !creature->AI())
-        {
-            continue;
-        }
         switch (act.what)
         {
             case Move::ACT_ARRIVED:
-                creature->AI()->MovementInform(Motion::Kind(act.extra), act.id);
+                if (creature && creature->AI())
+                {
+                    creature->AI()->MovementInform(Motion::Kind(act.extra), act.id);
+                }
                 break;
+
             case Move::ACT_NODE_REACHED:
-                creature->AI()->MovementInform(Motion::Kind::Patrol, act.id);
+                if (creature && creature->AI())
+                {
+                    creature->AI()->MovementInform(Motion::Kind::Patrol, act.id);
+                }
                 break;
+
+            case Move::ACT_LANDED:
+                // A flight that ran to its end. The passenger drives again from here, and
+                // the handover is announced rather than assumed: until the client answers,
+                // nothing it says about where it is can be believed.
+                if (act.extra == uint32(Move::Kind::Taxi))
+                {
+                    GiveControl();
+                    if (player)
+                    {
+                        player->TaxiAbort();
+                    }
+                    m_movement.Drop(Move::Kind::Taxi);
+                }
+                break;
+
             default:
                 break;
         }
@@ -263,7 +286,7 @@ void UnitMovement::Stop()
 void UnitMovement::StopAndDefault()
 {
     Stop();
-    Initialize();
+    UseDefault();
 }
 
 void UnitMovement::Finish()
@@ -273,21 +296,21 @@ void UnitMovement::Finish()
     {
         m_movement.Drop(running);
     }
-    Serve(false, false);
+    Advance(false, false);
 }
 
-void UnitMovement::MoveIdle()
+void UnitMovement::GoTo(uint32 id, float x, float y, float z, bool /*routed*/, float speed)
 {
-    Stop();
+    Move::GoToPoint* leg = new Move::GoToPoint(Move::Kind::Point, Geometry::Vector3(x, y, z), id);
+    if (speed > 0.0f)
+    {
+        leg->AtSpeed(speed);
+    }
+    m_movement.Take(leg);
+    Advance(false, false);
 }
 
-void UnitMovement::MovePoint(uint32 id, float x, float y, float z, bool /*generatePath*/)
-{
-    m_movement.Take(new Move::GoToPoint(Move::Kind::Point, Geometry::Vector3(x, y, z), id));
-    Serve(false, false);
-}
-
-void UnitMovement::MoveTargetedHome()
+void UnitMovement::GoHome()
 {
     // WHERE HOME IS, in the order the answers are actually trustworthy.
     //
@@ -319,7 +342,7 @@ void UnitMovement::MoveTargetedHome()
     }
 
     m_movement.Take(new Move::GoToPoint(Move::Kind::Home, home));
-    Serve(false, false);
+    Advance(false, false);
 }
 
 void UnitMovement::Wander(float x, float y, float z, float radius)
@@ -336,10 +359,10 @@ void UnitMovement::Wander(float x, float y, float z, float radius)
     {
         m_movement.Take(new Move::Scatter(Move::Kind::Wander, centre, radius, 3000, 9000));
     }
-    Serve(false, false);
+    Advance(false, false);
 }
 
-void UnitMovement::MoveChase(Unit* target, float dist, float /*angle*/)
+void UnitMovement::Chase(Unit* target, float dist)
 {
     if (!target)
     {
@@ -351,10 +374,10 @@ void UnitMovement::MoveChase(Unit* target, float dist, float /*angle*/)
     }
     m_movement.Take(new Move::Pursue(Move::Kind::Chase, target->GetObjectGuid().GetRawValue(),
                                      *m_sighting, dist > 0.0f ? dist : 1.0f));
-    Serve(false, false);
+    Advance(false, false);
 }
 
-void UnitMovement::MoveFollow(Unit* target, float dist, float /*angle*/)
+void UnitMovement::Follow(Unit* target, float distance, float angle)
 {
     if (!target)
     {
@@ -364,36 +387,42 @@ void UnitMovement::MoveFollow(Unit* target, float dist, float /*angle*/)
     {
         m_sighting = new MoveSighting(*m_unit);
     }
-    m_movement.Take(new Move::Pursue(Move::Kind::Follow, target->GetObjectGuid().GetRawValue(),
-                                     *m_sighting, dist > 0.0f ? dist : 2.0f));
-    Serve(false, false);
+    Move::Pursue* follow = new Move::Pursue(Move::Kind::Follow,
+                                            target->GetObjectGuid().GetRawValue(),
+                                            *m_sighting, distance > 0.0f ? distance : 2.0f);
+    follow->HoldSlot(angle);
+    m_movement.Take(follow);
+    Advance(false, false);
 }
 
-void UnitMovement::MoveFleeing(Unit* enemy, uint32 /*timeLimit*/, uint64)
+void UnitMovement::FleeFrom(Unit* enemy, uint32 /*timeLimitMs*/, uint64 source)
 {
     if (!enemy)
     {
         return;
     }
+    // The source goes in first: the reason is what keeps the behaviour alive, so a fear
+    // whose aura is already counted survives the ending of any other.
+    m_blocks.Inhibit(Motion::Inhibition::Feared, source);
     m_movement.Take(new Move::FleeFrom(Move::Kind::Fear, enemy->Where().Pos(), 30.0f));
-    Serve(false, false);
+    Advance(false, false);
 }
 
-void UnitMovement::MoveConfused(uint64)
+void UnitMovement::Confused(uint64 source)
 {
+    m_blocks.Inhibit(Motion::Inhibition::Confused, source);
     m_movement.Take(new Move::Scatter(Move::Kind::Confused, m_unit->Where().Pos(),
                                       6.0f, 500, 1500));
-    Serve(false, false);
+    Advance(false, false);
 }
 
-void UnitMovement::MoveSeekAssistance(float x, float y, float z)
+void UnitMovement::RunAskingHelp(float x, float y, float z)
 {
     m_movement.Take(new Move::GoToPoint(Move::Kind::AssistRun, Geometry::Vector3(x, y, z)));
-    Serve(false, false);
+    Advance(false, false);
 }
 
-void UnitMovement::MoveWaypoint(int32 pathId, uint32 source, uint32 /*initialDelay*/,
-                                uint32 overwriteEntry)
+void UnitMovement::WalkPath(int32 pathId, uint32 source, uint32 overwriteEntry)
 {
     if (m_unit->GetTypeId() != TYPEID_UNIT)
     {
@@ -441,10 +470,10 @@ void UnitMovement::MoveWaypoint(int32 pathId, uint32 source, uint32 /*initialDel
     m_pathId = pathId;
     m_pathOrigin = origin;
     m_movement.Take(new Move::WalkNodes(nodes));
-    Serve(false, false);
+    Advance(false, false);
 }
 
-Motion::Kind UnitMovement::ActiveKind() const
+Motion::Kind UnitMovement::Doing() const
 {
     Move::Kind running = Move::Kind::Count;
     return m_movement.Running(running) ? ToGame(running) : Motion::Kind::Idle;
@@ -468,39 +497,38 @@ bool UnitMovement::IsFollowing() const
     return m_movement.Running(running) && running == Move::Kind::Follow;
 }
 
-void UnitMovement::MoveFlyOrLand(uint32 id, float x, float y, float z, bool /*liftOff*/)
+void UnitMovement::FlyTo(uint32 id, float x, float y, float z)
 {
     m_movement.Take(new Move::GoToPoint(Move::Kind::FlyLand, Geometry::Vector3(x, y, z), id));
-    Serve(false, false);
+    Advance(false, false);
 }
 
-void UnitMovement::MoveCharge(float x, float y, float z, float speed)
+void UnitMovement::ChargePoint(float x, float y, float z, float speed)
 {
     Move::GoToPoint* charge = new Move::GoToPoint(Move::Kind::Effect, Geometry::Vector3(x, y, z));
     charge->AtSpeed(speed);
     m_movement.Take(charge);
-    Serve(false, false);
+    Advance(false, false);
 }
 
-void UnitMovement::MoveCharge(Unit* target, float speed)
+void UnitMovement::ChargeTarget(Unit* target, float speed)
 {
     if (!target)
     {
         return;
     }
     Geometry::Vector3 const& at = target->Where().Pos();
-    MoveCharge(at.x, at.y, at.z, speed);
+    ChargePoint(at.x, at.y, at.z, speed);
 }
 
-bool UnitMovement::MoveJump(float x, float y, float z, float horizontalSpeed, float maxHeight,
-                            uint32 /*id*/)
+bool UnitMovement::JumpTo(float x, float y, float z, float speed, float apex, uint32 /*id*/)
 {
-    m_movement.Take(new Move::Ballistic(Geometry::Vector3(x, y, z), horizontalSpeed, maxHeight));
-    Serve(false, false);
+    m_movement.Take(new Move::Ballistic(Geometry::Vector3(x, y, z), speed, apex));
+    Advance(false, false);
     return true;
 }
 
-void UnitMovement::MoveFall()
+void UnitMovement::Fall()
 {
     // A fall is a jump with no forward speed and no arc: the client computes the descent
     // from gravity alone once the falling flag is set, so the server only names the floor.
@@ -511,7 +539,7 @@ void UnitMovement::MoveFall()
         return;
     }
     m_movement.Take(new Move::Ballistic(down, 0.0f, 0.0f));
-    Serve(false, false);
+    Advance(false, false);
 }
 
 bool UnitMovement::SetNextWaypoint(uint32 pointId)
@@ -525,36 +553,36 @@ bool UnitMovement::SetNextWaypoint(uint32 pointId)
     {
         return false;
     }
-    Serve(false, false);
+    Advance(false, false);
     return true;
 }
 
-uint32 UnitMovement::getLastReachedWaypoint() const
+uint32 UnitMovement::ReachedNode() const
 {
     Move::Behaviour* held = m_movement.Held(Move::Kind::Patrol);
     return held ? static_cast<Move::WalkNodes*>(held)->Reached() : 0;
 }
 
-uint32 UnitMovement::SelectedPatrolNode() const
+uint32 UnitMovement::NextNode() const
 {
     Move::Behaviour* held = m_movement.Held(Move::Kind::Patrol);
     return held ? static_cast<Move::WalkNodes*>(held)->Heading() : 0;
 }
 
-bool UnitMovement::GetDestination(float& x, float& y, float& z)
+bool UnitMovement::Destination(Geometry::Vector3& out) const
 {
-    if (!m_movement.InFlight().Running())
+    // IsMoving(), not merely "a route exists": between a leg ending and the route being
+    // cleared there is still one there, and its last point is a place the unit has already
+    // arrived at.
+    if (!IsMoving())
     {
         return false;
     }
-    Geometry::Vector3 const& end = m_movement.InFlight().End();
-    x = end.x;
-    y = end.y;
-    z = end.z;
+    out = m_movement.InFlight().End();
     return true;
 }
 
-bool UnitMovement::LiveFacing(float& out) const
+bool UnitMovement::FacingNow(float& out) const
 {
     if (!IsMoving())
     {
@@ -580,49 +608,61 @@ void UnitMovement::StopRoute()
     m_movement.InFlight().Clear();
 }
 
-void UnitMovement::MoveAtSpeed(float x, float y, float z, float speed, bool routed)
-{
-    MoveWorld world(*m_unit);
-    std::vector<Geometry::Vector3> points;
-    const Geometry::Vector3 to(x, y, z);
-
-    if (!routed || !world.Route(world.Here(), to, points) || points.size() < 2)
-    {
-        points.clear();
-        points.push_back(world.Here());
-        points.push_back(to);
-    }
-
-    const Move::Written written = Move::MoveWriter::Write(
-        &points[0], uint16(points.size()), speed, m_unit->GetSpeed(MOVE_RUN));
-
-    if (!MoveSend::Leg(*m_unit, written, Move::Facing(), Move::Kind::Point))
-    {
-        return;
-    }
-    m_movement.InFlight().Launch(&points[0], uint16(points.size()), written.speed, getMSTime());
-    m_sentFlags = written.flags;
-    m_sentFacing = Move::Facing();
-    ++m_sentId;
-}
 
 // ---------------------------------------------------------------- what is forbidden
 
-void UnitMovement::Inhibit(Motion::Inhibition what, uint64 source)
+void UnitMovement::Forbid(Motion::Inhibition what, uint64 source)
 {
     if (!m_blocks.Inhibit(what, source))
     {
         return;   // the reason already held: another source, nothing changes
     }
-    Forbidden();
+    StopIfForbidden();
 }
 
-void UnitMovement::Uninhibit(Motion::Inhibition what, uint64 source)
+void UnitMovement::Allow(Motion::Inhibition what, uint64 source)
 {
     m_blocks.Uninhibit(what, source);
+    if (!m_blocks.Inhibited(what))
+    {
+        EndWhatItWasRunning(what);
+    }
 }
 
-void UnitMovement::DropDomain(Motion::SourceDomain domain)
+void UnitMovement::AllowAll(Motion::Inhibition what)
+{
+    // Every source at once. Taking the list by value first: releasing a source edits the
+    // very list being walked.
+    std::vector<uint64> const held = m_blocks.Sources(what);
+    for (size_t i = 0; i < held.size(); ++i)
+    {
+        m_blocks.Uninhibit(what, held[i]);
+    }
+    EndWhatItWasRunning(what);
+}
+
+void UnitMovement::EndWhatItWasRunning(Motion::Inhibition what)
+{
+    // A reason that has a behaviour of its own cannot outlive it, nor it the reason: they
+    // are the same fact, so they end together and in one place. The other reasons -- rooted,
+    // stunned, dead, possessed -- only forbid; there is nothing of theirs to stop.
+    Move::Kind shape = Move::Kind::Count;
+    switch (what)
+    {
+        case Motion::Inhibition::Feared:   shape = Move::Kind::Fear;     break;
+        case Motion::Inhibition::Confused: shape = Move::Kind::Confused; break;
+        default: return;
+    }
+
+    if (!m_movement.Held(shape))
+    {
+        return;
+    }
+    m_movement.Drop(shape);
+    Advance(false, false);
+}
+
+void UnitMovement::ReleaseAllFrom(Motion::SourceDomain domain)
 {
     m_blocks.DropDomain(domain);
 }
@@ -639,8 +679,10 @@ uint8 UnitMovement::Reasons() const
     {
         switch (running)
         {
-            case Move::Kind::Fear:     reasons |= Motion::ReasonFeared;     break;
-            case Move::Kind::Confused: reasons |= Motion::ReasonConfused;   break;
+            // Fear and confusion are NOT here any more: they are counted by source like
+            // every other reason, so asking what is running would answer a question that
+            // already has an owner -- and would answer it wrongly while a second aura still
+            // holds a unit whose first one has ended.
             case Move::Kind::Distract: reasons |= Motion::ReasonDistracted; break;
             case Move::Kind::Taxi:     reasons |= Motion::ReasonOnTaxi;     break;
             default: break;
@@ -665,7 +707,7 @@ bool UnitMovement::Feigning() const
     return false;
 }
 
-void UnitMovement::Forbidden()
+void UnitMovement::StopIfForbidden()
 {
     // Whatever was walking is not allowed to any more, and the leg in flight is already on
     // its way to every client that can see it. Stopping is not optional and not deferred:
@@ -688,49 +730,62 @@ void UnitMovement::ReleaseEveryRestriction()
     m_blocks.DropDomain(Motion::SourceDomain::Seat);
     m_blocks.DropDomain(Motion::SourceDomain::FixedVehicle);
     m_blocks.DropDomain(Motion::SourceDomain::Script);
-    Release();
+    m_pending = 0;
+    m_authority = RestingAuthority(m_unit);
 }
 
 
 // -------------------------------------------------------------------- who is driving
 
-uint32 UnitMovement::Seize()
+namespace
 {
-    m_authority = Authority::Seized;
-    m_seizeAck = m_seizeNext++;
-    if (m_seizeNext == 0)
+    /// Where control goes when nothing has taken it: a player drives itself, a creature is
+    /// driven by the server, and that never changes for either.
+    Authority RestingAuthority(Unit const* unit)
     {
-        m_seizeNext = 1;   // zero means "nothing outstanding"
+        return (unit && unit->GetTypeId() == TYPEID_PLAYER) ? Authority::Client : Authority::Server;
     }
-    return m_seizeAck;
+
+    uint32 NextCounter(uint32& seed)
+    {
+        const uint32 issued = seed++;
+        if (seed == 0)
+        {
+            seed = 1;   // zero means "nothing outstanding"
+        }
+        return issued;
+    }
 }
 
-bool UnitMovement::Released(uint32 counter)
+uint32 UnitMovement::TakeControl()
 {
-    // A counter that is not the one being waited for is a late answer to a seizure that has
-    // already ended. Accepting it would hand control back in the middle of the NEXT one.
-    if (m_seizeAck == 0 || counter != m_seizeAck)
+    m_authority = Authority::Seized;
+    m_pendingTo = Authority::Seized;
+    m_pending = NextCounter(m_nextCounter);
+    return m_pending;
+}
+
+uint32 UnitMovement::GiveControl()
+{
+    m_pendingTo = RestingAuthority(m_unit);
+    m_pending = NextCounter(m_nextCounter);
+    return m_pending;
+}
+
+bool UnitMovement::Confirmed(uint32 counter)
+{
+    // A counter that is not the outstanding one is a late answer to a handover that has
+    // already ended. Honouring it would settle the NEXT one on the strength of the last.
+    if (m_pending == 0 || counter != m_pending)
     {
         return false;
     }
-    Release();
+    m_pending = 0;
+    m_authority = m_pendingTo;
     return true;
 }
 
-void UnitMovement::Release()
-{
-    m_seizeAck = 0;
-    if (m_unit && m_unit->GetTypeId() == TYPEID_PLAYER)
-    {
-        m_authority = Authority::Client;
-    }
-    else
-    {
-        m_authority = Authority::Server;
-    }
-}
-
-void UnitMovement::PropagateSpeedChange()
+void UnitMovement::SpeedChanged()
 {
     // The packet spelled a speed as a duration over a length. Change the speed and that
     // duration now describes a different one, so the leg is laid again from where the mover
@@ -740,30 +795,14 @@ void UnitMovement::PropagateSpeedChange()
         return;
     }
     StopRoute();
-    Serve(false, false);
+    Advance(false, false);
 }
 
-void UnitMovement::CancelControl(Motion::Kind kind)
-{
-    switch (kind)
-    {
-        case Motion::Kind::Fear:     m_movement.Drop(Move::Kind::Fear);     break;
-        case Motion::Kind::Confused: m_movement.Drop(Move::Kind::Confused); break;
-        case Motion::Kind::Distract: m_movement.Drop(Move::Kind::Distract); break;
-        default: return;
-    }
-    Serve(false, false);
-}
 
-void UnitMovement::ExpireCombat()
+void UnitMovement::StopChasing()
 {
     m_movement.Drop(Move::Kind::Chase);
-    Serve(false, false);
-}
-
-void UnitMovement::RelocateSelected(float, float, float, float)
-{
-    StopRoute();
+    Advance(false, false);
 }
 
 Unit* UnitMovement::ChaseTarget() const
@@ -803,7 +842,7 @@ bool UnitMovement::AddToSelectedPatrolPause(int32 ms)
     return PauseWaypoints(ms);
 }
 
-bool UnitMovement::GetWaypointPathInformation(int32& pathId, WaypointPathOrigin& origin) const
+bool UnitMovement::CurrentWalkPath(int32& pathId, WaypointPathOrigin& origin) const
 {
     if (!m_movement.Held(Move::Kind::Patrol))
     {
@@ -814,15 +853,71 @@ bool UnitMovement::GetWaypointPathInformation(int32& pathId, WaypointPathOrigin&
     return true;
 }
 
-void UnitMovement::GetWaypointPathInformation(std::ostringstream& oss) const
+void UnitMovement::DescribeWalkPath(std::ostringstream& oss) const
 {
     int32 pathId = 0;
     WaypointPathOrigin origin = PATH_NO_PATH;
-    if (!GetWaypointPathInformation(pathId, origin))
+    if (!CurrentWalkPath(pathId, origin))
     {
         oss << "no waypoint path";
         return;
     }
     oss << "path " << pathId << " (origin " << uint32(origin) << "), heading for node "
-        << SelectedPatrolNode() << ", last reached " << getLastReachedWaypoint();
+        << NextNode() << ", last reached " << ReachedNode();
+}
+
+bool UnitMovement::FlyRoute(std::vector<uint32> const& route, uint32 startNode, float speed)
+{
+    if (route.size() < 2 || !m_unit)
+    {
+        return false;
+    }
+
+    // Every hop of the route, laid end to end: the client is told the whole thing as a few
+    // long legs rather than one packet per node, and hears nothing from us in between.
+    std::vector<Move::Flight::Node> nodes;
+    for (size_t hop = 0; hop + 1 < route.size(); ++hop)
+    {
+        uint32 path = 0;
+        uint32 cost = 0;
+        sObjectMgr.GetTaxiPath(route[hop], route[hop + 1], path, cost);
+        if (!path || path >= sTaxiPathNodesByPath.size())
+        {
+            continue;
+        }
+
+        TaxiPathNodeList const& leg = sTaxiPathNodesByPath[path];
+        for (size_t i = 0; i < leg.size(); ++i)
+        {
+            TaxiPathNodeEntry const& entry = leg[i];
+
+            // The first hop begins at the node the flight was joined from, not at the start
+            // of its path: a player boarding halfway does not fly backwards first.
+            if (hop == 0 && nodes.empty() && startNode != 0 && i < startNode)
+            {
+                continue;
+            }
+
+            Move::Flight::Node node;
+            node.at = Geometry::Vector3(entry.Loc_0, entry.Loc_1, entry.Loc_2);
+            node.delayMs = entry.Delay * IN_MILLISECONDS;
+            node.arriveEvent = entry.ArrivalEventID;
+            node.departEvent = entry.DepartureEventID;
+            nodes.push_back(node);
+        }
+    }
+
+    if (nodes.size() < 2)
+    {
+        return false;
+    }
+
+    // THE PASSENGER STOPS DRIVING HERE. Until the client answers, its own movement packets
+    // describe a world it has not been told it left, and the route we are about to send is
+    // the only truth about where it is.
+    TakeControl();
+
+    m_movement.Take(new Move::Flight(nodes, speed));
+    Advance(false, false);
+    return true;
 }

@@ -442,8 +442,8 @@ bool ScriptAction::HandleScriptStep()
             }
             else
             {
-                ((Unit*)pSource)->GetMotionMaster()->StopAndDefault();
-                ((Unit*)pSource)->GetMotionMaster()->MovePoint(0, m_script->x, m_script->y, m_script->z);
+                ((Unit*)pSource)->Movement()->StopAndDefault();
+                ((Unit*)pSource)->Movement()->GoTo(0, m_script->x, m_script->y, m_script->z);
             }
             break;
         }
@@ -856,12 +856,12 @@ bool ScriptAction::HandleScriptStep()
             switch (m_script->movement.movementType)
             {
                 case CREATURE_MOVEMENT_IDLE:
-                    ((Creature*)pSource)->GetMotionMaster()->MoveIdle();
+                    ((Creature*)pSource)->Movement()->Stop();
                     break;
                 case CREATURE_MOVEMENT_RANDOM:
                     if (m_script->data_flags & SCRIPT_FLAG_COMMAND_ADDITIONAL)
                     {
-                        ((Creature*)pSource)->GetMotionMaster()->Wander(pSource->Where().X(), pSource->Where().Y(), pSource->Where().Z(), float(m_script->movement.wanderDistance));
+                        ((Creature*)pSource)->Movement()->Wander(pSource->Where().X(), pSource->Where().Y(), pSource->Where().Z(), float(m_script->movement.wanderDistance));
                     }
                     else
                     {
@@ -872,11 +872,11 @@ bool ScriptAction::HandleScriptStep()
                         respZ = pRespawnOwner->Spawn().Z();
                         wander_distance = pRespawnOwner->GetRespawnRadius();
                         wander_distance = m_script->movement.wanderDistance ? m_script->movement.wanderDistance : wander_distance;
-                        ((Creature*)pSource)->GetMotionMaster()->Wander(respX, respY, respZ, wander_distance);
+                        ((Creature*)pSource)->Movement()->Wander(respX, respY, respZ, wander_distance);
                     }
                     break;
                 case CREATURE_MOVEMENT_WAYPOINT:
-                    ((Creature*)pSource)->GetMotionMaster()->MoveWaypoint();
+                    ((Creature*)pSource)->Movement()->WalkPath();
                     break;
             }
 
@@ -1131,7 +1131,7 @@ bool ScriptAction::HandleScriptStep()
                 if (m_script->textId[0] && !LogIfNotCreature(pSource))
                 {
                     Creature* cSource = static_cast<Creature*>(pSource);
-                    cSource->GetMotionMaster()->AddToSelectedPatrolPause(m_script->textId[0]);
+                    cSource->Movement()->AddToSelectedPatrolPause(m_script->textId[0]);
                 }
 
                 return true;
@@ -1282,7 +1282,7 @@ bool ScriptAction::HandleScriptStep()
                 z = std::max(z, pTarget->Where().Z());
                 ClampToAllowedZ(*pSource, x, y, z);
             }
-            ((Creature*)pSource)->GetMotionMaster()->MovePoint(1, x, y, z);
+            ((Creature*)pSource)->Movement()->GoTo(1, x, y, z);
             break;
         }
         case SCRIPT_COMMAND_SEND_MAIL:                      // 38

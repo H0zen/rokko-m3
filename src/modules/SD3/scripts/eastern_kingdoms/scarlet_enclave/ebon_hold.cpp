@@ -1456,7 +1456,7 @@ struct npc_eye_of_acherus : public CreatureScript
                 m_creature->UpdateSpeed(MOVE_FLIGHT, true, pPlayer->GetSpeed(MOVE_FLIGHT));
 
                 //m_creature->RemoveSplineFlag(SPLINEFLAG_WALKMODE);
-                m_creature->GetMotionMaster()->MovePoint(POINT_EYE_DESTINATION, aEyeDestination[0], aEyeDestination[1], aEyeDestination[2]);
+                m_creature->Movement()->GoTo(POINT_EYE_DESTINATION, aEyeDestination[0], aEyeDestination[1], aEyeDestination[2]);
 
                 m_bIsInitialized = true;
             }
@@ -1525,7 +1525,7 @@ struct npc_scarlet_ghoul : public CreatureScript
             {
                 m_uiUnsummonTimer = 1000;
                 DoCastSpellIfCan(m_creature, SPELL_GHOUL_UNSUMMON);
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->Stop();
             }
         }
 
@@ -1560,7 +1560,7 @@ struct npc_scarlet_ghoul : public CreatureScript
                 fY = randSpot9.y;
                 fZ = randSpot9.z;
                 m_bIsJumping = true;
-                m_creature->GetMotionMaster()->MoveJump(fX, fY, fZ, 24.21229f, 6.0f, 1);
+                m_creature->Movement()->JumpTo(fX, fY, fZ, 24.21229f, 6.0f, 1);
             }
         }
 
@@ -2364,7 +2364,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                                     fX = randSpot4.x;
                                     fY = randSpot4.y;
                                     fZ = randSpot4.z;
-                                    pKoltira->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                    pKoltira->Movement()->GoTo(0, fX, fY, fZ);
                                 }
                                 if (Creature* pThassarian = m_pInstance->GetSingleCreatureFromStorage(NPC_THASSARIAN))
                                 {
@@ -2373,7 +2373,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                                     fX = randSpot3.x;
                                     fY = randSpot3.y;
                                     fZ = randSpot3.z;
-                                    pThassarian->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                    pThassarian->Movement()->GoTo(0, fX, fY, fZ);
                                 }
                                 if (Creature* pOrbaz = m_pInstance->GetSingleCreatureFromStorage(NPC_ORBAZ_BLOODBANE))
                                 {
@@ -2382,7 +2382,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                                     fX = randSpot2.x;
                                     fY = randSpot2.y;
                                     fZ = randSpot2.z;
-                                    pOrbaz->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                    pOrbaz->Movement()->GoTo(0, fX, fY, fZ);
                                 }
 
                                 // move army
@@ -2395,7 +2395,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                                         fX = randSpot1.x;
                                         fY = randSpot1.y;
                                         fZ = randSpot1.z;
-                                        pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                        pTemp->Movement()->GoTo(0, fX, fY, fZ);
                                     }
                                 }
                                 // move big units
@@ -2441,7 +2441,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                             case 14:
                                 if (Creature* pAlexandros = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_ALEXANDROS_MOGRAINE))
                                 {
-                                    pAlexandros->GetMotionMaster()->MovePoint(POINT_MOVE_OTHER, aEventLocations[5].m_fX, aEventLocations[5].m_fY, aEventLocations[5].m_fZ);
+                                    pAlexandros->Movement()->GoTo(POINT_MOVE_OTHER, aEventLocations[5].m_fX, aEventLocations[5].m_fY, aEventLocations[5].m_fZ);
                                     DoScriptText(SAY_LIGHT_OF_DAWN_VISION_1, pAlexandros);
                                     m_creature->SetFacingToObject(pAlexandros);
                                 }
@@ -2473,7 +2473,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                                 if (Creature* pDarion = m_pInstance->GetSingleCreatureFromStorage(NPC_DARION_MOGRAINE))
                                 {
                                     pDarion->SetWalk(false);
-                                    pDarion->GetMotionMaster()->MovePoint(POINT_MOVE_CHAPEL, aEventLocations[7].m_fX, aEventLocations[7].m_fY, aEventLocations[7].m_fZ);
+                                    pDarion->Movement()->GoTo(POINT_MOVE_CHAPEL, aEventLocations[7].m_fX, aEventLocations[7].m_fY, aEventLocations[7].m_fZ);
                                 }
                                 m_uiEventTimer = 5000;
                                 break;
@@ -2510,7 +2510,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                                     pTirion->SetWalk(true);
                                     if (GameObject* pLight = m_pInstance->GetSingleGameObjectFromStorage(GO_LIGHT_OF_DAWN))
                                     {
-                                        pTirion->GetMotionMaster()->MovePoint(POINT_MOVE_OTHER, pLight->Where().X(), pLight->Where().Y(), pLight->Where().Z());
+                                        pTirion->Movement()->GoTo(POINT_MOVE_OTHER, pLight->Where().X(), pLight->Where().Y(), pLight->Where().Z());
                                     }
                                 }
                                 m_uiEventTimer = 15000;
@@ -2578,7 +2578,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                                 if (Creature* pLichKing = m_pInstance->GetSingleCreatureFromStorage(NPC_THE_LICH_KING))
                                 {
                                     pLichKing->CastSpell(pLichKing, SPELL_ICEBOUND_VISAGE, true);
-                                    pLichKing->GetMotionMaster()->MovePoint(POINT_MOVE_CHAPEL, aEventLocations[9].m_fX, aEventLocations[9].m_fY, aEventLocations[9].m_fZ);
+                                    pLichKing->Movement()->GoTo(POINT_MOVE_CHAPEL, aEventLocations[9].m_fX, aEventLocations[9].m_fY, aEventLocations[9].m_fZ);
                                 }
                                 m_uiEventTimer = 5000;
                                 break;
@@ -2654,7 +2654,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                                         {
                                             pTemp->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
                                             pTemp->SetWalk(false);
-                                            pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                            pTemp->Movement()->GoTo(0, fX, fY, fZ);
                                             // attack gives us some issues
                                             //pTemp->AI()->AttackStart(pLichKing);
                                         }
@@ -2665,7 +2665,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                                         {
                                             pTemp->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
                                             pTemp->SetWalk(false);
-                                            pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                            pTemp->Movement()->GoTo(0, fX, fY, fZ);
                                             // attack gives us some issues
                                             //pTemp->AI()->AttackStart(pLichKing);
                                         }
@@ -2786,7 +2786,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                                 if (Creature* pLichKing = m_pInstance->GetSingleCreatureFromStorage(NPC_THE_LICH_KING))
                                 {
                                     DoScriptText(SAY_LIGHT_OF_DAWN_KING_VISIT_15, pLichKing);
-                                    pLichKing->GetMotionMaster()->MovePoint(POINT_MOVE_CHAPEL, aEventLocations[8].m_fX, aEventLocations[8].m_fY, aEventLocations[8].m_fZ);
+                                    pLichKing->Movement()->GoTo(POINT_MOVE_CHAPEL, aEventLocations[8].m_fX, aEventLocations[8].m_fY, aEventLocations[8].m_fZ);
                                 }
                                 if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
                                 {
@@ -2826,7 +2826,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                                     float fX, fY, fZ;
                                     pTirion->SetWalk(false);
                                     ContactPointNear(*m_creature, pTirion, fX, fY, fZ, INTERACTION_DISTANCE);
-                                    pTirion->GetMotionMaster()->MovePoint(POINT_MOVE_OTHER, fX, fY, fZ);
+                                    pTirion->Movement()->GoTo(POINT_MOVE_OTHER, fX, fY, fZ);
                                 }
                                 // make champions stand
                                 for (uint8 i = 0; i < MAX_LIGHT_CHAMPIONS; i++)
@@ -2863,7 +2863,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                                 if (Creature* pTirion = m_pInstance->GetSingleCreatureFromStorage(NPC_HIGHLORD_TIRION_FORDRING))
                                 {
                                     pTirion->SetWalk(true);
-                                    pTirion->GetMotionMaster()->MovePoint(POINT_MOVE_OTHER, aEventLocations[10].m_fX, aEventLocations[10].m_fY, aEventLocations[10].m_fZ);
+                                    pTirion->Movement()->GoTo(POINT_MOVE_OTHER, aEventLocations[10].m_fX, aEventLocations[10].m_fY, aEventLocations[10].m_fZ);
                                 }
                                 m_uiEventTimer = 5000;
                                 break;
@@ -3008,7 +3008,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                             DoScriptText(EMOTE_LIGHT_OF_DAWN_TIRION, pTirion);
 
                             pTirion->SetWalk(false);
-                            pTirion->GetMotionMaster()->MovePoint(POINT_MOVE_CHAPEL, aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ);
+                            pTirion->Movement()->GoTo(POINT_MOVE_CHAPEL, aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ);
 
                             m_uiFightTimer = 0;
                             m_uiFightSpeechTimer = 1000;
@@ -3051,7 +3051,7 @@ struct npc_highlord_darion_mograine : public CreatureScript
                     if (!m_creature->Where().WithinDist(Geometry::Vector2(aEventLocations[1].m_fX, aEventLocations[1].m_fY), 50.0f))
                     {
                         SetCombatMovement(false);
-                        m_creature->GetMotionMaster()->MovePoint(POINT_MOVE_RETURN_BATTLE, aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ);
+                        m_creature->Movement()->GoTo(POINT_MOVE_RETURN_BATTLE, aEventLocations[1].m_fX, aEventLocations[1].m_fY, aEventLocations[1].m_fZ);
                     }
 
                     // Darion spells
@@ -3265,13 +3265,13 @@ struct npc_fellow_death_knight : public CreatureScript
                 switch (m_creature->GetEntry())
                 {
                     case NPC_THASSARIAN:
-                        m_creature->GetMotionMaster()->MovePoint(POINT_MOVE_CHAPEL, aEventLocations[3].m_fX, aEventLocations[3].m_fY, aEventLocations[3].m_fZ);
+                        m_creature->Movement()->GoTo(POINT_MOVE_CHAPEL, aEventLocations[3].m_fX, aEventLocations[3].m_fY, aEventLocations[3].m_fZ);
                         break;
                     case NPC_KOLTIRA_DEATHWEAVER:
-                        m_creature->GetMotionMaster()->MovePoint(POINT_MOVE_CHAPEL, aEventLocations[2].m_fX, aEventLocations[2].m_fY, aEventLocations[2].m_fZ);
+                        m_creature->Movement()->GoTo(POINT_MOVE_CHAPEL, aEventLocations[2].m_fX, aEventLocations[2].m_fY, aEventLocations[2].m_fZ);
                         break;
                     case NPC_ORBAZ_BLOODBANE:
-                        m_creature->GetMotionMaster()->MoveTargetedHome();
+                        m_creature->Movement()->GoHome();
                         break;
                 }
             }
@@ -3409,8 +3409,8 @@ struct npc_acherus_deathcharger : public CreatureScript
                 m_creature->SetLootRecipient(nullptr);
 
                 // Stop movemnet
-                m_creature->GetMotionMaster()->StopAndDefault();
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->StopAndDefault();
+                m_creature->Movement()->Stop();
 
                 // Prepare to be mounted
                 SetCombatMovement(false);
@@ -3430,7 +3430,7 @@ struct npc_acherus_deathcharger : public CreatureScript
             {
                 float fX, fY, fZ;
                 ContactPointNear(*m_creature, pSummoned, fX, fY, fZ, INTERACTION_DISTANCE);
-                pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                pSummoned->Movement()->GoTo(1, fX, fY, fZ);
 
                 m_salaranGuid = pSummoned->GetObjectGuid();
                 m_uiQuestEndTimer = 4000;

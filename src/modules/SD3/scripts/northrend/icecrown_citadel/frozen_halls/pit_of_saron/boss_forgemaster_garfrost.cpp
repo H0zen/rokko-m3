@@ -152,7 +152,7 @@ struct boss_forgemaster_garfrost : public CreatureScript
                     float fX, fY, fZ;
                     pSummoned->SetWalk(false);
                     ContactPointNear(*m_creature, pSummoned, fX, fY, fZ, 4 * INTERACTION_DISTANCE);
-                    pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    pSummoned->Movement()->GoTo(0, fX, fY, fZ);
                     break;
                 }
             }
@@ -180,8 +180,8 @@ struct boss_forgemaster_garfrost : public CreatureScript
 
             if (m_creature->getVictim())
             {
-                m_creature->GetMotionMaster()->StopAndDefault();
-                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                m_creature->Movement()->StopAndDefault();
+                m_creature->Movement()->Chase(m_creature->getVictim());
             }
         }
 
@@ -259,7 +259,7 @@ struct boss_forgemaster_garfrost : public CreatureScript
                         DoCastSpellIfCan(m_creature, SPELL_THUNDERING_STOMP, CAST_INTERRUPT_PREVIOUS);
                         SetCombatMovement(false);
 
-                        m_creature->GetMotionMaster()->MoveJump(aGarfrostMoveLocs[0][0], aGarfrostMoveLocs[0][1], aGarfrostMoveLocs[0][2], 3 * m_creature->GetSpeed(MOVE_RUN), 10.0f, PHASE_BLADE_ENCHANTMENT);
+                        m_creature->Movement()->JumpTo(aGarfrostMoveLocs[0][0], aGarfrostMoveLocs[0][1], aGarfrostMoveLocs[0][2], 3 * m_creature->GetSpeed(MOVE_RUN), 10.0f, PHASE_BLADE_ENCHANTMENT);
                         m_uiPhase = PHASE_MOVEMENT;
 
                         // Stop further action
@@ -272,7 +272,7 @@ struct boss_forgemaster_garfrost : public CreatureScript
                         DoCastSpellIfCan(m_creature, SPELL_THUNDERING_STOMP, CAST_INTERRUPT_PREVIOUS);
                         SetCombatMovement(false);
 
-                        m_creature->GetMotionMaster()->MoveJump(aGarfrostMoveLocs[1][0], aGarfrostMoveLocs[1][1], aGarfrostMoveLocs[1][2], 3 * m_creature->GetSpeed(MOVE_RUN), 10.0f, PHASE_MACE_ENCHANTMENT);
+                        m_creature->Movement()->JumpTo(aGarfrostMoveLocs[1][0], aGarfrostMoveLocs[1][1], aGarfrostMoveLocs[1][2], 3 * m_creature->GetSpeed(MOVE_RUN), 10.0f, PHASE_MACE_ENCHANTMENT);
                         m_uiPhase = PHASE_MOVEMENT;
 
                         // Stop further action

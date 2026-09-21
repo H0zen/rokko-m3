@@ -365,7 +365,7 @@ struct boss_kaelthas : public CreatureScript
                 {
                     // ToDo: also start channeling to the giant crystals nearby
                     m_creature->SetLevitate(true);
-                    m_creature->GetMotionMaster()->MovePoint(POINT_ID_AIR, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 30.0f, false);
+                    m_creature->Movement()->GoTo(POINT_ID_AIR, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 30.0f, false);
                     m_uiPhaseTimer = 0;
                     m_uiPhase = PHASE_6_FLYING;
                 }
@@ -374,7 +374,7 @@ struct boss_kaelthas : public CreatureScript
                     SetCombatMovement(true);
                     m_creature->SetLevitate(false);
                     m_creature->InterruptNonMeleeSpells(false);
-                    m_creature->GetMotionMaster()->StopAndDefault();
+                    m_creature->Movement()->StopAndDefault();
                     DoStartMovement(m_creature->getVictim(), 25.0f);
                     m_uiShockBarrierTimer = 10000;
                     m_uiPhase = PHASE_7_GRAVITY;
@@ -641,8 +641,8 @@ struct boss_kaelthas : public CreatureScript
                             DoScriptText(SAY_PHASE5_NUTS, m_creature);
 
                             SetCombatMovement(false);
-                            m_creature->GetMotionMaster()->StopAndDefault();
-                            m_creature->GetMotionMaster()->MovePoint(POINT_ID_CENTER, aCenterPos[0], aCenterPos[1], aCenterPos[2]);
+                            m_creature->Movement()->StopAndDefault();
+                            m_creature->Movement()->GoTo(POINT_ID_CENTER, aCenterPos[0], aCenterPos[1], aCenterPos[2]);
 
                             m_uiPhase = PHASE_5_WAITING;
                         }
@@ -773,8 +773,8 @@ struct boss_kaelthas : public CreatureScript
                     {
                         if (m_uiPhaseTimer <= uiDiff)
                         {
-                            m_creature->GetMotionMaster()->StopAndDefault();
-                            m_creature->GetMotionMaster()->MovePoint(POINT_ID_CENTER, aCenterPos[0], aCenterPos[1], aCenterPos[2]);
+                            m_creature->Movement()->StopAndDefault();
+                            m_creature->Movement()->GoTo(POINT_ID_CENTER, aCenterPos[0], aCenterPos[1], aCenterPos[2]);
                             m_uiPhaseTimer = 0;
                         }
                         else
@@ -888,8 +888,8 @@ struct advisor_base_ai : public ScriptedAI
         m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
         m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
         m_creature->ClearAllReactives();
-        m_creature->GetMotionMaster()->StopAndDefault();
-        m_creature->GetMotionMaster()->MoveIdle();
+        m_creature->Movement()->StopAndDefault();
+        m_creature->Movement()->Stop();
         m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
 
         DoCastSpellIfCan(m_creature, SPELL_KAEL_PHASE_2, CAST_TRIGGERED);
@@ -902,7 +902,7 @@ struct advisor_base_ai : public ScriptedAI
         {
             m_creature->SetStandState(UNIT_STAND_STATE_STAND);
             m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE | UNIT_FLAG_NON_ATTACKABLE);
-            m_creature->GetMotionMaster()->StopAndDefault();
+            m_creature->Movement()->StopAndDefault();
             if (m_creature->GetEntry() == NPC_CAPERNIAN)
             {
                 DoStartMovement(m_creature->getVictim(), 20.0f);
@@ -1128,7 +1128,7 @@ struct boss_grand_astromancer_capernian : public CreatureScript
                 m_creature->SetInCombatWith(pWho);
                 pWho->SetInCombatWith(m_creature);
 
-                m_creature->GetMotionMaster()->MoveChase(pWho, 20.0f);
+                m_creature->Movement()->Chase(pWho, 20.0f);
             }
         }
 
@@ -1366,8 +1366,8 @@ struct mob_phoenix_tk : public CreatureScript
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             m_creature->ClearAllReactives();
             m_creature->SetTargetGuid(ObjectGuid());
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->Stop();
             m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
 
             // Spawn egg and make invisible
@@ -1385,7 +1385,7 @@ struct mob_phoenix_tk : public CreatureScript
             if (DoCastSpellIfCan(m_creature, SPELL_REBIRTH) == CAST_OK)
             {
                 m_creature->SetHealth(m_creature->GetMaxHealth());
-                m_creature->GetMotionMaster()->StopAndDefault();
+                m_creature->Movement()->StopAndDefault();
                 DoStartMovement(m_creature->getVictim());
                 m_bFakeDeath = false;
 

@@ -253,7 +253,7 @@ struct boss_majordomo : public CreatureScript
                 else if (m_uiAddsKilled == m_luiMajordomoAddsGUIDs.size())
                 {
                     m_bHasEncounterFinished = true;
-                    m_creature->GetMotionMaster()->MoveTargetedHome();
+                    m_creature->Movement()->GoHome();
                 }
             }
         }
@@ -331,7 +331,7 @@ struct boss_majordomo : public CreatureScript
                         case 11:
                             DoCastSpellIfCan(m_creature, SPELL_SUMMON_RAGNAROS);
                             // TODO - Move along, this expects to be handled with mmaps
-                            m_creature->GetMotionMaster()->MovePoint(1, 831.079590f, -816.023193f, -229.023270f);
+                            m_creature->Movement()->GoTo(1, 831.079590f, -816.023193f, -229.023270f);
                             ++m_uiSpeech;
                             m_uiSpeechTimer = 7000;
                             break;

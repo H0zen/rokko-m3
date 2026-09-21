@@ -256,8 +256,8 @@ struct npc_niby_the_almighty : public CreatureScript
                     switch (m_uiSpeech)
                     {
                         case 1:
-                            m_creature->GetMotionMaster()->StopAndDefault();
-                            m_creature->GetMotionMaster()->MovePoint(0, 5407.19f, -753.00f, 350.82f);
+                            m_creature->Movement()->StopAndDefault();
+                            m_creature->Movement()->GoTo(0, 5407.19f, -753.00f, 350.82f);
                             m_uiSummonTimer = 6200;
                             break;
                         case 2:
@@ -289,7 +289,7 @@ struct npc_niby_the_almighty : public CreatureScript
                             m_uiSummonTimer = 40000;
                             break;
                         case 6:
-                            m_creature->GetMotionMaster()->MoveTargetedHome();
+                            m_creature->Movement()->GoHome();
                             m_creature->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
                             m_bEventStarted = false;
                             break;

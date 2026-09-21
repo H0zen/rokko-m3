@@ -145,8 +145,8 @@ struct boss_alar : public CreatureScript
             }
 
             // The boss will always move to the first platform from the left side; also set the movement to idle to stop the DB movement
-            m_creature->GetMotionMaster()->MoveIdle();
-            m_creature->GetMotionMaster()->MovePoint(POINT_ID_PLATFORM, aPlatformLocation[m_uiCurrentPlatformId].m_fX, aPlatformLocation[m_uiCurrentPlatformId].m_fY, aPlatformLocation[m_uiCurrentPlatformId].m_fZ);
+            m_creature->Movement()->Stop();
+            m_creature->Movement()->GoTo(POINT_ID_PLATFORM, aPlatformLocation[m_uiCurrentPlatformId].m_fX, aPlatformLocation[m_uiCurrentPlatformId].m_fY, aPlatformLocation[m_uiCurrentPlatformId].m_fZ);
         }
 
         void JustReachedHome() override
@@ -255,7 +255,7 @@ struct boss_alar : public CreatureScript
                         SetCombatMovement(true);
                         if (m_creature->getVictim())
                         {
-                            m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                            m_creature->Movement()->Chase(m_creature->getVictim());
                         }
 
                         m_uiPhase = PHASE_TWO;
@@ -287,8 +287,8 @@ struct boss_alar : public CreatureScript
             m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             m_creature->ClearAllReactives();
-            m_creature->GetMotionMaster()->StopAndDefault();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->StopAndDefault();
+            m_creature->Movement()->Stop();
             m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
 
             // Stop damage and stop checking for flame buffet.
@@ -299,7 +299,7 @@ struct boss_alar : public CreatureScript
             {
                 // Move to the center of the hall and ressurrect
                 m_uiPhase = PHASE_REBIRTH;
-                m_creature->GetMotionMaster()->MovePoint(POINT_ID_RESSURRECT, aCenterLocation[1].m_fX, aCenterLocation[1].m_fY, aCenterLocation[1].m_fZ);
+                m_creature->Movement()->GoTo(POINT_ID_RESSURRECT, aCenterLocation[1].m_fX, aCenterLocation[1].m_fY, aCenterLocation[1].m_fZ);
             }
         }
 
@@ -316,7 +316,7 @@ struct boss_alar : public CreatureScript
                 if (m_uiFlameQuillsTimer < uiDiff)
                 {
                     // Move to Flame Quills position; stop range check, platform moving and ember summoning
-                    m_creature->GetMotionMaster()->MovePoint(POINT_ID_QUILLS, aCenterLocation[0].m_fX, aCenterLocation[0].m_fY, aCenterLocation[0].m_fZ);
+                    m_creature->Movement()->GoTo(POINT_ID_QUILLS, aCenterLocation[0].m_fX, aCenterLocation[0].m_fY, aCenterLocation[0].m_fZ);
                     m_uiRangeCheckTimer = 0;
                     m_bCanSummonEmber = false;
                     m_uiPlatformMoveTimer = 0;
@@ -345,7 +345,7 @@ struct boss_alar : public CreatureScript
                             m_creature->SummonCreature(NPC_EMBER_OF_ALAR, 0, 0, 0, 0, TEMPSPAWN_DEAD_DESPAWN, 0);
                         }
 
-                        m_creature->GetMotionMaster()->MovePoint(POINT_ID_PLATFORM, aPlatformLocation[m_uiCurrentPlatformId].m_fX, aPlatformLocation[m_uiCurrentPlatformId].m_fY, aPlatformLocation[m_uiCurrentPlatformId].m_fZ);
+                        m_creature->Movement()->GoTo(POINT_ID_PLATFORM, aPlatformLocation[m_uiCurrentPlatformId].m_fX, aPlatformLocation[m_uiCurrentPlatformId].m_fY, aPlatformLocation[m_uiCurrentPlatformId].m_fZ);
 
                         m_uiRangeCheckTimer = 0;
                         m_uiPlatformMoveTimer = 35000;
@@ -416,7 +416,7 @@ struct boss_alar : public CreatureScript
                     if (m_uiDiveBombTimer <= uiDiff)
                     {
                         SetCombatMovement(false);
-                        m_creature->GetMotionMaster()->MovePoint(POINT_ID_QUILLS, aCenterLocation[0].m_fX, aCenterLocation[0].m_fY, aCenterLocation[0].m_fZ);
+                        m_creature->Movement()->GoTo(POINT_ID_QUILLS, aCenterLocation[0].m_fX, aCenterLocation[0].m_fY, aCenterLocation[0].m_fZ);
                         m_uiPhase = PHASE_DIVE_BOMB;
                         m_uiRangeCheckTimer = 0;
                         m_uiDiveBombTimer = 0;

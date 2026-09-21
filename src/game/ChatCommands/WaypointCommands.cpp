@@ -223,7 +223,7 @@ bool ChatHandler::HandleWpAddCommand(char* args)
 
         if (wpDestination == PATH_NO_PATH)                  // No overwrite params. Do best estimate
         {
-            wpOwner->GetMotionMaster()->GetWaypointPathInformation(wpPathId, wpDestination);   // the creature's patrol, masked or not
+            wpOwner->Movement()->CurrentWalkPath(wpPathId, wpDestination);   // the creature's patrol, masked or not
             // Get information about default path if no current path. If no default path, prepare data dependendy on uniqueness
             if (wpDestination == PATH_NO_PATH && !sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), &wpDestination))
             {
@@ -416,7 +416,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
 
     if (wpSource == PATH_NO_PATH)                           // No waypoint selected
     {
-        wpOwner->GetMotionMaster()->GetWaypointPathInformation(wpPathId, wpSource);   // the creature's patrol, masked or not
+        wpOwner->Movement()->CurrentWalkPath(wpPathId, wpSource);   // the creature's patrol, masked or not
         if (wpSource == PATH_NO_PATH)
         {
             sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), &wpSource);
@@ -463,7 +463,7 @@ bool ChatHandler::HandleWpModifyCommand(char* args)
         if (wpPath->empty())
         {
             wpOwner->SetDefaultMovementType(CREATURE_MOVEMENT_RANDOM);
-            wpOwner->GetMotionMaster()->Initialize();
+            wpOwner->Movement()->UseDefault();
             if (wpOwner->IsAlive())                         // Dead creature will reset movement generator at respawn
             {
                 wpOwner->SetDeathState(JUST_DIED);
@@ -665,7 +665,7 @@ bool ChatHandler::HandleWpShowCommand(char* args)
     }
     else
     {
-        if (wpOwner->GetMotionMaster()->GetWaypointPathInformation(wpPathId, wpOrigin))   // the creature's patrol, masked or not
+        if (wpOwner->Movement()->CurrentWalkPath(wpPathId, wpOrigin))   // the creature's patrol, masked or not
         {
             wpPath = sWaypointMgr.GetPathFromOrigin(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), wpPathId, wpOrigin);
         }
@@ -879,7 +879,7 @@ bool ChatHandler::HandleWpExportCommand(char* args)
 
         if (wpOrigin == PATH_NO_PATH)
         {
-            wpOwner->GetMotionMaster()->GetWaypointPathInformation(wpPathId, wpOrigin);   // the creature's patrol, masked or not
+            wpOwner->Movement()->CurrentWalkPath(wpPathId, wpOrigin);   // the creature's patrol, masked or not
             if (wpOrigin == PATH_NO_PATH)
             {
                 sWaypointMgr.GetDefaultPath(wpOwner->GetEntry(), wpOwner->GetGUIDLow(), &wpOrigin);

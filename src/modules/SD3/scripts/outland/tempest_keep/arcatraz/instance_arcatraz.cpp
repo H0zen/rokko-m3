@@ -457,7 +457,7 @@ struct is_arcatraz : public InstanceScript
                         if (Creature* pTemp = pPlayer->SummonCreature(uiEntry, aEntranceSpawnLoc[0], aEntranceSpawnLoc[1], aEntranceSpawnLoc[2], aEntranceSpawnLoc[3], TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, 30000))
                         {
                             pTemp->SetWalk(false);
-                            pTemp->GetMotionMaster()->MovePoint(0, aEntranceMoveLoc[0], aEntranceMoveLoc[1], aEntranceMoveLoc[2]);
+                            pTemp->Movement()->GoTo(0, aEntranceMoveLoc[0], aEntranceMoveLoc[1], aEntranceMoveLoc[2]);
                         }
                         m_uiEntranceEventTimer = urand(0, 10) ? urand(1000, 2000) : urand(5000, 7000);
                         m_uiEntranceEventTimer = urand(0, 10) ? urand(2000, 3500) : urand(5000, 7000);

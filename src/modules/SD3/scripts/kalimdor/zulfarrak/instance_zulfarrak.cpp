@@ -345,7 +345,7 @@ struct is_zulfarrak : public InstanceScript
                                 fY = randSpot1.y;
                                 fZ = randSpot1.z;
                                 pTroll->SetWalk(false);
-                                pTroll->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                pTroll->Movement()->GoTo(0, fX, fY, fZ);
                             }
                         }
                         m_uiPyramidEventTimer = urand(0, 2) ? urand(3000, 10000) : 1000;

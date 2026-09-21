@@ -526,7 +526,7 @@ struct is_trial_of_the_crusader : public InstanceScript
                         {
                             if (Creature* pJaraxxus = pPlayer->SummonCreature(NPC_JARAXXUS, aSpawnPositions[6][0], aSpawnPositions[6][1], aSpawnPositions[6][2], aSpawnPositions[6][3], TEMPSPAWN_DEAD_DESPAWN, 0))
                             {
-                                pJaraxxus->GetMotionMaster()->MovePoint(POINT_COMBAT_POSITION, aMovePositions[3][0], aMovePositions[3][1], aMovePositions[3][2]);
+                                pJaraxxus->Movement()->GoTo(POINT_COMBAT_POSITION, aMovePositions[3][0], aMovePositions[3][1], aMovePositions[3][2]);
                             }
                         }
                         break;

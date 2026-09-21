@@ -319,7 +319,7 @@ struct npc_prison_event_controller : public CreatureScript
                 case NPC_AZURE_BINDER:
                 case NPC_AZURE_MAGE_SLAYER:
                     pSummoned->SetWalk(false);
-                    pSummoned->GetMotionMaster()->MovePoint(1, fSealAttackLoc[0], fSealAttackLoc[1], fSealAttackLoc[2]);
+                    pSummoned->Movement()->GoTo(1, fSealAttackLoc[0], fSealAttackLoc[1], fSealAttackLoc[2]);
                     break;
                 case NPC_AZURE_SABOTEUR:
                     if (!m_pInstance)
@@ -572,7 +572,7 @@ struct npc_teleportation_portal : public CreatureScript
                 case NPC_AZURE_MAGE_SLAYER_INTRO:
                     // Move them to the entrance. They will attack the guards automatically
                     pSummoned->SetWalk(false);
-                    pSummoned->GetMotionMaster()->MovePoint(1, fSealAttackLoc[0], fSealAttackLoc[1], fSealAttackLoc[2]);
+                    pSummoned->Movement()->GoTo(1, fSealAttackLoc[0], fSealAttackLoc[1], fSealAttackLoc[2]);
                     break;
             }
         }
@@ -613,7 +613,7 @@ struct npc_teleportation_portal : public CreatureScript
                 {
                     if (Creature* pCyanigosa = m_creature->GetMap()->GetCreature(m_cyanigosaGuid))
                     {
-                        pCyanigosa->GetMotionMaster()->MoveJump(afPortalLocation[8].fX, afPortalLocation[8].fY, afPortalLocation[8].fZ, pCyanigosa->GetSpeed(MOVE_RUN) * 2, 10.0f);
+                        pCyanigosa->Movement()->JumpTo(afPortalLocation[8].fX, afPortalLocation[8].fY, afPortalLocation[8].fZ, pCyanigosa->GetSpeed(MOVE_RUN) * 2, 10.0f);
                     }
 
                     m_uiCyanigosaMoveTimer = 0;

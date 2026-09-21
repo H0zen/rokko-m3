@@ -166,8 +166,8 @@ void Aura::HandleModPossessPet(bool apply, bool Real)
         }
 
         pet->StopMoving();
-        pet->GetMotionMaster()->Stop();
-        pet->GetMotionMaster()->MoveIdle();
+        pet->Movement()->Stop();
+        pet->Movement()->Stop();
 
         caster->TakePossessOf(target);
     }
@@ -505,7 +505,7 @@ void Aura::HandleAuraModStun(bool apply, bool Real)
             target->SetStandState(UNIT_STAND_STATE_STAND);// in 1.5 client
         }
 
-        target->GetMotionMaster()->Inhibit(Motion::Inhibition::Stunned, source);
+        target->Movement()->Forbid(Motion::Inhibition::Stunned, source);
         target->SetTargetGuid(ObjectGuid());
 
         target->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED);
@@ -570,14 +570,14 @@ void Aura::HandleAuraModStun(bool apply, bool Real)
             target->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED);
         }
 
-        target->GetMotionMaster()->Uninhibit(Motion::Inhibition::Stunned, source);
+        target->Movement()->Allow(Motion::Inhibition::Stunned, source);
 
         // I1: master returned here while another MOD_STUN aura remained, skipping the victim
         // restore and the Wyvern Sting follow-up below; the per-source Uninhibit above must run
         // on every removal, but this tail stays gated exactly as master gated it.
         if (!target->HasAuraType(SPELL_AURA_MOD_STUN))
         {
-            if (!target->GetMotionMaster()->Inhibited(Motion::Inhibition::Rooted))        // prevent allow move if have also root effect
+            if (!target->Movement()->Forbids(Motion::Inhibition::Rooted))        // prevent allow move if have also root effect
             {
                 if (target->getVictim() && target->IsAlive())
                 {
@@ -905,7 +905,7 @@ void Aura::HandleAuraModRoot(bool apply, bool Real)
         // root already is.
         if (!SpellDrivesItsOwnMovement(GetSpellProto()))
         {
-            target->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, source);
+            target->Movement()->Forbid(Motion::Inhibition::Rooted, source);
         }
 
         if (target->GetTypeId() == TYPEID_PLAYER)
@@ -952,7 +952,7 @@ void Aura::HandleAuraModRoot(bool apply, bool Real)
         // keeps the mover rooted while a stun or a seat still holds it.
         if (!SpellDrivesItsOwnMovement(GetSpellProto()))
         {
-            target->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted, source);
+            target->Movement()->Allow(Motion::Inhibition::Rooted, source);
         }
     }
 }

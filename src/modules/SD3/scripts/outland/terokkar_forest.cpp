@@ -436,7 +436,7 @@ struct npc_letoll : public CreatureScript
 
                 if ((*itr)->IsAlive() && !(*itr)->IsInCombat())
                 {
-                    (*itr)->GetMotionMaster()->MoveFollow(m_creature, 2.5f, fAngle);
+                    (*itr)->Movement()->Follow(m_creature, 2.5f, fAngle);
                 }
 
                 ++uiCount;
@@ -839,8 +839,8 @@ struct go_veil_skith_cage : public GameObjectScript
                     case 3: DoScriptText(SAY_THANKS_4, *itr); break;
                 }
 
-                (*itr)->GetMotionMaster()->StopAndDefault();
-                (*itr)->GetMotionMaster()->MovePoint(0, -2648.049f, 5274.573f, 1.691529f);
+                (*itr)->Movement()->StopAndDefault();
+                (*itr)->Movement()->GoTo(0, -2648.049f, 5274.573f, 1.691529f);
             }
         }
         return false;
@@ -1260,7 +1260,7 @@ struct npc_cenarion_sparrowhawk : public CreatureScript
                 ContactPointNear(*pStoneTrigger, m_creature, fX, fY, fZ);
 
                 m_creature->SetWalk(false);
-                m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                m_creature->Movement()->GoTo(1, fX, fY, fZ);
             }
             else
             {

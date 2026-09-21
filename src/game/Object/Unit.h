@@ -515,7 +515,7 @@ enum UnitState
     UNIT_STAT_ISOLATED        = 0x00000020,                 // area auras do not affect other players, Aura::HandleAuraModSchoolImmunity
 
     // High-Level states (usually only with Creatures)
-    UNIT_STAT_NO_COMBAT_MOVEMENT    = 0x01000000,           // Combat Movement for MoveChase stopped
+    UNIT_STAT_NO_COMBAT_MOVEMENT    = 0x01000000,           // Combat Movement for Chase stopped
     UNIT_STAT_RUNNING               = 0x02000000,           // SetRun for waypoints and such
     UNIT_STAT_WAYPOINT_PAUSED       = 0x04000000,           // Waypoint-Movement paused genericly (ie by script)
 
@@ -3067,12 +3067,13 @@ class Unit : public WorldObject
 
         /**
          * Teleports a \ref Creature or \ref Player to some coordinates within the same \ref Map,
-         * hence the name. If it's a \ref Creature that's being teleported its selected behaviour
-         * is suspended before the teleport and resumed with a reset afterwards
-         * (\ref MotionMaster::RelocateSelected). Also, after moving
-         * a \ref Creature a hearbeat needs to be sent to inform the clients about the new location,
-         * this is done using \ref Unit::SendHeartBeat and the actual move of the \ref Creature is
-         * done with \ref Map::CreatureRelocation
+         * hence the name. If it's a \ref Creature that's being teleported, the route it was
+         * walking is dropped (\ref UnitMovement::StopRoute): that route described a journey
+         * from a place the creature no longer is. What it was DOING survives and is asked
+         * again from the new spot, so a patrol carries on towards its node. Also, after
+         * moving a \ref Creature a heartbeat needs to be sent to inform the clients about the
+         * new location, this is done using \ref Unit::SendHeartBeat and the actual move of the
+         * \ref Creature is done with \ref Map::CreatureRelocation
          * @param x the new x coord
          * @param y the new y coord
          * @param z the new z coord
@@ -3944,12 +3945,10 @@ class Unit : public WorldObject
 
         float CalculateLevelPenalty(SpellEntry const* spellProto) const;
 
-        UnitMovement* GetMotionMaster() { return &i_movement; }
-        UnitMovement const* GetMotionMaster() const { return &i_movement; }
-        /// The same component under the name that says what it is. `GetMotionMaster` is the
-        /// spelling two thousand call sites already use and is kept for them.
-        UnitMovement& Movement() { return i_movement; }
-        UnitMovement const& Movement() const { return i_movement; }
+        /// Everything about how this unit moves and what stops it moving: the shape it is
+        /// running, the route in flight, what is forbidden and by whom, and who is driving.
+        UnitMovement* Movement() { return &i_movement; }
+        UnitMovement const* Movement() const { return &i_movement; }
 
         /// No leg in flight (the old UNIT_STAT_MOVING, negated): no roaming, chase, follow or fear
         /// route is in flight; there is no separate latch to keep in step with it.
@@ -3978,7 +3977,7 @@ class Unit : public WorldObject
         void SendPetAIReaction();
         ///----------End of Pet responses methods----------
 
-        void PropagateSpeedChange() { i_movement.PropagateSpeedChange(); }
+        void SpeedChanged() { i_movement.SpeedChanged(); }
 
         // reactive attacks
         void ClearAllReactives();

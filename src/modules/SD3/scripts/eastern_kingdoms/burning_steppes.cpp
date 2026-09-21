@@ -360,8 +360,8 @@ struct npc_grark_lorkrub : public CreatureScript
 
                     m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                     m_creature->ClearAllReactives();
-                    m_creature->GetMotionMaster()->StopAndDefault();
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->StopAndDefault();
+                    m_creature->Movement()->Stop();
                     m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
                     break;
                 case SAY_LEXLORT_4:
@@ -582,10 +582,10 @@ struct npc_klinfran_the_crazed : public CreatureScript
                     m_creature->SetRespawnDelay(35 * MINUTE);
                     m_creature->SetRespawnTime(35 * MINUTE);
                     m_creature->NearTeleportTo(-8318.19f, -993.662f, 176.956f, 5.65024f);
-                    if (!m_creature->GetMotionMaster()->IsPatrolling())
+                    if (!m_creature->Movement()->IsPatrolling())
                     {
                         m_creature->SetDefaultMovementType(CREATURE_MOVEMENT_WAYPOINT);
-                        m_creature->GetMotionMaster()->Initialize();
+                        m_creature->Movement()->UseDefault();
                     }
 
                     m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
@@ -621,8 +621,8 @@ struct npc_klinfran_the_crazed : public CreatureScript
         void BeginEvent(ObjectGuid playerGuid)
         {
             m_hunterGuid = playerGuid;
-            m_creature->GetMotionMaster()->Stop();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->Stop();
+            m_creature->Movement()->Stop();
             m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);
             m_bTransform = true;
         }

@@ -191,7 +191,7 @@ struct npc_akama : public CreatureScript
                 case NPC_SHADE_OF_AKAMA:
                     m_uiPhase = PHASE_EPILOGUE;
 
-                    m_creature->GetMotionMaster()->MovePoint(PHASE_EPILOGUE, afAkamaWP[1].m_fX, afAkamaWP[1].m_fY, afAkamaWP[1].m_fZ);
+                    m_creature->Movement()->GoTo(PHASE_EPILOGUE, afAkamaWP[1].m_fX, afAkamaWP[1].m_fY, afAkamaWP[1].m_fZ);
                     break;
                 case NPC_ASH_SORCERER:
                     // Decrease the sorcerer counter
@@ -211,7 +211,7 @@ struct npc_akama : public CreatureScript
                             {
                                 float fX, fY, fZ;
                                 ContactPointNear(*m_creature, pShade, fX, fY, fZ);
-                                pShade->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                                pShade->Movement()->GoTo(1, fX, fY, fZ);
                             }
                         }
                     }
@@ -255,7 +255,7 @@ struct npc_akama : public CreatureScript
                         if (Creature* pShade = m_pInstance->GetSingleCreatureFromStorage(NPC_SHADE_OF_AKAMA))
                         {
                             FindFreeSpotNear(*pShade, pShade, fX, fY, fZ, 0, 20.0f, pShade->Where().BearingTo(pSummoned->Where()));
-                            pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                            pSummoned->Movement()->GoTo(1, fX, fY, fZ);
                         }
                     }
                     break;
@@ -266,7 +266,7 @@ struct npc_akama : public CreatureScript
                     m_lBrokenGUIDList.push_back(pSummoned->GetObjectGuid());
 
                     FindFreeSpotNear(*m_creature, m_creature, fX, fY, fZ, 0, 30.0f, m_creature->Where().BearingTo(pSummoned->Where()));
-                    pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    pSummoned->Movement()->GoTo(0, fX, fY, fZ);
                     break;
                 }
                 case NPC_ASH_DEFENDER:
@@ -358,7 +358,7 @@ struct npc_akama : public CreatureScript
 
             m_creature->RemoveAurasDueToSpell(SPELL_STEALTH);
             m_creature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-            m_creature->GetMotionMaster()->MovePoint(PHASE_CHANNEL, afAkamaWP[0].m_fX, afAkamaWP[0].m_fY, afAkamaWP[0].m_fZ);
+            m_creature->Movement()->GoTo(PHASE_CHANNEL, afAkamaWP[0].m_fX, afAkamaWP[0].m_fY, afAkamaWP[0].m_fZ);
         }
 
         // Wrapper to summon ashtongue mobs
@@ -750,8 +750,8 @@ struct mob_ashtongue_sorcerer : public CreatureScript
             // Channel on the Shade when reached the calculated point
             if (DoCastSpellIfCan(m_creature, SPELL_SHADE_SOUL_CHANNEL) == CAST_OK)
             {
-                m_creature->GetMotionMaster()->StopAndDefault();
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->StopAndDefault();
+                m_creature->Movement()->Stop();
             }
         }
 

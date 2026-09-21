@@ -156,7 +156,7 @@ struct is_zulgurub : public InstanceScript
                             if (Creature* pMandokir = GetSingleCreatureFromStorage(NPC_BLOODLORD_MANDOKIR))
                             {
                                 pMandokir->SetWalk(false);
-                                pMandokir->GetMotionMaster()->MovePoint(1, aMandokirDownstairsPos[0], aMandokirDownstairsPos[1], aMandokirDownstairsPos[2]);
+                                pMandokir->Movement()->GoTo(1, aMandokirDownstairsPos[0], aMandokirDownstairsPos[1], aMandokirDownstairsPos[2]);
                             }
                         }
                         m_auiEncounter[uiType] = uiData;

@@ -414,7 +414,7 @@ bool Unit::SelectHostileTarget()
     // Note: creature not have targeted movement generator but have attacker in this case
     // (what runs now: a chase masked by a fear or an effect still scans its attackers, as the
     // stack's top-based check did, instead of evading out from under the mask)
-    if (GetMotionMaster()->ActiveKind() != Motion::Kind::Chase)
+    if (Movement()->Doing() != Motion::Kind::Chase)
     {
         for (AttackerSet::const_iterator itr = m_attackers.begin(); itr != m_attackers.end(); ++itr)
         {

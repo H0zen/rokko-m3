@@ -345,7 +345,7 @@ struct is_pit_of_saron : public InstanceScript
 
                         DoScriptText(SAY_TYRANNUS_AMBUSH_2, pTyrannus);
                         pTyrannus->SetWalk(false);
-                        pTyrannus->GetMotionMaster()->MovePoint(0, afTyrannusMovePos[2][0], afTyrannusMovePos[2][1], afTyrannusMovePos[2][2]);
+                        pTyrannus->Movement()->GoTo(0, afTyrannusMovePos[2][0], afTyrannusMovePos[2][1], afTyrannusMovePos[2][2]);
 
                         // Spawn Mobs
                         for (uint8 i = 0; i < countof(aEventSecondAmbushLocations); ++i)
@@ -354,7 +354,7 @@ struct is_pit_of_saron : public InstanceScript
                                 aEventSecondAmbushLocations[i].fZ, aEventSecondAmbushLocations[i].fO, TEMPSPAWN_DEAD_DESPAWN, 0))
                             {
                                 pSummon->SetWalk(false);
-                                pSummon->GetMotionMaster()->MovePoint(1, aEventSecondAmbushLocations[i].fMoveX, aEventSecondAmbushLocations[i].fMoveY, aEventSecondAmbushLocations[i].fMoveZ);
+                                pSummon->Movement()->GoTo(1, aEventSecondAmbushLocations[i].fMoveX, aEventSecondAmbushLocations[i].fMoveY, aEventSecondAmbushLocations[i].fMoveZ);
                             }
                         }
                     }
@@ -386,7 +386,7 @@ struct is_pit_of_saron : public InstanceScript
 
                                 DoScriptText(SAY_GAUNTLET, pTyrannus);
                                 pTyrannus->SetWalk(false);
-                                pTyrannus->GetMotionMaster()->MovePoint(0, afTyrannusMovePos[0][0], afTyrannusMovePos[0][1], afTyrannusMovePos[0][2]);
+                                pTyrannus->Movement()->GoTo(0, afTyrannusMovePos[0][0], afTyrannusMovePos[0][1], afTyrannusMovePos[0][2]);
                                 pTyrannus->ForcedDespawn(20000);
 
                                 m_uiIciclesTimer = urand(3000, 5000);
@@ -584,7 +584,7 @@ struct is_pit_of_saron : public InstanceScript
                         aEventFirstAmbushLocations[i].fZ, aEventFirstAmbushLocations[i].fO, TEMPSPAWN_DEAD_DESPAWN, 0))
                     {
                         pSummon->SetWalk(false);
-                        pSummon->GetMotionMaster()->MovePoint(1, aEventFirstAmbushLocations[i].fMoveX, aEventFirstAmbushLocations[i].fMoveY, aEventFirstAmbushLocations[i].fMoveZ);
+                        pSummon->Movement()->GoTo(1, aEventFirstAmbushLocations[i].fMoveX, aEventFirstAmbushLocations[i].fMoveY, aEventFirstAmbushLocations[i].fMoveZ);
                     }
                 }
             }
@@ -613,7 +613,7 @@ struct is_pit_of_saron : public InstanceScript
                         if (Creature* pTyrannus = GetSingleCreatureFromStorage(NPC_TYRANNUS_INTRO))
                         {
                             pTyrannus->SetWalk(false);
-                            pTyrannus->GetMotionMaster()->MovePoint(0, afTyrannusMovePos[1][0], afTyrannusMovePos[1][1], afTyrannusMovePos[1][2]);
+                            pTyrannus->Movement()->GoTo(0, afTyrannusMovePos[1][0], afTyrannusMovePos[1][1], afTyrannusMovePos[1][2]);
                         }
                         break;
                     case SPELL_STRANGULATING:
@@ -622,7 +622,7 @@ struct is_pit_of_saron : public InstanceScript
                         {
                             pKrick->CastSpell(pKrick, SPELL_STRANGULATING, true);
                             pKrick->SetLevitate(true);
-                            pKrick->GetMotionMaster()->MovePoint(0, pKrick->Where().X(), pKrick->Where().Y(), pKrick->Where().Z() + 5.0f);
+                            pKrick->Movement()->GoTo(0, pKrick->Where().X(), pKrick->Where().Y(), pKrick->Where().Z() + 5.0f);
                         }
                         break;
                     case SAY_TYRANNUS_KRICK_2:
@@ -638,7 +638,7 @@ struct is_pit_of_saron : public InstanceScript
                         // Move Tyrannus to a safe position
                         if (Creature* pTyrannus = GetSingleCreatureFromStorage(NPC_TYRANNUS_INTRO))
                         {
-                            pTyrannus->GetMotionMaster()->MovePoint(0, afTyrannusMovePos[0][0], afTyrannusMovePos[0][1], afTyrannusMovePos[0][2]);
+                            pTyrannus->Movement()->GoTo(0, afTyrannusMovePos[0][0], afTyrannusMovePos[0][1], afTyrannusMovePos[0][2]);
                         }
                         break;
                     case NPC_TYRANNUS:
@@ -656,7 +656,7 @@ struct is_pit_of_saron : public InstanceScript
                                 aEventTunnelEndLocations[i].fX, aEventTunnelEndLocations[i].fY, aEventTunnelEndLocations[i].fZ, aEventTunnelEndLocations[i].fO, TEMPSPAWN_DEAD_DESPAWN, 0))
                             {
                                 pSummon->SetWalk(false);
-                                pSummon->GetMotionMaster()->MovePoint(0, aEventTunnelEndLocations[i].fMoveX, aEventTunnelEndLocations[i].fMoveY, aEventTunnelEndLocations[i].fMoveZ);
+                                pSummon->Movement()->GoTo(0, aEventTunnelEndLocations[i].fMoveX, aEventTunnelEndLocations[i].fMoveY, aEventTunnelEndLocations[i].fMoveZ);
                             }
                         }
                         break;
@@ -667,7 +667,7 @@ struct is_pit_of_saron : public InstanceScript
                         {
                             pRimefang->CastSpell(pRimefang, SPELL_EJECT_ALL_PASSENGERS, true);
                             pRimefang->SetWalk(false);
-                            pRimefang->GetMotionMaster()->MovePoint(0, afTyrannusMovePos[3][0], afTyrannusMovePos[3][1], afTyrannusMovePos[3][2]);
+                            pRimefang->Movement()->GoTo(0, afTyrannusMovePos[3][0], afTyrannusMovePos[3][1], afTyrannusMovePos[3][2]);
                         }
                         if (Creature* pTyrannus = GetSingleCreatureFromStorage(NPC_TYRANNUS))
                         {
@@ -687,14 +687,14 @@ struct is_pit_of_saron : public InstanceScript
                             aEventOutroLocations[0].fZ, aEventOutroLocations[0].fO, TEMPSPAWN_TIMED_DESPAWN, 2 * MINUTE * IN_MILLISECONDS))
                         {
                             pSummon->SetWalk(false);
-                            pSummon->GetMotionMaster()->MovePoint(0, aEventOutroLocations[0].fMoveX, aEventOutroLocations[0].fMoveY, aEventOutroLocations[0].fMoveZ);
+                            pSummon->Movement()->GoTo(0, aEventOutroLocations[0].fMoveX, aEventOutroLocations[0].fMoveY, aEventOutroLocations[0].fMoveZ);
                         }
                         // Spawn Jaina or Sylvanas
                         if (Creature* pSummon = pPlayer->SummonCreature(m_uiTeam == HORDE ? aEventOutroLocations[1].uiEntryHorde : aEventOutroLocations[1].uiEntryAlliance,
                             aEventOutroLocations[1].fX, aEventOutroLocations[1].fY, aEventOutroLocations[1].fZ, aEventOutroLocations[1].fO, TEMPSPAWN_TIMED_DESPAWN, 24 * HOUR * IN_MILLISECONDS))
                         {
                             pSummon->SetWalk(false);
-                            pSummon->GetMotionMaster()->MovePoint(0, aEventOutroLocations[1].fMoveX, aEventOutroLocations[1].fMoveY, aEventOutroLocations[1].fMoveZ);
+                            pSummon->Movement()->GoTo(0, aEventOutroLocations[1].fMoveX, aEventOutroLocations[1].fMoveY, aEventOutroLocations[1].fMoveZ);
                         }
                         break;
                     }
@@ -741,13 +741,13 @@ struct is_pit_of_saron : public InstanceScript
                         // Sindragosa exit
                         if (Creature* pSindragosa = GetSingleCreatureFromStorage(NPC_SINDRAGOSA))
                         {
-                            pSindragosa->GetMotionMaster()->MovePoint(0, 759.148f, 199.955f, 720.857f);
+                            pSindragosa->Movement()->GoTo(0, 759.148f, 199.955f, 720.857f);
                         }
                         // Jaina / Sylvanas starts moving (should use wp)
                         if (Creature* pTemp = GetSingleCreatureFromStorage(m_uiTeam == HORDE ? NPC_SYLVANAS_PART2 : NPC_JAINA_PART2))
                         {
                             pTemp->SetWalk(true);
-                            pTemp->GetMotionMaster()->MovePoint(0, 1057.76f, 111.927f, 628.4123f);
+                            pTemp->Movement()->GoTo(0, 1057.76f, 111.927f, 628.4123f);
                         }
                         break;
                     case SAY_JAINA_OUTRO_2:
@@ -785,7 +785,7 @@ struct is_pit_of_saron : public InstanceScript
                         aEventBeginLocations[i].fX, aEventBeginLocations[i].fY, aEventBeginLocations[i].fZ, aEventBeginLocations[i].fO, TEMPSPAWN_TIMED_DESPAWN, 24 * HOUR * IN_MILLISECONDS))
                     {
                         pSummon->SetWalk(false);
-                        pSummon->GetMotionMaster()->MovePoint(0, aEventBeginLocations[i].fMoveX, aEventBeginLocations[i].fMoveY, aEventBeginLocations[i].fMoveZ);
+                        pSummon->Movement()->GoTo(0, aEventBeginLocations[i].fMoveX, aEventBeginLocations[i].fMoveY, aEventBeginLocations[i].fMoveZ);
                     }
                 }
             }

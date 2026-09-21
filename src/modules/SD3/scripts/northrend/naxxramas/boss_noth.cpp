@@ -198,7 +198,7 @@ struct boss_noth : public CreatureScript
                         if (DoCastSpellIfCan(m_creature, SPELL_TELEPORT) == CAST_OK)
                         {
                             DoScriptText(EMOTE_TELEPORT, m_creature);
-                            m_creature->GetMotionMaster()->MoveIdle();
+                            m_creature->Movement()->Stop();
                             m_uiPhase = PHASE_BALCONY;
                             ++m_uiPhaseSub;
 
@@ -286,7 +286,7 @@ struct boss_noth : public CreatureScript
                     if (DoCastSpellIfCan(m_creature, SPELL_TELEPORT_RETURN) == CAST_OK)
                     {
                         DoScriptText(EMOTE_TELEPORT_RETURN, m_creature);
-                        m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                        m_creature->Movement()->Chase(m_creature->getVictim());
                         switch (m_uiPhaseSub)
                         {
                             case PHASE_SKELETON_1: m_uiPhaseTimer = 110000; break;

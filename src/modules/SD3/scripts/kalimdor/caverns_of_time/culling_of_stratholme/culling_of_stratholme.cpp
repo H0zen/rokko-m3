@@ -526,7 +526,7 @@ struct npc_arthas : public CreatureScript
                     m_lSummonedGuidsList.push_back(pSummoned->GetObjectGuid());
                     break;
                 case NPC_LORD_EPOCH:
-                    pSummoned->GetMotionMaster()->MovePoint(0, 2450.874f, 1113.122f, 149.008f);
+                    pSummoned->Movement()->GoTo(0, 2450.874f, 1113.122f, 149.008f);
                     break;
             }
         }

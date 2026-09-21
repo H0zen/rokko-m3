@@ -79,7 +79,7 @@ struct boss_ambassador_flamelash : public CreatureScript
 
         void JustSummoned(Creature* pSummoned) override
         {
-            pSummoned->GetMotionMaster()->MovePoint(1, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
+            pSummoned->Movement()->GoTo(1, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
         }
 
         void SummonedMovementInform(Creature* pSummoned, Motion::Kind /*uiMotionType*/, uint32 uiPointId) override

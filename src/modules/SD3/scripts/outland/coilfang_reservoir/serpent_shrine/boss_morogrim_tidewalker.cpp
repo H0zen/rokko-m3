@@ -165,7 +165,7 @@ struct boss_morogrim_tidewalker : public CreatureScript
             {
                 if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                 {
-                    pSummoned->GetMotionMaster()->MoveFollow(pTarget, 0.0f, 0.0f);
+                    pSummoned->Movement()->Follow(pTarget, 0.0f, 0.0f);
                 }
             }
         }

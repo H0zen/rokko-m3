@@ -345,7 +345,7 @@ struct is_violet_hold : public InstanceScript
                     case NPC_AZURE_MAGE_SLAYER:
                         // Allow them to finish off the door seal
                         pCreature->SetWalk(false);
-                        pCreature->GetMotionMaster()->MovePoint(1, fSealAttackLoc[0], fSealAttackLoc[1], fSealAttackLoc[2]);
+                        pCreature->Movement()->GoTo(1, fSealAttackLoc[0], fSealAttackLoc[1], fSealAttackLoc[2]);
                         break;
                 }
             }
@@ -600,7 +600,7 @@ struct is_violet_hold : public InstanceScript
                         {
                             Creature* pSummoned = instance->GetCreature(ObjectGuid(uiData));
                             pSummoned->SetWalk(false);
-                            pSummoned->GetMotionMaster()->MovePoint(pData->uiWayPointId, pData->fX, pData->fY, pData->fZ);
+                            pSummoned->Movement()->GoTo(pData->uiWayPointId, pData->fX, pData->fY, pData->fZ);
                         }
                         break;
                     default:
@@ -771,7 +771,7 @@ struct is_violet_hold : public InstanceScript
                         else if (pGuard->IsAlive())
                         {
                             pGuard->SetWalk(false);
-                            pGuard->GetMotionMaster()->MovePoint(0, fGuardExitLoc[0], fGuardExitLoc[1], fGuardExitLoc[2]);
+                            pGuard->Movement()->GoTo(0, fGuardExitLoc[0], fGuardExitLoc[1], fGuardExitLoc[2]);
                             pGuard->ForcedDespawn(6000);
                         }
                     }
@@ -791,7 +791,7 @@ struct is_violet_hold : public InstanceScript
                             DoScriptText(pData->iSayEntry, pBoss);
                         }
 
-                        pBoss->GetMotionMaster()->MovePoint(1, pData->fX, pData->fY, pData->fZ);
+                        pBoss->Movement()->GoTo(1, pData->fX, pData->fY, pData->fZ);
                         pBoss->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
 
                         // Handle Erekem guards
@@ -806,7 +806,7 @@ struct is_violet_hold : public InstanceScript
                                 if (Creature* pAdd = instance->GetCreature(*itr))
                                 {
                                     fMoveX = (pData->fX - pAdd->Where().X()) * .25;
-                                    pAdd->GetMotionMaster()->MovePoint(0, pData->fX - fMoveX, pData->fY, pData->fZ);
+                                    pAdd->Movement()->GoTo(0, pData->fX - fMoveX, pData->fY, pData->fZ);
                                     pAdd->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
                                 }
                             }

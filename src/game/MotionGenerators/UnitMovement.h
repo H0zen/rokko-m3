@@ -68,12 +68,10 @@
 // mover authority, time base -- which is not an engine and was kept.
 
 #include "Platform/Define.h"
-#include "Mobility.h"
+#include "Restrictions.h"
 #include "Timer.h"
 #include "WaypointManager.h"
 #include "Move/Movement.h"
-#include "Mobility.h"
-#include "Timer.h"
 
 #include <sstream>
 #include <vector>
@@ -149,11 +147,14 @@ class UnitMovement
         explicit UnitMovement(Unit* unit) : m_unit(unit) {}
         ~UnitMovement();
 
-        void Initialize();
+        /// Adopt what this unit does when nothing else is asked of it, read from its spawn:
+        /// a patrol, a wander, or standing still. StopAndDefault() is this with a Stop()
+        /// in front of it.
+        void UseDefault();
         /// Called from the unit's own update. Costs one comparison for a mover with nothing
         /// due, which is almost all of them almost all of the time: a creature walking a
         /// forty-yard leg has nothing to do for the eight seconds it takes.
-        void UpdateMotion(uint32 diff);
+        void Tick(uint32 diff);
         /// Stop, and stay stopped. Everything the unit was doing is dropped and nothing
         /// takes its place.
         void Stop();
@@ -176,35 +177,69 @@ class UnitMovement
         /// selected now, and asks a behaviour that did not lay it afresh, always.
         void Finish();
 
-        void MoveIdle();
         /// Idle movement inside a leash. WHICH KIND is not the caller's to choose: a flier
         /// circles, anything else draws a reachable point and goes to it, and whether this
         /// creature flies is asked live -- a shapeshift or an aura changes the answer long
         /// after the spawn decided what it does by default. Water needs no case of its own:
         /// the draw already picks points in a volume for a swimmer.
         void Wander(float x, float y, float z, float radius);
-        void MoveTargetedHome();
-        void MoveFollow(Unit* target, float dist, float angle);
-        void MoveChase(Unit* target, float dist = 0.0f, float angle = 0.0f);
-        void MoveConfused(uint64 = 0);
-        void MoveFleeing(Unit* enemy, uint32 timeLimit = 0, uint64 = 0);
-        void MovePoint(uint32 id, float x, float y, float z, bool generatePath = true);
-        void MoveSeekAssistance(float x, float y, float z);
-        void MoveFlyOrLand(uint32 id, float x, float y, float z, bool liftOff);
-        void MoveCharge(Unit* target, float speed);
-        void MoveCharge(float x, float y, float z, float speed);
-        bool MoveJump(float x, float y, float z, float horizontalSpeed, float maxHeight, uint32 id = 0);
-        void MoveFall();
-        void MoveWaypoint(int32 pathId = 0, uint32 source = 0, uint32 initialDelay = 0, uint32 overwriteEntry = 0);
+        void GoHome();
+        /// Hold a place beside another unit: `angle` radians round from ITS facing, at
+        /// `distance` yards. The place turns with the target, which is what lets several
+        /// followers keep a shape around one leader instead of stacking on the same spot.
+        void Follow(Unit* target, float distance, float angle);
+        /// Close on a target and stay within reach of it, from whatever side you are on.
+        /// No angle: walking round an enemy to stand at some particular bearing would be a
+        /// strange thing to do in a fight.
+        void Chase(Unit* target, float distance = 0.0f);
+        /// Stagger about on the spot, and keep staggering while any source says so. The
+        /// source is the aura that imposed it -- which caster's which effect -- and it is
+        /// not optional: two overlapping confusions have to be told apart, or the first to
+        /// end frees a unit the second still holds.
+        void Confused(uint64 source);
+        /// Run away from something, and keep running while any source says so. Same rule
+        /// as Confused: the source is the aura, and two fears need two releases.
+        void FleeFrom(Unit* enemy, uint32 timeLimitMs, uint64 source);
+        /// Walk to one place and report arriving there. `speed` of zero means this unit's
+        /// own pace; anything else overrides it, which is what a script pushing something
+        /// across a room at a fixed rate wants. A route that cannot be found is retried, not
+        /// dropped in silence.
+        void GoTo(uint32 id, float x, float y, float z, bool routed = true, float speed = 0.0f);
+        void RunAskingHelp(float x, float y, float z);
+        /// Reach a point through the air: no ground route, no floor. Whether that is a
+        /// take-off or a landing is just whether the point is above or below, so nobody has
+        /// to say which.
+        void FlyTo(uint32 id, float x, float y, float z);
+        void ChargeTarget(Unit* target, float speed);
+        void ChargePoint(float x, float y, float z, float speed);
+        bool JumpTo(float x, float y, float z, float speed, float apex, uint32 id = 0);
+        void Fall();
+        /// Walk the creature's waypoint path. No initial delay: every caller in the tree
+        /// left it at zero, so it was a parameter describing a feature nobody used.
+        void WalkPath(int32 pathId = 0, uint32 source = 0, uint32 overwriteEntry = 0);
+
+        /// Fly a taxi route. The server takes the passenger over for the whole flight --
+        /// TakeControl() -- and gives it back on landing, because for that span the client
+        /// is not driving and must not be believed if it says otherwise.
+        /// Answers false when the route has nothing to fly.
+        bool FlyRoute(std::vector<uint32> const& route, uint32 startNode, float speed);
         bool PauseWaypoints(int32 ms);
 
         // ---- WHAT IS FORBIDDEN, counted by source. A reason holds while any source holds
         // it, so two roots from two casters need two releases. Read straight from here:
         // there is no published copy, which is the whole point of this class.
-        void Inhibit(Motion::Inhibition what, uint64 source);
-        void Uninhibit(Motion::Inhibition what, uint64 source);
-        bool Inhibited(Motion::Inhibition what) const { return m_blocks.Inhibited(what); }
-        void DropDomain(Motion::SourceDomain domain);
+        void Forbid(Motion::Inhibition what, uint64 source);
+        /// Release ONE source of a reason. If it was the last, whatever behaviour that
+        /// reason was running ends here -- in this same call, so the reason and the thing it
+        /// caused can never disagree. Two casters fearing the same target means two of these.
+        void Allow(Motion::Inhibition what, uint64 source);
+        /// Release EVERY source of a reason, whoever imposed it, and end what it was running.
+        /// Possession is the case: it overrides whatever else held the unit.
+        void AllowAll(Motion::Inhibition what);
+        bool Forbids(Motion::Inhibition what) const { return m_blocks.Inhibited(what); }
+        /// Release every source of a whole kind at once -- every seat, every aura -- which
+        /// is what a death or a vehicle coming apart needs.
+        void ReleaseAllFrom(Motion::SourceDomain domain);
 
         /// Every active reason as Reason bits: the counted inhibitions, plus the ones a held
         /// behaviour IS -- a fear is not a source anyone registered, it is a fear running.
@@ -217,49 +252,61 @@ class UnitMovement
         /// A speed changed under a route that was timed with the old one. The client was
         /// given a duration, not a speed, so the leg in flight still carries the old pace:
         /// it has to be laid again or the mover walks at a speed nobody asked for.
-        void PropagateSpeedChange();
+        void SpeedChanged();
         bool SetNextWaypoint(uint32 pointId);
-        uint32 getLastReachedWaypoint() const;
-        void GetWaypointPathInformation(std::ostringstream& oss) const;
-        bool GetWaypointPathInformation(int32& pathId, WaypointPathOrigin& origin) const;
+        /// The node this patrol is walking towards. While it waits at a node, this is
+        /// already the one after it.
+        uint32 NextNode() const;
+        /// The last node it actually arrived at. Only ever advances on an arrival, never on
+        /// a leg that could not be built -- which is the whole reason the two are separate.
+        uint32 ReachedNode() const;
+        /// A line about the path for a GM to read: which one, where it is going, where it has been.
+        void DescribeWalkPath(std::ostringstream& oss) const;
+        /// Which path this creature is walking, and where that path was read from.
+        bool CurrentWalkPath(int32& pathId, WaypointPathOrigin& origin) const;
         bool AddToSelectedPatrolPause(int32 ms);
-        uint32 SelectedPatrolNode() const;
-        bool GetDestination(float& x, float& y, float& z);
+        /// Where this unit is heading, when it is heading anywhere. False when it stands.
+        bool Destination(Geometry::Vector3& out) const;
 
         // ---- WHO IS DRIVING
         Authority Driver() const { return m_authority; }
-        void TakenByClient() { m_authority = Authority::Client; m_seizeAck = 0; }
 
-        /// The server takes a player over. Answers the counter the client must echo; until
-        /// that acknowledgement arrives the server's route is the truth and movement packets
-        /// that contradict it are refused, because for that window the unit has two possible
-        /// positions and only one of them is ours.
-        uint32 Seize();
-        /// The acknowledgement came back. A counter that is not the one being waited for is
-        /// ignored: a late ack for a seizure that already ended must not release this one.
-        bool Released(uint32 counter);
-        /// Hand control back without waiting: the flight landed, the knockback ended.
-        void Release();
-        /// True while a seizure is announced but unacknowledged -- the window in which a
-        /// client packet describes a world the server has already left.
-        bool AwaitingHandover() const { return m_authority == Authority::Seized && m_seizeAck != 0; }
+        /// THE SERVER TAKES A PLAYER OVER -- a taxi, a knockback, a fear, a root.
+        ///
+        /// Answers the counter the client must echo back. Until it does, the unit has two
+        /// possible positions: the route the server is driving, and whatever the client is
+        /// still describing from the world it has not yet been told it left. For that window
+        /// the server's route is the truth and packets that contradict it are refused.
+        uint32 TakeControl();
+
+        /// The server hands a player back. Also answers a counter to be echoed, because the
+        /// handback has to be acknowledged just as the seizure did -- until it is, a packet
+        /// arriving might still belong to the seized window.
+        uint32 GiveControl();
+
+        /// An echo came back. Answers false for a counter that is not the one outstanding:
+        /// a late reply to a handover that has already ended must not settle the current
+        /// one. Only one is ever outstanding, so this covers both directions.
+        bool Confirmed(uint32 counter);
+
+        /// True while a handover is announced but unanswered -- the window in which a client
+        /// packet may describe a world the server has already left.
+        bool AwaitingHandover() const { return m_pending != 0; }
         /// Should a movement packet from this unit's client be believed right now?
-        bool TrustsClient() const { return m_authority == Authority::Client; }
+        bool TrustsClient() const { return m_authority == Authority::Client && m_pending == 0; }
 
-        /// End a kind that is holding the unit -- a fear, a confusion -- because something
-        /// outside movement decided it is over.
-        void CancelControl(Motion::Kind kind);
-        void ExpireCombat();
-        /// The unit was put somewhere by something other than movement. Whatever leg was in
-        /// flight described a journey from a place it is no longer at, so it ends here.
-        void RelocateSelected(float x, float y, float z, float o);
+        /// Stop chasing. Combat ending is not something this component can see, so the
+        /// side that does see it says so -- but what it asks for is a movement, not an
+        /// announcement about combat.
+        void StopChasing();
 
         /// A respawn or a revive: every source of every restriction is released and control
         /// goes back to whoever normally has it. Nothing that held this unit before it died
         /// still applies afterwards.
         void ReleaseEveryRestriction();
 
-        Motion::Kind ActiveKind() const;
+        /// What this unit is doing right now, in the game's own words. Idle when nothing.
+        Motion::Kind Doing() const;
         bool IsChasing() const;
         Unit* ChaseTarget() const;
         bool IsFollowing() const;
@@ -270,10 +317,10 @@ class UnitMovement
         /// Where the mover is at this instant. While a route runs this is arithmetic over
         /// the polyline the client was sent -- the same arithmetic the client does -- so the
         /// two agree to the millisecond instead of to the last position write.
-        bool LivePosition(Geometry::Vector3& out) const;
+        bool PositionNow(Geometry::Vector3& out) const;
         /// The heading the travel direction gives at this instant, which is what the client
         /// shows: it takes the facing from the spline's tangent by itself.
-        bool LiveFacing(float& out) const;
+        bool FacingNow(float& out) const;
         /// Is a route actually under way right now? Derived, not stored: the route knows
         /// its own points and its own end, and a second flag beside it would be one more
         /// pair to keep equal.
@@ -286,7 +333,6 @@ class UnitMovement
         /// Turn on the spot, with no travel. One packet, no route.
         void FaceTo(float orientation);
         /// A raw leg at an explicit speed: what a script means by "move there this fast".
-        void MoveAtSpeed(float x, float y, float z, float speed, bool routed);
         /// Stop where the mover stands, and forget the route.
         /// Stop the route in flight and say so on the wire, but keep doing whatever this
         /// is -- a speed change that has to re-lay its leg, a relocation. Distinct from
@@ -301,20 +347,28 @@ class UnitMovement
         Move::Facing const& SentFacing() const { return m_sentFacing; }
 
     private:
-        /// Ask the selected behaviour, then send or refuse what it asked for.
-        void Serve(bool legEnded, bool cut);
+        /// ONE STEP OF EVERYTHING. Ask whatever is running -- Ended() when the leg it laid
+        /// has run out, Wake() when its own due time came -- perform the acts it asks the
+        /// game for, write and send the leg it wants or refuse it, and relaunch the route
+        /// from what actually went out. Every command ends here and so does every tick.
+        void Advance(bool legEnded, bool cut);
 
-        /// Stop whatever is running because it just became forbidden.
-        void Forbidden();
+        /// Stop whatever is running if it just became forbidden. Called from the one place
+        /// that can make it so, which is why the reason and the stopping cannot drift apart.
+        void StopIfForbidden();
+        /// The reason has no sources left: stop whatever it was making the unit do.
+        void EndWhatItWasRunning(Motion::Inhibition what);
 
         Unit* m_unit;
         Move::Movement m_movement;
         /// What is forbidden, counted by source. The only copy there is.
-        Motion::Mobility m_blocks;
+        Motion::Restrictions m_blocks;
         Authority m_authority = Authority::Server;
-        /// The counter a seized client must echo, 0 when nothing is outstanding.
-        uint32 m_seizeAck = 0;
-        uint32 m_seizeNext = 1;
+        /// The counter the client still owes an echo for, 0 when nothing is outstanding.
+        uint32 m_pending = 0;
+        uint32 m_nextCounter = 1;
+        /// Which side the pending handover is moving control to.
+        Authority m_pendingTo = Authority::Server;
         /// A pursuit reads its target through this, and holds a reference for its life, so
         /// it outlives the call that made it. Raw rather than a smart pointer because the
         /// header must not need the definition to declare the member.

@@ -341,7 +341,7 @@ struct is_blood_furnace : public InstanceScript
                             float fRespZ;
                             fRespZ = broggok->Spawn().Z();
                             GetMovementDistanceForIndex(uiData, dx, dy);
-                            broggok->GetMotionMaster()->MovePoint(POINT_EVENT_COMBAT, dx, dy, fRespZ);
+                            broggok->Movement()->GoTo(POINT_EVENT_COMBAT, dx, dy, fRespZ);
                         }
                         return;
                     default:
@@ -528,7 +528,7 @@ struct is_blood_furnace : public InstanceScript
                     if (Creature* pBroggok = GetSingleCreatureFromStorage(NPC_BROGGOK))
                     {
                         pBroggok->SetWalk(false);
-                        pBroggok->GetMotionMaster()->MovePoint(0, dx, dy, pBroggok->Where().Z());
+                        pBroggok->Movement()->GoTo(0, dx, dy, pBroggok->Where().Z());
                     }
                 }
                 else
@@ -551,7 +551,7 @@ struct is_blood_furnace : public InstanceScript
 
                             // Move them out of the cages
                             pOrc->SetWalk(false);
-                            pOrc->GetMotionMaster()->MovePoint(0, pOrc->Where().X() + dx, pOrc->Where().Y() + dy, pOrc->Where().Z());
+                            pOrc->Movement()->GoTo(0, pOrc->Where().X() + dx, pOrc->Where().Y() + dy, pOrc->Where().Z());
                         }
                     }
                 }

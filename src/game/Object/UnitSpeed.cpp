@@ -257,7 +257,7 @@ void Unit::SetSpeedRate(UnitMoveType mtype, float rate, bool forced, bool ignore
     {
         m_speed_rate[mtype] = rate;
 
-        PropagateSpeedChange();
+        SpeedChanged();
 
         // Design v2 §6.1: the kernel decides the packet. A client-driven unit gets the
         // mover form with a counter and a pending entry the ack closes; a server-driven
@@ -292,7 +292,7 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
         // Nothing lands on a passenger (reference §8.4): the arbiter refuses a control request
         // under a flight, so neither the flag nor the client's revoke is taken for a claim that
         // will never be held; the aura's removal then finds nothing to give back.
-        if (GetMotionMaster()->Reasons() & Motion::ReasonOnTaxi)
+        if (Movement()->Reasons() & Motion::ReasonOnTaxi)
         {
             return;
         }
@@ -303,19 +303,19 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
         // Control is taken once per episode (design v2 §8), before the flee spline is laid:
         // a second fear or confuse on an already controlled player sends no second revoke.
         if (GetTypeId() == TYPEID_PLAYER &&
-            (GetMotionMaster()->Reasons() & (Motion::ReasonFeared | Motion::ReasonConfused)) == 0)
+            (Movement()->Reasons() & (Motion::ReasonFeared | Motion::ReasonConfused)) == 0)
         {
             ((Player*)this)->SetClientControl(this, 0);
         }
 
         Unit* caster = IsInWorld() ? GetMap()->GetUnit(casterGuid) : NULL;
 
-        GetMotionMaster()->MoveFleeing(caster, time, claim);   // caster==NULL processed in MoveFleeing
+        Movement()->FleeFrom(caster, time, claim);   // caster==NULL is handled inside
     }
     else
     {
-        GetMotionMaster()->CancelControl(Motion::Kind::Fear);
-        if (GetMotionMaster()->Reasons() & Motion::ReasonFeared)
+        Movement()->Allow(Motion::Inhibition::Feared, claim);
+        if (Movement()->Reasons() & Motion::ReasonFeared)
         {
             return;   // another fear drives (reference §3.6): the flag stays, control stays taken
         }
@@ -340,14 +340,14 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
             // one otherwise); none means the run home.
             if (Unit* victim = getVictim())
             {
-                if (!GetMotionMaster()->IsChasing() || GetMotionMaster()->ChaseTarget() != victim)
+                if (!Movement()->IsChasing() || Movement()->ChaseTarget() != victim)
                 {
-                    GetMotionMaster()->MoveChase(victim);
+                    Movement()->Chase(victim);
                 }
             }
             else
             {
-                GetMotionMaster()->MoveTargetedHome();
+                Movement()->GoHome();
             }
         }
 
@@ -356,7 +356,7 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
         // control until its own removal. Not under a taxi: a claim refused under a
         // flight has nothing to give back, and the flight keeps the control until its landing or
         // abort, which grant (P5-B family 5).
-        if (GetTypeId() == TYPEID_PLAYER && !(GetMotionMaster()->Reasons() & Motion::ReasonConfused) && !IsTaxiFlying())
+        if (GetTypeId() == TYPEID_PLAYER && !(Movement()->Reasons() & Motion::ReasonConfused) && !IsTaxiFlying())
         {
             ((Player*)this)->SetClientControl(this, 1);
         }
@@ -377,7 +377,7 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 
     if (apply)
     {
         // As for a fear: refused under a flight, so no flag and no revoke for a claim never held.
-        if (GetMotionMaster()->Reasons() & Motion::ReasonOnTaxi)
+        if (Movement()->Reasons() & Motion::ReasonOnTaxi)
         {
             return;
         }
@@ -388,7 +388,7 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 
 
         // Control is taken once per episode (design v2 §8), before the wander is laid.
         if (GetTypeId() == TYPEID_PLAYER &&
-            (GetMotionMaster()->Reasons() & (Motion::ReasonFeared | Motion::ReasonConfused)) == 0)
+            (Movement()->Reasons() & (Motion::ReasonFeared | Motion::ReasonConfused)) == 0)
         {
             ((Player*)this)->SetClientControl(this, 0);
         }
@@ -397,12 +397,12 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 
         {
             SetTargetGuid(ObjectGuid());
         }
-        GetMotionMaster()->MoveConfused(claim);   // players too (reference §3.3.1): server-driven wandering around the spot
+        Movement()->Confused(claim);   // players too (reference §3.3.1): server-driven wandering around the spot
     }
     else
     {
-        GetMotionMaster()->CancelControl(Motion::Kind::Confused);
-        if (GetMotionMaster()->Reasons() & Motion::ReasonConfused)
+        Movement()->Allow(Motion::Inhibition::Confused, claim);
+        if (Movement()->Reasons() & Motion::ReasonConfused)
         {
             return;   // another confuse drives: the flag stays, control stays taken
         }
@@ -417,19 +417,19 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 
             // one while it still aims at the victim, a fresh one otherwise), none the run home.
             if (Unit* victim = getVictim())
             {
-                if (!GetMotionMaster()->IsChasing() || GetMotionMaster()->ChaseTarget() != victim)
+                if (!Movement()->IsChasing() || Movement()->ChaseTarget() != victim)
                 {
-                    GetMotionMaster()->MoveChase(victim);
+                    Movement()->Chase(victim);
                 }
             }
             else
             {
-                GetMotionMaster()->MoveTargetedHome();
+                Movement()->GoHome();
             }
         }
 
         // As for a fear: not under a taxi, whose landing or abort grants.
-        if (GetTypeId() == TYPEID_PLAYER && !(GetMotionMaster()->Reasons() & Motion::ReasonFeared) && !IsTaxiFlying())
+        if (GetTypeId() == TYPEID_PLAYER && !(Movement()->Reasons() & Motion::ReasonFeared) && !IsTaxiFlying())
         {
             ((Player*)this)->SetClientControl(this, 1);
         }
@@ -475,9 +475,9 @@ void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 spellID)
         // blizz like 2.0.x
         SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
 
-        GetMotionMaster()->Inhibit(Motion::Inhibition::Dead, source);
+        Movement()->Forbid(Motion::Inhibition::Dead, source);
         CombatStop();
-        GetMotionMaster()->ExpireCombat();   // CombatStop() clears the victim, not the Combat entry; end the chase as combat itself ends
+        Movement()->StopChasing();   // CombatStop() clears the victim; the chase is this component's to end
         RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_IMMUNE_OR_LOST_SELECTION);
 
         // prevent interrupt message
@@ -499,11 +499,11 @@ void Unit::SetFeignDeath(bool apply, ObjectGuid casterGuid, uint32 spellID)
         // The block's own lift resumes whatever the feign paused -- a chase in the Combat
         // layer, a follow, a patrol -- from where it stood; nothing here needs to guess it
         // back from combat state.
-        GetMotionMaster()->Uninhibit(Motion::Inhibition::Dead, source);
+        Movement()->Allow(Motion::Inhibition::Dead, source);
 
         // The flags follow the last feign: a second feign aura on the same unit keeps them
         // (a real death removes its auras before it inhibits, so this reads feign sources only).
-        if (GetMotionMaster()->Inhibited(Motion::Inhibition::Dead))
+        if (Movement()->Forbids(Motion::Inhibition::Dead))
         {
             return;
         }

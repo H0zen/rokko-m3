@@ -321,7 +321,7 @@ struct npc_nagrand_captive : public CreatureScript
             }
 
             pSummoned->SetWalk(false);
-            pSummoned->GetMotionMaster()->MovePoint(0, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
+            pSummoned->Movement()->GoTo(0, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
         }
 
         void SpellHitTarget(Unit* /*pTarget*/, const SpellEntry* pSpell) override
@@ -524,8 +524,8 @@ struct npc_rethhedron : public CreatureScript
             if (!m_bEventFinished && m_creature->GetHealthPercent() < 10.0f)
             {
                 m_creature->InterruptNonMeleeSpells(false);
-                m_creature->GetMotionMaster()->StopAndDefault();
-                m_creature->GetMotionMaster()->MovePoint(POINT_ID_PORTAL_FRONT, afRethhedronPos[0][0], afRethhedronPos[0][1], afRethhedronPos[0][2]);
+                m_creature->Movement()->StopAndDefault();
+                m_creature->Movement()->GoTo(POINT_ID_PORTAL_FRONT, afRethhedronPos[0][0], afRethhedronPos[0][1], afRethhedronPos[0][2]);
                 m_bEventFinished = true;
             }
 
@@ -546,14 +546,14 @@ struct npc_rethhedron : public CreatureScript
             if (uiPointId == POINT_ID_PORTAL_FRONT)
             {
                 DoScriptText(SAY_EVENT_END, m_creature);
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->Stop();
                 m_uiDelayTimer = 2000;
             }
             else if (uiPointId == POINT_ID_PORTAL)
             {
                 DoCastSpellIfCan(m_creature, SPELL_COSMETIC_LEGION_RING, CAST_TRIGGERED);
                 DoCastSpellIfCan(m_creature, SPELL_QUEST_COMPLETE, CAST_TRIGGERED);
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->Stop();
                 m_creature->ForcedDespawn(2000);
             }
         }
@@ -572,8 +572,8 @@ struct npc_rethhedron : public CreatureScript
             {
                 if (m_uiDelayTimer <= uiDiff)
                 {
-                    m_creature->GetMotionMaster()->StopAndDefault();
-                    m_creature->GetMotionMaster()->MovePoint(POINT_ID_PORTAL, afRethhedronPos[1][0], afRethhedronPos[1][1], afRethhedronPos[1][2]);
+                    m_creature->Movement()->StopAndDefault();
+                    m_creature->Movement()->GoTo(POINT_ID_PORTAL, afRethhedronPos[1][0], afRethhedronPos[1][1], afRethhedronPos[1][2]);
                     m_uiDelayTimer = 0;
                 }
                 else

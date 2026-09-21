@@ -350,8 +350,8 @@ struct boss_urom : public CreatureScript
 
                     // Resume combat movement
                     SetCombatMovement(true);
-                    m_creature->GetMotionMaster()->StopAndDefault();
-                    m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                    m_creature->Movement()->StopAndDefault();
+                    m_creature->Movement()->Chase(m_creature->getVictim());
                     m_uiExplosionExpireTimer = 0;
                 }
                 else
@@ -376,7 +376,7 @@ struct boss_urom : public CreatureScript
 
                     // Stop movement until he casts the arcane explosion
                     SetCombatMovement(false);
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
                     m_uiTeleportTimer = 20000;
                     m_uiExplosionExpireTimer = m_bIsRegularMode ? 9500 : 7500;
                     m_uiExplosionTimer = 1000;

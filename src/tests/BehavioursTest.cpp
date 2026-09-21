@@ -664,3 +664,126 @@ TEST(EveryPointOfAnOrbitIsOnItsCircle)
         CHECK(std::fabs(std::sqrt(dx * dx + dy * dy) - 25.0f) < 0.01f);
     }
 }
+
+// ------------------------------------------------------------------ Flight
+
+namespace
+{
+    std::vector<Move::Flight::Node> Hops(int count, float spacing, uint32_t pauseAt = 999)
+    {
+        std::vector<Move::Flight::Node> nodes;
+        for (int i = 0; i < count; ++i)
+        {
+            Move::Flight::Node n;
+            n.at = Vector3(float(i) * spacing, 0.0f, 200.0f);
+            if (uint32_t(i) == pauseAt)
+            {
+                n.delayMs = 4000;
+            }
+            nodes.push_back(n);
+        }
+        return nodes;
+    }
+}
+
+TEST(AFlightNeverAsksForARouteBecauseItsPointsAreAlreadyInTheAir)
+{
+    OpenField world;
+    world.here = Vector3(0.0f, 0.0f, 200.0f);
+    Move::Flight flight(Hops(6, 40.0f), 32.0f);
+
+    Plan plan;
+    flight.Decide(0, false, world, plan);
+    CHECK(Sent(plan));
+    CHECK_EQ(world.routes, uint32_t(0));
+    CHECK((plan.gait & Move::GAIT_FLY) != 0);
+    CHECK((plan.gait & Move::GAIT_STRAIGHT) != 0);
+}
+
+TEST(AFlightCarriesItsOwnSpeedNotTheMovers)
+{
+    OpenField world;
+    world.here = Vector3(0.0f, 0.0f, 200.0f);
+    Move::Flight flight(Hops(4, 30.0f), 32.0f);
+
+    Plan plan;
+    flight.Decide(0, false, world, plan);
+    CHECK(std::fabs(plan.speed - 32.0f) < 0.001f);
+}
+
+// A taxi route runs for thousands of yards; the packed offsets do not. The leg has to stop
+// where they would wrap, and the next one picks up from there.
+TEST(ALongFlightIsBrokenWhereThePackedFieldsWouldWrap)
+{
+    OpenField world;
+    world.here = Vector3(0.0f, 0.0f, 200.0f);
+    Move::Flight flight(Hops(40, 120.0f), 32.0f);
+
+    Plan plan;
+    flight.Decide(0, false, world, plan);
+    CHECK(Sent(plan));
+    CHECK(Move::Client::PacksWithoutWrapping(plan.points, plan.count));
+    CHECK(flight.NodesDone() == size_t(0));   // nothing reached until the leg ends
+}
+
+TEST(AFlightStopsAtANodeThatPauses)
+{
+    OpenField world;
+    world.here = Vector3(0.0f, 0.0f, 200.0f);
+    Move::Flight flight(Hops(6, 40.0f, 2), 32.0f);
+
+    Plan plan;
+    flight.Decide(0, false, world, plan);
+    CHECK(Sent(plan));
+
+    world.here = Vector3(80.0f, 0.0f, 200.0f);
+    Plan after;
+    const uint32_t due = flight.Arrived(5000, false, world, after);
+    CHECK_EQ(due, uint32_t(9000));   // five seconds in, plus the node's four
+    CHECK(!flight.Landed());
+}
+
+// Landing is what hands the passenger back, so it must be reported once and only at the end.
+TEST(AFlightReportsLandingOnceWhenItRunsOut)
+{
+    OpenField world;
+    world.here = Vector3(0.0f, 0.0f, 200.0f);
+    Move::Flight flight(Hops(3, 40.0f), 32.0f);
+
+    Plan first;
+    flight.Decide(0, false, world, first);
+    CHECK(Sent(first));
+
+    world.here = Vector3(80.0f, 0.0f, 200.0f);
+    Plan after;
+    const uint32_t due = flight.Arrived(5000, false, world, after);
+    CHECK(flight.Landed());
+    CHECK_EQ(due, uint32_t(0));
+
+    bool landed = false;
+    for (size_t i = 0; i < after.acts.size(); ++i)
+    {
+        if (after.acts[i].what == Move::ACT_LANDED)
+        {
+            landed = true;
+            CHECK_EQ(after.acts[i].extra, uint32_t(Move::Kind::Taxi));
+        }
+    }
+    CHECK(landed);
+}
+
+// A flight cut short is not a flight that landed: the passenger must not be handed back as
+// though it had arrived somewhere.
+TEST(ACutFlightDoesNotReportLanding)
+{
+    OpenField world;
+    world.here = Vector3(0.0f, 0.0f, 200.0f);
+    Move::Flight flight(Hops(5, 40.0f), 32.0f);
+
+    Plan plan;
+    flight.Decide(0, false, world, plan);
+    Plan cut;
+    flight.Arrived(2000, true, world, cut);
+    CHECK(!flight.Landed());
+    CHECK_EQ(cut.acts.size(), size_t(0));
+}

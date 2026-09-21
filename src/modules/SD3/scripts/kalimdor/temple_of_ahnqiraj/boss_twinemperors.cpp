@@ -449,7 +449,7 @@ struct boss_veklor : public CreatureScript
                 m_creature->AddThreat(pWho);
                 m_creature->SetInCombatWith(pWho);
                 pWho->SetInCombatWith(m_creature);
-                m_creature->GetMotionMaster()->MoveChase(pWho, 20.0f);
+                m_creature->Movement()->Chase(pWho, 20.0f);
             }
         }
 

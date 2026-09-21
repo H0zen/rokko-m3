@@ -249,13 +249,13 @@ struct npc_ranshalla : public CreatureScript
             // Summon 2 Elune priestess and make each of them move to a different spot
             if (Creature* pPriestess = m_creature->SummonCreature(NPC_PRIESTESS_ELUNE, aWingThicketLocations[0].m_fX, aWingThicketLocations[0].m_fY, aWingThicketLocations[0].m_fZ, aWingThicketLocations[0].m_fO, TEMPSPAWN_CORPSE_DESPAWN, 0))
             {
-                pPriestess->GetMotionMaster()->MovePoint(0, aWingThicketLocations[3].m_fX, aWingThicketLocations[3].m_fY, aWingThicketLocations[3].m_fZ);
+                pPriestess->Movement()->GoTo(0, aWingThicketLocations[3].m_fX, aWingThicketLocations[3].m_fY, aWingThicketLocations[3].m_fZ);
                 m_firstPriestessGuid = pPriestess->GetObjectGuid();
             }
             if (Creature* pPriestess = m_creature->SummonCreature(NPC_PRIESTESS_ELUNE, aWingThicketLocations[1].m_fX, aWingThicketLocations[1].m_fY, aWingThicketLocations[1].m_fZ, aWingThicketLocations[1].m_fO, TEMPSPAWN_CORPSE_DESPAWN, 0))
             {
                 // Left priestess should have a distinct move point because she is the one who starts the dialogue at point reach
-                pPriestess->GetMotionMaster()->MovePoint(1, aWingThicketLocations[4].m_fX, aWingThicketLocations[4].m_fY, aWingThicketLocations[4].m_fZ);
+                pPriestess->Movement()->GoTo(1, aWingThicketLocations[4].m_fX, aWingThicketLocations[4].m_fY, aWingThicketLocations[4].m_fZ);
                 m_secondPriestessGuid = pPriestess->GetObjectGuid();
             }
         }
@@ -356,14 +356,14 @@ struct npc_ranshalla : public CreatureScript
                     // move near the escort npc
                     if (Creature* pPriestess = m_creature->GetMap()->GetCreature(m_firstPriestessGuid))
                     {
-                        pPriestess->GetMotionMaster()->MovePoint(0, aWingThicketLocations[6].m_fX, aWingThicketLocations[6].m_fY, aWingThicketLocations[6].m_fZ);
+                        pPriestess->Movement()->GoTo(0, aWingThicketLocations[6].m_fX, aWingThicketLocations[6].m_fY, aWingThicketLocations[6].m_fZ);
                     }
                     break;
                 case SAY_PRIESTESS_ALTAR_13:
                     // summon the Guardian of Elune
                     if (Creature* pGuard = m_creature->SummonCreature(NPC_GUARDIAN_ELUNE, aWingThicketLocations[2].m_fX, aWingThicketLocations[2].m_fY, aWingThicketLocations[2].m_fZ, aWingThicketLocations[2].m_fO, TEMPSPAWN_CORPSE_DESPAWN, 0))
                     {
-                        pGuard->GetMotionMaster()->MovePoint(0, aWingThicketLocations[5].m_fX, aWingThicketLocations[5].m_fY, aWingThicketLocations[5].m_fZ);
+                        pGuard->Movement()->GoTo(0, aWingThicketLocations[5].m_fX, aWingThicketLocations[5].m_fY, aWingThicketLocations[5].m_fZ);
                         m_guardEluneGuid = pGuard->GetObjectGuid();
                     }
                     // summon the Voice of Elune
@@ -380,14 +380,14 @@ struct npc_ranshalla : public CreatureScript
                     if (Creature* pPriestess = m_creature->GetMap()->GetCreature(m_secondPriestessGuid))
                     {
                         DoScriptText(SAY_PRIESTESS_ALTAR_14, pPriestess);
-                        pPriestess->GetMotionMaster()->MovePoint(0, aWingThicketLocations[7].m_fX, aWingThicketLocations[7].m_fY, aWingThicketLocations[7].m_fZ);
+                        pPriestess->Movement()->GoTo(0, aWingThicketLocations[7].m_fX, aWingThicketLocations[7].m_fY, aWingThicketLocations[7].m_fZ);
                     }
                     break;
                 case SAY_PRIESTESS_ALTAR_19:
                     // make the voice of elune leave
                     if (Creature* pGuard = m_creature->GetMap()->GetCreature(m_guardEluneGuid))
                     {
-                        pGuard->GetMotionMaster()->MovePoint(0, aWingThicketLocations[2].m_fX, aWingThicketLocations[2].m_fY, aWingThicketLocations[2].m_fZ);
+                        pGuard->Movement()->GoTo(0, aWingThicketLocations[2].m_fX, aWingThicketLocations[2].m_fY, aWingThicketLocations[2].m_fZ);
                         pGuard->ForcedDespawn(4000);
                     }
                     break;
@@ -395,7 +395,7 @@ struct npc_ranshalla : public CreatureScript
                     // make the first priestess leave
                     if (Creature* pPriestess = m_creature->GetMap()->GetCreature(m_firstPriestessGuid))
                     {
-                        pPriestess->GetMotionMaster()->MovePoint(0, aWingThicketLocations[0].m_fX, aWingThicketLocations[0].m_fY, aWingThicketLocations[0].m_fZ);
+                        pPriestess->Movement()->GoTo(0, aWingThicketLocations[0].m_fX, aWingThicketLocations[0].m_fY, aWingThicketLocations[0].m_fZ);
                         pPriestess->ForcedDespawn(4000);
                     }
                     break;
@@ -403,7 +403,7 @@ struct npc_ranshalla : public CreatureScript
                     // make the second priestess leave
                     if (Creature* pPriestess = m_creature->GetMap()->GetCreature(m_secondPriestessGuid))
                     {
-                        pPriestess->GetMotionMaster()->MovePoint(0, aWingThicketLocations[1].m_fX, aWingThicketLocations[1].m_fY, aWingThicketLocations[1].m_fZ);
+                        pPriestess->Movement()->GoTo(0, aWingThicketLocations[1].m_fX, aWingThicketLocations[1].m_fY, aWingThicketLocations[1].m_fZ);
                         pPriestess->ForcedDespawn(4000);
                     }
                     break;
@@ -609,10 +609,10 @@ struct npc_artorius_the_doombringer : public CreatureScript
                     m_creature->SetRespawnDelay(35 * MINUTE);
                     m_creature->SetRespawnTime(35 * MINUTE);
                     m_creature->NearTeleportTo(7909.71f, -4598.67f, 710.008f, 0.606013f);
-                    if (!m_creature->GetMotionMaster()->IsPatrolling())
+                    if (!m_creature->Movement()->IsPatrolling())
                     {
                         m_creature->SetDefaultMovementType(CREATURE_MOVEMENT_WAYPOINT);
-                        m_creature->GetMotionMaster()->Initialize();
+                        m_creature->Movement()->UseDefault();
                     }
 
                     m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
@@ -645,8 +645,8 @@ struct npc_artorius_the_doombringer : public CreatureScript
         void BeginEvent(ObjectGuid playerGuid)
         {
             m_hunterGuid = playerGuid;
-            m_creature->GetMotionMaster()->Stop();
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->Stop();
+            m_creature->Movement()->Stop();
             m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);
             m_bTransform = true;
         }

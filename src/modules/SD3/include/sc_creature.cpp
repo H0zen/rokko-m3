@@ -162,7 +162,7 @@ void ScriptedAI::EnterEvadeMode()
 
     if (m_creature->IsAlive())
     {
-        m_creature->GetMotionMaster()->MoveTargetedHome();
+        m_creature->Movement()->GoHome();
     }
 
     m_creature->SetLootRecipient(nullptr);
@@ -186,7 +186,7 @@ void ScriptedAI::DoStartMovement(Unit* pVictim, float fDistance, float fAngle)
 {
     if (pVictim)
     {
-        m_creature->GetMotionMaster()->MoveChase(pVictim, fDistance, fAngle);
+        m_creature->Movement()->Chase(pVictim, fDistance, fAngle);
     }
 }
 
@@ -201,7 +201,7 @@ void ScriptedAI::DoStartNoMovement(Unit* pVictim)
         return;
     }
 
-    m_creature->GetMotionMaster()->MoveIdle();
+    m_creature->Movement()->Stop();
     m_creature->StopMoving();
 }
 

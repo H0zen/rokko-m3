@@ -264,7 +264,7 @@ struct boss_warchief_kargath_bladefist : public CreatureScript
                             // stop bladedance
                             m_bInBlade = false;
                             m_creature->SetSpeedRate(MOVE_RUN, 2.0f);
-                            m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                            m_creature->Movement()->Chase(m_creature->getVictim());
                             m_uiWaitTimer = 0;
                             if (!m_bIsRegularMode)
                             {
@@ -279,7 +279,7 @@ struct boss_warchief_kargath_bladefist : public CreatureScript
                             randy = (rand() % 40);
                             x = 210 + randx;
                             y = -60 - randy;
-                            m_creature->GetMotionMaster()->MovePoint(1, x, y, m_creature->Where().Z());
+                            m_creature->Movement()->GoTo(1, x, y, m_creature->Where().Z());
                             m_uiWaitTimer = 0;
                         }
                     }

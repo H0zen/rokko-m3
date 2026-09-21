@@ -545,7 +545,7 @@ void Unit::Update(uint32 update_diff, uint32 p_time)
     }
 
     UpdateSplineMovement(p_time);
-    i_movement.UpdateMotion(p_time);
+    i_movement.Tick(p_time);
 }
 
 /**
@@ -2480,7 +2480,7 @@ void Unit::SetInFront(Unit const* target)
  */
 void Unit::SetFacingTo(float ori)
 {
-    GetMotionMaster()->FaceTo(ori);
+    Movement()->FaceTo(ori);
 }
 
 /**
@@ -4514,7 +4514,7 @@ void Unit::SetDeathState(DeathState s)
 
     if (s == JUST_ALIVED || s == ALIVE)
     {
-        i_movement.Uninhibit(Motion::Inhibition::Dead, Motion::kDeathSource);
+        i_movement.Allow(Motion::Inhibition::Dead, Motion::kDeathSource);
     }
 
     m_deathState = s;
@@ -5787,7 +5787,7 @@ void Unit::SendPetAIReaction()
  */
 bool Unit::IsRooted() const
 {
-    return i_movement.Inhibited(Motion::Inhibition::Rooted);
+    return i_movement.Forbids(Motion::Inhibition::Rooted);
 }
 
 void Unit::StopMoving(bool forceSendStop /*=false*/)
@@ -5803,7 +5803,7 @@ void Unit::StopMoving(bool forceSendStop /*=false*/)
     // Gate on the route in flight, because that is the only thing that is actually true:
     // a home leg, an effect or a raw script leg used to set no state bit of their own, and
     // gating on those bits left the mover walking.
-    if (!GetMotionMaster()->IsMoving() && !forceSendStop)
+    if (!Movement()->IsMoving() && !forceSendStop)
     {
         return;
     }
@@ -5812,7 +5812,7 @@ void Unit::StopMoving(bool forceSendStop /*=false*/)
     // placement agree. The placement itself is written on the next Update.
     CommitSplinePosition();
 
-    GetMotionMaster()->StopRoute();
+    Movement()->StopRoute();
 }
 
 /**
@@ -5824,18 +5824,18 @@ void Unit::InterruptMoving(bool forceSendStop /*=false*/)
 {
     // One stop path: commit the in-flight position and finalize through Stop(), which
     // sends the stop packet and leaves a spline the driver reads as cut, not arrived.
-    StopMoving(forceSendStop || GetMotionMaster()->IsMoving());
+    StopMoving(forceSendStop || Movement()->IsMoving());
 }
 
 bool Unit::CommitSplinePosition()
 {
     Geometry::Vector3 at;
-    if (!GetMotionMaster()->LivePosition(at))
+    if (!Movement()->PositionNow(at))
     {
         return false;
     }
     float heading = Where().Facing();
-    GetMotionMaster()->LiveFacing(heading);
+    Movement()->FacingNow(heading);
     const Geometry::Position loc(at, heading);
 
     if (IsBoarded())
@@ -6460,10 +6460,11 @@ void Unit::NearTeleportTo(float x, float y, float z, float orientation, bool cas
     }
     else
     {
-        // Creature relocation acts like instant movement: the selected behaviour expects the
-        // interrupt/reset pair around it to react properly.
+        // The teleport has already moved it. The route in flight described a journey from
+        // somewhere it no longer is, so it goes -- but what the creature was DOING stays,
+        // and is asked again from the new spot: a patrol carries on towards its node.
         Creature* c = (Creature*)this;
-        c->GetMotionMaster()->RelocateSelected(x, y, z, orientation);
+        c->Movement()->StopRoute();
     }
 }
 
@@ -6479,7 +6480,7 @@ void Unit::NearTeleportTo(float x, float y, float z, float orientation, bool cas
  */
 void Unit::MonsterMoveWithSpeed(float x, float y, float z, float speed, bool generatePath, bool /*forceDestination*/)
 {
-    GetMotionMaster()->MoveAtSpeed(x, y, z, speed, generatePath);
+    Movement()->GoTo(0, x, y, z, generatePath, speed);
 }
 
 struct SetPvPHelper
@@ -6585,7 +6586,7 @@ void Unit::KnockBackWithAngle(float angle, float horizontalSpeed, float vertical
         float fz = oz + 0.5f;
         GetMap()->GetHitPosition(ox, oy, oz + 0.5f, fx, fy, fz, GetPhaseMask(), -0.5f);
         ClampToAllowedZ(*this, fx, fy, fz);
-        GetMotionMaster()->MoveJump(fx, fy, fz, horizontalSpeed, max_height);
+        Movement()->JumpTo(fx, fy, fz, horizontalSpeed, max_height);
     }
 }
 
@@ -6919,12 +6920,12 @@ void Unit::UpdateSplineMovement(uint32 t_diff)
     // this loop is for is the SERVER's bookkeeping: the grid cell, visibility and everything
     // that reads a stored position, none of which can afford to be recomputed per query.
     Geometry::Vector3 at;
-    if (!GetMotionMaster()->LivePosition(at))
+    if (!Movement()->PositionNow(at))
     {
         return;
     }
 
-    const bool arrived = GetMotionMaster()->InFlight().Arrived(getMSTime());
+    const bool arrived = Movement()->InFlight().Arrived(getMSTime());
     if (arrived)
     {
         DisableSpline();
@@ -6935,7 +6936,7 @@ void Unit::UpdateSplineMovement(uint32 t_diff)
     {
         m_movesplineTimer.Reset(POSITION_UPDATE_DELAY);
         float heading = Where().Facing();
-        GetMotionMaster()->LiveFacing(heading);
+        Movement()->FacingNow(heading);
         const Geometry::Position loc(at, heading);
 
         if (IsBoarded())
@@ -6965,7 +6966,7 @@ void Unit::DisableSpline()
 
 bool Unit::IsSplineEnabled() const
 {
-    return GetMotionMaster()->IsMoving();
+    return Movement()->IsMoving();
 }
 
 bool Unit::IsInWorgenForm(bool inPermanent) const
@@ -7047,7 +7048,7 @@ Unit* Unit::TakePossessOf(SpellEntry const* spellEntry, SummonPropertiesEntry co
     pCreature->SetCharmerGuid(GetObjectGuid());                         // save guid of the charmer
     pCreature->SetUInt32Value(UNIT_CREATED_BY_SPELL, spellEntry->ID);   // set the spell id used to create this (may be used for removing corresponding aura
     pCreature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);  // set flag for client that mean this unit is controlled by a player
-    pCreature->GetMotionMaster()->Inhibit(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, GetObjectGuid().GetCounter())); // also set internal block state
+    pCreature->Movement()->Forbid(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, GetObjectGuid().GetCounter())); // also set internal block state
     pCreature->SelectLevel(getLevel());                                 // set level to same level than summoner TODO:: not sure its always the case...
     pCreature->SetLinkedToOwnerAura(TEMPSPAWN_LINKED_AURA_OWNER_CHECK | TEMPSPAWN_LINKED_AURA_REMOVE_OWNER); // set what to do if linked aura is removed or the creature is dead.
     pCreature->SetWalk(IsWalking(), true);                              // sync the walking state with the summoner
@@ -7108,7 +7109,7 @@ bool Unit::TakePossessOf(Unit* possessed)
     possessed->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
     possessed->SetCharmerGuid(GetObjectGuid());
     // After the charmer: the block's client-root projection reads it (a stunned body is rooted for its player mover).
-    possessed->GetMotionMaster()->Inhibit(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, GetObjectGuid().GetCounter()));
+    possessed->Movement()->Forbid(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, GetObjectGuid().GetCounter()));
     possessed->setFaction(getFaction());
 
     SetCharm(possessed);
@@ -7126,8 +7127,10 @@ bool Unit::TakePossessOf(Unit* possessed)
         {
             // The take ends the server's control episodes (spec §7): the pet answers its
             // master now, and the grant below needs the flee and confuse states gone.
-            possessed->GetMotionMaster()->CancelControl(Motion::Kind::Fear);
-            possessed->GetMotionMaster()->CancelControl(Motion::Kind::Confused);
+            // Possession overrides whatever else was holding him, so both go entirely
+            // rather than one source at a time.
+            possessed->Movement()->AllowAll(Motion::Inhibition::Feared);
+            possessed->Movement()->AllowAll(Motion::Inhibition::Confused);
         }
 
         player->GetCamera().SetView(possessed);
@@ -7137,8 +7140,8 @@ bool Unit::TakePossessOf(Unit* possessed)
         if (ownPet)
         {
             possessed->StopMoving();
-            possessed->GetMotionMaster()->Stop();
-            possessed->GetMotionMaster()->MoveIdle();
+            possessed->Movement()->Stop();
+            possessed->Movement()->Stop();
             return true;
         }
         else if (CharmInfo* charmInfo = possessed->InitCharmInfo(possessed))
@@ -7195,7 +7198,7 @@ void Unit::ResetControlState(bool attackCharmer /*= true*/)
     possessed->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
     possessed->SetCharmerGuid(ObjectGuid());
     // After the charmer is gone: the projection then roots the body as a creature, not as a player's mover.
-    possessed->GetMotionMaster()->Uninhibit(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, GetObjectGuid().GetCounter()));
+    possessed->Movement()->Allow(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, GetObjectGuid().GetCounter()));
     SetCharmGuid(ObjectGuid());
 
     if (player)
@@ -7218,7 +7221,7 @@ void Unit::ResetControlState(bool attackCharmer /*= true*/)
             }
             else
             {
-                possessedCreature->GetMotionMaster()->MoveFollow(this, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+                possessedCreature->Movement()->Follow(this, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
             }
 
             return;
@@ -7253,7 +7256,7 @@ void Unit::ResetControlState(bool attackCharmer /*= true*/)
             }
             else
             {
-                possessedCreature->GetMotionMaster()->MoveFollow(this, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+                possessedCreature->Movement()->Follow(this, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
             }
         }
         else if (attackCharmer)

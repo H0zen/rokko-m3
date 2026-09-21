@@ -923,7 +923,7 @@ struct at_stomach_cthun : public AreaTriggerScript
 
             // Note: because of the missing spell id 26224, we will use basic jump movement
             // Disabled because of the missing jump effect
-            pPlayer->GetMotionMaster()->MoveJump(afCthunLocations[3][0], afCthunLocations[3][1], afCthunLocations[3][2], pPlayer->GetSpeed(MOVE_RUN) * 5, 0);
+            pPlayer->Movement()->JumpTo(afCthunLocations[3][0], afCthunLocations[3][1], afCthunLocations[3][2], pPlayer->GetSpeed(MOVE_RUN) * 5, 0);
         }
         else if (SD3_AreaTriggerId(pAt) == AREATRIGGER_STOMACH_2)
         {

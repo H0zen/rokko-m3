@@ -190,7 +190,7 @@ struct boss_victor_nefarius : public CreatureScript
                 pWho->SetInCombatWith(m_creature);
 
                 // Only range attack - ToDo: research the distance
-                m_creature->GetMotionMaster()->MoveChase(pWho, 30.0f);
+                m_creature->Movement()->Chase(pWho, 30.0f);
             }
         }
 
@@ -205,7 +205,7 @@ struct boss_victor_nefarius : public CreatureScript
                 pSummoned->SetLevitate(true);
 
                 // Let Nefarian fly towards combat area
-                pSummoned->GetMotionMaster()->MovePoint(1, aNefarianLocs[3].m_fX, aNefarianLocs[3].m_fY, aNefarianLocs[3].m_fZ);
+                pSummoned->Movement()->GoTo(1, aNefarianLocs[3].m_fX, aNefarianLocs[3].m_fY, aNefarianLocs[3].m_fZ);
                 DoScriptText(SAY_NEFARIAN_INTRO, pSummoned);
             }
             else

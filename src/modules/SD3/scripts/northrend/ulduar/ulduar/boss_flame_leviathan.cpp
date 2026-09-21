@@ -249,7 +249,7 @@ struct boss_flame_leviathan : public CreatureScript
                 }
 
                 pFlyMachine->SetWalk(false);
-                pFlyMachine->GetMotionMaster()->MovePoint(1, 229.9419f, -130.3764f, 409.5681f);
+                pFlyMachine->Movement()->GoTo(1, 229.9419f, -130.3764f, 409.5681f);
             }
         }
 
@@ -314,7 +314,7 @@ struct boss_flame_leviathan : public CreatureScript
                 if (Creature* pArchmage = m_creature->SummonCreature(NPC_ARCHMANGE_RHYDIAN, 235.5596f, -136.1876f, 409.6508f, 1.78f, TEMPSPAWN_CORPSE_DESPAWN, 0))
                 {
                     pArchmage->SetWalk(false);
-                    pArchmage->GetMotionMaster()->MovePoint(1, 239.3158f, -123.6443f, 409.8174f);
+                    pArchmage->Movement()->GoTo(1, 239.3158f, -123.6443f, 409.8174f);
                 }
 
                 pSummoned->RemoveAllAuras();
@@ -325,7 +325,7 @@ struct boss_flame_leviathan : public CreatureScript
                 {
                     // rest will be handled by DB scripts
                     pBrann->SetWalk(false);
-                    pBrann->GetMotionMaster()->MoveWaypoint();
+                    pBrann->Movement()->WalkPath();
                 }
             }
         }
@@ -710,7 +710,7 @@ struct npc_hodir_fury_reticle : public CreatureScript
                         {
                             if (Unit* pTarget = pLeviathan->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
                             {
-                                m_creature->GetMotionMaster()->MovePoint(1, pTarget->Where().X(), pTarget->Where().Y(), pTarget->Where().Z());
+                                m_creature->Movement()->GoTo(1, pTarget->Where().X(), pTarget->Where().Y(), pTarget->Where().Z());
                             }
                         }
                     }

@@ -1027,7 +1027,7 @@ void Spell::EffectJump(SpellEffectEntry const* effect)
     ClampToAllowedZ(*m_caster, x, y, z);
 
     float speed = m_spellInfo->Speed ? m_spellInfo->Speed : 27.0f;
-    m_caster->GetMotionMaster()->MoveJump(x, y, z, o, speed, 2.5f, NULL);
+    m_caster->Movement()->JumpTo(x, y, z, o, speed, 2.5f, NULL);
 }
 
 void Spell::EffectTeleportUnits(SpellEffectEntry const* effect)   // TODO - Use target settings for this effect!

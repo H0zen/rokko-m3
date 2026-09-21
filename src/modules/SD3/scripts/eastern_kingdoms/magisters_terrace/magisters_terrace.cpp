@@ -76,7 +76,7 @@ struct npc_kalecgos : public CreatureScript
             m_uiTransformTimer = 0;
 
             // Move the dragon to landing point
-            m_creature->GetMotionMaster()->MovePoint(1, afKaelLandPoint[0], afKaelLandPoint[1], afKaelLandPoint[2]);
+            m_creature->Movement()->GoTo(1, afKaelLandPoint[0], afKaelLandPoint[1], afKaelLandPoint[2]);
         }
 
         void MovementInform(Motion::Kind uiType, uint32 uiPointId) override

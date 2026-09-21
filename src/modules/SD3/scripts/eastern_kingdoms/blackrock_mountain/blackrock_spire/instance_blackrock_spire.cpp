@@ -563,7 +563,7 @@ struct is_blackrock_spire : public InstanceScript
                         }
                         if (Creature* pNefarius = GetSingleCreatureFromStorage(NPC_LORD_VICTOR_NEFARIUS))
                         {
-                            pNefarius->GetMotionMaster()->MovePoint(0, aStadiumLocs[5].m_fX, aStadiumLocs[5].m_fY, aStadiumLocs[5].m_fZ);
+                            pNefarius->Movement()->GoTo(0, aStadiumLocs[5].m_fX, aStadiumLocs[5].m_fY, aStadiumLocs[5].m_fZ);
                         }
                         break;
                     case SAY_NEFARIUS_WARCHIEF:
@@ -572,7 +572,7 @@ struct is_blackrock_spire : public InstanceScript
                         {
                             pRend->ForcedDespawn(5000);
                             pRend->SetWalk(false);
-                            pRend->GetMotionMaster()->MovePoint(0, aStadiumLocs[6].m_fX, aStadiumLocs[6].m_fY, aStadiumLocs[6].m_fZ);
+                            pRend->Movement()->GoTo(0, aStadiumLocs[6].m_fX, aStadiumLocs[6].m_fY, aStadiumLocs[6].m_fZ);
                         }
                         m_uiStadiumEventTimer = 30000;
                         break;
@@ -584,7 +584,7 @@ struct is_blackrock_spire : public InstanceScript
                         if (Creature* pNefarius = GetSingleCreatureFromStorage(NPC_LORD_VICTOR_NEFARIUS))
                         {
                             pNefarius->ForcedDespawn(5000);
-                            pNefarius->GetMotionMaster()->MovePoint(0, aStadiumLocs[6].m_fX, aStadiumLocs[6].m_fY, aStadiumLocs[6].m_fZ);
+                            pNefarius->Movement()->GoTo(0, aStadiumLocs[6].m_fX, aStadiumLocs[6].m_fY, aStadiumLocs[6].m_fZ);
                         }
                         break;
                 }
@@ -620,7 +620,7 @@ struct is_blackrock_spire : public InstanceScript
                                 fZ = randSpot2.z;
                                 fX = std::min(aStadiumLocs[2].m_fX, fX);// Halfcircle - suits better the rectangular form
 
-                                pTemp->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                                pTemp->Movement()->GoTo(0, fX, fY, fZ);
                                 ++m_uiStadiumMobsAlive;
                             }
                         }
@@ -640,7 +640,7 @@ struct is_blackrock_spire : public InstanceScript
                     {
                         if (Creature* pTemp = pNefarius->SummonCreature(NPC_GYTH, aStadiumLocs[1].m_fX, aStadiumLocs[1].m_fY, aStadiumLocs[1].m_fZ, 0.0f, TEMPSPAWN_DEAD_DESPAWN, 0))
                         {
-                            pTemp->GetMotionMaster()->MovePoint(0, aStadiumLocs[2].m_fX, aStadiumLocs[2].m_fY, aStadiumLocs[2].m_fZ);
+                            pTemp->Movement()->GoTo(0, aStadiumLocs[2].m_fX, aStadiumLocs[2].m_fY, aStadiumLocs[2].m_fZ);
                         }
                     }
 
@@ -688,7 +688,7 @@ struct is_blackrock_spire : public InstanceScript
                         if (pSummoned)
                         {
                             ContactPointNear(*pSummoner, pSummoned, fX, fY, fZ);
-                            pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, pSummoner->Where().Z());
+                            pSummoned->Movement()->GoTo(1, fX, fY, pSummoner->Where().Z());
                         }
                     }
                     if (pSummoned && m_uiFlamewreathWaveCount == 0)
@@ -715,7 +715,7 @@ struct is_blackrock_spire : public InstanceScript
                 {
                     if (Creature* pSolakar = pSummoner->SummonCreature(NPC_SOLAKAR_FLAMEWREATH, rookeryEventSpawnPos[0], rookeryEventSpawnPos[1], rookeryEventSpawnPos[2], 0.0f, TEMPSPAWN_TIMED_OOC_OR_DEAD_DESPAWN, HOUR * IN_MILLISECONDS))
                     {
-                        pSolakar->GetMotionMaster()->MovePoint(1, pSummoner->Where().X(), pSummoner->Where().Y(), pSummoner->Where().Z());
+                        pSolakar->Movement()->GoTo(1, pSummoner->Where().X(), pSummoner->Where().Y(), pSummoner->Where().Z());
                     }
                     SetData(TYPE_FLAMEWREATH, SPECIAL);
                     m_uiFlamewreathEventTimer = 0;

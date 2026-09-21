@@ -128,7 +128,7 @@ struct npc_web_wrap : public CreatureScript
                 // pVictim->KnockBackFrom(m_creature, -fDist, uiEffectMiscValue * 0.1f);
 
                 float fSpeed = fDist * (uiEffectMiscValue * 0.01f);
-                pVictim->GetMotionMaster()->MoveJump(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), fSpeed, 0.0f);
+                pVictim->Movement()->JumpTo(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), fSpeed, 0.0f);
 
                 m_victimGuid = pVictim->GetObjectGuid();
                 m_uiWebWrapTimer = uiEffectMiscValue == 200 ? 1000 : 2000;

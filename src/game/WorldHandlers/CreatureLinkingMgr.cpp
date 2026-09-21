@@ -705,7 +705,7 @@ void CreatureLinkingHolder::SetFollowing(Creature* pWho, Creature* pWhom)
     float angle = atan2(dy, dx) - mO;
     angle = (angle >= 0) ? angle : 2 * M_PI_F + angle;
 
-    pWho->GetMotionMaster()->MoveFollow(pWhom, dist, angle);
+    pWho->Movement()->Follow(pWhom, dist, angle);
 }
 
 // Function to check if a slave belongs to a boss by range-issue

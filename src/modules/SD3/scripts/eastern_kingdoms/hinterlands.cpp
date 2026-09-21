@@ -132,7 +132,7 @@ struct npc_00x09hl : public CreatureScript
 
         void JustSummoned(Creature* pSummoned) override
         {
-            pSummoned->GetMotionMaster()->MovePoint(0, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
+            pSummoned->Movement()->GoTo(0, m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
         }
     };
 
@@ -269,7 +269,7 @@ struct npc_rinji : public CreatureScript
         void JustSummoned(Creature* pSummoned) override
         {
             m_creature->SetWalk(false);
-            pSummoned->GetMotionMaster()->MovePoint(0, m_afAmbushMoveTo[m_iSpawnId].m_fX, m_afAmbushMoveTo[m_iSpawnId].m_fY, m_afAmbushMoveTo[m_iSpawnId].m_fZ);
+            pSummoned->Movement()->GoTo(0, m_afAmbushMoveTo[m_iSpawnId].m_fX, m_afAmbushMoveTo[m_iSpawnId].m_fY, m_afAmbushMoveTo[m_iSpawnId].m_fZ);
         }
 
         void WaypointReached(uint32 uiPointId) override

@@ -242,7 +242,7 @@ struct npc_daegarn : public CreatureScript
                 if (pPlayer->IsAlive())
                 {
                     pSummon->SetWalk(false);
-                    pSummon->GetMotionMaster()->MovePoint(0, afCenter[0], afCenter[1], afCenter[2]);
+                    pSummon->Movement()->GoTo(0, afCenter[0], afCenter[1], afCenter[2]);
                     return;
                 }
             }
@@ -891,7 +891,7 @@ struct npc_firecrackers_bunny : public CreatureScript
             if (m_bHasValidBat && pWho->GetObjectGuid() == m_selectedBatGuid && InReach(*m_creature, *pWho, 3.5f))
             {
                 // spawn the Guano loot
-                pWho->GetMotionMaster()->MoveIdle();
+                pWho->Movement()->Stop();
                 pWho->CastSpell(m_creature, SPELL_SUMMON_DARKCLAW_GUANO, true);
                 m_bHasValidBat = false;
             }
@@ -939,9 +939,9 @@ struct npc_firecrackers_bunny : public CreatureScript
                     // Move bat to the point
                     float fX, fY, fZ;
                     pBat->SetWalk(false);
-                    pBat->GetMotionMaster()->StopAndDefault();
+                    pBat->Movement()->StopAndDefault();
                     ContactPointNear(*m_creature, pBat, fX, fY, fZ);
-                    pBat->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    pBat->Movement()->GoTo(0, fX, fY, fZ);
 
                     m_selectedBatGuid = pBat->GetObjectGuid();
                     m_uiStartTimer = 0;

@@ -154,7 +154,7 @@ struct boss_soccothrates : public CreatureScript
             // should evade to the attack position
             if (m_creature->IsAlive())
             {
-                m_creature->GetMotionMaster()->MovePoint(1, aSoccotharesStartPos[0], aSoccotharesStartPos[1], aSoccotharesStartPos[2]);
+                m_creature->Movement()->GoTo(1, aSoccotharesStartPos[0], aSoccotharesStartPos[1], aSoccotharesStartPos[2]);
             }
 
             if (m_pInstance)
@@ -186,13 +186,13 @@ struct boss_soccothrates : public CreatureScript
             // Move each of them to their places
             if (iEntry == SAY_SOCCOTHRATES_INTRO_7)
             {
-                m_creature->GetMotionMaster()->MovePoint(1, aSoccotharesStartPos[0], aSoccotharesStartPos[1], aSoccotharesStartPos[2]);
+                m_creature->Movement()->GoTo(1, aSoccotharesStartPos[0], aSoccotharesStartPos[1], aSoccotharesStartPos[2]);
 
                 if (m_pInstance)
                 {
                     if (Creature* pDalliah = m_pInstance->GetSingleCreatureFromStorage(NPC_DALLIAH))
                     {
-                        pDalliah->GetMotionMaster()->MovePoint(1, aDalliahStartPos[0], aDalliahStartPos[1], aDalliahStartPos[2]);
+                        pDalliah->Movement()->GoTo(1, aDalliahStartPos[0], aDalliahStartPos[1], aDalliahStartPos[2]);
                     }
                 }
             }

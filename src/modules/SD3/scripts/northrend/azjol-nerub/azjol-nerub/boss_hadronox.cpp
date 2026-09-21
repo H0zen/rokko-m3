@@ -173,17 +173,17 @@ struct boss_hadronox : public CreatureScript
             // Moving upstairs, don't disturb
             if (m_pInstance->GetData(TYPE_HADRONOX) == SPECIAL)
             {
-                m_creature->GetMotionMaster()->MoveWaypoint();
+                m_creature->Movement()->WalkPath();
                 DoScriptText(EMOTE_MOVE_TUNNEL, m_creature);
             }
             // Stay upstairs if evade from players
             else if (m_pInstance->GetData(TYPE_HADRONOX) == IN_PROGRESS)
             {
-                m_creature->GetMotionMaster()->MovePoint(1, 530.42f, 560.003f, 733.0308f);
+                m_creature->Movement()->GoTo(1, 530.42f, 560.003f, 733.0308f);
             }
             else
             {
-                m_creature->GetMotionMaster()->MoveTargetedHome();
+                m_creature->Movement()->GoHome();
             }
         }
 
@@ -210,7 +210,7 @@ struct boss_hadronox : public CreatureScript
                     }
 
                     // No more movement
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
                 }
             }
         }
@@ -219,7 +219,7 @@ struct boss_hadronox : public CreatureScript
         {
             // Allow the spawns to make a few steps so we can use move maps
             pSummoned->SetWalk(false);
-            pSummoned->GetMotionMaster()->MoveWaypoint();
+            pSummoned->Movement()->WalkPath();
         }
 
         void UpdateAI(const uint32 uiDiff) override

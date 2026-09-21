@@ -971,15 +971,15 @@ void Spell::EffectScriptEffect(SpellEffectEntry const* effect)
                             // can only affect "own" summoned
                             if (pSummon->GetSummonerGuid() == m_caster->GetObjectGuid())
                             {
-                                if (pTarget->GetMotionMaster()->IsMoving())
+                                if (pTarget->Movement()->IsMoving())
                                 {
-                                    pTarget->GetMotionMaster()->Finish();
+                                    pTarget->Movement()->Finish();
                                 }
 
                                 // trigger cast of quest complete script (see code for this spell below)
                                 pTarget->CastSpell(pTarget, 44462, true);
 
-                                pTarget->GetMotionMaster()->MovePoint(0, m_caster->Where().X(), m_caster->Where().Y(), m_caster->Where().Z());
+                                pTarget->Movement()->GoTo(0, m_caster->Where().X(), m_caster->Where().Y(), m_caster->Where().Z());
                             }
 
                             return;

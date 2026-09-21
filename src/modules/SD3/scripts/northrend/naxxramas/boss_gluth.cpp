@@ -135,7 +135,7 @@ struct boss_gluth : public CreatureScript
 
         void JustSummoned(Creature* pSummoned) override
         {
-            pSummoned->GetMotionMaster()->MoveFollow(m_creature, ATTACK_DISTANCE, 0);
+            pSummoned->Movement()->Follow(m_creature, ATTACK_DISTANCE, 0);
             m_lZombieChowGuidList.push_back(pSummoned->GetObjectGuid());
         }
 
@@ -151,7 +151,7 @@ struct boss_gluth : public CreatureScript
             {
                 if (Creature* pZombie = m_creature->GetMap()->GetCreature(*itr))
                 {
-                    pZombie->GetMotionMaster()->MoveFollow(m_creature, ATTACK_DISTANCE, 0);
+                    pZombie->Movement()->Follow(m_creature, ATTACK_DISTANCE, 0);
                 }
             }
         }

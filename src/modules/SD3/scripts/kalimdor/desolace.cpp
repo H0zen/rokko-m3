@@ -97,7 +97,7 @@ struct npc_aged_dying_ancient_kodo : public CreatureScript
                 }
 
                 // spell have no implemented effect (dummy), so useful to notify spellHit
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->Stop();
                 m_creature->CastSpell(m_creature, SPELL_KODO_KOMBO_GOSSIP, true);
             }
         }
@@ -151,7 +151,7 @@ struct npc_aged_dying_ancient_kodo : public CreatureScript
             pPlayer->TalkedToCreature(pCreature->GetEntry(), pCreature->GetObjectGuid());
 
             pPlayer->RemoveAurasDueToSpell(SPELL_KODO_KOMBO_PLAYER_BUFF);
-            pCreature->GetMotionMaster()->MoveIdle();
+            pCreature->Movement()->Stop();
         }
 
         pPlayer->SEND_GOSSIP_MENU(GOSSIP_TAMED_KODO, pCreature->GetObjectGuid());
@@ -184,12 +184,12 @@ struct spell_npc_aged_dying_ancient_kodo : public SpellScript
                 pCreatureTarget->UpdateEntry(NPC_TAMED_KODO);
                 pCreatureTarget->CastSpell(pCreatureTarget, SPELL_KODO_KOMBO_DESPAWN_BUFF, false);
 
-                if (pCreatureTarget->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
+                if (pCreatureTarget->Movement()->Doing() == Motion::Kind::Patrol)
                 {
-                    pCreatureTarget->GetMotionMaster()->MoveIdle();
+                    pCreatureTarget->Movement()->Stop();
                 }
 
-                pCreatureTarget->GetMotionMaster()->MoveFollow(pCaster, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
+                pCreatureTarget->Movement()->Follow(pCaster, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
             }
 
             // always return true when we are handling this spell and effect

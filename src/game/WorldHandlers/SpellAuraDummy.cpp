@@ -123,7 +123,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                             }
 
                             caster->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-                            caster->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::ControlClaim(10255, 0, caster->GetObjectGuid().GetCounter()));
+                            caster->Movement()->Forbid(Motion::Inhibition::Rooted, Motion::ControlClaim(10255, 0, caster->GetObjectGuid().GetCounter()));
                         }
                         return;
                     }
@@ -256,7 +256,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     case 51405:                             // Digging for Treasure
                         target->HandleEmote(EMOTE_STATE_WORK);
                         // Pet will be following owner, this makes him stop
-                        target->GetMotionMaster()->Inhibit(Motion::Inhibition::Stunned, Motion::ControlClaim(51405, 0, GetCasterGuid().GetCounter()));
+                        target->Movement()->Forbid(Motion::Inhibition::Stunned, Motion::ControlClaim(51405, 0, GetCasterGuid().GetCounter()));
                         return;
                     case 54729:                             // Winged Steed of the Ebon Blade
                         Spell::SelectMountByAreaAndSkill(target, GetSpellProto(), 0, 0, 54726, 54727, 0);
@@ -740,7 +740,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
 
                 if (pSummon && pCaster)
                 {
-                    pSummon->GetMotionMaster()->MovePoint(0, pCaster->Where().X(), pCaster->Where().Y(), pCaster->Where().Z());
+                    pSummon->Movement()->GoTo(0, pCaster->Where().X(), pCaster->Where().Y(), pCaster->Where().Z());
                 }
 
                 return;
@@ -830,7 +830,7 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                 target->CastSpell(target, spell_list[urand(0, 6)], true);
 
                 target->HandleEmote(EMOTE_STATE_NONE);
-                target->GetMotionMaster()->Uninhibit(Motion::Inhibition::Stunned, Motion::ControlClaim(51405, 0, GetCasterGuid().GetCounter()));
+                target->Movement()->Allow(Motion::Inhibition::Stunned, Motion::ControlClaim(51405, 0, GetCasterGuid().GetCounter()));
                 return;
             }
             case 51870:                                     // Collect Hair Sample
@@ -943,11 +943,11 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     if (apply)
                     {
                         target->SetStandState(UNIT_STAND_STATE_SLEEP);
-                        target->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::ControlClaim(6606, 0, GetCasterGuid().GetCounter()));
+                        target->Movement()->Forbid(Motion::Inhibition::Rooted, Motion::ControlClaim(6606, 0, GetCasterGuid().GetCounter()));
                     }
                     else
                     {
-                        target->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted, Motion::ControlClaim(6606, 0, GetCasterGuid().GetCounter()));
+                        target->Movement()->Allow(Motion::Inhibition::Rooted, Motion::ControlClaim(6606, 0, GetCasterGuid().GetCounter()));
                         target->SetStandState(UNIT_STAND_STATE_STAND);
                     }
 
@@ -1036,14 +1036,14 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                             target->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNK_29);
                             target->SetFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
 
-                            target->GetMotionMaster()->Inhibit(Motion::Inhibition::Dead, Motion::ControlClaim(GetId(), 0, GetCasterGuid().GetCounter()));
+                            target->Movement()->Forbid(Motion::Inhibition::Dead, Motion::ControlClaim(GetId(), 0, GetCasterGuid().GetCounter()));
                         }
                         else
                         {
                             target->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_UNK_29);
                             target->RemoveFlag(UNIT_FIELD_FLAGS_2, UNIT_FLAG2_FEIGN_DEATH);
 
-                            target->GetMotionMaster()->Uninhibit(Motion::Inhibition::Dead, Motion::ControlClaim(GetId(), 0, GetCasterGuid().GetCounter()));
+                            target->Movement()->Allow(Motion::Inhibition::Dead, Motion::ControlClaim(GetId(), 0, GetCasterGuid().GetCounter()));
                         }
                     }
                     return;
@@ -1145,11 +1145,11 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     target->ApplyModFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_OOC_NOT_ATTACKABLE, apply);
                     if (apply)
                     {
-                        target->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::ControlClaim(43874, 0, GetCasterGuid().GetCounter()));
+                        target->Movement()->Forbid(Motion::Inhibition::Rooted, Motion::ControlClaim(43874, 0, GetCasterGuid().GetCounter()));
                     }
                     else
                     {
-                        target->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted, Motion::ControlClaim(43874, 0, GetCasterGuid().GetCounter()));
+                        target->Movement()->Allow(Motion::Inhibition::Rooted, Motion::ControlClaim(43874, 0, GetCasterGuid().GetCounter()));
                     }
                     return;
                 case 47178:                                 // Plague Effect Self

@@ -112,7 +112,7 @@ struct boss_mr_smite : public CreatureScript
                 m_creature->SetInCombatWith(pWho);
                 pWho->SetInCombatWith(m_creature);
 
-                m_creature->GetMotionMaster()->MoveChase(pWho);
+                m_creature->Movement()->Chase(pWho);
             }
         }
 
@@ -151,9 +151,9 @@ struct boss_mr_smite : public CreatureScript
             float fX, fY, fZ;
             ContactPointNear(*pChest, m_creature, fX, fY, fZ, CONTACT_DISTANCE);
 
-            m_creature->GetMotionMaster()->StopAndDefault();
+            m_creature->Movement()->StopAndDefault();
             m_creature->SetFacingToObject(pChest);
-            m_creature->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+            m_creature->Movement()->GoTo(0, fX, fY, fZ);
         }
 
         void PhaseEquipProcess()

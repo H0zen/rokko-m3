@@ -209,6 +209,48 @@ namespace Move
             std::vector<Vector3> m_points;
     };
 
+    /// A FLIGHT PATH: a list of points known before it starts, flown at a fixed speed.
+    ///
+    /// It is WalkNodes with three differences, and the differences are the whole of it.
+    /// The points are already in the air, so there is no routing and no floor to consult --
+    /// asking the navmesh for a way between two zeppelin towers would fail, and succeeding
+    /// would be worse. The speed is the path's, not the mover's. And it never loops: a
+    /// flight ends, and what happens then is the game's business, not this shape's.
+    ///
+    /// Nothing is drawn or decided while it runs, so it is sent in as few packets as the
+    /// packed reach allows and the passenger is left alone in between.
+    class Flight : public Behaviour
+    {
+        public:
+            struct Node
+            {
+                Vector3 at;
+                uint32_t delayMs = 0;      ///< a pause at this node, from the path data
+                uint32_t arriveEvent = 0;  ///< a DBC event to fire on reaching it
+                uint32_t departEvent = 0;  ///< and one on leaving it
+            };
+
+            Flight(std::vector<Node> nodes, float speed)
+                : m_nodes(nodes), m_speed(speed) {}
+
+            Kind What() const override { return Kind::Taxi; }
+            uint32_t Decide(uint32_t nowMs, bool restart, World& world, Plan& out) override;
+            uint32_t Arrived(uint32_t nowMs, bool cut, World& world, Plan& out) override;
+
+            /// How far along the route it is, in nodes. What the game needs to know when a
+            /// flight crosses to another map and has to be picked up again.
+            size_t NodesDone() const { return m_at; }
+            bool Landed() const { return m_landed; }
+
+        private:
+            std::vector<Node> m_nodes;
+            float m_speed;
+            size_t m_at = 0;           ///< the next node to fly to
+            bool m_landed = false;
+            std::vector<Vector3> m_points;
+            std::vector<size_t> m_run;  ///< the nodes this leg covers, in order
+    };
+
     /// What the server knows about the thing being chased. A creature's position is exact,
     /// because the server holds its route; a player's is whatever it last reported, and the
     /// age of that report is the whole of the uncertainty.
@@ -217,6 +259,7 @@ namespace Move
         bool known = false;
         Vector3 at;
         uint32_t reportedAtMs = 0;   ///< the server clock when `at` was true
+        float facing = 0.0f;         ///< which way it was looking: a slot is defined against this
         float topSpeed = 7.0f;       ///< the fastest it could be travelling
         float reach = 0.0f;          ///< its bounding radius, added to the stop distance
     };
@@ -235,12 +278,29 @@ namespace Move
     /// moment the target can have drifted further than we tolerate from the place we aimed
     /// at, and sleep until then. The bound cannot be wrong however the target moves, so a
     /// target that moves never has to notify anybody.
+    ///
+    /// TWO MEANINGS, and the difference is whether there is a slot.
+    ///
+    /// A CHASE closes on the target from wherever it happens to be. The place to stand is
+    /// "near enough", anywhere on the circle, so it aims along the line between them and
+    /// stops short. Walking round to some particular side of an enemy would be absurd.
+    ///
+    /// A FOLLOW holds a PLACE, and the place is defined against the target's own facing: a
+    /// pet at a hundred and fifty-seven degrees is behind its owner's left shoulder, and
+    /// stays there when the owner turns on the spot. That is what lets several followers
+    /// hold a shape around one leader instead of all converging on the same spot -- which is
+    /// exactly what they did while this was a line.
     class Pursue : public Behaviour
     {
         public:
+            /// A chase: no slot, close from wherever you are.
             Pursue(Kind kind, uint64_t target, Sighting& sighting, float stopAt, float slack = 1.0f)
                 : m_kind(kind), m_target(target), m_sighting(&sighting),
                   m_stopAt(stopAt), m_slack(slack) {}
+
+            /// A follow: hold `angle` radians round from the target's own facing, at
+            /// `stopAt` yards. The slot turns with the target.
+            void HoldSlot(float angle) { m_angle = angle; m_hasSlot = true; }
 
             Kind What() const override { return m_kind; }
             uint32_t Decide(uint32_t nowMs, bool restart, World& world, Plan& out) override;
@@ -260,6 +320,8 @@ namespace Move
             Sighting* m_sighting;
             float m_stopAt;
             float m_slack;
+            float m_angle = 0.0f;   ///< where round the target to stand, from its facing
+            bool m_hasSlot = false; ///< a follow holds a place; a chase only holds a distance
             Vector3 m_aim;
             bool m_aimed = false;
             std::vector<Vector3> m_points;

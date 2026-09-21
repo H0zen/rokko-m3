@@ -316,7 +316,7 @@ struct is_blackfathom_deeps : public InstanceScript
 
                             if (Creature* pSummoned = pKelris->SummonCreature(aWaveSummonInformation[i].m_uiNpcEntry, fPosX, fPosY, fPosZ, fPosO, TEMPSPAWN_DEAD_DESPAWN, 0))
                             {
-                                pSummoned->GetMotionMaster()->MovePoint(0, fX_resp, fY_resp, fZ_resp);
+                                pSummoned->Movement()->GoTo(0, fX_resp, fY_resp, fZ_resp);
                                 m_lWaveMobsGuids[uiWaveIndex].push_back(pSummoned->GetGUIDLow());
                             }
                         }

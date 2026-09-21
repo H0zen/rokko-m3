@@ -197,7 +197,7 @@ struct npc_barrett_ramsey : public CreatureScript
             pPlayer->CLOSE_GOSSIP_MENU();
             pCreature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-            pCreature->GetMotionMaster()->MovePoint(1, aRamsayPositions[1][0], aRamsayPositions[1][1], aRamsayPositions[1][2]);
+            pCreature->Movement()->GoTo(1, aRamsayPositions[1][0], aRamsayPositions[1][1], aRamsayPositions[1][2]);
 
             return true;
         }

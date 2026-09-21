@@ -23,7 +23,7 @@
  * and lore are copyrighted by Blizzard Entertainment, Inc.
  */
 
-#include "Mobility.h"
+#include "Restrictions.h"
 
 #include <algorithm>
 
@@ -36,74 +36,13 @@ namespace Motion
 
     char const* InhibitionName(Inhibition what)
     {
-        static char const* const names[] = { "Rooted", "Stunned", "Dead", "Possessed" };
+        static char const* const names[] = { "Rooted", "Stunned", "Dead", "Possessed", "Feared", "Confused" };
         static_assert(sizeof(names) / sizeof(names[0]) == static_cast<size_t>(Inhibition::Count), "InhibitionName out of sync with Inhibition");
         const size_t index = static_cast<size_t>(what);
         return index < sizeof(names) / sizeof(names[0]) ? names[index] : "none";
     }
 
-    MobilityDecision Decide(Selected selected, uint8 reasons)
-    {
-        MobilityDecision d;
-        d.ticks = true;
-        d.mayMove = true;
-        d.mayTurn = true;
-        d.dominant = Inhibition::Count;
-        d.reasons = reasons;
-
-        // Death ends everything (a real death has also finished every entry; a feign only pauses).
-        if (reasons & ReasonDead)
-        {
-            d.ticks = false;
-            d.mayMove = false;
-            d.mayTurn = false;
-            d.dominant = Inhibition::Dead;
-            return d;
-        }
-
-        // A flight goes on under a root, a stun or a possession: nothing lands on a passenger
-        // (reference 8.4) and a scripted flight on a stunned unit keeps flying (15.6.2).
-        if (selected == Selected::Taxi)
-        {
-            return d;
-        }
-
-        // A stun stops movement and turning for every other class; a distract's clock still runs
-        // (its tick moves nothing) so its 10 s run out meanwhile (reference 15.7).
-        if (reasons & ReasonStunned)
-        {
-            d.ticks = selected == Selected::Distract;
-            d.mayMove = false;
-            d.mayTurn = false;
-            d.dominant = Inhibition::Stunned;
-            return d;
-        }
-
-        // The possessor's client or the pet AI moves the body: the server's own behaviours pause,
-        // but a fear or confuse on the body plays and the possessor is the one locked out (15.4.1).
-        if ((reasons & ReasonPossessed) && selected != Selected::Control)
-        {
-            d.ticks = selected == Selected::Distract;
-            d.mayMove = false;
-            d.mayTurn = false;
-            d.dominant = Inhibition::Possessed;
-            return d;
-        }
-
-        // A root stops translation and keeps turning, the state and the claims (reference 2.2, 2.5).
-        if (reasons & ReasonRooted)
-        {
-            d.ticks = selected == Selected::Distract;
-            d.mayMove = false;
-            d.mayTurn = true;
-            d.dominant = Inhibition::Rooted;
-            return d;
-        }
-
-        return d;
-    }
-
-    bool Mobility::Inhibit(Inhibition what, uint64 source)
+    bool Restrictions::Inhibit(Inhibition what, uint64 source)
     {
         std::vector<uint64>& sources = m_sources[static_cast<size_t>(what)];
         if (std::find(sources.begin(), sources.end(), source) != sources.end())
@@ -114,7 +53,7 @@ namespace Motion
         return sources.size() == 1;
     }
 
-    bool Mobility::Uninhibit(Inhibition what, uint64 source)
+    bool Restrictions::Uninhibit(Inhibition what, uint64 source)
     {
         std::vector<uint64>& sources = m_sources[static_cast<size_t>(what)];
         std::vector<uint64>::iterator it = std::find(sources.begin(), sources.end(), source);
@@ -126,7 +65,7 @@ namespace Motion
         return sources.empty();
     }
 
-    void Mobility::DropDomain(SourceDomain domain)
+    void Restrictions::DropDomain(SourceDomain domain)
     {
         for (size_t i = 0; i < static_cast<size_t>(Inhibition::Count); ++i)
         {
@@ -137,17 +76,17 @@ namespace Motion
         }
     }
 
-    bool Mobility::Inhibited(Inhibition what) const
+    bool Restrictions::Inhibited(Inhibition what) const
     {
         return !m_sources[static_cast<size_t>(what)].empty();
     }
 
-    std::vector<uint64> const& Mobility::Sources(Inhibition what) const
+    std::vector<uint64> const& Restrictions::Sources(Inhibition what) const
     {
         return m_sources[static_cast<size_t>(what)];
     }
 
-    uint8 Mobility::Reasons() const
+    uint8 Restrictions::Reasons() const
     {
         uint8 bits = 0;
         for (size_t i = 0; i < static_cast<size_t>(Inhibition::Count); ++i)

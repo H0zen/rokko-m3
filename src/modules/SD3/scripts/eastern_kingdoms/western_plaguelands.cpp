@@ -455,8 +455,8 @@ struct npc_taelan_fordring : public CreatureScript
                 m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                 m_creature->ClearAllReactives();
-                m_creature->GetMotionMaster()->StopAndDefault();
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->StopAndDefault();
+                m_creature->Movement()->Stop();
                 m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
 
                 Reset();
@@ -600,7 +600,7 @@ struct npc_taelan_fordring : public CreatureScript
                         if (Creature* pCavalier = m_creature->GetMap()->GetCreature(*itr))
                         {
                             ContactPointNear(*m_creature, pCavalier, fX, fY, fZ);
-                            pCavalier->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                            pCavalier->Movement()->GoTo(0, fX, fY, fZ);
                         }
                     }
                     break;
@@ -927,7 +927,7 @@ struct npc_isillien : public CreatureScript
                 m_creature->CombatStop(true);
                 m_creature->SetLootRecipient(nullptr);
 
-                m_creature->GetMotionMaster()->MoveIdle();
+                m_creature->Movement()->Stop();
 
                 Reset();
             }
@@ -1124,7 +1124,7 @@ struct npc_tirion_fordring : public CreatureScript
             {
                 float fX, fY, fZ;
                 ContactPointNear(*pTaelan, m_creature, fX, fY, fZ);
-                m_creature->GetMotionMaster()->MovePoint(200, fX, fY, fZ);
+                m_creature->Movement()->GoTo(200, fX, fY, fZ);
             }
 
             Reset();
@@ -1157,7 +1157,7 @@ struct npc_tirion_fordring : public CreatureScript
                     {
                         float fX, fY, fZ;
                         ContactPointNear(*pTaelan, m_creature, fX, fY, fZ);
-                        m_creature->GetMotionMaster()->MovePoint(100, fX, fY, fZ);
+                        m_creature->Movement()->GoTo(100, fX, fY, fZ);
                     }
                     break;
             }

@@ -96,7 +96,7 @@ void GuardAI::EnterEvadeMode()
     {
         DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "Creature stopped attacking because he's dead [guid=%u]", m_creature->GetGUIDLow());
         m_creature->StopMoving();
-        m_creature->GetMotionMaster()->MoveIdle();
+        m_creature->Movement()->Stop();
 
         i_state = STATE_NORMAL;
 
@@ -136,9 +136,9 @@ void GuardAI::EnterEvadeMode()
     i_state = STATE_NORMAL;
 
     // A held chase, masked or not, is dropped for the run home
-    if (m_creature->GetMotionMaster()->IsChasing())
+    if (m_creature->Movement()->IsChasing())
     {
-        m_creature->GetMotionMaster()->MoveTargetedHome();
+        m_creature->Movement()->GoHome();
     }
 }
 

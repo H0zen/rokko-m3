@@ -677,7 +677,7 @@ struct boss_thaddiusAddsAI : public ScriptedAI
             if (m_uiHoldTimer <= uiDiff)
             {
                 SetCombatMovement(true);
-                m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
+                m_creature->Movement()->Chase(m_creature->getVictim());
                 m_uiHoldTimer = 0;
             }
             else
@@ -731,8 +731,8 @@ struct boss_thaddiusAddsAI : public ScriptedAI
         m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
         m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
         m_creature->ClearAllReactives();
-        m_creature->GetMotionMaster()->StopAndDefault();
-        m_creature->GetMotionMaster()->MoveIdle();
+        m_creature->Movement()->StopAndDefault();
+        m_creature->Movement()->Stop();
         m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
 
         JustDied(pKiller);                                  // Texts

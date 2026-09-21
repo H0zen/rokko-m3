@@ -205,7 +205,7 @@ struct npc_blastmaster_emi_shortfuse : public CreatureScript
                     {
                         float fX, fY, fZ;
                         FindFreeSpotNear(*pDoor, pDoor, fX, fY, fZ, 0.0f, 2.0f, frand(0.0f, 2 * M_PI_F));
-                        pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                        pSummoned->Movement()->GoTo(1, fX, fY, fZ);
                     }
                     break;
                 case NPC_GRUBBIS:
@@ -763,7 +763,7 @@ struct npc_kernobee : public CreatureScript
                     {
                         pPlayer->GroupEventHappens(QUEST_A_FINE_MESS, m_creature);
                     }
-                    m_creature->GetMotionMaster()->MovePoint(1, aKernobeePositions[1][0], aKernobeePositions[1][1], aKernobeePositions[1][2], false);
+                    m_creature->Movement()->GoTo(1, aKernobeePositions[1][0], aKernobeePositions[1][1], aKernobeePositions[1][2], false);
                     m_creature->ForcedDespawn(2000);
                 }
             }

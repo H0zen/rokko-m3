@@ -1408,7 +1408,7 @@ void Spell::EffectCharge(SpellEffectEntry const* /*effect*/)
     // is the target's contact point, re-laid as the target moves. The creature target is no
     // longer stopped -- it was stopped only to hold the old fixed destination true -- so it
     // keeps running and the charge re-targets it, as retail does.
-    m_caster->GetMotionMaster()->MoveCharge(unitTarget, 24.0f);
+    m_caster->Movement()->ChargeTarget(unitTarget, 24.0f);
 
     // not all charge effects used in negative spells
     if (unitTarget != m_caster && !IsPositiveSpell(m_spellInfo->ID))
@@ -1425,11 +1425,11 @@ void Spell::EffectCharge2(SpellEffectEntry const* /*effect*/)
         // destination branch read unitTarget's type before anything checked it).
         float x, y, z;
         m_targets.getDestination(x, y, z);
-        m_caster->GetMotionMaster()->MoveCharge(x, y, z, 24.0f);
+        m_caster->Movement()->ChargePoint(x, y, z, 24.0f);
     }
     else if (unitTarget && unitTarget != m_caster)
     {
-        m_caster->GetMotionMaster()->MoveCharge(unitTarget, 24.0f);
+        m_caster->Movement()->ChargeTarget(unitTarget, 24.0f);
     }
     else
     {
@@ -1498,5 +1498,5 @@ void Spell::EffectPlayerPull(SpellEffectEntry const* /*effect*/)
     ClampToAllowedZ(*unitTarget, x, y, z);
 
     float speed = m_spellInfo->Speed ? m_spellInfo->Speed : 27.0f;
-    unitTarget->GetMotionMaster()->MoveJump(x, y, z, speed, 2.5f);
+    unitTarget->Movement()->JumpTo(x, y, z, speed, 2.5f);
 }

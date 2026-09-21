@@ -176,7 +176,7 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                     }
 
                     // see spell 10255 (aura dummy)
-                    m_caster->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted, Motion::ControlClaim(10255, 0, m_caster->GetObjectGuid().GetCounter()));
+                    m_caster->Movement()->Allow(Motion::Inhibition::Rooted, Motion::ControlClaim(10255, 0, m_caster->GetObjectGuid().GetCounter()));
                     m_caster->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                     return;
                 }
@@ -2083,15 +2083,15 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
 
                     if (pTargetDummy)
                     {
-                        if (unitTarget->GetMotionMaster()->IsFollowing())
+                        if (unitTarget->Movement()->IsFollowing())
                         {
-                            unitTarget->GetMotionMaster()->Finish();
+                            unitTarget->Movement()->Finish();
                         }
 
                         unitTarget->MonsterMoveWithSpeed(pTargetDummy->Where().X(), pTargetDummy->Where().Y(), pTargetDummy->Where().Z(), 24.f);
 
                         // Add state to temporarily prevent follow
-                        unitTarget->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::ControlClaim(51866, 0, m_caster->GetObjectGuid().GetCounter()));
+                        unitTarget->Movement()->Forbid(Motion::Inhibition::Rooted, Motion::ControlClaim(51866, 0, m_caster->GetObjectGuid().GetCounter()));
 
                         // Collect Hair Sample
                         unitTarget->CastSpell(pTargetDummy, 51870, true);
@@ -2114,7 +2114,7 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                     // skip the release and say so.
                     if (Unit* owner = m_caster->GetOwner())
                     {
-                        m_caster->GetMotionMaster()->Uninhibit(Motion::Inhibition::Rooted,
+                        m_caster->Movement()->Allow(Motion::Inhibition::Rooted,
                             Motion::ControlClaim(51866, 0, owner->GetObjectGuid().GetCounter()));
                     }
                     else
@@ -3302,7 +3302,7 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                 // The same two-part test CanFreeMove() runs (Unit.h): kNoFreeMoveReasons plus the
                 // published feign (IsFeigningDeath); CanFreeMove() itself does not apply here, as its
                 // extra owner-guid check has no place in this caster-state test.
-                if ((m_caster->GetMotionMaster()->Reasons() & Motion::kNoFreeMoveReasons) ||
+                if ((m_caster->Movement()->Reasons() & Motion::kNoFreeMoveReasons) ||
                     m_caster->IsFeigningDeath())
                 {
                     return;

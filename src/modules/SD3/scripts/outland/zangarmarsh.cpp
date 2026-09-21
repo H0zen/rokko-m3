@@ -268,7 +268,7 @@ struct npc_fhwoor : public CreatureScript
             {
                 float fX, fY, fZ;
                 ContactPointNear(*m_creature, pSummoned, fX, fY, fZ);
-                pSummoned->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                pSummoned->Movement()->GoTo(0, fX, fY, fZ);
             }
         }
 

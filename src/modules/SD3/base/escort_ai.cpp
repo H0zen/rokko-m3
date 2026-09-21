@@ -103,14 +103,14 @@ void npc_escortAI::AttackStart(Unit* pWho)
         m_creature->SetInCombatWith(pWho);
         pWho->SetInCombatWith(m_creature);
 
-        if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Point)
+        if (m_creature->Movement()->Doing() == Motion::Kind::Point)
         {
-            m_creature->GetMotionMaster()->Finish();
+            m_creature->Movement()->Finish();
         }
 
         if (IsCombatMovement())
         {
-            m_creature->GetMotionMaster()->MoveChase(pWho);
+            m_creature->Movement()->Chase(pWho);
         }
     }
 }
@@ -279,7 +279,7 @@ void npc_escortAI::EnterEvadeMode()
     if (HasEscortState(STATE_ESCORT_ESCORTING))
     {
         // We have left our path
-        if (m_creature->GetMotionMaster()->ActiveKind() != Motion::Kind::Point)
+        if (m_creature->Movement()->Doing() != Motion::Kind::Point)
         {
             debug_log("SD3: EscortAI has left combat and is now returning to CombatStartPosition.");
 
@@ -289,12 +289,12 @@ void npc_escortAI::EnterEvadeMode()
             fPosX = m_creature->CombatAnchor().x;
             fPosY = m_creature->CombatAnchor().y;
             fPosZ = m_creature->CombatAnchor().z;
-            m_creature->GetMotionMaster()->MovePoint(POINT_LAST_POINT, fPosX, fPosY, fPosZ);
+            m_creature->Movement()->GoTo(POINT_LAST_POINT, fPosX, fPosY, fPosZ);
         }
     }
     else
     {
-        m_creature->GetMotionMaster()->MoveTargetedHome();
+        m_creature->Movement()->GoHome();
     }
 
     Reset();
@@ -347,7 +347,7 @@ bool npc_escortAI::MoveToNextWaypoint()
             fRetY = m_creature->Spawn().Y();
             fRetZ = m_creature->Spawn().Z();
 
-            m_creature->GetMotionMaster()->MovePoint(POINT_HOME, fRetX, fRetY, fRetZ);
+            m_creature->Movement()->GoTo(POINT_HOME, fRetX, fRetY, fRetZ);
 
             m_uiWPWaitTimer = 0;
 
@@ -368,7 +368,7 @@ bool npc_escortAI::MoveToNextWaypoint()
         return false;
     }
 
-    m_creature->GetMotionMaster()->MovePoint(CurrentWP->uiId, CurrentWP->fX, CurrentWP->fY, CurrentWP->fZ);
+    m_creature->Movement()->GoTo(CurrentWP->uiId, CurrentWP->fX, CurrentWP->fY, CurrentWP->fZ);
     debug_log("SD3: EscortAI start waypoint %u (%f, %f, %f).", CurrentWP->uiId, CurrentWP->fX, CurrentWP->fY, CurrentWP->fZ);
 
     WaypointStart(CurrentWP->uiId);
@@ -626,11 +626,11 @@ void npc_escortAI::Start(bool bRun, const Player* pPlayer, const Quest* pQuest, 
         debug_log("SD3: EscortAI is set to return home after waypoint end and instant respawn at waypoint end. Creature will never despawn.");
     }
 
-    if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
+    if (m_creature->Movement()->Doing() == Motion::Kind::Patrol)
     {
-        m_creature->GetMotionMaster()->Finish();
-        m_creature->GetMotionMaster()->MoveIdle();
-        debug_log("SD3: EscortAI start with a waypoint default, changed to MoveIdle.");
+        m_creature->Movement()->Finish();
+        m_creature->Movement()->Stop();
+        debug_log("SD3: EscortAI start with a waypoint default, changed to Stop.");
     }
 
     // disable npcflags

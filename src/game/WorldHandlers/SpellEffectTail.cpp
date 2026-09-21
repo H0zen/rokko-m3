@@ -141,7 +141,7 @@ void Spell::EffectSummonDeadPet(SpellEffectEntry const* /*effect*/)
     pet->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SKINNABLE);
     pet->SetDeathState(ALIVE);
     pet->clearUnitState(UNIT_STAT_ALL_STATE);
-    pet->GetMotionMaster()->ReleaseEveryRestriction();
+    pet->Movement()->ReleaseEveryRestriction();
     pet->SetHealth(uint32(pet->GetMaxHealth() * (float(damage) / 100)));
 
     pet->AIM_Initialize();
@@ -1090,7 +1090,7 @@ void Spell::EffectGravityPull(SpellEffectEntry const* effect)
     float speed = float(effect->EffectMiscValue_0) * 0.15f;
     float height = float(unitTarget->Where().DistanceTo(Geometry::Vector3(x, y, z)) * 0.2f);
 
-    unitTarget->GetMotionMaster()->MoveJump(x, y, z, speed, height);
+    unitTarget->Movement()->JumpTo(x, y, z, speed, height);
 }
 
 void Spell::EffectCreateTamedPet(SpellEffectEntry const* effect)

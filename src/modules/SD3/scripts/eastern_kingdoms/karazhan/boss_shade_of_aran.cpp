@@ -235,7 +235,7 @@ struct boss_shade_of_aran : public CreatureScript
                 {
                     DoScriptText(SAY_DRINK, m_creature);
                     SetCombatMovement(false);
-                    m_creature->GetMotionMaster()->MoveIdle();
+                    m_creature->Movement()->Stop();
 
                     m_uiManaRecoveryStage = 0;
                     m_uiManaRecoveryTimer = 2000;

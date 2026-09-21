@@ -161,19 +161,22 @@ void WorldSession::SendDoFlight(uint32 mountDisplayId, std::vector<uint32> const
         GetPlayer()->RemoveSpellsCausingAura(SPELL_AURA_FEIGN_DEATH);
     }
 
-    while (GetPlayer()->GetMotionMaster()->IsOnTaxi())
+    while (GetPlayer()->Movement()->IsOnTaxi())
     {
-        GetPlayer()->GetMotionMaster()->Finish();
+        GetPlayer()->Movement()->Finish();
     }
 
-    // Taxi is not implemented on this branch: there is no shape for it yet and the seizure
-    // protocol it needs (UnitMovement::Seize) has no caller. Said once so the gap is visible
-    // rather than a flight that silently never starts.
-    static bool toldNoTaxi = false;
-    if (!toldNoTaxi)
+    GetPlayer()->TaxiTakeoff(mountDisplayId);
+
+    // The flight's own speed, not the player's: a gryphon does not go faster because its
+    // passenger has a mount buff.
+    const float speed = GetPlayer()->GetSpeed(MOVE_FLIGHT);
+
+    if (!GetPlayer()->Movement()->FlyRoute(route, startNode, speed))
     {
-        toldNoTaxi = true;
-        sLog.outError("Taxi flight requested but movement has no taxi shape yet (said once)");
+        sLog.outError("Taxi: route of %u node(s) from %u had nothing to fly",
+                      uint32(route.size()), route.empty() ? 0 : route[0]);
+        GetPlayer()->TaxiAbort();
     }
 }
 

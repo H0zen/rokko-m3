@@ -221,7 +221,7 @@ struct boss_vazruden_herald : public CreatureScript
         void DoMoveToCenter()
         {
             DoScriptText(SAY_INTRO, m_creature);
-            m_creature->GetMotionMaster()->MovePoint(POINT_ID_CENTER, afCenterPos[0], afCenterPos[1], afCenterPos[2]);
+            m_creature->Movement()->GoTo(POINT_ID_CENTER, afCenterPos[0], afCenterPos[1], afCenterPos[2]);
         }
 
         void DoSplit()
@@ -233,7 +233,7 @@ struct boss_vazruden_herald : public CreatureScript
             m_uiMovementTimer = 3000;
 
             // Let him idle for now
-            m_creature->GetMotionMaster()->MoveIdle();
+            m_creature->Movement()->Stop();
         }
 
         void DoMoveToAir()
@@ -244,12 +244,12 @@ struct boss_vazruden_herald : public CreatureScript
             fZ = m_creature->CombatAnchor().z;
 
             // Remove Idle MMGen
-            if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Idle)
+            if (m_creature->Movement()->Doing() == Motion::Kind::Idle)
             {
-                m_creature->GetMotionMaster()->Finish();
+                m_creature->Movement()->Finish();
             }
 
-            m_creature->GetMotionMaster()->MovePoint(POINT_ID_FLYING, fX, fY, fZ);
+            m_creature->Movement()->GoTo(POINT_ID_FLYING, fX, fY, fZ);
         }
 
         void DoMoveToCombat()
@@ -262,7 +262,7 @@ struct boss_vazruden_herald : public CreatureScript
             m_bIsDescending = true;
 
             m_creature->SetWalk(false);
-            m_creature->GetMotionMaster()->MovePoint(POINT_ID_COMBAT, afCombatPos[0], afCombatPos[1], afCombatPos[2]);
+            m_creature->Movement()->GoTo(POINT_ID_COMBAT, afCombatPos[0], afCombatPos[1], afCombatPos[2]);
             DoScriptText(EMOTE_DESCEND, m_creature);
         }
 

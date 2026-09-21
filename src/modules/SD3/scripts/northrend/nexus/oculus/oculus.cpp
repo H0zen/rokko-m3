@@ -82,7 +82,7 @@ struct npc_oculus_drake : public CreatureScript
                     // The dragon moves near the player after spawn
                     float fX, fY, fZ;
                     ContactPointNear(*pSummoner, m_creature, fX, fY, fZ);
-                    m_creature->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
+                    m_creature->Movement()->GoTo(0, fX, fY, fZ);
                 }
             }
 
@@ -154,7 +154,7 @@ struct npc_oculus_drake : public CreatureScript
          *      // The dragon runs away and despawns
          *      float fX, fY, fZ;
          *      FindFreeSpotNear(*m_creature, m_creature, fX, fY, fZ, 0, 20, frand(0, 2 * M_PI_F));
-         *      m_creature->GetMotionMaster()->MovePoint(0, fX, fY, fZ + 20.0f);
+         *      m_creature->Movement()->GoTo(0, fX, fY, fZ + 20.0f);
          *      m_creature->ForcedDespawn(5000);
          *  }
          */

@@ -73,7 +73,7 @@ struct npc_medivh_black_morass : public CreatureScript
                 float fX, fY, fZ;
                 FindFreeSpotNear(*m_creature, m_creature, fX, fY, fZ, 0, 20.0f, m_creature->Where().BearingTo(pSummoned->Where()));
                 pSummoned->SetWalk(false);
-                pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                pSummoned->Movement()->GoTo(1, fX, fY, fZ);
             }
         }
 
@@ -329,7 +329,7 @@ struct npc_time_rift : public CreatureScript
                         {
                             float fX, fY, fZ;
                             FindFreeSpotNear(*pMedivh, pMedivh, fX, fY, fZ, 0, 20.0f, pMedivh->Where().BearingTo(pSummoned->Where()));
-                            pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
+                            pSummoned->Movement()->GoTo(1, fX, fY, fZ);
                         }
                     }
                     break;
