@@ -30,6 +30,9 @@
 #include "Timer.h"
 #include "MoveStats.h"
 #include "wire/MonsterMoveCodec.h"
+#include "Transports.h"
+#include "TransportMap.h"
+#include "Map.h"
 #include "MotionMaster.h"
 #include "Geometry/Placement.h"
 
@@ -42,6 +45,61 @@ namespace
         out.y = v.y;
         out.z = v.z;
         return out;
+    }
+
+    /// THE VESSEL WHOSE DECK THIS UNIT IS STANDING ON, or an empty guid.
+    ///
+    /// A deck is its own map, and a unit standing on one has DECK-LOCAL coordinates. Sent as
+    /// a plain SMSG_MONSTER_MOVE the client reads them as world coordinates and puts the
+    /// mover a few yards from the map origin; the transport form is what says "these numbers
+    /// are relative to that hull". Derived from the map, so it covers crew, pets and totems
+    /// alike without anyone having registered them as anything.
+    ObjectGuid DeckVesselGuidOf(Unit const& unit)
+    {
+        if (Map* on = unit.FindMap())
+        {
+            if (TransportMap* hull = on->AsTransport())
+            {
+                if (Transport* vessel = hull->Vessel())
+                {
+                    return vessel->GetObjectGuid();
+                }
+            }
+        }
+        return ObjectGuid();
+    }
+
+    /// Which form of the packet this mover needs, and what it carries.
+    struct Frame
+    {
+        uint16 opcode = SMSG_MONSTER_MOVE;
+        ObjectGuid vessel;
+        int8 seat = -1;
+        bool OnDeck() const { return !vessel.IsEmpty(); }
+    };
+
+    Frame FrameOf(Unit const& unit)
+    {
+        Frame frame;
+
+        // A VEHICLE seat is a transform the server owns, so a rider's pose is fetched from
+        // it and the seat index goes on the wire. A DECK is not: the unit's map IS the
+        // vessel and its position is already deck-local, so -1 says there is no seat.
+        TransportInfo* riding = unit.GetTransportInfo();
+        if (riding && riding->IsOnVehicle())
+        {
+            frame.opcode = SMSG_MONSTER_MOVE_TRANSPORT;
+            frame.vessel = riding->GetTransportGuid();
+            frame.seat = riding->GetTransportSeat();
+            return frame;
+        }
+
+        frame.vessel = DeckVesselGuidOf(unit);
+        if (frame.OnDeck())
+        {
+            frame.opcode = SMSG_MONSTER_MOVE_TRANSPORT;
+        }
+        return frame;
     }
 
     /// One middle point of a linear path, as the client decodes it: the offset from the
@@ -71,8 +129,13 @@ bool MoveSend::Leg(Unit& unit, const Move::Written& written, const Move::Facing&
         return false;
     }
 
+    const Frame frame = FrameOf(unit);
+
     Wire::MonsterMove move;
     move.mover = unit.GetObjectGuid().GetRawValue();
+    move.onTransport = frame.opcode == SMSG_MONSTER_MOVE_TRANSPORT;
+    move.transport = frame.vessel.GetRawValue();
+    move.seat = frame.seat;
     move.start = Point(written.start);
     move.id = splineId;
     move.flags = written.flags;
@@ -126,8 +189,8 @@ bool MoveSend::Leg(Unit& unit, const Move::Written& written, const Move::Facing&
         }
     }
 
-    WorldPacket data(SMSG_MONSTER_MOVE, 64);
-    Wire::EncodeMonsterMove(data, SMSG_MONSTER_MOVE, move);
+    WorldPacket data(frame.opcode, 64);
+    Wire::EncodeMonsterMove(data, frame.opcode, move);
     unit.SendMessageToSet(&data, true);
     MoveStats::Sent(uint32(written.middle.size()) + 2);
     return true;
@@ -135,13 +198,18 @@ bool MoveSend::Leg(Unit& unit, const Move::Written& written, const Move::Facing&
 
 void MoveSend::Halt(Unit& unit)
 {
+    const Frame frame = FrameOf(unit);
+
     Wire::MonsterMove move;
     move.mover = unit.GetObjectGuid().GetRawValue();
+    move.onTransport = frame.opcode == SMSG_MONSTER_MOVE_TRANSPORT;
+    move.transport = frame.vessel.GetRawValue();
+    move.seat = frame.seat;
     move.start = Point(unit.Where().Pos());
     move.type = Wire::MonsterMoveType::Stop;
 
-    WorldPacket data(SMSG_MONSTER_MOVE, 32);
-    Wire::EncodeMonsterMove(data, SMSG_MONSTER_MOVE, move);
+    WorldPacket data(frame.opcode, 40);
+    Wire::EncodeMonsterMove(data, frame.opcode, move);
     unit.SendMessageToSet(&data, true);
 }
 

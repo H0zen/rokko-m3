@@ -828,6 +828,25 @@ void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo
         // the PREVIOUS one -- which carries no transport data -- and stood him on the hull
         // origin. His minions were then drawn beside (0, 0, 0): a yard off the keel and six
         // metres under the deck, which is what "the pet comes up through the walls" was.
+        // WHETHER THE SERVER IS STILL HOLDING HIM TO THE DECK. In 4.3.4 there is no
+        // ONTRANSPORT bit: the transport guid in the movement block IS the flag, so the
+        // only thing that can go wrong is that guid arriving, or being kept, or not. Logged
+        // on every CHANGE and never otherwise, so it is one line per boarding rather than
+        // one per packet.
+        {
+            const bool wasAboard = !plMover->m_movementInfo.GetTransportGuid().IsEmpty();
+            const bool nowAboard = !movementInfo.GetTransportGuid().IsEmpty();
+            if (wasAboard != nowAboard)
+            {
+                sLog.outString("Transport: %s %s deck guid %s (server holds %s, hull map %s)",
+                               plMover->GetName(),
+                               nowAboard ? "reports" : "drops",
+                               movementInfo.GetTransportGuid().GetString().c_str(),
+                               plMover->m_transport ? "yes" : "no",
+                               (plMover->FindMap() && plMover->FindMap()->AsTransport()) ? "yes" : "no");
+            }
+        }
+
         plMover->m_movementInfo = movementInfo;
 
         if (movementInfo.GetTransportGuid())
