@@ -450,34 +450,33 @@ namespace Move
         const Vector3 here = world.Here();
         const float stop = m_stopAt + quarry.reach;
 
-        // Aim short of the target rather than at it, so the leg ends where the creature
-        // should stand and not inside the thing it is chasing.
-        Vector3 aim = quarry.at;
-        const Vector3 toward = quarry.at - here;
-        const float span = toward.magnitude();
-        if (span > stop && span > 0.0001f)
-        {
-            aim = here + toward * ((span - stop) / span);
-        }
-
         uint32_t deadline = DriftDeadline(quarry, m_slack);
         if (int32_t(deadline - nowMs) < 1)
         {
             deadline = nowMs + 1;
         }
 
-        if (span <= stop)
+        // CLOSE ENOUGH IS A RANGE, NOT A LINE. Standing anywhere within the stop distance is
+        // the goal, so the only reason to move is being further out than that by an amount
+        // worth walking. Without the second term every pursuer sitting a hand's breadth past
+        // the line asked for a leg of a few centimetres, which the writer refuses -- that was
+        // every refusal the live server logged once the other shapes were quiet.
+        const Vector3 toward = quarry.at - here;
+        const float span = toward.magnitude();
+        if (span <= stop + POINTLESS_LEG)
         {
-            // Already close enough. Nothing to send; come back when the target could have
-            // drifted out of tolerance, which is the only thing that can change this.
             m_aim = here;
             m_aimed = true;
             out.facing = Facing::Upon(m_target);
             return deadline;
         }
 
+        // Aim short of the target rather than at it, so the leg ends where the creature
+        // should stand and not inside the thing it is chasing.
+        const Vector3 aim = here + toward * ((span - stop) / span);
+
         m_points.clear();
-        if (!world.Route(here, aim, m_points) || m_points.size() < 2)
+        if (!world.Route(here, aim, m_points) || GoesNowhere(m_points))
         {
             return nowMs + RETRY_MS;
         }

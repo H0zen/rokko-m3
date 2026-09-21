@@ -570,3 +570,41 @@ TEST(AnArrivalWithNoWaitStillLaysTheNextLegImmediately)
     patrol.Arrived(3000, false, world, after);
     CHECK_EQ(patrol.Reached(), uint32_t(2));
 }
+
+// Every refusal the live server logged, once the other shapes went quiet, was a chase
+// standing a hand's breadth outside its stop distance and asking for a leg of a few
+// centimetres. Close enough is a range, not a line.
+TEST(APursuitJustOutsideItsStopDistanceDoesNotAskForACentimetreLeg)
+{
+    OpenField world;
+    world.here = Vector3(0.0f, 0.0f, 0.0f);
+    OneTarget sighting;
+    sighting.quarry.known = true;
+    sighting.quarry.at = Vector3(5.2f, 0.0f, 0.0f);   // stop is 5.0, so 0.2 yards over
+    sighting.quarry.reportedAtMs = 0;
+    sighting.quarry.topSpeed = 7.0f;
+
+    Move::Pursue chase(Kind::Chase, 42, sighting, 5.0f);
+    Plan plan;
+    const uint32_t due = chase.Decide(0, false, world, plan);
+    CHECK(!plan.send);
+    CHECK(due > uint32_t(0));
+    CHECK_EQ(world.routes, uint32_t(0));
+}
+
+TEST(APursuitFurtherOutThanThatStillWalks)
+{
+    OpenField world;
+    world.here = Vector3(0.0f, 0.0f, 0.0f);
+    OneTarget sighting;
+    sighting.quarry.known = true;
+    sighting.quarry.at = Vector3(30.0f, 0.0f, 0.0f);
+    sighting.quarry.reportedAtMs = 0;
+    sighting.quarry.topSpeed = 7.0f;
+
+    Move::Pursue chase(Kind::Chase, 42, sighting, 5.0f);
+    Plan plan;
+    chase.Decide(0, false, world, plan);
+    CHECK(Sent(plan));
+    CHECK(std::fabs(chase.AimedAt().x - 25.0f) < 0.01f);
+}
