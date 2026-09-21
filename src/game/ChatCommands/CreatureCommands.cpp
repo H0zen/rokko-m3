@@ -1029,7 +1029,7 @@ bool ChatHandler::HandleNpcUnFollowCommand(char* /*args*/)
     }
 
     // reset movement
-    creatureMotion->Finish(true);
+    creatureMotion->Finish();
 
     PSendSysMessage(LANG_CREATURE_NOT_FOLLOW_YOU_NOW, creature->GetName());
     return true;
