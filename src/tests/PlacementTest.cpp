@@ -372,3 +372,59 @@ TEST(Placement_GapIsTheReachTakenOffASeparation)
     CHECK(Approx(Geometry::Placement::Gap(2.431011f, 3.0f), 0.0f));
     CHECK(Approx(Geometry::Placement::Gap(2.431011f, 1.0f), 1.431011f));
 }
+
+TEST(Frame_WorldKeyCarriesBothMapAndInstance)
+{
+    const Geometry::Frame live = Geometry::Frame::World(MAP_NAXXRAMAS, 4712);
+    CHECK(live.IsWorld());
+    CHECK(!live.IsDeck());
+    CHECK_EQ(live.MapId(), MAP_NAXXRAMAS);
+    CHECK_EQ(live.InstanceId(), 4712u);
+
+    // A deck's key is a vessel guid: there is no map in it, so neither half answers.
+    const Geometry::Frame deck = Geometry::Frame::Deck(ZEPPELIN_IRON_EAGLE);
+    CHECK(!deck.IsWorld());
+    CHECK_EQ(deck.MapId(), 0u);
+    CHECK_EQ(deck.InstanceId(), 0u);
+
+    // And nowhere is nowhere.
+    CHECK_EQ(Geometry::Frame().MapId(), 0u);
+}
+
+TEST(Location_StoredFormNamesTheContinentAndNotACopyOfIt)
+{
+    // A homebind written the way the database holds one: a map id and no instance.
+    const Geometry::Location bind(MAP_EASTERN_KINGDOMS, -8840.63f, 652.959f, 97.1184f, 2.42601f);
+    CHECK_EQ(bind.MapId(), MAP_EASTERN_KINGDOMS);
+    CHECK_EQ(bind.InstanceId(), 0u);
+    CHECK(Approx(bind.X(), -8840.63f));
+    CHECK(Approx(bind.Facing(), 2.42601f));
+
+    // It matches a live frame on the continent, which is what a homebind is for...
+    CHECK(bind.ShareFrame(Geometry::Location(Geometry::Frame::World(MAP_EASTERN_KINGDOMS, 0),
+                                             Geometry::Position())));
+    // ...and does NOT match a live copy of an instance, which is what an instance bind
+    // must not do: instance 0 is the continent, never "whichever copy is running".
+    CHECK(!Geometry::Location(MAP_NAXXRAMAS).ShareFrame(
+              Geometry::Location(Geometry::Frame::World(MAP_NAXXRAMAS, 4712), Geometry::Position())));
+}
+
+TEST(Placement_AsLocationDropsTheExtentAndKeepsTheFrame)
+{
+    const Geometry::Placement emissary = ArathorEmissary();
+    const Geometry::Location where = emissary.AsLocation();
+
+    CHECK_EQ(where.MapId(), MAP_EASTERN_KINGDOMS);
+    CHECK(Approx(where.X(), emissary.X()));
+    CHECK(Approx(where.Y(), emissary.Y()));
+    CHECK(Approx(where.Z(), emissary.Z()));
+    CHECK(Approx(where.Facing(), emissary.Facing()));
+
+    // Round trip: a placement told to stand at a stored location keeps its own extent,
+    // because the extent belongs to the object and never to the place.
+    Geometry::Placement other(0.75f);
+    other.EnterFrame(where);
+    CHECK(other.ShareFrame(emissary));
+    CHECK(Approx(other.Extent(), 0.75f));
+    CHECK(Approx(other.DistanceTo(emissary), 0.0f));
+}

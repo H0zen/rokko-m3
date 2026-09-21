@@ -24,7 +24,13 @@ namespace Geometry
 
             bool IsPlaced() const { return m_kind != Kind::Nowhere; }
             bool IsDeck() const { return m_kind == Kind::Deck; }
+            bool IsWorld() const { return m_kind == Kind::World; }
             uint64_t Id() const { return m_id; }
+
+            /// The map a World frame names, and the instance of it. Zero for any other kind:
+            /// a deck's key is a vessel's guid and has no map in it, and Nowhere has nothing.
+            uint32_t MapId() const { return IsWorld() ? uint32_t(m_id >> 32) : 0; }
+            uint32_t InstanceId() const { return IsWorld() ? uint32_t(m_id) : 0; }
 
             bool operator==(const Frame& other) const
             {

@@ -304,9 +304,9 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
             }
 
             // move to bg enter point
-            const WorldLocation& _loc = GetBattleGroundEntryPoint();
-            SetLocationMapId(_loc.mapid);
-            Place().MoveTo(_loc.coord_x, _loc.coord_y, _loc.coord_z, _loc.orientation);
+            const Geometry::Location& _loc = GetBattleGroundEntryPoint();
+            SetLocationMapId(_loc.MapId());
+            Place().MoveTo(_loc.X(), _loc.Y(), _loc.Z(), _loc.Facing());
 
             // We are not in BG anymore
             SetBattleGroundId(0, BATTLEGROUND_TYPE_NONE);
@@ -321,9 +321,9 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
         // player can have current coordinates in to BG/Arena map, fix this
         if (!mapEntry || mapEntry->IsBattleGroundOrArena())
         {
-            const WorldLocation& _loc = GetBattleGroundEntryPoint();
-            SetLocationMapId(_loc.mapid);
-            Place().MoveTo(_loc.coord_x, _loc.coord_y, _loc.coord_z, _loc.orientation);
+            const Geometry::Location& _loc = GetBattleGroundEntryPoint();
+            SetLocationMapId(_loc.MapId());
+            Place().MoveTo(_loc.X(), _loc.Y(), _loc.Z(), _loc.Facing());
 
             // We are not in BG anymore
             SetBattleGroundId(0, BATTLEGROUND_TYPE_NONE);
@@ -337,18 +337,18 @@ bool Player::LoadFromDB(ObjectGuid guid, SqlQueryHolder* holder)
         m_movementInfo.SetTransportData(ObjectGuid(HIGHGUID_MO_TRANSPORT, transGUID), fields[27].GetFloat(), fields[28].GetFloat(), fields[29].GetFloat(), fields[30].GetFloat(), 0, -1);
 
         if (!MaNGOS::IsValidMapCoord(
-                    Where().X() + m_movementInfo.GetTransportPos()->x, Where().Y() + m_movementInfo.GetTransportPos()->y,
-                    Where().Z() + m_movementInfo.GetTransportPos()->z, Where().Facing() + m_movementInfo.GetTransportPos()->o) ||
+                    Where().X() + m_movementInfo.GetTransportPos()->X(), Where().Y() + m_movementInfo.GetTransportPos()->Y(),
+                    Where().Z() + m_movementInfo.GetTransportPos()->Z(), Where().Facing() + m_movementInfo.GetTransportPos()->Facing()) ||
                 // The saved place on the deck map, bounded the same way and symmetrically:
                 // the old test read the positive side only, so a character who logged out
                 // forward of the mast was sent to his homebind.
-                std::fabs(m_movementInfo.GetTransportPos()->x) > MAX_DECK_EXTENT ||
-                std::fabs(m_movementInfo.GetTransportPos()->y) > MAX_DECK_EXTENT ||
-                std::fabs(m_movementInfo.GetTransportPos()->z) > MAX_DECK_EXTENT)
+                std::fabs(m_movementInfo.GetTransportPos()->X()) > MAX_DECK_EXTENT ||
+                std::fabs(m_movementInfo.GetTransportPos()->Y()) > MAX_DECK_EXTENT ||
+                std::fabs(m_movementInfo.GetTransportPos()->Z()) > MAX_DECK_EXTENT)
         {
             sLog.outError("%s have invalid transport coordinates (X: %f Y: %f Z: %f O: %f). Teleport to default race/class locations.",
-                          guid.GetString().c_str(), Where().X() + m_movementInfo.GetTransportPos()->x, Where().Y() + m_movementInfo.GetTransportPos()->y,
-                          Where().Z() + m_movementInfo.GetTransportPos()->z, Where().Facing() + m_movementInfo.GetTransportPos()->o);
+                          guid.GetString().c_str(), Where().X() + m_movementInfo.GetTransportPos()->X(), Where().Y() + m_movementInfo.GetTransportPos()->Y(),
+                          Where().Z() + m_movementInfo.GetTransportPos()->Z(), Where().Facing() + m_movementInfo.GetTransportPos()->Facing());
 
             RelocateToHomebind();
 

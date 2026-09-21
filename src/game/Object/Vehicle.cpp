@@ -439,11 +439,11 @@ void VehicleInfo::Board(Unit* passenger, uint8 seat)
     // a rider on ANOTHER vehicle -- the cross-vehicle click path, no UnBoard first -- commits
     // straight into that other vehicle's seat pose instead (Unit.cpp:5857-5863, no pending path
     // for a rider), so Where() there is the OLD seat pose, composed below as if a world point.
-    Position const* pending = passenger->PendingSplineCommit();
-    const float wx = pending ? pending->x : passenger->Where().X();
-    const float wy = pending ? pending->y : passenger->Where().Y();
-    const float wz = pending ? pending->z : passenger->Where().Z();
-    const float wo = pending ? pending->o : passenger->Where().Facing();
+    Geometry::Position const* pending = passenger->PendingSplineCommit();
+    const float wx = pending ? pending->X() : passenger->Where().X();
+    const float wy = pending ? pending->Y() : passenger->Where().Y();
+    const float wz = pending ? pending->Z() : passenger->Where().Z();
+    const float wo = pending ? pending->Facing() : passenger->Where().Facing();
 
     // Calculate passengers local position
     float lx, ly, lz, lo;

@@ -179,13 +179,11 @@ void CreatureCreatePos::SelectFinalPoint(Creature* cr)
     {
         if (m_dist == 0.0f)
         {
-            m_pos.x = m_closeObject->Where().X();
-            m_pos.y = m_closeObject->Where().Y();
-            m_pos.z = m_closeObject->Where().Z();
+            m_pos.MoveTo(m_closeObject->Where().Pos());
         }
         else
         {
-            ClosePointNear(*m_closeObject, m_pos.x, m_pos.y, m_pos.z, cr->Where().Extent(), m_dist, m_angle);
+            ClosePointNear(*m_closeObject, m_pos.Pos().x, m_pos.Pos().y, m_pos.Pos().z, cr->Where().Extent(), m_dist, m_angle);
         }
     }
 }
@@ -198,7 +196,7 @@ void CreatureCreatePos::SelectFinalPoint(Creature* cr)
  */
 bool CreatureCreatePos::PlaceOn(Creature* cr) const
 {
-    cr->Place().MoveTo(m_pos.x, m_pos.y, m_pos.z, m_pos.o);
+    cr->Place().MoveTo(m_pos.Pos(), m_pos.Facing());
 
     if (!IsPlaceable(*cr))
     {
@@ -3079,7 +3077,7 @@ time_t Creature::GetRespawnTimeEx() const
  */
 void Creature::SetSpawn(CreatureCreatePos const& pos)
 {
-    SetSpawn(Geometry::Vector3(pos.m_pos.x, pos.m_pos.y, pos.m_pos.z), pos.m_pos.o);
+    SetSpawn(pos.m_pos.Pos(), pos.m_pos.Facing());
 }
 
 void Creature::SetSpawn(Geometry::Vector3 const& at, float facing)

@@ -143,7 +143,7 @@ class TransportMap : public Map
          * ship is small and cluttered and the one spot asked for is very often out over the
          * rail. Nothing when `master` is not aboard.
          */
-        std::optional<Position> FreeSpotNear(WorldObject const& master, float distance2d,
+        std::optional<Geometry::Position> FreeSpotNear(WorldObject const& master, float distance2d,
                                              float angle) const;
 
         /// Where something aboard stands, or nothing when it is not on this ship. There is

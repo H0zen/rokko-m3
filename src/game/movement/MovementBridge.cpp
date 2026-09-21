@@ -37,11 +37,11 @@ Wire::MovementStatus Movement::ToWire(MovementInfo const& record)
     w.flags2 = uint32(record.GetMovementFlags2());
     w.has.timestamp = si.hasTimeStamp;
     w.time = si.hasTimeStamp ? record.GetTime() : 0;
-    w.pos.x = record.GetPos()->x;
-    w.pos.y = record.GetPos()->y;
-    w.pos.z = record.GetPos()->z;
+    w.pos.x = record.GetPos()->X();
+    w.pos.y = record.GetPos()->Y();
+    w.pos.z = record.GetPos()->Z();
     w.has.orientation = si.hasOrientation;
-    w.pos.o = si.hasOrientation ? record.GetPos()->o : 0.0f;
+    w.pos.o = si.hasOrientation ? record.GetPos()->Facing() : 0.0f;
     w.has.pitch = si.hasPitch;
     w.pitch = si.hasPitch ? record.GetPitch() : 0.0f;
     w.has.spline = si.hasSpline;
@@ -66,10 +66,10 @@ Wire::MovementStatus Movement::ToWire(MovementInfo const& record)
     if (w.transport.present)
     {
         w.transport.guid = record.GetTransportGuid().GetRawValue();
-        w.transport.pos.x = record.GetTransportPos()->x;
-        w.transport.pos.y = record.GetTransportPos()->y;
-        w.transport.pos.z = record.GetTransportPos()->z;
-        w.transport.pos.o = record.GetTransportPos()->o;
+        w.transport.pos.x = record.GetTransportPos()->X();
+        w.transport.pos.y = record.GetTransportPos()->Y();
+        w.transport.pos.z = record.GetTransportPos()->Z();
+        w.transport.pos.o = record.GetTransportPos()->Facing();
         w.transport.time = record.GetTransportTime();
         w.transport.seat = record.GetTransportSeat();
         w.transport.hasTime2 = si.hasTransportTime2;
@@ -96,9 +96,8 @@ void Movement::FromWire(Wire::MovementStatus const& s, MovementInfo& r)
     r.moveFlags2 = uint16(s.flags2);
     r.si.hasTimeStamp = s.has.timestamp;
     r.time = s.time;
-    r.pos.x = s.pos.x; r.pos.y = s.pos.y; r.pos.z = s.pos.z;
+    r.pos.MoveTo(s.pos.x, s.pos.y, s.pos.z, s.pos.o);
     r.si.hasOrientation = s.has.orientation;
-    r.pos.o = s.pos.o;
     r.si.hasPitch = s.has.pitch;
     r.s_pitch = s.pitch;
     r.si.hasSpline = s.has.spline;
@@ -113,7 +112,7 @@ void Movement::FromWire(Wire::MovementStatus const& s, MovementInfo& r)
     r.jump.sinAngle = s.fall.sinAngle;
     r.si.hasTransportData = s.transport.present;
     r.t_guid = ObjectGuid(s.transport.guid);
-    r.t_pos.x = s.transport.pos.x; r.t_pos.y = s.transport.pos.y; r.t_pos.z = s.transport.pos.z; r.t_pos.o = s.transport.pos.o;
+    r.t_pos.MoveTo(s.transport.pos.x, s.transport.pos.y, s.transport.pos.z, s.transport.pos.o);
     r.t_time = s.transport.time;
     r.t_seat = s.transport.seat;
     r.si.hasTransportTime2 = s.transport.hasTime2;

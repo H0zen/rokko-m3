@@ -1,7 +1,12 @@
 #pragma once
 
-// WHERE SOMETHING IS, as a value: a frame, a pose in it, and the room it takes up -- the
-// server's whole spatial vocabulary, over Vector3 and GeometryMath.
+// WHERE SOMETHING IS, as a value: a Location -- a frame and a pose in it -- plus the room
+// it takes up. The server's whole spatial vocabulary, over Vector3 and GeometryMath.
+//
+// The three types are one chain, and each rung adds exactly one thing:
+//   Position   a pose, measured against nothing. A sample; no comparisons.
+//   Location   a pose AND its frame. Enough to say where; storable.
+//   Placement  a Location AND an extent. Enough to say whether two things touch.
 //
 // An object HAS one; it is not a bag of coordinates with geometry bolted on. An Item has
 // none, which is why it can be carried but never seen, ranged or faced.
@@ -15,6 +20,8 @@
 
 #include "Geometry/Frame.h"
 #include "Geometry/GeometryMath.h"
+#include "Geometry/Location.h"
+#include "Geometry/Position.h"
 #include "Geometry/Shapes.h"
 #include "Geometry/Vector2.h"
 #include "Geometry/Vector3.h"
@@ -27,8 +34,8 @@ namespace Geometry
     class Placement
     {
         public:
-            Placement() : m_facing(0.0f), m_extent(0.0f) {}
-            explicit Placement(float extent) : m_facing(0.0f), m_extent(extent) {}
+            Placement() : m_extent(0.0f) {}
+            explicit Placement(float extent) : m_extent(extent) {}
 
             static float Pi() { return pif(); }
             static float TwoPi() { return 2.0f * pif(); }
@@ -48,52 +55,62 @@ namespace Geometry
                 return a > pif() ? a - TwoPi() : a;
             }
 
-            const Frame& CurrentFrame() const { return m_frame; }
-            bool IsPlaced() const { return m_frame.IsPlaced(); }
+            const Frame& CurrentFrame() const { return m_where.frame; }
+            bool IsPlaced() const { return m_where.frame.IsPlaced(); }
 
-            const Vector3& Pos() const { return m_pos; }
-            float X() const { return m_pos.x; }
-            float Y() const { return m_pos.y; }
-            float Z() const { return m_pos.z; }
-            float Facing() const { return m_facing; }
+            /// The frame and the pose without the extent -- what a destination that has to be
+            /// stored and read back later is. The extent belongs to the object, not the place.
+            const Location& AsLocation() const { return m_where; }
+
+            const Vector3& Pos() const { return m_where.at.pos; }
+            float X() const { return m_where.at.pos.x; }
+            float Y() const { return m_where.at.pos.y; }
+            float Z() const { return m_where.at.pos.z; }
+            float Facing() const { return m_where.at.facing; }
             float Extent() const { return m_extent; }
 
-            bool IsFinite() const { return m_pos.isFinite() && Geometry::isFinite(m_facing); }
+            bool IsFinite() const { return m_where.at.pos.isFinite() && Geometry::isFinite(m_where.at.facing); }
 
             Transform Basis(float scale = 1.0f) const
             {
-                return Transform(m_pos, Mat3::fromEuler(0.0f, 0.0f, m_facing), scale);
+                return Transform(m_where.at.pos, Mat3::fromEuler(0.0f, 0.0f, m_where.at.facing), scale);
             }
 
             void EnterFrame(const Frame& frame, const Vector3& pos, float facing)
             {
-                m_frame = frame;
-                m_pos = pos;
+                m_where.frame = frame;
+                m_where.at.pos = pos;
                 Face(facing);
             }
 
-            void Rebase(const Frame& frame) { m_frame = frame; }
+            /// Take a stored location whole: its frame and its pose in one step.
+            void EnterFrame(const Location& where)
+            {
+                EnterFrame(where.frame, where.at.pos, where.at.facing);
+            }
 
-            void LeaveFrame() { m_frame = Frame(); }
+            void Rebase(const Frame& frame) { m_where.frame = frame; }
 
-            void MoveTo(const Vector3& pos) { m_pos = pos; }
-            void MoveTo(float x, float y, float z) { m_pos = Vector3(x, y, z); }
-            void MoveTo(const Vector3& pos, float facing) { m_pos = pos; Face(facing); }
+            void LeaveFrame() { m_where.frame = Frame(); }
+
+            void MoveTo(const Vector3& pos) { m_where.at.pos = pos; }
+            void MoveTo(float x, float y, float z) { m_where.at.pos = Vector3(x, y, z); }
+            void MoveTo(const Vector3& pos, float facing) { m_where.at.pos = pos; Face(facing); }
             void MoveTo(float x, float y, float z, float facing) { MoveTo(Vector3(x, y, z), facing); }
 
-            void Face(float facing) { m_facing = NormalizeOrientation(facing); }
+            void Face(float facing) { m_where.at.facing = NormalizeOrientation(facing); }
             void FaceToward(const Vector3& target) { Face(BearingTo(target)); }
             void Resize(float extent) { m_extent = extent; }
 
             bool ShareFrame(const Placement& other) const
             {
-                return m_frame.IsPlaced() && m_frame == other.m_frame;
+                return m_where.frame.IsPlaced() && m_where.frame == other.m_where.frame;
             }
 
             float DistanceTo(const Placement& other, bool is3D = true) const
             {
                 return ShareFrame(other)
-                           ? Gap(std::sqrt(SeparationSq(other.m_pos, is3D)), m_extent + other.m_extent)
+                           ? Gap(std::sqrt(SeparationSq(other.m_where.at.pos, is3D)), m_extent + other.m_extent)
                            : Unreachable();
             }
 
@@ -110,14 +127,14 @@ namespace Geometry
             float HeightGapTo(const Placement& other) const
             {
                 return ShareFrame(other)
-                           ? Gap(std::fabs(m_pos.z - other.m_pos.z), m_extent + other.m_extent)
+                           ? Gap(std::fabs(m_where.at.pos.z - other.m_where.at.pos.z), m_extent + other.m_extent)
                            : Unreachable();
             }
 
             bool WithinDist(const Placement& other, float dist, bool is3D = true) const
             {
                 return ShareFrame(other) &&
-                       Closer(SeparationSq(other.m_pos, is3D), dist, m_extent + other.m_extent);
+                       Closer(SeparationSq(other.m_where.at.pos, is3D), dist, m_extent + other.m_extent);
             }
 
             bool WithinDist(const Vector3& point, float dist, bool is3D = true) const
@@ -133,7 +150,7 @@ namespace Geometry
             bool WithinRange(const Placement& other, float minRange, float maxRange, bool is3D = true) const
             {
                 return ShareFrame(other) &&
-                       InBand(SeparationSq(other.m_pos, is3D), minRange, maxRange, m_extent + other.m_extent);
+                       InBand(SeparationSq(other.m_where.at.pos, is3D), minRange, maxRange, m_extent + other.m_extent);
             }
 
             bool WithinRange(const Vector3& point, float minRange, float maxRange, bool is3D = true) const
@@ -154,15 +171,15 @@ namespace Geometry
                 {
                     return false;
                 }
-                if (tolerance.x > 0.0f && std::fabs(m_pos.x - point.x) >= tolerance.x)
+                if (tolerance.x > 0.0f && std::fabs(m_where.at.pos.x - point.x) >= tolerance.x)
                 {
                     return false;
                 }
-                if (tolerance.y > 0.0f && std::fabs(m_pos.y - point.y) >= tolerance.y)
+                if (tolerance.y > 0.0f && std::fabs(m_where.at.pos.y - point.y) >= tolerance.y)
                 {
                     return false;
                 }
-                if (tolerance.z > 0.0f && std::fabs(m_pos.z - point.z) >= tolerance.z)
+                if (tolerance.z > 0.0f && std::fabs(m_where.at.pos.z - point.z) >= tolerance.z)
                 {
                     return false;
                 }
@@ -179,34 +196,34 @@ namespace Geometry
                 {
                     return true;
                 }
-                return SeparationSq(a.m_pos, is3D) < SeparationSq(b.m_pos, is3D);
+                return SeparationSq(a.m_where.at.pos, is3D) < SeparationSq(b.m_where.at.pos, is3D);
             }
 
             float BearingTo(const Vector3& point) const
             {
-                const float ang = std::atan2(point.y - m_pos.y, point.x - m_pos.x);
+                const float ang = std::atan2(point.y - m_where.at.pos.y, point.x - m_where.at.pos.x);
                 return (ang >= 0.0f) ? ang : TwoPi() + ang;
             }
 
             float BearingTo(const Vector2& point) const
             {
-                const float ang = std::atan2(point.y - m_pos.y, point.x - m_pos.x);
+                const float ang = std::atan2(point.y - m_where.at.pos.y, point.x - m_where.at.pos.x);
                 return (ang >= 0.0f) ? ang : TwoPi() + ang;
             }
 
             float BearingTo(const Placement& other) const
             {
-                return ShareFrame(other) ? BearingTo(other.m_pos) : 0.0f;
+                return ShareFrame(other) ? BearingTo(other.m_where.at.pos) : 0.0f;
             }
 
             float RelativeBearingTo(const Placement& other) const
             {
-                return SignedOrientation(BearingTo(other) - m_facing);
+                return SignedOrientation(BearingTo(other) - m_where.at.facing);
             }
 
             float RelativeBearingTo(const Vector3& point) const
             {
-                return SignedOrientation(BearingTo(point) - m_facing);
+                return SignedOrientation(BearingTo(point) - m_where.at.facing);
             }
 
             bool HasInArc(const Placement& other, float arc) const
@@ -232,12 +249,12 @@ namespace Geometry
 
             Vector3 PointAt(float distance2d, float absAngle) const
             {
-                return Vector3(m_pos.x + distance2d * std::cos(absAngle),
-                               m_pos.y + distance2d * std::sin(absAngle),
-                               m_pos.z);
+                return Vector3(m_where.at.pos.x + distance2d * std::cos(absAngle),
+                               m_where.at.pos.y + distance2d * std::sin(absAngle),
+                               m_where.at.pos.z);
             }
 
-            Vector3 PointAhead(float distance2d) const { return PointAt(distance2d, m_facing); }
+            Vector3 PointAhead(float distance2d) const { return PointAt(distance2d, m_where.at.facing); }
 
             static float ContactSpread(float gap, float extentA, float extentB)
             {
@@ -258,21 +275,21 @@ namespace Geometry
         private:
             float SeparationSq(const Vector3& point, bool is3D) const
             {
-                const float dx = m_pos.x - point.x;
-                const float dy = m_pos.y - point.y;
+                const float dx = m_where.at.pos.x - point.x;
+                const float dy = m_where.at.pos.y - point.y;
                 const float flat = dx * dx + dy * dy;
                 if (!is3D)
                 {
                     return flat;
                 }
-                const float dz = m_pos.z - point.z;
+                const float dz = m_where.at.pos.z - point.z;
                 return flat + dz * dz;
             }
 
             float SeparationSq2D(const Vector2& point) const
             {
-                const float dx = m_pos.x - point.x;
-                const float dy = m_pos.y - point.y;
+                const float dx = m_where.at.pos.x - point.x;
+                const float dy = m_where.at.pos.y - point.y;
                 return dx * dx + dy * dy;
             }
 
@@ -296,9 +313,7 @@ namespace Geometry
                 return separationSq < far_ * far_;
             }
 
-            Frame m_frame;
-            Vector3 m_pos;
-            float m_facing;
+            Location m_where;
             float m_extent;
     };
 }

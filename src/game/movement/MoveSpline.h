@@ -30,6 +30,7 @@
 #include <string>
 #include "spline.h"
 #include "MoveSplineInitArgs.h"
+#include "Geometry/Position.h"
 
 namespace Movement
 {
@@ -45,40 +46,6 @@ namespace Movement
         MonsterMoveFacingAngle = 4
     };
 
-    /**
-     * @brief Struct representing a location with orientation.
-     */
-    struct Location : public Vector3
-    {
-        /**
-         * @brief Default constructor initializing orientation to 0.
-         */
-        Location() : orientation(0) {}
-
-        /**
-         * @brief Constructor initializing location and orientation.
-         * @param x X-coordinate.
-         * @param y Y-coordinate.
-         * @param z Z-coordinate.
-         * @param o Orientation.
-         */
-        Location(float x, float y, float z, float o) : Vector3(x, y, z), orientation(o) {}
-
-        /**
-         * @brief Constructor initializing location from a Vector3.
-         * @param v Vector3 representing the location.
-         */
-        Location(const Vector3& v) : Vector3(v), orientation(0) {}
-
-        /**
-         * @brief Constructor initializing location from a Vector3 and orientation.
-         * @param v Vector3 representing the location.
-         * @param o Orientation.
-         */
-        Location(const Vector3& v, float o) : Vector3(v), orientation(o) {}
-
-        float orientation; /**< Orientation of the location. */
-    };
 
     /**
      * @brief MoveSpline represents smooth Catmull-Rom or linear curve and point that moves along it.
@@ -242,9 +209,9 @@ namespace Movement
 
             /**
              * @brief Computes the current position on the spline.
-             * @return Location The current position on the spline.
+             * @return The current position on the spline.
              */
-            Location ComputePosition() const;
+            Geometry::Position ComputePosition() const;
 
             /**
              * @brief Gets the ID of the spline.

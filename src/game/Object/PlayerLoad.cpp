@@ -212,7 +212,7 @@ void Player::_LoadBGData(QueryResult* result)
     /* bgInstanceID, bgTeam, x, y, z, o, map, taxi[0], taxi[1], mountSpell */
     m_bgData.bgInstanceID = fields[0].GetUInt32();
     m_bgData.bgTeam       = Team(fields[1].GetUInt32());
-    m_bgData.joinPos      = WorldLocation(fields[6].GetUInt32(),    // Map
+    m_bgData.joinPos      = Geometry::Location(fields[6].GetUInt32(),    // Map
                                           fields[2].GetFloat(),     // X
                                           fields[3].GetFloat(),     // Y
                                           fields[4].GetFloat(),     // Z

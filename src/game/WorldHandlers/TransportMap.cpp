@@ -371,7 +371,7 @@ std::optional<Geometry::Placement> TransportMap::PositionOf(WorldObject const& o
     return std::nullopt;
 }
 
-std::optional<Position> TransportMap::FreeSpotNear(WorldObject const& master, float distance2d,
+std::optional<Geometry::Position> TransportMap::FreeSpotNear(WorldObject const& master, float distance2d,
                                                    float angle) const
 {
     const auto anchor = PositionOf(master);
@@ -404,7 +404,7 @@ std::optional<Position> TransportMap::FreeSpotNear(WorldObject const& master, fl
             continue;
         }
 
-        return Position(x, y, *z, anchor->Facing());
+        return Geometry::Position(x, y, *z, anchor->Facing());
     }
 
     return std::nullopt;
@@ -416,8 +416,8 @@ bool TransportMap::Add(Player* passenger)
 {
     // WHERE HE REALLY STANDS. The wire calls it an offset; the moment it is ours it is a
     // position on this map, composed with nothing.
-    Position const* aboard = passenger->m_movementInfo.GetTransportPos();
-    passenger->Place().MoveTo(aboard->x, aboard->y, aboard->z, aboard->o);
+    Geometry::Position const* aboard = passenger->m_movementInfo.GetTransportPos();
+    passenger->Place().MoveTo(aboard->Pos(), aboard->Facing());
 
     passenger->GetMapRef().link(this, passenger);
     passenger->SetMap(this);

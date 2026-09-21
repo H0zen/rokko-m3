@@ -790,14 +790,11 @@ class MovementInfo
         void AddMovementFlags2(MovementFlags2 f) { moveFlags2 |= f; }
 
         // Position manipulations
-        Position const* GetPos() const { return &pos; }
+        Geometry::Position const* GetPos() const { return &pos; }
         void SetTransportData(ObjectGuid guid, float x, float y, float z, float o, uint32 time, int8 seat)
         {
             t_guid = guid;
-            t_pos.x = x;
-            t_pos.y = y;
-            t_pos.z = z;
-            t_pos.o = o;
+            t_pos.MoveTo(x, y, z, o);
             t_time = time;
             t_seat = seat;
             si.hasTransportData = true;
@@ -805,10 +802,7 @@ class MovementInfo
         void ClearTransportData()
         {
             t_guid = ObjectGuid();
-            t_pos.x = 0.0f;
-            t_pos.y = 0.0f;
-            t_pos.z = 0.0f;
-            t_pos.o = 0.0f;
+            t_pos = Geometry::Position();
             t_time = 0;
             t_seat = -1;
             si.hasTransportData = false;
@@ -824,7 +818,7 @@ class MovementInfo
         ObjectGuid const& GetGuid() const { return guid; }
         ObjectGuid const& GetGuid2() const { return guid2; }
         ObjectGuid const& GetTransportGuid() const { return t_guid; }
-        Position const* GetTransportPos() const { return &t_pos; }
+        Geometry::Position const* GetTransportPos() const { return &t_pos; }
         int8 GetTransportSeat() const { return t_seat; }
         uint32 GetTime() const { return time; }
         uint32 GetTransportTime() const { return t_time; }
@@ -835,8 +829,8 @@ class MovementInfo
         float GetExtraFloat() const { return extraFloat; }
         uint8 GetExtraTwoBits() const { return extraTwoBits; }
         uint32 GetVehicleId() const { return vehicleId; }
-        void ChangeOrientation(float o) { pos.o = o; }
-        void ChangePosition(float x, float y, float z, float o) { pos.x = x; pos.y = y; pos.z = z; pos.o = o; }
+        void ChangeOrientation(float o) { pos.Face(o); }
+        void ChangePosition(float x, float y, float z, float o) { pos.MoveTo(x, y, z, o); }
         void UpdateTime(uint32 _time) { time = _time; }
 
         struct JumpInfo
@@ -884,10 +878,10 @@ class MovementInfo
         uint32   moveFlags;                                 // see enum MovementFlags
         uint16   moveFlags2;                                // see enum MovementFlags2
         uint32   time;
-        Position pos;
+        Geometry::Position pos;
         // transport
         ObjectGuid t_guid;
-        Position t_pos;
+        Geometry::Position t_pos;
         uint32   t_time;
         int8     t_seat;
         uint32   t_time2;
@@ -3969,7 +3963,7 @@ class Unit : public WorldObject
         void StopMoving(bool forceSendStop = false);
         void InterruptMoving(bool forceSendStop = false);
         bool CommitSplinePosition(); ///< Take the running spline's position: the seat pose at once, the placement on the next Update. False when no spline runs.
-        Position const* PendingSplineCommit() const { return m_hasPendingCommit ? &m_pendingCommit : NULL; } ///< A stop's position the placement has not caught up with yet.
+        Geometry::Position const* PendingSplineCommit() const { return m_hasPendingCommit ? &m_pendingCommit : NULL; } ///< A stop's position the placement has not caught up with yet.
 
         void SetFeared(bool apply, ObjectGuid casterGuid = ObjectGuid(), uint32 spellID = 0, uint32 time = 0, uint8 effIndex = 0);
         void SetConfused(bool apply, ObjectGuid casterGuid = ObjectGuid(), uint32 spellID = 0, uint8 effIndex = 0);
@@ -4131,12 +4125,12 @@ class Unit : public WorldObject
         uint32 m_castCounter;                               // count casts chain of triggered spells for prevent infinity cast crashes
 
         UnitVisibility m_Visibility;
-        Position m_last_notified_position;
+        Geometry::Position m_last_notified_position;
         bool m_AINotifyScheduled;
         TimeTracker m_movesplineTimer;
 
-        Position m_pendingCommit;     ///< A stop's spline position, written on the next Update.
-        Position m_pendingCommitFrom; ///< The placement when it was taken; a change since means someone else moved the unit.
+        Geometry::Position m_pendingCommit;     ///< A stop's spline position, written on the next Update.
+        Geometry::Position m_pendingCommitFrom; ///< The placement when it was taken; a change since means someone else moved the unit.
         bool m_hasPendingCommit = false;
 
         Diminishing m_Diminishing;

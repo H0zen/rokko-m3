@@ -42,7 +42,7 @@ namespace Movement
      * @brief Computes the current position on the spline.
      * @return The computed location.
      */
-    Location MoveSpline::ComputePosition() const
+    Geometry::Position MoveSpline::ComputePosition() const
     {
         MANGOS_ASSERT(Initialized());
 
@@ -52,9 +52,9 @@ namespace Movement
         {
             u = (time_passed - spline.length(point_Idx)) / (float)seg_time;
         }
-        Location c;
-        c.orientation = initialOrientation;
-        spline.evaluate_percent(point_Idx, u, c);
+        Geometry::Position c;
+        c.facing = initialOrientation;
+        spline.evaluate_percent(point_Idx, u, c.pos);
 
         if (splineflags.animation)
         {
@@ -62,22 +62,22 @@ namespace Movement
         }
         else if (splineflags.parabolic)
         {
-            computeParabolicElevation(c.z);
+            computeParabolicElevation(c.pos.z);
         }
         else if (splineflags.falling)
         {
-            computeFallElevation(c.z);
+            computeFallElevation(c.pos.z);
         }
 
         if (splineflags.done && splineflags.isFacing())
         {
             if (splineflags.final_angle)
             {
-                c.orientation = facing.angle;
+                c.facing = facing.angle;
             }
             else if (splineflags.final_point)
             {
-                c.orientation = atan2(facing.f.y - c.y, facing.f.x - c.x);
+                c.facing = atan2(facing.f.y - c.pos.y, facing.f.x - c.pos.x);
             }
             // nothing to do for MoveSplineFlag::Final_Target flag
         }
@@ -89,16 +89,16 @@ namespace Movement
                 spline.evaluate_derivative(point_Idx, u, hermite);
                 if (hermite.x != 0.f || hermite.y != 0.f) ///< keep current facing on degenerate (vertical/zero) derivative
                 {
-                    c.orientation = atan2(hermite.y, hermite.x);
+                    c.facing = atan2(hermite.y, hermite.x);
                 }
             }
 
             if (splineflags.orientationInversed)
             {
-                c.orientation = -c.orientation;
+                c.facing = -c.facing;
             }
         }
-        c.orientation = Geometry::wrap(c.orientation, 0.f, (float)Geometry::twoPi());
+        c.facing = Geometry::wrap(c.facing, 0.f, (float)Geometry::twoPi());
         return c;
     }
 

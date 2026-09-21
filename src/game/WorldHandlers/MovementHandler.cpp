@@ -105,19 +105,19 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     }
 
     // get start teleport coordinates (will used later in fail case)
-    WorldLocation old_loc(GetPlayer()->GetMapId(),
+    Geometry::Location old_loc(GetPlayer()->GetMapId(),
                           GetPlayer()->Where().X(), GetPlayer()->Where().Y(),
                           GetPlayer()->Where().Z(), GetPlayer()->Where().Facing());
 
     // get the teleport destination
-    WorldLocation& loc = GetPlayer()->GetTeleportDest();
+    Geometry::Location& loc = GetPlayer()->GetTeleportDest();
 
     // possible errors in the coordinate validity check (only cheating case possible)
-    if (!MapManager::IsValidMapCoord(loc.mapid, loc.coord_x, loc.coord_y, loc.coord_z, loc.orientation))
+    if (!MapManager::IsValidMapCoord(loc.MapId(), loc.X(), loc.Y(), loc.Z(), loc.Facing()))
     {
         sLog.outError("WorldSession::HandleMoveWorldportAckOpcode: %s was teleported far to a not valid location "
                       "(map:%u, x:%f, y:%f, z:%f) We port him to his homebind instead..",
-                      GetPlayer()->GetGuidStr().c_str(), loc.mapid, loc.coord_x, loc.coord_y, loc.coord_z);
+                      GetPlayer()->GetGuidStr().c_str(), loc.MapId(), loc.X(), loc.Y(), loc.Z());
         // stop teleportation else we would try this again and again in LogoutPlayer...
         GetPlayer()->SetSemaphoreTeleportFar(false);
         // and teleport the player to a valid place
@@ -126,7 +126,7 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     }
 
     // get the destination map entry, not the current one, this will fix homebind and reset greeting
-    MapEntry const* mEntry = sMapStore.LookupEntry(loc.mapid);
+    MapEntry const* mEntry = sMapStore.LookupEntry(loc.MapId());
 
     Map* map = NULL;
 
@@ -135,14 +135,14 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     {
         if (GetPlayer()->GetBattleGroundId())
         {
-            map = sMapMgr.FindMap(loc.mapid, GetPlayer()->GetBattleGroundId());
+            map = sMapMgr.FindMap(loc.MapId(), GetPlayer()->GetBattleGroundId());
         }
 
         if (!map)
         {
             DETAIL_LOG("WorldSession::HandleMoveWorldportAckOpcode: %s was teleported far to nonexisten battleground instance "
                        " (map:%u, x:%f, y:%f, z:%f) Trying to port him to his previous place..",
-                       GetPlayer()->GetGuidStr().c_str(), loc.mapid, loc.coord_x, loc.coord_y, loc.coord_z);
+                       GetPlayer()->GetGuidStr().c_str(), loc.MapId(), loc.X(), loc.Y(), loc.Z());
 
             GetPlayer()->SetSemaphoreTeleportFar(false);
 
@@ -157,7 +157,7 @@ void WorldSession::HandleMoveWorldportAckOpcode()
         }
     }
 
-    InstanceTemplate const* mInstance = ObjectMgr::GetInstanceTemplate(loc.mapid);
+    InstanceTemplate const* mInstance = ObjectMgr::GetInstanceTemplate(loc.MapId());
 
     // reset instance validity, except if going to an instance inside an instance
     if (GetPlayer()->m_InstanceValid == false && !mInstance)
@@ -170,11 +170,11 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     // relocate the player to the teleport destination
     if (!map)
     {
-        map = sMapMgr.CreateMap(loc.mapid, GetPlayer());
+        map = sMapMgr.CreateMap(loc.MapId(), GetPlayer());
     }
 
     GetPlayer()->SetMap(map);
-    GetPlayer()->Place().MoveTo(loc.coord_x, loc.coord_y, loc.coord_z, loc.orientation);
+    GetPlayer()->Place().MoveTo(loc.X(), loc.Y(), loc.Z(), loc.Facing());
 
     // The client threw away every object it had when it left the old map, so the set of
     // "things he already has" is now a lie in the one direction that hurts: anything still
@@ -196,7 +196,7 @@ void WorldSession::HandleMoveWorldportAckOpcode()
 
         DETAIL_LOG("WorldSession::HandleMoveWorldportAckOpcode: %s was teleported far but couldn't be added to map "
                    " (map:%u, x:%f, y:%f, z:%f) Trying to port him to his previous place..",
-                   GetPlayer()->GetGuidStr().c_str(), loc.mapid, loc.coord_x, loc.coord_y, loc.coord_z);
+                   GetPlayer()->GetGuidStr().c_str(), loc.MapId(), loc.X(), loc.Y(), loc.Z());
 
         // Teleport to previous place, if can not be ported back TP to homebind place
         if (!GetPlayer()->TeleportTo(old_loc))
@@ -415,13 +415,13 @@ void WorldSession::HandleMoveTeleportAckOpcode(WorldPacket& recv_data)
 
     uint32 old_zone = plMover->GetTerrain()->GetZoneId(plMover->Where().X(), plMover->Where().Y(), plMover->Where().Z());
 
-    WorldLocation const& dest = plMover->GetTeleportDest();
+    Geometry::Location const& dest = plMover->GetTeleportDest();
 
-    plMover->SetPosition(dest.coord_x, dest.coord_y, dest.coord_z, dest.orientation, true);
+    plMover->SetPosition(dest.X(), dest.Y(), dest.Z(), dest.Facing(), true);
 
     // Observers learn the landing from the kernel's teleport update, built from the
     // stored status at the destination.
-    plMover->m_movementInfo.ChangePosition(dest.coord_x, dest.coord_y, dest.coord_z, dest.orientation);
+    plMover->m_movementInfo.ChangePosition(dest.X(), dest.Y(), dest.Z(), dest.Facing());
     plMover->SendEmissions(emissions);
 
     uint32 newzone, newarea;
@@ -750,7 +750,7 @@ void WorldSession::HandleSummonResponseOpcode(WorldPacket& recv_data)
  */
 bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo) const
 {
-    if (!MaNGOS::IsValidMapCoord(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o))
+    if (!MaNGOS::IsValidMapCoord(movementInfo.GetPos()->X(), movementInfo.GetPos()->Y(), movementInfo.GetPos()->Z(), movementInfo.GetPos()->Facing()))
     {
         return false;
     }
@@ -779,7 +779,7 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo) const
         //
         // The guard it replaces is still needed: a leaving zeppelin sometimes reports these
         // as absolute continent coordinates, and those are thousands.
-        const Position* onDeck = movementInfo.GetTransportPos();
+        const Geometry::Position* onDeck = movementInfo.GetTransportPos();
 
         float extent = MAX_DECK_EXTENT;
         if (Transport* vessel = _player
@@ -791,14 +791,14 @@ bool WorldSession::VerifyMovementInfo(MovementInfo const& movementInfo) const
                                      : MAX_DECK_EXTENT;
         }
 
-        if (std::fabs(onDeck->x) > extent || std::fabs(onDeck->y) > extent ||
-            std::fabs(onDeck->z) > extent)
+        if (std::fabs(onDeck->X()) > extent || std::fabs(onDeck->Y()) > extent ||
+            std::fabs(onDeck->Z()) > extent)
         {
             return false;
         }
 
-        if (!MaNGOS::IsValidMapCoord(movementInfo.GetPos()->x + movementInfo.GetTransportPos()->x, movementInfo.GetPos()->y + movementInfo.GetTransportPos()->y,
-                                     movementInfo.GetPos()->z + movementInfo.GetTransportPos()->z, movementInfo.GetPos()->o + movementInfo.GetTransportPos()->o))
+        if (!MaNGOS::IsValidMapCoord(movementInfo.GetPos()->X() + movementInfo.GetTransportPos()->X(), movementInfo.GetPos()->Y() + movementInfo.GetTransportPos()->Y(),
+                                     movementInfo.GetPos()->Z() + movementInfo.GetTransportPos()->Z(), movementInfo.GetPos()->Facing() + movementInfo.GetTransportPos()->Facing()))
         {
             return false;
         }
@@ -872,15 +872,15 @@ void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo
                                     DECK_EDGE_MARGIN;
 
                 const bool ashore = vessel->Where().WithinDist(
-                    Geometry::Vector3(movementInfo.GetPos()->x,
-                                      movementInfo.GetPos()->y,
-                                      movementInfo.GetPos()->z), reach);
+                    Geometry::Vector3(movementInfo.GetPos()->X(),
+                                      movementInfo.GetPos()->Y(),
+                                      movementInfo.GetPos()->Z()), reach);
 
                 if (ashore)
                 {
-                    hull->Disembark(plMover, movementInfo.GetPos()->x,
-                                    movementInfo.GetPos()->y, movementInfo.GetPos()->z,
-                                    movementInfo.GetPos()->o);
+                    hull->Disembark(plMover, movementInfo.GetPos()->X(),
+                                    movementInfo.GetPos()->Y(), movementInfo.GetPos()->Z(),
+                                    movementInfo.GetPos()->Facing());
                 }
                 else
                 {
@@ -897,7 +897,7 @@ void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo
         if (movementInfo.HasMovementFlag(MOVEFLAG_SWIMMING) != plMover->IsInWater())
         {
             // now client not include swimming flag in case jumping under water
-            plMover->SetInWater(!plMover->IsInWater() || plMover->GetTerrain()->IsUnderWater(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z));
+            plMover->SetInWater(!plMover->IsInWater() || plMover->GetTerrain()->IsUnderWater(movementInfo.GetPos()->X(), movementInfo.GetPos()->Y(), movementInfo.GetPos()->Z()));
         }
 
         // Aboard, the deck offset IS his position: it is what the client computed against
@@ -905,8 +905,8 @@ void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo
         // on a map he is no longer filed under. Ashore, the two are the same packet field.
         if (plMover->m_transport && plMover->GetMap()->AsTransport())
         {
-            const Position* offset = movementInfo.GetTransportPos();
-            plMover->SetPosition(offset->x, offset->y, offset->z, offset->o);
+            const Geometry::Position* offset = movementInfo.GetTransportPos();
+            plMover->SetPosition(offset->X(), offset->Y(), offset->Z(), offset->Facing());
         }
         else if (plMover->IsBoarded())
         {
@@ -931,7 +931,7 @@ void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo
         }
         else
         {
-            plMover->SetPosition(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
+            plMover->SetPosition(movementInfo.GetPos()->X(), movementInfo.GetPos()->Y(), movementInfo.GetPos()->Z(), movementInfo.GetPos()->Facing());
         }
         plMover->m_movementInfo = movementInfo;
 
@@ -950,7 +950,7 @@ void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo
         // so it must sit below all real content regardless of the terrain-height
         // fix: -3000 keeps a large margin below the deepest legitimate depth while
         // still catching a genuine fall through the map (which keeps accelerating).
-        if (movementInfo.GetPos()->z < -3000.0f)
+        if (movementInfo.GetPos()->Z() < -3000.0f)
         {
             if (plMover->GetBattleGround()
                 && plMover->GetBattleGround()->HandlePlayerUnderMap(_player))
@@ -989,7 +989,7 @@ void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo
 
         if (mover->IsInWorld() && mover->GetTypeId() == TYPEID_UNIT)
         {
-            mover->GetMap()->CreatureRelocation((Creature*)mover, movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
+            mover->GetMap()->CreatureRelocation((Creature*)mover, movementInfo.GetPos()->X(), movementInfo.GetPos()->Y(), movementInfo.GetPos()->Z(), movementInfo.GetPos()->Facing());
         }
     }
 }

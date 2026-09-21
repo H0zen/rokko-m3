@@ -107,7 +107,7 @@ bool Group::_addMember(ObjectGuid guid, const char* name, bool isAssistant, uint
     }
     else if (player && player->IsBeingTeleported())
     {
-        lastMap = player->GetTeleportDest().mapid;
+        lastMap = player->GetTeleportDest().MapId();
     }
 
     MemberSlot member;

@@ -460,17 +460,17 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
 
             data->WriteGuidBytes<5, 7>(tGuid);
             *data << uint32(unit->m_movementInfo.GetTransportTime());
-            *data << float(Geometry::Placement::NormalizeOrientation(unit->m_movementInfo.GetTransportPos()->o));
+            *data << float(Geometry::Placement::NormalizeOrientation(unit->m_movementInfo.GetTransportPos()->Facing()));
 
             if (hasTransportTime2)
             {
                 *data << uint32(unit->m_movementInfo.GetTransportTime2());
             }
 
-            *data << float(unit->m_movementInfo.GetTransportPos()->y);
-            *data << float(unit->m_movementInfo.GetTransportPos()->x);
+            *data << float(unit->m_movementInfo.GetTransportPos()->Y());
+            *data << float(unit->m_movementInfo.GetTransportPos()->X());
             data->WriteGuidBytes<3>(tGuid);
-            *data << float(unit->m_movementInfo.GetTransportPos()->z);
+            *data << float(unit->m_movementInfo.GetTransportPos()->Z());
             data->WriteGuidBytes<0>(tGuid);
 
             if (hasVehicleId)

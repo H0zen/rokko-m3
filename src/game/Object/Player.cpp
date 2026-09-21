@@ -1774,7 +1774,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
         {
             SetSemaphoreTeleportNear(true);
             // lets save teleport destination for player
-            m_teleport_dest = WorldLocation(mapid, x, y, z, orientation);
+            m_teleport_dest = Geometry::Location(mapid, x, y, z, orientation);
             m_teleport_options = options;
             return true;
         }
@@ -1794,7 +1794,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
         }
 
         // this will be used instead of the current location in SaveToDB
-        m_teleport_dest = WorldLocation(mapid, x, y, z, orientation);
+        m_teleport_dest = Geometry::Location(mapid, x, y, z, orientation);
         SetFallInformation(0, z);
 
         // code for finish transfer called in WorldSession::HandleMovementOpcodes()
@@ -1833,7 +1833,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
             {
                 SetSemaphoreTeleportFar(true);
                 // lets save teleport destination for player
-                m_teleport_dest = WorldLocation(mapid, x, y, z, orientation);
+                m_teleport_dest = Geometry::Location(mapid, x, y, z, orientation);
                 m_teleport_options = options;
                 return true;
             }
@@ -1916,17 +1916,17 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
             float final_z = z;
             float final_o = orientation;
 
-            Position const* transportPosition = m_movementInfo.GetTransportPos();
+            Geometry::Position const* transportPosition = m_movementInfo.GetTransportPos();
 
             if (m_transport)
             {
-                final_x += transportPosition->x;
-                final_y += transportPosition->y;
-                final_z += transportPosition->z;
-                final_o += transportPosition->o;
+                final_x += transportPosition->X();
+                final_y += transportPosition->Y();
+                final_z += transportPosition->Z();
+                final_o += transportPosition->Facing();
             }
 
-            m_teleport_dest = WorldLocation(mapid, final_x, final_y, final_z, final_o);
+            m_teleport_dest = Geometry::Location(mapid, final_x, final_y, final_z, final_o);
             SetFallInformation(0, final_z);
             // if the player is saved before worldport ack (at logout for example)
             // this will be used instead of the current location in SaveToDB
@@ -1941,9 +1941,9 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
                 WorldPacket data(SMSG_NEW_WORLD, 20);
                 if (m_transport)
                 {
-                    data << float(transportPosition->x);
-                    data << float(transportPosition->o);
-                    data << float(transportPosition->y);
+                    data << float(transportPosition->X());
+                    data << float(transportPosition->Facing());
+                    data << float(transportPosition->Y());
                 }
                 else
                 {
@@ -1956,7 +1956,7 @@ bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientati
 
                 if (m_transport)
                 {
-                    data << float(transportPosition->z);
+                    data << float(transportPosition->Z());
                 }
                 else
                 {
@@ -6148,13 +6148,13 @@ void Player::HandleFall(MovementInfo const& movementInfo)
     // Landing in water negates fall damage (retail behaviour). This also guards
     // deep-water zones such as Vashj'ir, where a stale surface fall baseline
     // would otherwise turn an underwater landing into lethal fall damage.
-    if (GetTerrain()->IsInWater(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z))
+    if (GetTerrain()->IsInWater(movementInfo.GetPos()->X(), movementInfo.GetPos()->Y(), movementInfo.GetPos()->Z()))
     {
         return;
     }
 
     // calculate total z distance of the fall
-    float z_diff = m_lastFallZ - movementInfo.GetPos()->z;
+    float z_diff = m_lastFallZ - movementInfo.GetPos()->Z();
     DEBUG_LOG("zDiff = %f", z_diff);
 
     // Players with low fall distance, Feather Fall or physical immunity (charges used) are ignored
@@ -6172,8 +6172,8 @@ void Player::HandleFall(MovementInfo const& movementInfo)
         {
             uint32 damage = (uint32)(damageperc * GetMaxHealth() * sWorld.getConfig(CONFIG_FLOAT_RATE_DAMAGE_FALL));
 
-            float height = movementInfo.GetPos()->z;
-            ClampToAllowedZ(*this, movementInfo.GetPos()->x, movementInfo.GetPos()->y, height);
+            float height = movementInfo.GetPos()->Z();
+            ClampToAllowedZ(*this, movementInfo.GetPos()->X(), movementInfo.GetPos()->Y(), height);
 
             if (damage > 0)
             {
@@ -6200,7 +6200,7 @@ void Player::HandleFall(MovementInfo const& movementInfo)
             }
 
             // Z given by moveinfo, LastZ, FallTime, WaterZ, MapZ, Damage, Safefall reduction
-            DEBUG_LOG("FALLDAMAGE z=%f sz=%f pZ=%f FallTime=%d mZ=%f damage=%d SF=%d" , movementInfo.GetPos()->z, height, Where().Z(), movementInfo.GetFallTime(), height, damage, safe_fall);
+            DEBUG_LOG("FALLDAMAGE z=%f sz=%f pZ=%f FallTime=%d mZ=%f damage=%d SF=%d" , movementInfo.GetPos()->Z(), height, Where().Z(), movementInfo.GetFallTime(), height, damage, safe_fall);
         }
     }
 }
@@ -6361,13 +6361,13 @@ bool Player::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex
  * @param loc The new home bind world location.
  * @param area_id The associated area identifier.
  */
-void Player::SetHomebindToLocation(WorldLocation const& loc, uint32 area_id)
+void Player::SetHomebindToLocation(Geometry::Location const& loc, uint32 area_id)
 {
-    m_homebindMapId = loc.mapid;
+    m_homebindMapId = loc.MapId();
     m_homebindAreaId = area_id;
-    m_homebindX = loc.coord_x;
-    m_homebindY = loc.coord_y;
-    m_homebindZ = loc.coord_z;
+    m_homebindX = loc.X();
+    m_homebindY = loc.Y();
+    m_homebindZ = loc.Z();
 
     // update sql homebind
     CharacterDatabase.PExecute("UPDATE `character_homebind` SET `map` = '%u', `zone` = '%u', `position_x` = '%f', `position_y` = '%f', `position_z` = '%f' WHERE `guid` = '%u'",

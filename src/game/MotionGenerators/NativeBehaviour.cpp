@@ -69,12 +69,11 @@ namespace
     /// Boarded, a spline's coordinates are seat-local (Unit::CommitSplinePosition) -- which is
     /// exactly what that unit's placement speaks too -- so one expression covers both and never
     /// mixes a deck coordinate with a world one.
-    Movement::Location LiveLocation(Unit const& u)
+    Geometry::Position LiveLocation(Unit const& u)
     {
         if (u.movespline->Finalized())
         {
-            const Geometry::Vector3 p = u.Where().Pos();
-            return Movement::Location(p.x, p.y, p.z, u.Where().Facing());
+            return Geometry::Position(u.Where().Pos(), u.Where().Facing());
         }
         return u.movespline->ComputePosition();
     }
@@ -82,8 +81,7 @@ namespace
     /// Just the point of that placement, for the callers a heading says nothing to.
     Geometry::Vector3 LivePosition(Unit const& u)
     {
-        const Movement::Location loc = LiveLocation(u);
-        return Geometry::Vector3(loc.x, loc.y, loc.z);
+        return LiveLocation(u).Pos();
     }
 
     /// The speed a unit travels at right now: the mode its own movement flags select.
@@ -185,8 +183,8 @@ void NativeBehaviour::SeeTarget(Unit& owner, Unit& target, Motion::TargetView& v
     // under the world frame).
     const bool local = target.IsBoarded();
     const bool splineRunning = !target.movespline->Finalized();
-    const Movement::Location live = LiveLocation(target);
-    const Geometry::Vector3 livePoint(live.x, live.y, live.z);
+    const Geometry::Position live = LiveLocation(target);
+    const Geometry::Vector3 livePoint = live.Pos();
     view.valid = true;
     view.position = local ? livePoint : frame.FromWorld(owner, livePoint);
     // The facing comes from the same live placement the position did, so the two never
@@ -199,7 +197,7 @@ void NativeBehaviour::SeeTarget(Unit& owner, Unit& target, Motion::TargetView& v
     // way ObjectOrientation brings a placement's; a boarded target's spline facing is already
     // seat-local, exactly as its coordinates are.
     view.facing = splineRunning
-                      ? (local ? live.orientation : frame.FacingToFrame(owner, live.orientation))
+                      ? (local ? live.Facing() : frame.FacingToFrame(owner, live.Facing()))
                       : frame.ObjectOrientation(owner, target);
     view.extent = target.Where().Extent();
     view.reachSum = owner.GetFloatValue(UNIT_FIELD_COMBATREACH) + target.GetFloatValue(UNIT_FIELD_COMBATREACH);

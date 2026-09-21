@@ -115,58 +115,6 @@ struct MangosStringLocale;
 typedef std::unordered_map<Player*, UpdateData> UpdateDataMapType;
 
 /**
- * @brief Position structure
- *
- * Stores 3D position coordinates and orientation.
- */
-struct Position
-{
-    /**
-     * @brief Default constructor
-     */
-    Position() : x(0.0f), y(0.0f), z(0.0f), o(0.0f) {}
-    Position(float _x, float _y, float _z, float _o) : x(_x), y(_y), z(_z), o(_o) {}
-
-    float x; ///< X-coordinate
-    float y; ///< Y-coordinate
-    float z; ///< Z-coordinate
-    float o; ///< Orientation (radians)
-};
-
-/**
- * @brief World location structure
- *
- * Stores map ID and position coordinates.
- */
-struct WorldLocation
-{
-    uint32 mapid; ///< Map ID
-    float coord_x; ///< X-coordinate
-    float coord_y; ///< Y-coordinate
-    float coord_z; ///< Z-coordinate
-    float orientation; ///< Orientation (radians)
-
-    /**
-     * @brief Constructor with parameters
-     * @param _mapid Map ID
-     * @param _x X-coordinate
-     * @param _y Y-coordinate
-     * @param _z Z-coordinate
-     * @param _o Orientation
-     */
-    explicit WorldLocation(uint32 _mapid = 0, float _x = 0, float _y = 0, float _z = 0, float _o = 0)
-        : mapid(_mapid), coord_x(_x), coord_y(_y), coord_z(_z), orientation(_o) {}
-
-    /**
-     * @brief Copy constructor
-     * @param loc Source location
-     */
-    WorldLocation(WorldLocation const& loc)
-        : mapid(loc.mapid), coord_x(loc.coord_x), coord_y(loc.coord_y), coord_z(loc.coord_z), orientation(loc.orientation) {}
-};
-
-
-/**
  * @brief World update counter
  *
  * Measures time between world update ticks.

@@ -1438,10 +1438,10 @@ namespace Harness
                         if (!fresh || f->movespline->Finalized()) { return; }
                         // Where the leader IS: its spline position while one runs (mid-jump that is
                         // metres from where its placement was last written), its placement otherwise.
-                        Movement::Location live(leader->Where().X(), leader->Where().Y(), leader->Where().Z(), leader->Where().Facing());
+                        Geometry::Position live(leader->Where().Pos(), leader->Where().Facing());
                         if (leaderMoving) { live = leader->movespline->ComputePosition(); }
                         const Movement::Vector3 goal = f->movespline->FinalDestination();
-                        const float goalGap = Dist3(goal.x, goal.y, goal.z, live.x, live.y, live.z);
+                        const float goalGap = Dist3(goal.x, goal.y, goal.z, live.X(), live.Y(), live.Z());
                         if (goalGap > st->worstGoal) { st->worstGoal = goalGap; st->worstGoalAt = t; }
                         ++st->goalChecks;
                         if (airborne)
@@ -1449,7 +1449,7 @@ namespace Harness
                             ++st->airRelays;
                             // The jump runs along +x, so the signed x offset IS the along-axis one:
                             // positive means the goal was laid in FRONT of where the leader is.
-                            const float ahead = goal.x - live.x;
+                            const float ahead = goal.x - live.X();
                             st->airAheadWorst = std::max(st->airAheadWorst, ahead);
                             ++st->airGoalChecks;
                             Log("+%5ums the leader is airborne and the follower just laid a leg: the goal is %.2f yd along the jump from the leader's live spot (led would be %.2f or more), %.2f yd from it in all",

@@ -80,9 +80,9 @@ bool Totem::Create(uint32 guidlow, CreatureCreatePos& cPos, CreatureInfo const* 
     cPos.SelectFinalPoint(this);
 
     // totem must be at same Z in case swimming caster and etc.
-    if (fabs(cPos.m_pos.z - owner->Where().Z()) > 5.0f)
+    if (fabs(cPos.m_pos.Z() - owner->Where().Z()) > 5.0f)
     {
-        cPos.m_pos.z = owner->Where().Z();
+        cPos.m_pos.Pos().z = owner->Where().Z();
     }
 
     if (!cPos.PlaceOn(this))

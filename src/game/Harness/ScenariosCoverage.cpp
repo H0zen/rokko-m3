@@ -165,8 +165,8 @@ namespace Harness
                     // pose's sign against this spot (the wolf boards from the vehicle's +x side).
                     if (!w->movespline->Finalized())
                     {
-                        Movement::Location const loc = w->movespline->ComputePosition();
-                        *preBoard = Pt { loc.x, loc.y, loc.z };
+                        Geometry::Position const loc = w->movespline->ComputePosition();
+                        *preBoard = Pt { loc.X(), loc.Y(), loc.Z() };
                     }
                     else
                     {

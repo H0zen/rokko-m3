@@ -1487,11 +1487,11 @@ void WorldSession::HandleRequestPartyMemberStatsOpcode(WorldPacket& recv_data)
     }
     else if (player->IsBeingTeleported())               // Player is in teleportation
     {
-        WorldLocation& loc = player->GetTeleportDest(); // So take teleportation destination
-        iZoneId = sTerrainMgr.GetZoneId(loc.mapid, loc.coord_x, loc.coord_y, loc.coord_z);
-        iCoordX = loc.coord_x;
-        iCoordY = loc.coord_y;
-        iCoordZ = loc.coord_z;
+        Geometry::Location& loc = player->GetTeleportDest(); // So take teleportation destination
+        iZoneId = sTerrainMgr.GetZoneId(loc.MapId(), loc.X(), loc.Y(), loc.Z());
+        iCoordX = loc.X();
+        iCoordY = loc.Y();
+        iCoordZ = loc.Z();
     }
     else
     {

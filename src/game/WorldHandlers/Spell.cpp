@@ -424,7 +424,7 @@ void SpellCastTargets::ReadAdditionalData(WorldPacket& data, uint8& cast_flags)
         {
             MovementInfo mi;
             data >> mi;
-            setSource(mi.GetPos()->x, mi.GetPos()->y, mi.GetPos()->z);
+            setSource(mi.GetPos()->X(), mi.GetPos()->Y(), mi.GetPos()->Z());
         }
     }
     else if (cast_flags & 0x08)         // has archaeology weight

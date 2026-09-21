@@ -117,15 +117,12 @@ namespace Movement
 
         const ObjectGuid vesselGuid = DeckVesselGuidOf(unit);
 
-        Location real_position(unit.Where().X(), unit.Where().Y(), unit.Where().Z(), unit.Where().Facing());
+        Geometry::Position real_position(unit.Where().Pos(), unit.Where().Facing());
 
         if (transportInfo)
         {
             Geometry::Placement const& deck = transportInfo->Seat();
-            real_position.x = deck.X();
-            real_position.y = deck.Y();
-            real_position.z = deck.Z();
-            real_position.orientation = deck.Facing();
+            real_position.MoveTo(deck.Pos(), deck.Facing());
         }
 
         // there is a big chance that current position is unknown if current state is not finalized, need compute it
@@ -138,21 +135,21 @@ namespace Movement
         {
             // A stop just took the spline's position and the placement has not caught up
             // (it is written on the unit's next Update): start from where the stop was sent.
-            if (Position const* pending = unit.PendingSplineCommit())
+            if (Geometry::Position const* pending = unit.PendingSplineCommit())
             {
-                real_position = Location(pending->x, pending->y, pending->z, pending->o);
+                real_position = *pending;
             }
         }
 
         if (args.path.empty())
         {
             // should i do the things that user should do?
-            MoveTo(real_position);
+            MoveTo(real_position.Pos());
         }
 
         // correct first vertex
-        args.path[0] = real_position;
-        args.initialOrientation = real_position.orientation;
+        args.path[0] = real_position.Pos();
+        args.initialOrientation = real_position.Facing();
 
         uint32 moveFlags = unit.m_movementInfo.GetMovementFlags();
         if (args.walk)
@@ -230,15 +227,12 @@ namespace Movement
 
         const ObjectGuid vesselGuid = DeckVesselGuidOf(unit);
 
-        Location real_position(unit.Where().X(), unit.Where().Y(), unit.Where().Z(), unit.Where().Facing());
+        Geometry::Position real_position(unit.Where().Pos(), unit.Where().Facing());
 
         if (transportInfo)
         {
             Geometry::Placement const& deck = transportInfo->Seat();
-            real_position.x = deck.X();
-            real_position.y = deck.Y();
-            real_position.z = deck.Z();
-            real_position.orientation = deck.Facing();
+            real_position.MoveTo(deck.Pos(), deck.Facing());
         }
 
         // there is a big chance that current position is unknown if current state is not finalized, need compute it
@@ -251,11 +245,11 @@ namespace Movement
         if (args.path.empty())
         {
             // should i do the things that user should do?
-            MoveTo(real_position);
+            MoveTo(real_position.Pos());
         }
 
         // current first vertex
-        args.path[0] = real_position;
+        args.path[0] = real_position.Pos();
 
         args.flags = MoveSplineFlag::Done;
         unit.m_movementInfo.RemoveMovementFlag(MOVEFLAG_FORWARD);
@@ -283,7 +277,7 @@ namespace Movement
         }
 
         data << uint8(0);
-        data << real_position.x << real_position.y << real_position.z;
+        data << real_position.X() << real_position.Y() << real_position.Z();
         data << move_spline.GetId();
         data << uint8(MonsterMoveStop);
         unit.SendMessageToSet(&data, true);

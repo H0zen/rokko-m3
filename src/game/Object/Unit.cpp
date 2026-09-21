@@ -531,18 +531,18 @@ void Unit::Update(uint32 update_diff, uint32 p_time)
     if (m_hasPendingCommit)
     {
         m_hasPendingCommit = false;
-        if (Where().X() == m_pendingCommitFrom.x && Where().Y() == m_pendingCommitFrom.y &&
-            Where().Z() == m_pendingCommitFrom.z && Where().Facing() == m_pendingCommitFrom.o)
+        if (Where().X() == m_pendingCommitFrom.X() && Where().Y() == m_pendingCommitFrom.Y() &&
+            Where().Z() == m_pendingCommitFrom.Z() && Where().Facing() == m_pendingCommitFrom.Facing())
         {
             if (GetTypeId() == TYPEID_PLAYER)
             {
-                ((Player*)this)->SetPosition(m_pendingCommit.x, m_pendingCommit.y,
-                                             m_pendingCommit.z, m_pendingCommit.o);
+                ((Player*)this)->SetPosition(m_pendingCommit.X(), m_pendingCommit.Y(),
+                                             m_pendingCommit.Z(), m_pendingCommit.Facing());
             }
             else
             {
-                GetMap()->CreatureRelocation((Creature*)this, m_pendingCommit.x, m_pendingCommit.y,
-                                             m_pendingCommit.z, m_pendingCommit.o);
+                GetMap()->CreatureRelocation((Creature*)this, m_pendingCommit.X(), m_pendingCommit.Y(),
+                                             m_pendingCommit.Z(), m_pendingCommit.Facing());
             }
         }
     }
@@ -5847,14 +5847,13 @@ bool Unit::CommitSplinePosition()
         return false;
     }
 
-    Movement::Location loc = movespline->ComputePosition();
+    const Geometry::Position loc = movespline->ComputePosition();
 
     if (IsBoarded())
     {
         // Boarded spline coordinates are seat-local: update the seat pose
         Geometry::Placement deckPose;
-        deckPose.EnterFrame(GetTransportInfo()->Seat().CurrentFrame(),
-                            Geometry::Vector3(loc.x, loc.y, loc.z), loc.orientation);
+        deckPose.EnterFrame(GetTransportInfo()->Seat().CurrentFrame(), loc.Pos(), loc.Facing());
         GetTransportInfo()->SetSeatPose(deckPose);
         return true;
     }
@@ -5863,8 +5862,8 @@ bool Unit::CommitSplinePosition()
     // visit (an AI reacting to what just walked into view), where a cell switch would
     // break the list being walked; Update is the one place it is safe. Where the unit
     // stands now is kept, so a relocation by anything else in between is not undone.
-    m_pendingCommit = Position(loc.x, loc.y, loc.z, loc.orientation);
-    m_pendingCommitFrom = Position(Where().X(), Where().Y(), Where().Z(), Where().Facing());
+    m_pendingCommit = loc;
+    m_pendingCommitFrom = Geometry::Position(Where().Pos(), Where().Facing());
     m_hasPendingCommit = true;
     return true;
 }
@@ -6869,15 +6868,13 @@ void Unit::ScheduleAINotify(uint32 delay)
 void Unit::OnRelocated()
 {
     // switch to use Geometry::Vector3 is good idea, maybe
-    float dx = m_last_notified_position.x - Where().X();
-    float dy = m_last_notified_position.y - Where().Y();
-    float dz = m_last_notified_position.z - Where().Z();
+    float dx = m_last_notified_position.X() - Where().X();
+    float dy = m_last_notified_position.Y() - Where().Y();
+    float dz = m_last_notified_position.Z() - Where().Z();
     float distsq = dx * dx + dy * dy + dz * dz;
     if (distsq > World::GetRelocationLowerLimitSq())
     {
-        m_last_notified_position.x = Where().X();
-        m_last_notified_position.y = Where().Y();
-        m_last_notified_position.z = Where().Z();
+        m_last_notified_position.MoveTo(Where().Pos());
 
         GetViewPoint().Call_UpdateVisibilityForOwner();
         UpdateObjectVisibility();
@@ -6945,22 +6942,21 @@ void Unit::UpdateSplineMovement(uint32 t_diff)
     if (m_movesplineTimer.Passed() || arrived)
     {
         m_movesplineTimer.Reset(POSITION_UPDATE_DELAY);
-        Movement::Location loc = movespline->ComputePosition();
+        const Geometry::Position loc = movespline->ComputePosition();
 
         if (IsBoarded())
         {
             Geometry::Placement deckPose;
-            deckPose.EnterFrame(GetTransportInfo()->Seat().CurrentFrame(),
-                                Geometry::Vector3(loc.x, loc.y, loc.z), loc.orientation);
+            deckPose.EnterFrame(GetTransportInfo()->Seat().CurrentFrame(), loc.Pos(), loc.Facing());
             GetTransportInfo()->SetSeatPose(deckPose);
         }
         else if (GetTypeId() == TYPEID_PLAYER)
         {
-            ((Player*)this)->SetPosition(loc.x, loc.y, loc.z, loc.orientation);
+            ((Player*)this)->SetPosition(loc.X(), loc.Y(), loc.Z(), loc.Facing());
         }
         else
         {
-            GetMap()->CreatureRelocation((Creature*)this, loc.x, loc.y, loc.z, loc.orientation);
+            GetMap()->CreatureRelocation((Creature*)this, loc.X(), loc.Y(), loc.Z(), loc.Facing());
         }
     }
 }

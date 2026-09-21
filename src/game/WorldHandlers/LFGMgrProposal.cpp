@@ -795,9 +795,9 @@ bool LFGMgr::TeleportPlayer(Player* pPlayer, bool out, bool automatic, uint32 du
 
         // A never-stored entry point is the zero location -- teleporting
         // there would drop the player into the map-0 ocean (spec C10).
-        WorldLocation const& entryPoint = pPlayer->GetBattleGroundEntryPoint();
-        if (entryPoint.mapid == 0 && entryPoint.coord_x == 0.0f &&
-            entryPoint.coord_y == 0.0f && entryPoint.coord_z == 0.0f)
+        Geometry::Location const& entryPoint = pPlayer->GetBattleGroundEntryPoint();
+        if (entryPoint.MapId() == 0 && entryPoint.X() == 0.0f &&
+            entryPoint.Y() == 0.0f && entryPoint.Z() == 0.0f)
         {
             pPlayer->GetSession()->SendLfgTeleportError(uint8(LFG_TELEPORTERROR_INVALID_LOCATION));
             return false;

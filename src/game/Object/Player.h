@@ -950,7 +950,7 @@ struct BGData
     uint32 mountSpell;                                      ///< Mount used before join to bg, saved
     uint32 taxiPath[2];                                     ///< Current taxi active path start/end nodes, saved
 
-    WorldLocation joinPos;                                  ///< From where player entered BG, saved
+    Geometry::Location joinPos;                                  ///< From where player entered BG, saved
 
     bool m_needSave;                                        ///< true, if saved to DB fields modified after prev. save (marked as "saved" above)
 
@@ -1082,10 +1082,10 @@ class Player : public Unit
         // Teleport the player to a specific location
         bool TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options = 0, AreaTrigger const* at = NULL);
 
-        // Teleport the player to a specific location using WorldLocation
-        bool TeleportTo(WorldLocation const& loc, uint32 options = 0)
+        // Teleport the player to a specific location using Geometry::Location
+        bool TeleportTo(Geometry::Location const& loc, uint32 options = 0)
         {
-            return TeleportTo(loc.mapid, loc.coord_x, loc.coord_y, loc.coord_z, loc.orientation, options);
+            return TeleportTo(loc.MapId(), loc.X(), loc.Y(), loc.Z(), loc.Facing(), options);
         }
 
         bool TeleportToBGEntryPoint(); // Teleport the player to the battleground entry point
@@ -3020,7 +3020,7 @@ class Player : public Unit
         void learnSkillRewardedSpells(uint32 id, uint32 value);
 
         // Get the teleport destination
-        WorldLocation& GetTeleportDest() { return m_teleport_dest; }
+        Geometry::Location& GetTeleportDest() { return m_teleport_dest; }
 
         // Check if the player is being teleported
         bool IsBeingTeleported() const { return mSemaphoreTeleport_Near || mSemaphoreTeleport_Far; }
@@ -3446,7 +3446,7 @@ class Player : public Unit
         }
 
         // Get the battleground entry point
-        WorldLocation const& GetBattleGroundEntryPoint() const { return m_bgData.joinPos; }
+        Geometry::Location const& GetBattleGroundEntryPoint() const { return m_bgData.joinPos; }
         void SetBattleGroundEntryPoint();
 
         // Set the battleground team
@@ -3584,16 +3584,16 @@ class Player : public Unit
         void SetTransport(Transport* t) { m_transport = t; }
 
         // Get the X offset of the player's position on the transport
-        float GetTransOffsetX() const { return m_movementInfo.GetTransportPos()->x; }
+        float GetTransOffsetX() const { return m_movementInfo.GetTransportPos()->X(); }
 
         // Get the Y offset of the player's position on the transport
-        float GetTransOffsetY() const { return m_movementInfo.GetTransportPos()->y; }
+        float GetTransOffsetY() const { return m_movementInfo.GetTransportPos()->Y(); }
 
         // Get the Z offset of the player's position on the transport
-        float GetTransOffsetZ() const { return m_movementInfo.GetTransportPos()->z; }
+        float GetTransOffsetZ() const { return m_movementInfo.GetTransportPos()->Z(); }
 
         // Get the orientation offset of the player's position on the transport
-        float GetTransOffsetO() const { return m_movementInfo.GetTransportPos()->o; }
+        float GetTransOffsetO() const { return m_movementInfo.GetTransportPos()->Facing(); }
 
         // Get the transport time
         uint32 GetTransTime() const { return m_movementInfo.GetTransportTime(); }
@@ -3616,7 +3616,7 @@ class Player : public Unit
         void SaveRecallPosition();
 
         // Set the homebind location
-        void SetHomebindToLocation(WorldLocation const& loc, uint32 area_id);
+        void SetHomebindToLocation(Geometry::Location const& loc, uint32 area_id);
 
         // Relocate the player to the homebind location
         void RelocateToHomebind() { SetLocationMapId(m_homebindMapId); Place().MoveTo(m_homebindX, m_homebindY, m_homebindZ); }
@@ -4253,7 +4253,7 @@ class Player : public Unit
         bool m_isInWater;
 
         // Current teleport data
-        WorldLocation m_teleport_dest; // Destination of the teleport
+        Geometry::Location m_teleport_dest; // Destination of the teleport
         uint32 m_teleport_options; // Options for the teleport
         bool mSemaphoreTeleport_Near; // Semaphore for near teleport
         bool mSemaphoreTeleport_Far; // Semaphore for far teleport
@@ -4268,7 +4268,7 @@ class Player : public Unit
         // motion update, where a teleport is deferred; the landing runs after that window closes.
         bool m_taxiLandingPending;
         bool m_taxiLandingSnap;
-        WorldLocation m_taxiLanding;
+        Geometry::Location m_taxiLanding;
 
         // Detect invisibility timer
         uint32 m_DetectInvTimer;

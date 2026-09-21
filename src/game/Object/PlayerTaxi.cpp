@@ -676,7 +676,7 @@ void Player::ScheduleTaxiLanding(bool snap, float x, float y, float z, float o)
 {
     m_taxiLandingPending = true;
     m_taxiLandingSnap = snap;
-    m_taxiLanding = WorldLocation(GetMapId(), x, y, z, o);
+    m_taxiLanding = Geometry::Location(GetMapId(), x, y, z, o);
 }
 
 /**
@@ -694,7 +694,7 @@ void Player::PerformTaxiLanding()
     // abort in between (TaxiAbort) clears the slot, so a landing runs once or never.
     m_taxiLandingPending = false;
     const bool snap = m_taxiLandingSnap;
-    const WorldLocation where = m_taxiLanding;
+    const Geometry::Location where = m_taxiLanding;
 
     // The sniffed flight (the notes A.10-A.12): AllowMove = 1 first, a stop spline at the last
     // path node, SMSG_MOVE_TELEPORT onto the node's TaxiNodes position (2.19 yd below the path,

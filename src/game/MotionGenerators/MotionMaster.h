@@ -35,7 +35,7 @@
 #include <sstream>
 #include <vector>
 
-struct Position;
+namespace Geometry { struct Position; }
 
 class Unit;
 class NativeBehaviour;
@@ -111,7 +111,7 @@ class MotionMaster
         void MoveDistract(uint32 timeLimit);
         /// A jump or a knockback arc. @return False when it was refused: a rooted unit is never displaced by an arc.
         bool MoveJump(float x, float y, float z, float horizontalSpeed, float max_height, uint32 id = 0);
-        bool MoveJump(Position& pos, float horizontalSpeed, float max_height, uint32 id = 0);
+        bool MoveJump(Geometry::Position& pos, float horizontalSpeed, float max_height, uint32 id = 0);
         /// A jump that ends facing a target, or a given orientation (was MoveDestination: a raw spline; now an Effect like every jump).
         bool MoveJump(float x, float y, float z, float o, float horizontalSpeed, float max_height, Unit* target);
         void MoveFall();

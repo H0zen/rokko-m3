@@ -879,7 +879,7 @@ void Spell::EffectBind(SpellEffectEntry const* effect)
     Player* player = (Player*)unitTarget;
 
     uint32 area_id = uint32(effect->EffectMiscValue_0);
-    WorldLocation loc;
+    Geometry::Location loc;
     if (effect->ImplicitTarget_0 == TARGET_TABLE_X_Y_Z_COORDINATES ||
         effect->ImplicitTarget_1 == TARGET_TABLE_X_Y_Z_COORDINATES)
     {
@@ -890,19 +890,16 @@ void Spell::EffectBind(SpellEffectEntry const* effect)
             return;
         }
 
-        loc.mapid       = st->target_mapId;
-        loc.coord_x     = st->target_X;
-        loc.coord_y     = st->target_Y;
-        loc.coord_z     = st->target_Z;
-        loc.orientation = st->target_Orientation;
+        loc = Geometry::Location(st->target_mapId, st->target_X, st->target_Y, st->target_Z,
+                                 st->target_Orientation);
         if (!area_id)
         {
-            area_id = sTerrainMgr.GetAreaId(loc.mapid, loc.coord_x, loc.coord_y, loc.coord_z);
+            area_id = sTerrainMgr.GetAreaId(loc.MapId(), loc.X(), loc.Y(), loc.Z());
         }
     }
     else
     {
-        loc = WorldLocation(player->GetMapId(), player->Where().X(), player->Where().Y(), player->Where().Z(), player->Where().Facing());
+        loc = Geometry::Location(player->GetMapId(), player->Where().X(), player->Where().Y(), player->Where().Z(), player->Where().Facing());
         if (!area_id)
         {
             area_id = player->GetTerrain()->GetAreaId(player->Where().X(), player->Where().Y(), player->Where().Z());
@@ -913,14 +910,14 @@ void Spell::EffectBind(SpellEffectEntry const* effect)
 
     // binding
     WorldPacket data(SMSG_BINDPOINTUPDATE, (4 + 4 + 4 + 4 + 4));
-    data << float(loc.coord_x);
-    data << float(loc.coord_y);
-    data << float(loc.coord_z);
-    data << uint32(loc.mapid);
+    data << float(loc.X());
+    data << float(loc.Y());
+    data << float(loc.Z());
+    data << uint32(loc.MapId());
     data << uint32(area_id);
     player->SendDirectMessage(&data);
 
-    DEBUG_LOG("New Home Position for %s: XYZ: %f %f %f on Map %u", player->GetGuidStr().c_str(), loc.coord_x, loc.coord_y, loc.coord_z, loc.mapid);
+    DEBUG_LOG("New Home Position for %s: XYZ: %f %f %f on Map %u", player->GetGuidStr().c_str(), loc.X(), loc.Y(), loc.Z(), loc.MapId());
 
     // zone update
     data.Initialize(SMSG_PLAYERBOUND, 8 + 4);

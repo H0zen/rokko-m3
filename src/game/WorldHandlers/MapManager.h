@@ -28,6 +28,7 @@
 
 #include <functional>
 #include "Utilities/MathDefines.h"
+#include "Geometry/Location.h"
 #include <map>
 #include <set>
 #include "Platform/Define.h"
@@ -132,9 +133,9 @@ class MapManager : public MaNGOS::Singleton<MapManager>
             return IsValidMAP(mapid) && MaNGOS::IsValidMapCoord(x, y, z, o);
         }
 
-        static bool IsValidMapCoord(WorldLocation const& loc)
+        static bool IsValidMapCoord(Geometry::Location const& loc)
         {
-            return IsValidMapCoord(loc.mapid, loc.coord_x, loc.coord_y, loc.coord_z, loc.orientation);
+            return IsValidMapCoord(loc.MapId(), loc.X(), loc.Y(), loc.Z(), loc.Facing());
         }
 
         void RemoveAllObjectsInRemoveList();

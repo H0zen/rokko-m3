@@ -189,12 +189,12 @@ void Player::SaveToDB()
     }
     else
     {
-        uberInsert.addUInt32(GetTeleportDest().mapid);
+        uberInsert.addUInt32(GetTeleportDest().MapId());
         uberInsert.addUInt32(uint32(GetDungeonDifficulty()));
-        uberInsert.addFloat(finiteAlways(GetTeleportDest().coord_x));
-        uberInsert.addFloat(finiteAlways(GetTeleportDest().coord_y));
-        uberInsert.addFloat(finiteAlways(GetTeleportDest().coord_z));
-        uberInsert.addFloat(finiteAlways(GetTeleportDest().orientation));
+        uberInsert.addFloat(finiteAlways(GetTeleportDest().X()));
+        uberInsert.addFloat(finiteAlways(GetTeleportDest().Y()));
+        uberInsert.addFloat(finiteAlways(GetTeleportDest().Z()));
+        uberInsert.addFloat(finiteAlways(GetTeleportDest().Facing()));
     }
 
     std::ostringstream ss;
@@ -222,10 +222,10 @@ void Player::SaveToDB()
     }
     uberInsert.addString(ss);
 
-    uberInsert.addFloat(finiteAlways(m_movementInfo.GetTransportPos()->x));
-    uberInsert.addFloat(finiteAlways(m_movementInfo.GetTransportPos()->y));
-    uberInsert.addFloat(finiteAlways(m_movementInfo.GetTransportPos()->z));
-    uberInsert.addFloat(finiteAlways(m_movementInfo.GetTransportPos()->o));
+    uberInsert.addFloat(finiteAlways(m_movementInfo.GetTransportPos()->X()));
+    uberInsert.addFloat(finiteAlways(m_movementInfo.GetTransportPos()->Y()));
+    uberInsert.addFloat(finiteAlways(m_movementInfo.GetTransportPos()->Z()));
+    uberInsert.addFloat(finiteAlways(m_movementInfo.GetTransportPos()->Facing()));
     if (m_transport)
     {
         uberInsert.addUInt32(m_transport->GetGUIDLow());
@@ -1196,11 +1196,11 @@ void Player::_SaveBGData()
         stmt.addUInt32(GetGUIDLow());
         stmt.addUInt32(m_bgData.bgInstanceID);
         stmt.addUInt32(uint32(m_bgData.bgTeam));
-        stmt.addFloat(m_bgData.joinPos.coord_x);
-        stmt.addFloat(m_bgData.joinPos.coord_y);
-        stmt.addFloat(m_bgData.joinPos.coord_z);
-        stmt.addFloat(m_bgData.joinPos.orientation);
-        stmt.addUInt32(m_bgData.joinPos.mapid);
+        stmt.addFloat(m_bgData.joinPos.X());
+        stmt.addFloat(m_bgData.joinPos.Y());
+        stmt.addFloat(m_bgData.joinPos.Z());
+        stmt.addFloat(m_bgData.joinPos.Facing());
+        stmt.addUInt32(m_bgData.joinPos.MapId());
         stmt.addUInt32(m_bgData.taxiPath[0]);
         stmt.addUInt32(m_bgData.taxiPath[1]);
         stmt.addUInt32(m_bgData.mountSpell);

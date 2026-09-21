@@ -1256,9 +1256,9 @@ bool MotionMaster::MoveJump(float x, float y, float z, float horizontalSpeed, fl
  * @param id ID of the movement.
  * @return False when the jump was refused.
  */
-bool MotionMaster::MoveJump(Position& pos, float horizontalSpeed, float max_height, uint32 id)
+bool MotionMaster::MoveJump(Geometry::Position& pos, float horizontalSpeed, float max_height, uint32 id)
 {
-    return MoveJump(pos.x, pos.y, pos.z, horizontalSpeed, max_height, id);
+    return MoveJump(pos.X(), pos.Y(), pos.Z(), horizontalSpeed, max_height, id);
 }
 
 /**
