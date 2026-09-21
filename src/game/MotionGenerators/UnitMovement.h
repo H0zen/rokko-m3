@@ -188,10 +188,12 @@ class UnitMovement
         /// `distance` yards. The place turns with the target, which is what lets several
         /// followers keep a shape around one leader instead of stacking on the same spot.
         void Follow(Unit* target, float distance, float angle);
-        /// Close on a target and stay within reach of it, from whatever side you are on.
-        /// No angle: walking round an enemy to stand at some particular bearing would be a
-        /// strange thing to do in a fight.
-        void Chase(Unit* target, float distance = 0.0f);
+        /// Close on a target and stay within reach of it. With `angle` at zero it closes
+        /// from whatever side it is already on, which is what a melee attacker wants. A
+        /// non-zero angle makes it a place instead -- that many radians round from the
+        /// target's own facing -- which is what EventAI's ranged-movement action asks for:
+        /// a caster that stands off at a bearing rather than anywhere in range.
+        void Chase(Unit* target, float distance = 0.0f, float angle = 0.0f);
         /// Stagger about on the spot, and keep staggering while any source says so. The
         /// source is the aura that imposed it -- which caster's which effect -- and it is
         /// not optional: two overlapping confusions have to be told apart, or the first to

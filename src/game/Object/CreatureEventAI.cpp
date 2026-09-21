@@ -902,7 +902,6 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                             case Motion::Kind::Chase:
                             case Motion::Kind::Follow:
                                 m_attackDistance = 0.0f;
-                                m_attackAngle = 0.0f;
 
                                 m_creature->Movement()->Stop();
                                 m_creature->Movement()->Chase(m_creature->getVictim(), m_attackDistance, m_attackAngle);

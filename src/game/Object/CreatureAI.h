@@ -389,6 +389,8 @@ class CreatureAI
         bool m_isCombatMovement;
         /// How should an enemy be chased
         float m_attackDistance;
+        /// Where round the target a ranged attacker stands, in radians from the target's own
+        /// facing. EventAI's ranged-movement action sets it; zero means "anywhere in range".
         float m_attackAngle;
 };
 

@@ -182,11 +182,11 @@ void ScriptedAI::JustRespawned()
  * @param fDistance Distance to maintain from the victim.
  * @param fAngle Angle to maintain from the victim.
  */
-void ScriptedAI::DoStartMovement(Unit* pVictim, float fDistance, float fAngle)
+void ScriptedAI::DoStartMovement(Unit* pVictim, float fDistance)
 {
     if (pVictim)
     {
-        m_creature->Movement()->Chase(pVictim, fDistance, fAngle);
+        m_creature->Movement()->Chase(pVictim, fDistance);
     }
 }
 

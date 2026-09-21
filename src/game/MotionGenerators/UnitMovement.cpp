@@ -362,7 +362,7 @@ void UnitMovement::Wander(float x, float y, float z, float radius)
     Advance(false, false);
 }
 
-void UnitMovement::Chase(Unit* target, float dist)
+void UnitMovement::Chase(Unit* target, float dist, float angle)
 {
     if (!target)
     {
@@ -372,8 +372,14 @@ void UnitMovement::Chase(Unit* target, float dist)
     {
         m_sighting = new MoveSighting(*m_unit);
     }
-    m_movement.Take(new Move::Pursue(Move::Kind::Chase, target->GetObjectGuid().GetRawValue(),
-                                     *m_sighting, dist > 0.0f ? dist : 1.0f));
+    Move::Pursue* chase = new Move::Pursue(Move::Kind::Chase,
+                                           target->GetObjectGuid().GetRawValue(),
+                                           *m_sighting, dist > 0.0f ? dist : 1.0f);
+    if (angle != 0.0f)
+    {
+        chase->HoldSlot(angle);
+    }
+    m_movement.Take(chase);
     Advance(false, false);
 }
 
