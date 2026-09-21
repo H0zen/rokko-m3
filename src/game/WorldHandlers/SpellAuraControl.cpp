@@ -497,11 +497,12 @@ void Aura::HandleAuraModStun(bool apply, bool Real)
             target->ModifyAuraState(AURA_STATE_FROZEN, apply);
         }
 
-        // M1: a player or player-charmed unit's movement-flag wipe (and stand state) must run
-        // before Inhibit's projection sets MOVEFLAG_ROOT, or this wipe erases it right back off
-        // (a plain creature is unaffected: the projection never roots it for a stun alone).
-        Unit* charmer = target->GetCharmer();
-        const bool clientMover = target->GetTypeId() == TYPEID_PLAYER || (charmer && charmer->GetTypeId() == TYPEID_PLAYER);
+        // M1: a client-driven unit's movement-flag wipe (and stand state) must run before
+        // Inhibit's projection sets MOVEFLAG_ROOT, or this wipe erases it right back off
+        // (a server-driven unit is unaffected: the projection never roots it for a stun alone).
+        // The word is a cache of what the client last sent, and only a client resends it, so
+        // only a unit with one may have it cleared -- Unit::IsClientMover, not the charmer.
+        const bool clientMover = target->IsClientMover();
         if (clientMover)
         {
             target->m_movementInfo.SetMovementFlags(MOVEFLAG_NONE);

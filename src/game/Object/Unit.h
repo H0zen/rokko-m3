@@ -4024,6 +4024,17 @@ class Unit : public WorldObject
         /// grant, a possessor's for a possessed creature, NULL for a server-driven unit.
         WorldSession* MoverSession() const { return m_moverSession; }
         void SetMoverSession(WorldSession* session) { m_moverSession = session; }
+        /// Does a CLIENT drive this unit's movement? A player always does -- his client owns his
+        /// word and resends it, whether or not a grant is live (a taxi flight and a battleground
+        /// countdown both revoke his mover). Any other unit does only while a session actually
+        /// moves it: WorldSession::GrantMover / RevokeMover, which is what MotionState() calls the
+        /// authority.
+        ///
+        /// This is deliberately NOT "is my charmer a player". SPELL_AURA_MOD_CHARM (Mind Control,
+        /// Enslave Demon) gives a creature a player charmer and a PET BAR -- Aura::HandleModCharm
+        /// never calls SetClientControl -- so such a creature has no client at all. Treating it as
+        /// one wiped its authoritative movement word with nothing to restore it.
+        bool IsClientMover() const;
         /// Sends what the kernel emitted: the mover form to the mover session, the
         /// spline form to everyone in range, the observer form to everyone but the
         /// mover session's player, built from this unit's stored status. Nothing is

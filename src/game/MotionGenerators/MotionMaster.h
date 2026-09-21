@@ -127,6 +127,10 @@ class MotionMaster
         /// at the commit's end (Published).
         void Inhibit(Motion::Inhibition what, uint64 source);
         void Uninhibit(Motion::Inhibition what, uint64 source);
+        /// The mover authority changed (a grant or a revoke): recompute the client root, which
+        /// depends on it. Safe to call when nothing changes -- the projection is edge-triggered on
+        /// m_clientRooted.
+        void RefreshClientRoot();
         /// Whether any source holds this reason: the one answer to "is this unit rooted".
         bool Inhibited(Motion::Inhibition what) const { return m_arbiter.Inhibited(what); }
         /// What the selected behaviour may do right now, and why not.

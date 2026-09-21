@@ -225,7 +225,7 @@ namespace Harness
                     stunAt->set = true;
                     stunAt->x = x; stunAt->y = y;
                     stunAt->node = Node(a);
-                    a->CastSpell(a, STUN, true);
+                    SelfCast(a, STUN);
                     Log("+6s self-stun (%u) mid-leg at %.1f %.1f, node %u, mt=%s", STUN, x, y, stunAt->node, TypeName(a));
                 });
                 for (uint32 i = 1; i <= 30; ++i)

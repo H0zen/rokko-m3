@@ -416,7 +416,7 @@ namespace Harness
                 At(1000, [this, gw, heldPos]()
                 {
                     Creature* w = Get(gw); if (!w) { return; }
-                    w->CastSpell(w, ROOT, true);
+                    SelfCast(w, ROOT);
                     w->GetMotionMaster()->Inhibit(Motion::Inhibition::Rooted, Motion::InhibitSource(Motion::SourceDomain::Script, w->GetObjectGuid().GetCounter(), 33));
                     w->GetMotionMaster()->Inhibit(Motion::Inhibition::Stunned, Motion::InhibitSource(Motion::SourceDomain::Script, w->GetObjectGuid().GetCounter(), 33));
                     Log("a Web, a script root and a script stun, mt=%s", TypeName(w));
@@ -701,8 +701,8 @@ namespace Harness
                 auto closed = std::make_shared<float>(999.0f);
                 At(500,  [this, gw, gl]() { Creature* w = Get(gw); Creature* l = Get(gl); if (w && l) { w->GetMotionMaster()->MoveFollow(l, 2.0f, 0.0f); Log("follows, mt=%s", TypeName(w)); } });
                 At(1000, [this, gl]() { if (Creature* l = Get(gl)) { l->GetMotionMaster()->MovePoint(1, SE.x + 30.0f, SE.y, Ground(SE.x + 30.0f, SE.y, SE.z), true); Log("the leader runs 25 yd"); } });
-                At(2000, [this, gw]() { if (Creature* w = Get(gw)) { w->CastSpell(w, FEIGN_A, true); Log("feign A %u: dead sources=%u mt=%s", FEIGN_A, uint32(ReadBlock(w).deadSources), TypeName(w)); } });
-                At(2500, [this, gw]() { if (Creature* w = Get(gw)) { w->CastSpell(w, FEIGN_B, true); Log("feign B %u: dead sources=%u mt=%s", FEIGN_B, uint32(ReadBlock(w).deadSources), TypeName(w)); } });
+                At(2000, [this, gw]() { if (Creature* w = Get(gw)) { SelfCast(w, FEIGN_A); Log("feign A %u: dead sources=%u mt=%s", FEIGN_A, uint32(ReadBlock(w).deadSources), TypeName(w)); } });
+                At(2500, [this, gw]() { if (Creature* w = Get(gw)) { SelfCast(w, FEIGN_B); Log("feign B %u: dead sources=%u mt=%s", FEIGN_B, uint32(ReadBlock(w).deadSources), TypeName(w)); } });
                 At(3000, [this, gw, twoSources]()
                 {
                     Creature* w = Get(gw); if (!w) { return; }

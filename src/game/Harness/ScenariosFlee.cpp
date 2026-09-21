@@ -814,7 +814,7 @@ namespace Harness
                 At(2500, [this, g]()
                 {
                     Creature* a = Get(g); if (!a) { return; }
-                    a->CastSpell(a, ROOT, true);
+                    SelfCast(a, ROOT);
                     Log("Web cast mid-flee, mt=%s (a projectile: the root lands on the next tick)", TypeName(a));
                 });
                 for (uint32 i = 1; i <= 8; ++i)
@@ -907,7 +907,7 @@ namespace Harness
                 At(1300, [this, g]()
                 {
                     Creature* a = Get(g); if (!a) { return; }
-                    a->CastSpell(a, ROOT, true);
+                    SelfCast(a, ROOT);
                     Log("Web cast mid-chase, mt=%s (a projectile: the root lands on the next tick)", TypeName(a));
                 });
                 for (uint32 i = 1; i <= 8; ++i)

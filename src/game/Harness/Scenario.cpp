@@ -31,6 +31,7 @@
 #include "ObjectMgr.h"
 #include "Map.h"
 #include "GridMap.h"
+#include "DBCStores.h"
 #include "Log.h"
 #include "Player.h"
 #include "PlayerRegistry.h"
@@ -333,6 +334,28 @@ namespace Harness
     Motion::RelayCounts const* Scenario::Relays(Creature* c) const
     {
         return c ? c->GetMotionMaster()->SelectedRelays() : NULL;
+    }
+
+    void Scenario::SelfCast(Unit* caster, uint32 spellId)
+    {
+        if (!caster)
+        {
+            return;
+        }
+        // The DBC row, not the server's idea of the spell: GetDmgClass reads the
+        // SpellCategories row's DefenseType and answers NONE when there is no row at all,
+        // which is the same answer Unit::SpellHitResult switches on.
+        SpellEntry const* info = sSpellStore.LookupEntry(spellId);
+        if (info && info->GetDmgClass() != SPELL_DAMAGE_CLASS_NONE)
+        {
+            char text[352];
+            snprintf(text, sizeof(text),
+                     "MVTEST WARN %s: self-cast of %u draws a hit roll against its own caster -- damage class %u, not NONE, so Unit::SpellHitResult goes to %s and the aura can be missed, dodged, parried or resisted; the harness's seed is fixed, so a bad roll fails every run",
+                     m_name, spellId, info->GetDmgClass(),
+                     info->GetDmgClass() == SPELL_DAMAGE_CLASS_MAGIC ? "MagicSpellHitResult" : "MeleeSpellHitResult");
+            Out(text);
+        }
+        caster->CastSpell(caster, spellId, true);
     }
 
     void Scenario::Log(char const* fmt, ...) const

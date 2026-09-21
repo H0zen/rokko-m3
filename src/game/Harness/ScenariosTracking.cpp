@@ -1212,7 +1212,7 @@ namespace Harness
                                 {
                                     s.out = true;
                                     s.homeAt = t;
-                                    c->CastSpell(c, ROOT, true);
+                                    SelfCast(c, ROOT);
                                     c->GetMotionMaster()->MoveTargetedHome();
                                     Log("+%5ums %s arrived %.1f yd out: Web cast and MoveTargetedHome in the same step (rooted=%d, mt=%s)",
                                         t, pairs[p].name, Dist2(c->Where().X(), c->Where().Y(), c->Spawn().X(), c->Spawn().Y()),

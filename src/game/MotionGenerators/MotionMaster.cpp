@@ -1673,17 +1673,29 @@ void MotionMaster::Uninhibit(Motion::Inhibition what, uint64 source)
 }
 
 /**
+ * @brief The mover authority changed (a grant or a revoke): recompute the client root, which
+ * depends on it. Safe to call when nothing changes -- the projection is edge-triggered on
+ * m_clientRooted.
+ */
+void MotionMaster::RefreshClientRoot()
+{
+    ProjectClientRoot();
+}
+
+/**
  * @brief The client's root flag follows rooted-or-stunned, on the aggregate's edges only, so two
  * roots and a stun releasing in any order leave the mover rooted exactly until the last one goes.
- * A stunned creature is stopped, not rooted, as before (the stun handler's StopMoving); a stunned
- * player or player-charmed unit gets the root (reference 2.3).
+ * A stunned server-driven unit is stopped, not rooted, as before (the stun handler's StopMoving);
+ * a stunned CLIENT MOVER gets the root (reference 2.3) -- a player, or a unit a session is
+ * actually moving. The authority can change while a block is held, which is why the grant and the
+ * revoke call RefreshClientRoot above: Unit::TakePossessOf raises the Possessed inhibition before
+ * SetClientControl hands the body over, so a creature stunned before the take is first projected
+ * as the server-driven unit it still is and only the grant's recompute roots it.
  */
 void MotionMaster::ProjectClientRoot()
 {
-    Unit* charmer = m_owner->GetCharmer();
-    const bool clientMover = m_owner->GetTypeId() == TYPEID_PLAYER || (charmer && charmer->GetTypeId() == TYPEID_PLAYER);
     const bool want = m_arbiter.Inhibited(Motion::Inhibition::Rooted) ||
-                      (clientMover && m_arbiter.Inhibited(Motion::Inhibition::Stunned));
+                      (m_owner->IsClientMover() && m_arbiter.Inhibited(Motion::Inhibition::Stunned));
     if (want == m_clientRooted)
     {
         return;

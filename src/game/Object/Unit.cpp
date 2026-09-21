@@ -305,6 +305,14 @@ Motion::Kinematics Unit::InitialKinematics() const
     return k;
 }
 
+bool Unit::IsClientMover() const
+{
+    // The header carries the argument. Two readers only, and both of them ask the same
+    // question the kernel's mode does: Aura::HandleAuraModStun's wipe and
+    // MotionMaster::ProjectClientRoot's root.
+    return GetTypeId() == TYPEID_PLAYER || m_moverSession != NULL;
+}
+
 void Unit::AssertMotionOwner() const
 {
     if (!IsInWorld() || MapPhase::Owns(GetMap()))
@@ -7127,7 +7135,12 @@ bool Unit::TakePossessOf(Unit* possessed)
 
     possessed->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
     possessed->SetCharmerGuid(GetObjectGuid());
-    // After the charmer: the block's client-root projection reads it (a stunned body is rooted for its player mover).
+    // The block's client-root projection runs inside this Inhibit, and it reads the AUTHORITY
+    // (Unit::IsClientMover), which SetClientControl below has not handed over yet: a body
+    // stunned before the take is projected here as the server-driven unit it still is, and it is
+    // WorldSession::GrantMover's own RefreshClientRoot that roots it a few lines down. Before
+    // 2026-09-21 the projection read the charmer set on the line above instead, which is why the
+    // charmer used to have to come first.
     possessed->GetMotionMaster()->Inhibit(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, GetObjectGuid().GetCounter()));
     possessed->setFaction(getFaction());
 
@@ -7214,7 +7227,11 @@ void Unit::ResetControlState(bool attackCharmer /*= true*/)
 
     possessed->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
     possessed->SetCharmerGuid(ObjectGuid());
-    // After the charmer is gone: the projection then roots the body as a creature, not as a player's mover.
+    // The projection runs inside this Uninhibit too, and the authority it reads is still the
+    // possessor's session: SetClientControl below has not revoked yet, so a body still stunned
+    // stays client-rooted through here and it is WorldSession::RevokeMover's own
+    // RefreshClientRoot that takes the root off. Before 2026-09-21 the projection read the
+    // charmer cleared on the line above, and unrooted the body here instead.
     possessed->GetMotionMaster()->Uninhibit(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, GetObjectGuid().GetCounter()));
     SetCharmGuid(ObjectGuid());
 

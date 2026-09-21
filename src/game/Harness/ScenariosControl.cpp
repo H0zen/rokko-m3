@@ -1195,7 +1195,7 @@ namespace Harness
     /// every route the claim can end, not only the two that go through Unit::SetFeared.
     ///
     /// The case that prompted it: Unit::TakePossessOf, when a player takes his own pet, calls
-    /// `possessed->GetMotionMaster()->CancelControl(Motion::Kind::Fear)` (Unit.cpp:7149). That
+    /// `possessed->GetMotionMaster()->CancelControl(Motion::Kind::Fear)` (Unit.cpp:7162). That
     /// ends the claim without ever reaching SetFeared(false), so the published auraFear drops
     /// and, before the fix, nothing recalculated the run speed: the quarter stayed on the unit
     /// until something unrelated happened to recompute it.
@@ -1208,7 +1208,7 @@ namespace Harness
     /// by construction. This scenario proves two routes that Unit::SetFeared does not own.
     ///
     /// WHAT IT CANNOT REACH: the real pet-possession path needs a Player possessing HIS OWN pet
-    /// (Unit.cpp:7143 `ownPet`), which is machinery the harness does not have -- a creature
+    /// (Unit.cpp:7157 `ownPet`), which is machinery the harness does not have -- a creature
     /// possessing a creature, which S34 does exercise, never enters that branch. So the
     /// scenario makes the same facade call TakePossessOf makes, on the same arbiter, rather
     /// than inventing a pet. The call under test is identical; only its preconditions are not.
@@ -1906,7 +1906,7 @@ namespace Harness
         /// combat, so combatEnded reads a state that had settled instead of one set in the same
         /// breath as the feign that ends it; and it is what gives the hostile reference below
         /// something to do, because a player in combat whom nothing hates is swept back out of
-        /// it by Unit::Update's own combat timer (Unit.cpp:474-491) on the very next tick.
+        /// it by Unit::Update's own combat timer (Unit.cpp:482-499) on the very next tick.
         const uint32 kFeignCombatAt = 300;
         const uint32 kFeignCastAt = 500;
         const uint32 kFeignPullAt = 4000;
@@ -2044,7 +2044,7 @@ namespace Harness
                 // (Unit::CanHaveThreatList refuses anything but a creature), and what this call
                 // really builds is the HostileReference on the far side, which registers itself
                 // in the PLAYER's HostileRefManager. That reference is the only reason the
-                // combat opened above survives to the cast at all (Unit.cpp:474-491), and it is
+                // combat opened above survives to the cast at all (Unit.cpp:482-499), and it is
                 // also what UnitSpeed.cpp:557 deletes.
                 k->AddThreat(p, 1000.0f);
                 Log("+%4ums before the cast: victim=%d in combat=%d anything hating him=%d",
@@ -2067,7 +2067,7 @@ namespace Harness
                 st->victimBefore = p->getVictim() != NULL;
                 st->combatBefore = p->IsInCombat();
                 st->refsBefore = !p->GetHostileRefManager().isEmpty();
-                p->CastSpell(p, FEIGN, true);
+                SelfCast(p, FEIGN);
                 // EVERY READING BELOW IS TAKEN HERE, in the cast's own step, and combatEnded
                 // depends on that. A triggered instant spell applies its aura inside this call
                 // (Spell::Prepare -> cast(true)), so this is the state SetFeignDeath left behind
@@ -2329,7 +2329,7 @@ namespace Harness
         ///
         /// The possession is taken 300 ms BEFORE the cast rather than inside the cast's own
         /// step, and that gap is load-bearing. Unit::TakePossessOf ends in
-        /// Creature::AIM_Initialize (Unit.cpp:7178), which runs MotionMaster::Initialize on the
+        /// Creature::AIM_Initialize (Unit.cpp:7192), which runs MotionMaster::Initialize on the
         /// body -- StopMoving, a full arbiter Clear, a fresh factory native -- so a take in the
         /// same breath as the stun would leave every reading about that body with the
         /// re-initialisation as an alternative explanation. Three world updates pass with the
@@ -2381,12 +2381,12 @@ namespace Harness
         /// stun cast by somebody else would reset the stand state on the spell-hit path whether
         /// HandleAuraModStun did or not, and moverBranch below would then read OK over a
         /// handler that had been gutted. With caster == target that path is not taken at all and
-        /// the handler's SetStandState (SpellAuraControl.cpp:508) is the only one left.
+        /// the handler's SetStandState (SpellAuraControl.cpp:509) is the only one left.
         /// 76216's implicit target is the caster in any case, so the self-cast is the only shape
         /// its target map has.
         ///
         /// What the scenario writes into the plain player's movement-flag word just before the
-        /// cast, so the wipe under test (SpellAuraControl.cpp:507) has something to clear: a
+        /// cast, so the wipe under test (SpellAuraControl.cpp:508) has something to clear: a
         /// session-less player's word is MOVEFLAG_NONE already, and a clear that clears nothing
         /// proves nothing.
         ///
@@ -2394,7 +2394,7 @@ namespace Harness
         /// same `if` reaches Unit::StopMoving, whose spline stop removes MOVEFLAG_FORWARD and
         /// only that (MoveSplineInit.cpp:261) -- and on a unit whose spline is already finalized,
         /// as this standing player's is, StopMoving returns before even that
-        /// (Unit.cpp:5813-5818). MOVEFLAG_STRAFE_LEFT therefore survives every route but the
+        /// (Unit.cpp:5821-5826). MOVEFLAG_STRAFE_LEFT therefore survives every route but the
         /// whole-word wipe, which is exactly what makes "the clientMover branch was taken"
         /// falsifiable. Both sit in movementFlagsMask, so Player::isMoving() reads true while
         /// they are on, and that cannot refuse the cast: SpellChecks.cpp:199 turns a moving
@@ -2420,8 +2420,8 @@ namespace Harness
     /// resets the stand state for a clientMover -- a player, OR a unit whose charmer is a
     /// player -- and it does so BEFORE Inhibit(Stunned). The comment labelled M1 says why: run
     /// it after and the wipe "erases MOVEFLAG_ROOT right back off", because Inhibit's projection
-    /// (MotionMaster::ProjectClientRoot, MotionMaster.cpp:1681) roots a stunned clientMover.
-    /// Aura::HandleAuraModRoot (SpellAuraControl.cpp:879) has the OPPOSITE order -- Inhibit
+    /// (MotionMaster::ProjectClientRoot, MotionMaster.cpp:1695) roots a stunned clientMover.
+    /// Aura::HandleAuraModRoot (SpellAuraControl.cpp:880) has the OPPOSITE order -- Inhibit
     /// first, then the wipe -- and its own comment names the asymmetry.
     ///
     /// The asymmetry is real, and it is not about the plain player. Player::SetRoot
@@ -2444,9 +2444,9 @@ namespace Harness
     /// it its meaning, and without them "the flag is there" would say nothing about ordering.
     ///
     /// WHAT THE SCENARIO DOES NOT CLAIM: that the plain creature was STOPPED. Unit::StopMoving
-    /// at SpellAuraControl.cpp:517 is over-determined here twice over -- the Inhibit two lines
+    /// at SpellAuraControl.cpp:520 is over-determined here twice over -- the Inhibit two lines
     /// above it already blocks the body through the arbiter, and a creature standing still has a
-    /// finalized spline, on which StopMoving returns without doing anything (Unit.cpp:5813-5818).
+    /// finalized spline, on which StopMoving returns without doing anything (Unit.cpp:5821-5826).
     /// "Not rooted" is the half of that sentence a scenario can own, and it is the half the
     /// projection decides.
     ///
@@ -2532,7 +2532,7 @@ namespace Harness
             // AIM_Initialize hands the body a fresh factory AI, so this Silence only covers the
             // 200 ms before the take -- but those are 200 ms with a player standing 4 yd from
             // two hostile beasts, and an aggro there would put a melee swing (and with it
-            // Unit::DealDamage's own stand-state reset, Unit.cpp:895) on the path of every
+            // Unit::DealDamage's own stand-state reset, Unit.cpp:903) on the path of every
             // reading below. After the take the body is quiet for different reasons: it holds
             // the player's faction, its charm info is REACT_PASSIVE/COMMAND_STAY, and the
             // Possessed inhibition refuses it movement (S34).
@@ -2589,9 +2589,9 @@ namespace Harness
                 p->m_movementInfo.SetMovementFlags(kStunDrivingFlags);
                 p->SetStandState(UNIT_STAND_STATE_SIT);
                 // A victim without a swing, as player-feign took one: Unit::Attack is what
-                // writes UNIT_FIELD_TARGET (Unit.cpp:3055), and the melee half is left out so
+                // writes UNIT_FIELD_TARGET (Unit.cpp:3063), and the melee half is left out so
                 // that no damage is dealt anywhere in the run -- Unit::DealDamage stands a
-                // sitting player up (Unit.cpp:895), which would be an alternative explanation
+                // sitting player up (Unit.cpp:903), which would be an alternative explanation
                 // for the stand state, and it is also the one thing that could end a stun early.
                 p->Attack(m, false);
                 st->pFlagsBefore = uint32(p->m_movementInfo.GetMovementFlags());
@@ -2608,9 +2608,9 @@ namespace Harness
                 // Three self-casts, one step, no world update between them: the body first,
                 // because it is the reading the scenario exists for and it should not be able to
                 // blame anything the other two did.
-                b->CastSpell(b, STUN_SELF, true);
-                c->CastSpell(c, STUN_SELF, true);
-                p->CastSpell(p, STUN_SELF, true);
+                SelfCast(b, STUN_SELF);
+                SelfCast(c, STUN_SELF);
+                SelfCast(p, STUN_SELF);
                 // EVERY READING BELOW IS TAKEN HERE, in the cast's own step. A triggered instant
                 // spell applies its aura inside the call (Spell::Prepare -> cast(true)), so this
                 // is the state HandleAuraModStun left behind and nothing else has run yet -- and
@@ -2732,7 +2732,7 @@ namespace Harness
                         if (!st->pEndedAt) { st->pEndedAt = t; }
                         ++st->pAfterSamples;
                         if (flagNow) { st->pFlagAfter = true; }
-                        // The removal restores the victim's guid (SpellAuraControl.cpp:587-593),
+                        // The removal restores the victim's guid (SpellAuraControl.cpp:588-594),
                         // which is why the player was given a victim at all: without one that
                         // branch runs and writes nothing, and "the target came back" would be a
                         // sentence about an empty field.
@@ -2836,7 +2836,7 @@ namespace Harness
                     }
                     else if (!st->pTargetBefore)
                     {
-                        snprintf(held, sizeof(held), "INVALID(he held no target guid before the cast, so the clear at SpellAuraControl.cpp:511 had nothing to clear)");
+                        snprintf(held, sizeof(held), "INVALID(he held no target guid before the cast, so the clear at SpellAuraControl.cpp:512 had nothing to clear)");
                     }
                     else if (st->pUnflagged)
                     {
@@ -3005,6 +3005,969 @@ namespace Harness
     };
 
 
+    namespace
+    {
+        /// THE CHARM THE FIRST OF THE THREE CASTS, and it is chosen the way player-stun chose
+        /// 76216: by its DBC row, not by its name. 21835 "Gizlock's Dummy Charm Effect" carries
+        /// ONE effect -- SPELL_EFFECT_APPLY_AURA with SPELL_AURA_MOD_CHARM, base points 100,
+        /// implicit target 25 (TARGET_DUELVSPLAYER, which resolves to the unit target whether it
+        /// is friendly or hostile, SpellTargeting.cpp:1119) -- and has no SpellCategories row at
+        /// all, so its damage class, mechanic, category and start-recovery category all read 0.
+        ///
+        /// DAMAGE CLASS NONE IS THE LOAD-BEARING HALF. Unit::SpellHitResult has no self case and
+        /// no charm case: a spell whose class is MELEE, RANGED or MAGIC draws a roll against its
+        /// target (UnitCombat.cpp:969-977), and under the harness's fixed seed a bad one fails
+        /// every run. Scenario::SelfCast warns about exactly this for a self-cast; the charm is
+        /// cast AT the wolf rather than at the caster, so the warning would not cover it and the
+        /// spell is picked to need no cover. Mechanic 0 matters for the same reason from the
+        /// other end: MECHANIC_CHARM would put the aura in a diminishing group.
+        ///
+        /// The two obvious alternatives were rejected on their rows. 24261 "Brain Wash" and
+        /// 35120 "Charm" both carry SPELL_ATTR_EX_CHANNELED_1, and a channel is a second thing
+        /// that can end the aura for reasons that have nothing to do with this scenario; 35120
+        /// also carries mechanic 1. 21835's only attribute is SPELL_ATTR_EX_UNK28 (0x10000000 of
+        /// AttributesEx), which is declared in SharedDefines.h and read nowhere in this tree.
+        /// Its duration index 21 is -1, an infinite aura, so the charm holds until the scenario
+        /// takes it off -- which it does, before the runner's teardown, for player-stun's reason:
+        /// the teardown despawns the scenario's creatures before it ends its players.
+        const uint32 CHARM = 21835;
+
+        /// One marker bit written into the subject's m_movementInfo just before the stun, and
+        /// the whole falsifiability of "the word was not wiped" rests on which bit it is.
+        ///
+        /// MOVEFLAG_STRAFE_LEFT survives every route out of Aura::HandleAuraModStun EXCEPT the
+        /// whole-word wipe. The `else` half of the handler's `if` reaches Unit::StopMoving, whose
+        /// spline stop removes MOVEFLAG_FORWARD and only that (MoveSplineInit.cpp:261), and on a
+        /// finalized spline StopMoving returns before even that (Unit.cpp:5823-5826). So the bit
+        /// being gone afterwards can mean one thing only, and the bit being there says the
+        /// clientMover branch was not taken.
+        ///
+        /// ADDED to the word rather than assigned over it: these subjects are creatures that may
+        /// be mid-wander when the marker goes in (a wolf's default movement type is random, so
+        /// MotionMaster::Initialize installs a wander on it), and assigning the word whole would
+        /// take the walk and forward bits of a leg that is actually running off a unit the
+        /// movement code still believes is moving. The marker is read BACK after it is written,
+        /// and a category whose marker did not survive its own setup reads INVALID.
+        const MovementFlags kMoverMarker = MOVEFLAG_STRAFE_LEFT;
+
+        /// charm-stun-not-client-driven's moments, absolute offsets from the scenario's start as
+        /// Scenario::At takes them; its "+Nms" log lines count from the CAST, as player-stun's do.
+        ///
+        /// The charm is taken 300 ms before the cast for the reason player-stun leaves 300 ms
+        /// between its possession and its cast: Aura::HandleModCharm runs Creature::AIM_Initialize
+        /// (SpellAuraControl.cpp:250), which re-initialises the MotionMaster -- StopMoving, a full
+        /// arbiter clear, a fresh factory native -- and a charm in the same breath as the stun
+        /// would leave every reading below with that re-initialisation as an alternative
+        /// explanation. Three world updates pass with the charm settled before anything is cast.
+        const uint32 kCharmStunCharmAt   = 200;
+        const uint32 kCharmStunCastAt    = 500;
+        const uint32 kCharmStunPullAt    = 3000;   ///< +2500 after the cast, inside 76216's own 6 s
+        const uint32 kCharmStunUncharmAt = 3400;   ///< after the last sample: no body may be freed under a live charmer
+        const uint32 kCharmStunVerdictAt = 3600;
+
+        /// stun-then-possess-roots' moments. The stun goes on FIRST and the take follows it, which
+        /// is the whole point: Unit::TakePossessOf raises the Possessed inhibition at Unit.cpp:7144
+        /// -- and with it the client-root projection -- 23 lines BEFORE SetClientControl grants the
+        /// mover at :7167, so at the moment of the projection the body is not yet a client mover
+        /// and only WorldSession::GrantMover's own recompute can root it.
+        const uint32 kLateTakeStunAt    = 200;
+        const uint32 kLateTakeAt        = 500;
+        const uint32 kLateTakePullAt    = 3000;
+        const uint32 kLateTakeReleaseAt = 3400;
+        const uint32 kLateTakeVerdictAt = 3600;
+
+        /// release-possession-while-stunned's moments. The release falls INSIDE the stun (76216
+        /// runs 6 s flat from 500, so it is still on at 3000 and still on at the verdict), because
+        /// a release after the stun has already gone proves nothing about the root: the stun's own
+        /// Uninhibit would have taken it off.
+        const uint32 kEarlyReleaseTakeAt  = 200;
+        const uint32 kEarlyReleaseCastAt  = 500;
+        const uint32 kEarlyReleaseAt      = 3000;
+        const uint32 kEarlyReleaseVerdict = 5200;
+    }
+
+    /// S70 (order 904): THE FIX. A creature mind-controlled through SPELL_AURA_MOD_CHARM has a
+    /// player charmer and no client at all, and the stun must treat it as the server-driven unit
+    /// it is.
+    ///
+    /// Aura::HandleModCharm (SpellAuraControl.cpp:203) sets the charmer guid and the caster's
+    /// charm, re-initialises the creature's AI, gives it REACT_DEFENSIVE and ends the player
+    /// branch at Player::CharmSpellInitialize -- the PET BAR. It never calls SetClientControl, so
+    /// WorldSession::GrantMover never runs, MoverSession() stays NULL and the kernel's mode stays
+    /// ServerDriven. Unit::TakePossessOf does call it (Unit.cpp:7167); that is the difference
+    /// between the two, and it is the reason this scenario charms rather than possesses. Built on
+    /// a possession it would pass either way and prove nothing.
+    ///
+    /// Until 2026-09-21 both readers of "does a client drive this unit" asked instead whether its
+    /// charmer was a player, and this creature answered yes to that. Stunned, it therefore:
+    ///   1. had its m_movementInfo zeroed WHOLE by Aura::HandleAuraModStun -- the word, not a
+    ///      mask -- with nothing to put it back, because the only restoring path is
+    ///      WorldSession::HandleMoverRelocation's `else // creature charmed` branch
+    ///      (MovementHandler.cpp:983-988) and it is reached from a movement packet or an ack,
+    ///      neither of which a unit with no client will ever send;
+    ///   2. was client-rooted by MotionMaster::ProjectClientRoot, which for a unit the server
+    ///      drives means nothing: a stunned plain creature is STOPPED, not rooted.
+    /// Unit::IsClientMover answers the question the kernel's own mode answers, and both readers
+    /// now ask it.
+    ///
+    /// FOUR CATEGORIES AND THE FIRST IS THE SETUP. charmGrantsNoMover is what makes the other
+    /// three about a charm: it fails if the charm did not take, and it fails if the charm turned
+    /// out to hand the body a mover session after all -- in which case this scenario would be a
+    /// second, worse copy of player-stun's possession and every reading below would be
+    /// meaningless. The stun's own block is asserted beside the two things that must NOT happen,
+    /// because "nothing happened" is not the finding: the stun must still stun.
+    ///
+    /// WHAT IT DOES NOT CLAIM: that the wolf was STOPPED. Unit::StopMoving at
+    /// SpellAuraControl.cpp:520 is over-determined -- the Inhibit two lines above already blocks
+    /// the body through the arbiter -- and player-stun's plainCreatureNotRooted gives the reason
+    /// in full. "Not rooted" is the half the projection decides, and it is the half asserted here.
+    class CharmStunNotClientDriven : public Scenario
+    {
+    public:
+        /// Order 904, the next in the reserved player block behind player-stun's 903: the runner
+        /// refuses `MVTEST all` when a player scenario is queued before one that holds no player
+        /// (Harness.cpp Start), so player scenarios take high contiguous orders of their own.
+        CharmStunNotClientDriven() : Scenario("charm-stun-not-client-driven", 904) {}
+
+        bool UsesPlayer() const override { return true; }
+
+        void Prepare() override
+        {
+            struct St
+            {
+                bool   charmRan;         ///< the charm step resolved both actors and cast
+                bool   charmed;          ///< ...and the player really was the wolf's charmer afterwards
+                bool   moverAfterCharm;  ///< the charm handed it a mover session: this scenario is then not about a charm
+                bool   clientAfterCharm; ///< Unit::IsClientMover, the predicate under test, the instant the charm returned
+                bool   castRan;          ///< the cast step resolved both actors and cast
+                bool   charmedAtCast;    ///< the player was STILL its charmer when the stun went out
+                bool   moverAtCast;      ///< ...and it STILL had no mover session
+                uint32 wordBefore;       ///< its word with the marker in it, read BACK after the write
+                uint32 wordAtApply;      ///< the same word the instant the cast returned
+                bool   auraAtApply;      ///< the 76216 holder was on it that instant
+                bool   stunnedAtApply;   ///< the kernel's Stunned inhibition was up that instant
+                bool   rootedAtApply;    ///< MOVEFLAG_ROOT was in its word that instant
+                bool   rootDecidedAtApply; ///< ...or the kernel had decided its root
+                uint32 samples;          ///< samples with the holder on it AND the charm still held
+                uint32 markerGone;       ///< ...on which the marker bit had left its word
+                uint32 rootInWord;       ///< ...on which MOVEFLAG_ROOT sat in its word
+                uint32 rootDecided;      ///< ...on which the kernel had decided its root
+                uint32 uninhibited;      ///< ...on which the kernel's Stunned inhibition was down
+                uint32 gainedMover;      ///< ...on which a mover session had appeared under it
+            };
+            Player* p = SpawnPlayer(SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+            // 4 yd east, as player-stun's body: inside the charm's range (RangeIndex 6) and out
+            // of melee reach of anything, which matters for the 200 ms before the charm -- after
+            // it the wolf holds the player's own faction.
+            Creature* victim = p ? Spawn(WOLF, SE.x + 4.0f, SE.y, Ground(SE.x + 4.0f, SE.y, SE.z), 3.1f) : NULL;
+            if (!p || !victim)
+            {
+                Verdict(Invalid("spawn failed"));
+                return;
+            }
+            // Only for the 200 ms before the charm: Aura::HandleModCharm runs AIM_Initialize,
+            // which hands the wolf a fresh factory AI in place of this decorator. Those 200 ms
+            // are still worth buying -- they are 200 ms with a player standing 4 yd from a
+            // hostile beast, and an aggro there would put a melee swing on the path of every
+            // reading below. After the charm the wolf is quiet for a different reason: it holds
+            // the player's faction and nothing hostile stands on the map.
+            Silence(victim);
+            const ObjectGuid g = p->GetObjectGuid(), gv = victim->GetObjectGuid();
+            auto st = std::make_shared<St>();
+            st->charmRan = st->charmed = st->moverAfterCharm = st->clientAfterCharm = false;
+            st->castRan = st->charmedAtCast = st->moverAtCast = false;
+            st->wordBefore = st->wordAtApply = 0;
+            st->auraAtApply = st->stunnedAtApply = st->rootedAtApply = st->rootDecidedAtApply = false;
+            st->samples = st->markerGone = st->rootInWord = st->rootDecided = st->uninhibited = st->gainedMover = 0;
+            Log("the player %s stands at (%.1f, %.1f); the wolf he will mind-control 4 yd east",
+                g.GetString().c_str(), p->Where().X(), p->Where().Y());
+
+            At(kCharmStunCharmAt, [this, g, gv, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Creature* v = Get(gv);
+                if (!p || !v) { return; }
+                // The spell, through Unit::CastSpell, and not a hand-rolled SetCharmerGuid beside
+                // it: the point of the scenario is the path Aura::HandleModCharm takes, and a
+                // scenario that set the guid itself would be asserting over its own setup rather
+                // than over the handler.
+                p->CastSpell(v, CHARM, true);
+                st->charmRan = true;
+                st->charmed = v->GetCharmerGuid() == g;
+                st->moverAfterCharm = v->MoverSession() != NULL;
+                st->clientAfterCharm = v->IsClientMover();
+                Log("the charm %u returns: aura=%d charmer=%s mover session=%d client mover=%d flags 0x%08x mt=%s",
+                    CHARM, v->HasAura(CHARM) ? 1 : 0, v->GetCharmerGuid().GetString().c_str(),
+                    st->moverAfterCharm ? 1 : 0, st->clientAfterCharm ? 1 : 0,
+                    uint32(v->m_movementInfo.GetMovementFlags()), TypeName(v));
+            });
+            At(kCharmStunCastAt, [this, g, gv, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Creature* v = Get(gv);
+                if (!p || !v) { return; }
+                // Written, then READ BACK, and the read is what the verdict uses: a marker that
+                // did not survive its own setup would have the category report the stun's
+                // restraint over a word the stun never saw.
+                v->m_movementInfo.AddMovementFlag(kMoverMarker);
+                st->wordBefore = uint32(v->m_movementInfo.GetMovementFlags());
+                st->charmedAtCast = v->GetCharmerGuid() == g;
+                st->moverAtCast = v->MoverSession() != NULL;
+                SelfCast(v, STUN_SELF);
+                // EVERY READING BELOW IS TAKEN HERE, in the cast's own step: a triggered instant
+                // spell applies its aura inside the call (Spell::Prepare -> cast(true)), so this
+                // is the state Aura::HandleAuraModStun left behind and nothing else has run yet.
+                st->castRan = true;
+                st->auraAtApply = v->HasAura(STUN_SELF);
+                st->wordAtApply = uint32(v->m_movementInfo.GetMovementFlags());
+                st->stunnedAtApply = v->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned);
+                st->rootedAtApply = (st->wordAtApply & MOVEFLAG_ROOT) != 0;
+                st->rootDecidedAtApply = RootDecided(v);
+                Log("the cast returns: aura=%d charmer=%d mover session=%d flags 0x%08x -> 0x%08x (marker %s, MOVEFLAG_ROOT %s) stunned=%d root decided=%d",
+                    st->auraAtApply ? 1 : 0, st->charmedAtCast ? 1 : 0, st->moverAtCast ? 1 : 0,
+                    st->wordBefore, st->wordAtApply,
+                    (st->wordAtApply & uint32(kMoverMarker)) ? "held" : "GONE",
+                    st->rootedAtApply ? "SET" : "clear",
+                    st->stunnedAtApply ? 1 : 0, st->rootDecidedAtApply ? 1 : 0);
+            });
+            // Registered before the sampler so it runs first at its own moment (the timeline
+            // orders a tie by insertion).
+            At(kCharmStunPullAt, [this, gv]()
+            {
+                Creature* v = Get(gv); if (!v) { return; }
+                v->RemoveAurasDueToSpell(STUN_SELF);
+                Log("+%4ums the stun pulled: stunned=%d flags 0x%08x mt=%s", kCharmStunPullAt - kCharmStunCastAt,
+                    v->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned) ? 1 : 0,
+                    uint32(v->m_movementInfo.GetMovementFlags()), TypeName(v));
+            });
+            for (uint32 i = 1; i <= 25; ++i)
+            {
+                At(kCharmStunCastAt + i * 100, [this, g, gv, st, i]()
+                {
+                    Creature* v = Get(gv); if (!v) { return; }
+                    const uint32 t = i * 100;
+                    const uint32 word = uint32(v->m_movementInfo.GetMovementFlags());
+                    // The window is keyed on the CHARM as well as on the aura: the uncharm at the
+                    // end of the run drops the charmer, and a sample taken after it would be
+                    // about an ordinary creature and would say nothing about this fix.
+                    if (v->HasAura(STUN_SELF) && v->GetCharmerGuid() == g)
+                    {
+                        ++st->samples;
+                        if (!(word & uint32(kMoverMarker))) { ++st->markerGone; }
+                        if (word & MOVEFLAG_ROOT) { ++st->rootInWord; }
+                        if (RootDecided(v)) { ++st->rootDecided; }
+                        if (!v->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned)) { ++st->uninhibited; }
+                        if (v->MoverSession() != NULL) { ++st->gainedMover; }
+                    }
+                    if (i % 10 == 0)
+                    {
+                        Log("+%4ums aura=%d charmer=%d stunned=%d flags 0x%08x root decided=%d mt=%s", t,
+                            v->HasAura(STUN_SELF) ? 1 : 0, v->GetCharmerGuid() == g ? 1 : 0,
+                            v->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned) ? 1 : 0,
+                            word, RootDecided(v) ? 1 : 0, TypeName(v));
+                    }
+                });
+            }
+            At(kCharmStunUncharmAt, [this, gv]()
+            {
+                Creature* v = Get(gv); if (!v) { return; }
+                // Before the runner's teardown rather than left to it, for player-stun's reason:
+                // the teardown despawns the scenario's creatures BEFORE it ends its players
+                // (Harness.cpp), so a body still charmed at that point would be freed under a
+                // live charmer. Removing the aura is the charm's own door out -- it runs
+                // Aura::HandleModCharm's `apply == false` half, which is what the charm's expiry
+                // or a dispel would run.
+                v->RemoveAurasDueToSpell(CHARM);
+                Log("the charm removed: charmer=%s flags 0x%08x mt=%s",
+                    v->GetCharmerGuid().GetString().c_str(),
+                    uint32(v->m_movementInfo.GetMovementFlags()), TypeName(v));
+            });
+            At(kCharmStunVerdictAt, [this, st]()
+            {
+                char setup[352], word[352], root[352], held[320];
+                // --- charmGrantsNoMover: the setup, and the reason the other three are about a
+                // charm at all. Every INVALID here is a scenario that could not be run; the two
+                // BUGs are a charm that behaved like a possession, which is a finding in itself.
+                if (!st->charmRan)
+                {
+                    snprintf(setup, sizeof(setup), "INVALID(the charm step never ran: an actor went unresolvable)");
+                }
+                else if (!st->charmed)
+                {
+                    snprintf(setup, sizeof(setup), "INVALID(%u did not charm the wolf: it held no charmer guid when the cast returned, so no player-charmed creature was built)", CHARM);
+                }
+                else if (st->moverAfterCharm)
+                {
+                    snprintf(setup, sizeof(setup), "BUG(the charm handed the wolf a mover session, so Aura::HandleModCharm granted a mover after all and this is a possession, not a charm)");
+                }
+                else if (st->clientAfterCharm)
+                {
+                    snprintf(setup, sizeof(setup), "BUG(Unit::IsClientMover read true for a charmed creature with no mover session: the predicate is still asking who owns the unit, not who drives it)");
+                }
+                else
+                {
+                    snprintf(setup, sizeof(setup), "OK(the charm gave the wolf a player charmer and NO mover session, and Unit::IsClientMover reads false: the body is server-driven and no client will ever resend its word)");
+                }
+                // --- wordSurvives, notClientRooted and stunHeld all need the cast step.
+                if (!st->castRan)
+                {
+                    snprintf(word, sizeof(word), "INVALID(the cast step never ran: an actor went unresolvable)");
+                    snprintf(root, sizeof(root), "INVALID(the cast step never ran)");
+                    snprintf(held, sizeof(held), "INVALID(the cast step never ran)");
+                }
+                else if (!st->charmedAtCast || st->moverAtCast)
+                {
+                    // Said once, in all three, because it is one fact: the subject was not the
+                    // shape the scenario is about when the stun went out.
+                    char w[288];
+                    snprintf(w, sizeof(w), "INVALID(when the stun went out the wolf was charmed=%d and held a mover session=%d, so it was not a client-less player-charmed creature)",
+                             st->charmedAtCast ? 1 : 0, st->moverAtCast ? 1 : 0);
+                    snprintf(word, sizeof(word), "%s", w);
+                    snprintf(root, sizeof(root), "%s", w);
+                    snprintf(held, sizeof(held), "%s", w);
+                }
+                else if (!st->auraAtApply)
+                {
+                    char w[224];
+                    snprintf(w, sizeof(w), "INVALID(no %u holder on it when the cast returned, so Aura::HandleAuraModStun was never on the path)", STUN_SELF);
+                    snprintf(word, sizeof(word), "%s", w);
+                    snprintf(root, sizeof(root), "%s", w);
+                    snprintf(held, sizeof(held), "%s", w);
+                }
+                else
+                {
+                    // --- wordSurvives: the whole-word wipe at SpellAuraControl.cpp:508 did not
+                    // run. The marker bit, not the whole word compared to something, because the
+                    // very handler under test legitimately removes MOVEFLAG_FORWARD through
+                    // StopMoving and the two claims must be able to fail apart.
+                    if (!(st->wordBefore & uint32(kMoverMarker)))
+                    {
+                        snprintf(word, sizeof(word), "INVALID(the marker bit did not survive its own setup: the word read back 0x%08x, so the wipe would have had nothing of ours to clear)", st->wordBefore);
+                    }
+                    else if (!(st->wordAtApply & uint32(kMoverMarker)))
+                    {
+                        snprintf(word, sizeof(word), "BUG(the marker was gone from its m_movementInfo the instant the cast returned: 0x%08x -> 0x%08x, so the stun zeroed the authoritative word of a unit with no client to resend it)",
+                                 st->wordBefore, st->wordAtApply);
+                    }
+                    else if (!st->samples)
+                    {
+                        snprintf(word, sizeof(word), "INVALID(no samples with the stun on it while the charm still held)");
+                    }
+                    else if (st->markerGone)
+                    {
+                        snprintf(word, sizeof(word), "BUG(the marker had left its m_movementInfo on %u of the %u samples the stun was on it under the charm)", st->markerGone, st->samples);
+                    }
+                    else
+                    {
+                        snprintf(word, sizeof(word), "OK(0x%08x -> 0x%08x the instant the cast returned and the marker held on all %u samples under the charm: the clientMover branch was not taken)",
+                                 st->wordBefore, st->wordAtApply, st->samples);
+                    }
+                    // --- notClientRooted: the projection left it alone. A stunned server-driven
+                    // unit is stopped, not rooted; player-stun's plainCreatureNotRooted is the
+                    // same claim about a creature nobody charmed.
+                    if (st->rootedAtApply)
+                    {
+                        snprintf(root, sizeof(root), "BUG(MOVEFLAG_ROOT was in its m_movementInfo the instant the cast returned: 0x%08x -> 0x%08x, so the projection client-rooted a unit the server drives)",
+                                 st->wordBefore, st->wordAtApply);
+                    }
+                    else if (st->rootDecidedAtApply)
+                    {
+                        snprintf(root, sizeof(root), "BUG(the kernel had decided its root the instant the cast returned, so MotionMaster::ProjectClientRoot asked for a root no client will ever ack)");
+                    }
+                    else if (!st->samples)
+                    {
+                        snprintf(root, sizeof(root), "INVALID(no samples with the stun on it while the charm still held)");
+                    }
+                    else if (st->rootInWord || st->rootDecided)
+                    {
+                        snprintf(root, sizeof(root), "BUG(it was client-rooted under the stun: MOVEFLAG_ROOT in its word on %u and the kernel's root decided on %u of the %u samples under the charm)",
+                                 st->rootInWord, st->rootDecided, st->samples);
+                    }
+                    else
+                    {
+                        snprintf(root, sizeof(root), "OK(no MOVEFLAG_ROOT in its m_movementInfo and no root decided, at the cast and on all %u samples the stun was on it under the charm)", st->samples);
+                    }
+                    // --- stunHeld: the fix took a wipe and a root away and must have taken
+                    // nothing else. A stun that stopped stunning would pass both categories above.
+                    if (!st->stunnedAtApply)
+                    {
+                        snprintf(held, sizeof(held), "BUG(the kernel's Stunned inhibition was not up when the cast returned, so the stun raised no block at all)");
+                    }
+                    else if (!st->samples)
+                    {
+                        snprintf(held, sizeof(held), "INVALID(no samples with the stun on it while the charm still held)");
+                    }
+                    else if (st->uninhibited)
+                    {
+                        snprintf(held, sizeof(held), "BUG(the kernel's Stunned inhibition was down on %u of the %u samples the stun was on it under the charm)", st->uninhibited, st->samples);
+                    }
+                    else if (st->gainedMover)
+                    {
+                        snprintf(held, sizeof(held), "BUG(a mover session appeared under it on %u of the %u samples, so the body stopped being the client-less creature the other categories were read over)", st->gainedMover, st->samples);
+                    }
+                    else
+                    {
+                        snprintf(held, sizeof(held), "OK(the kernel's Stunned inhibition was up at the cast and on all %u samples the stun was on it, with no mover session under it on any of them)", st->samples);
+                    }
+                }
+                std::string text = std::string("charmGrantsNoMover=") + setup + " | wordSurvives=" + word +
+                                   " | notClientRooted=" + root + " | stunHeld=" + held;
+                Verdict(text);
+            });
+        }
+
+    private:
+        static std::string Invalid(char const* why)
+        {
+            std::string w = std::string("INVALID(") + why + ")";
+            return "charmGrantsNoMover=" + w + " | wordSurvives=" + w + " | notClientRooted=" + w + " | stunHeld=" + w;
+        }
+    };
+
+    /// S71 (order 905): the ordering the grant's recompute exists for. A creature stunned BEFORE
+    /// it is possessed must come out of the take client-rooted, and under Unit::IsClientMover it
+    /// can only do so if WorldSession::GrantMover recomputes the projection.
+    ///
+    /// Unit::TakePossessOf sets the charmer at Unit.cpp:7137 and raises the Possessed inhibition
+    /// at :7144 -- and MotionMaster::Inhibit projects the client root as its last act -- but
+    /// SetClientControl does not grant the mover until :7167. The old predicate read the charmer,
+    /// which was already set at :7144, so the projection rooted the body there. The new one reads
+    /// the authority, which is not handed over until :7167, so the projection at :7144 correctly
+    /// decides nothing and the ROOT arrives with the grant instead. Take the recompute out of
+    /// GrantMover and this scenario's rootAtTake goes BUG while nothing else moves.
+    ///
+    /// The contrast with player-stun is the whole design of the pair: there the body is possessed
+    /// first and stunned after, so the stun's own Inhibit does the projecting and the grant has
+    /// long since run. Here the two are swapped, and that is the only ordering in which the
+    /// grant's recompute is the only thing that can root the body.
+    class StunThenPossessRoots : public Scenario
+    {
+    public:
+        StunThenPossessRoots() : Scenario("stun-then-possess-roots", 905) {}
+
+        bool UsesPlayer() const override { return true; }
+
+        void Prepare() override
+        {
+            struct St
+            {
+                bool   stunRan;           ///< the stun step resolved the wolf and cast
+                bool   auraBefore;        ///< the 76216 holder was on it when that cast returned
+                bool   stunnedBefore;     ///< the kernel's Stunned inhibition was up before the take
+                uint32 wordBefore;        ///< its word before the take
+                bool   rootedBefore;      ///< MOVEFLAG_ROOT was in it: a plain stunned creature must NOT be rooted
+                bool   rootDecidedBefore; ///< ...or the kernel had decided its root
+                bool   takeRan;           ///< the take step resolved both actors
+                bool   took;              ///< TakePossessOf returned true
+                bool   charmedAtTake;     ///< the player was its charmer the instant the take returned
+                bool   moverAtTake;       ///< ...and a mover session was under it
+                bool   clientAtTake;      ///< ...and Unit::IsClientMover read true
+                bool   possessedAtTake;   ///< ...and the Possessed inhibition was up
+                bool   stunnedAtTake;     ///< ...and the Stunned inhibition still was
+                uint32 wordAtTake;        ///< the word that instant: the reading the scenario exists for
+                uint32 samples;           ///< samples with the stun on it AND the possession still held
+                uint32 rootMissing;       ///< ...on which MOVEFLAG_ROOT was gone from its word
+                uint32 moverLost;         ///< ...on which the mover session had gone from under it
+            };
+            Player* p = SpawnPlayer(SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+            Creature* body = p ? Spawn(WOLF, SE.x + 4.0f, SE.y, Ground(SE.x + 4.0f, SE.y, SE.z), 3.1f) : NULL;
+            if (!p || !body)
+            {
+                Verdict(Invalid("spawn failed"));
+                return;
+            }
+            Silence(body);
+            const ObjectGuid g = p->GetObjectGuid(), gb = body->GetObjectGuid();
+            auto st = std::make_shared<St>();
+            st->stunRan = st->auraBefore = st->stunnedBefore = st->rootedBefore = st->rootDecidedBefore = false;
+            st->takeRan = st->took = st->charmedAtTake = st->moverAtTake = false;
+            st->clientAtTake = st->possessedAtTake = st->stunnedAtTake = false;
+            st->wordBefore = st->wordAtTake = 0;
+            st->samples = st->rootMissing = st->moverLost = 0;
+            Log("the player %s stands at (%.1f, %.1f); the wolf he will stun and THEN possess 4 yd east",
+                g.GetString().c_str(), p->Where().X(), p->Where().Y());
+
+            At(kLateTakeStunAt, [this, gb, st]()
+            {
+                Creature* b = Get(gb); if (!b) { return; }
+                SelfCast(b, STUN_SELF);
+                st->stunRan = true;
+                st->auraBefore = b->HasAura(STUN_SELF);
+                Log("the stun returns on the plain wolf: aura=%d stunned=%d flags 0x%08x root decided=%d",
+                    st->auraBefore ? 1 : 0, b->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned) ? 1 : 0,
+                    uint32(b->m_movementInfo.GetMovementFlags()), RootDecided(b) ? 1 : 0);
+            });
+            At(kLateTakeAt, [this, g, gb, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Creature* b = Get(gb);
+                if (!p || !b) { return; }
+                // Read IMMEDIATELY before the take and used by the verdict: a body already rooted
+                // before the take would make "it came out of the take rooted" prove nothing, and a
+                // body no longer stunned would make it prove something else entirely.
+                st->stunnedBefore = b->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned);
+                st->wordBefore = uint32(b->m_movementInfo.GetMovementFlags());
+                st->rootedBefore = (st->wordBefore & MOVEFLAG_ROOT) != 0;
+                st->rootDecidedBefore = RootDecided(b);
+                // Unit::TakePossessOf and nothing hand-rolled beside it: it is the call the
+                // possess effect makes, and its internal ordering -- the charmer, the inhibition,
+                // then twenty-three lines later the grant -- is the thing under test.
+                st->took = p->TakePossessOf(b);
+                st->takeRan = true;
+                st->wordAtTake = uint32(b->m_movementInfo.GetMovementFlags());
+                st->charmedAtTake = b->GetCharmerGuid() == g;
+                st->moverAtTake = b->MoverSession() == p->GetSession();
+                st->clientAtTake = b->IsClientMover();
+                st->possessedAtTake = b->GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed);
+                st->stunnedAtTake = b->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned);
+                Log("the take returns: took=%d charmer=%d mover session=%d client mover=%d possessed=%d stunned=%d flags 0x%08x -> 0x%08x (MOVEFLAG_ROOT %s)",
+                    st->took ? 1 : 0, st->charmedAtTake ? 1 : 0, st->moverAtTake ? 1 : 0, st->clientAtTake ? 1 : 0,
+                    st->possessedAtTake ? 1 : 0, st->stunnedAtTake ? 1 : 0, st->wordBefore, st->wordAtTake,
+                    (st->wordAtTake & MOVEFLAG_ROOT) ? "SET" : "MISSING");
+            });
+            At(kLateTakePullAt, [this, gb]()
+            {
+                Creature* b = Get(gb); if (!b) { return; }
+                b->RemoveAurasDueToSpell(STUN_SELF);
+                Log("+%4ums the stun pulled: stunned=%d flags 0x%08x", kLateTakePullAt - kLateTakeAt,
+                    b->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned) ? 1 : 0,
+                    uint32(b->m_movementInfo.GetMovementFlags()));
+            });
+            for (uint32 i = 1; i <= 24; ++i)
+            {
+                At(kLateTakeAt + i * 100, [this, g, gb, st, i]()
+                {
+                    Player* p = sPlayerRegistry.Find(g);
+                    Creature* b = Get(gb); if (!b) { return; }
+                    const uint32 t = i * 100;
+                    const uint32 word = uint32(b->m_movementInfo.GetMovementFlags());
+                    if (b->HasAura(STUN_SELF) && b->GetCharmerGuid() == g)
+                    {
+                        ++st->samples;
+                        if (!(word & MOVEFLAG_ROOT)) { ++st->rootMissing; }
+                        if (!p || b->MoverSession() != p->GetSession()) { ++st->moverLost; }
+                    }
+                    if (i % 10 == 0)
+                    {
+                        Log("+%4ums aura=%d charmer=%d stunned=%d possessed=%d flags 0x%08x", t,
+                            b->HasAura(STUN_SELF) ? 1 : 0, b->GetCharmerGuid() == g ? 1 : 0,
+                            b->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned) ? 1 : 0,
+                            b->GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed) ? 1 : 0, word);
+                    }
+                });
+            }
+            At(kLateTakeReleaseAt, [this, g, gb]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                // After the last sample and before the runner's teardown: a body still charmed
+                // when the teardown despawns it would be freed under a live charmer. The wolf is
+                // a creature, which keeps it clear of the unconditional Creature* cast in
+                // Unit::ResetControlState that a possessed PLAYER would walk into.
+                p->ResetControlState(false);
+                Creature* b = Get(gb);
+                Log("the possession released: charmer=%s flags 0x%08x possessed=%d",
+                    b ? b->GetCharmerGuid().GetString().c_str() : "gone",
+                    b ? uint32(b->m_movementInfo.GetMovementFlags()) : 0,
+                    b && b->GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed) ? 1 : 0);
+            });
+            At(kLateTakeVerdictAt, [this, st]()
+            {
+                char before[320], rooted[352], granted[320];
+                // --- stunnedNotRootedBeforeTake: the setup, and it is also player-stun's
+                // plainCreatureNotRooted read once more at a different moment -- deliberately, so
+                // that "it came out of the take rooted" cannot be satisfied by a body that was
+                // already rooted going in.
+                if (!st->stunRan)
+                {
+                    snprintf(before, sizeof(before), "INVALID(the stun step never ran: the wolf went unresolvable)");
+                }
+                else if (!st->auraBefore)
+                {
+                    snprintf(before, sizeof(before), "INVALID(no %u holder on it when the first cast returned)", STUN_SELF);
+                }
+                else if (!st->takeRan)
+                {
+                    snprintf(before, sizeof(before), "INVALID(the take step never ran: an actor went unresolvable)");
+                }
+                else if (!st->stunnedBefore)
+                {
+                    snprintf(before, sizeof(before), "INVALID(the kernel's Stunned inhibition was down again before the take, so there was no stun for the take to find)");
+                }
+                else if (st->rootedBefore || st->rootDecidedBefore)
+                {
+                    snprintf(before, sizeof(before), "BUG(the plain stunned wolf was already client-rooted before the take: word 0x%08x, root decided=%d -- a stun alone rooted a unit the server drives)",
+                             st->wordBefore, st->rootDecidedBefore ? 1 : 0);
+                }
+                else
+                {
+                    snprintf(before, sizeof(before), "OK(stunned and NOT client-rooted going into the take: word 0x%08x, no MOVEFLAG_ROOT and no root decided)", st->wordBefore);
+                }
+                // --- rootAtTake and moverGranted both need the take.
+                if (!st->takeRan)
+                {
+                    snprintf(rooted, sizeof(rooted), "INVALID(the take step never ran: an actor went unresolvable)");
+                    snprintf(granted, sizeof(granted), "INVALID(the take step never ran)");
+                }
+                else if (!st->took)
+                {
+                    snprintf(rooted, sizeof(rooted), "INVALID(TakePossessOf refused, so no possession was built)");
+                    snprintf(granted, sizeof(granted), "INVALID(TakePossessOf refused)");
+                }
+                else
+                {
+                    // --- moverGranted: the authority, which is what the projection now reads.
+                    // Said before rootAtTake in the verdict line's order of thought, though it
+                    // prints second: a take that granted no mover would make rootAtTake a
+                    // question about the old predicate instead.
+                    if (!st->charmedAtTake)
+                    {
+                        snprintf(granted, sizeof(granted), "INVALID(the wolf held no charmer guid when the take returned)");
+                    }
+                    else if (!st->possessedAtTake)
+                    {
+                        snprintf(granted, sizeof(granted), "INVALID(the Possessed inhibition was not up when the take returned, so the take did not complete)");
+                    }
+                    else if (!st->moverAtTake)
+                    {
+                        snprintf(granted, sizeof(granted), "BUG(no mover session under the body when the take returned: SetClientControl's grant did not reach it, so nothing client-drives it)");
+                    }
+                    else if (!st->clientAtTake)
+                    {
+                        snprintf(granted, sizeof(granted), "BUG(Unit::IsClientMover read false over a live mover session)");
+                    }
+                    else if (!st->samples)
+                    {
+                        snprintf(granted, sizeof(granted), "INVALID(no samples with the stun on it while the possession still held)");
+                    }
+                    else if (st->moverLost)
+                    {
+                        snprintf(granted, sizeof(granted), "BUG(the mover session had gone from under the body on %u of the %u samples the possession held)", st->moverLost, st->samples);
+                    }
+                    else
+                    {
+                        snprintf(granted, sizeof(granted), "OK(the take handed the body the possessor's session and Unit::IsClientMover read true, and the session stayed under it on all %u samples)", st->samples);
+                    }
+                    // --- rootAtTake: the finding. The grant's recompute is the only thing that
+                    // can have put MOVEFLAG_ROOT there -- the projection at Unit.cpp:7144 ran
+                    // before the body had an authority at all.
+                    if (!st->stunnedAtTake)
+                    {
+                        snprintf(rooted, sizeof(rooted), "INVALID(the kernel's Stunned inhibition was gone the instant the take returned, so there was no stun left for the projection to read)");
+                    }
+                    else if (!st->moverAtTake)
+                    {
+                        snprintf(rooted, sizeof(rooted), "INVALID(the take granted no mover session, so the recompute under test had no authority to read)");
+                    }
+                    else if (!(st->wordAtTake & MOVEFLAG_ROOT))
+                    {
+                        snprintf(rooted, sizeof(rooted), "BUG(MOVEFLAG_ROOT was not in its m_movementInfo the instant the take returned: 0x%08x -> 0x%08x -- the projection ran at Unit.cpp:7144 before the grant and nothing recomputed it after)",
+                                 st->wordBefore, st->wordAtTake);
+                    }
+                    else if (!st->samples)
+                    {
+                        snprintf(rooted, sizeof(rooted), "INVALID(no samples with the stun on it while the possession still held)");
+                    }
+                    else if (st->rootMissing)
+                    {
+                        snprintf(rooted, sizeof(rooted), "BUG(MOVEFLAG_ROOT was gone from its m_movementInfo on %u of the %u samples the stun was on it under the possession)", st->rootMissing, st->samples);
+                    }
+                    else
+                    {
+                        snprintf(rooted, sizeof(rooted), "OK(0x%08x -> 0x%08x the instant the take returned and MOVEFLAG_ROOT held on all %u samples under the possession: the grant recomputed the projection)",
+                                 st->wordBefore, st->wordAtTake, st->samples);
+                    }
+                }
+                std::string text = std::string("stunnedNotRootedBeforeTake=") + before + " | rootAtTake=" + rooted +
+                                   " | moverGranted=" + granted;
+                Verdict(text);
+            });
+        }
+
+    private:
+        static std::string Invalid(char const* why)
+        {
+            std::string w = std::string("INVALID(") + why + ")";
+            return "stunnedNotRootedBeforeTake=" + w + " | rootAtTake=" + w + " | moverGranted=" + w;
+        }
+    };
+
+    /// S72 (order 906): the mirror, and the revoke's half of the same recompute. A possession
+    /// released while the body is still stunned must lose the client root at the release, because
+    /// the body reverts to server-driven and a stunned server-driven creature is stopped, not
+    /// rooted -- and it must lose ONLY the root: the stun's own block is nobody's to end here.
+    ///
+    /// Unit::ResetControlState clears the charmer at Unit.cpp:7229 and lifts the Possessed
+    /// inhibition at :7235, and the projection that runs there still sees a live mover session,
+    /// because SetClientControl does not revoke until :7242. So under Unit::IsClientMover the
+    /// body is still a client mover at the Uninhibit and stays rooted through it; only
+    /// WorldSession::RevokeMover's own recompute can take the root off. Take it out and this
+    /// scenario's rootOffAtRelease goes BUG while nothing else moves.
+    ///
+    /// WHAT THIS IS NOT, measured rather than argued: it is not a defect that was already there.
+    /// Under the OLD predicate the root came off here anyway, because ResetControlState clears
+    /// the charmer at :7229 BEFORE the Uninhibit at :7235, so the projection at the Uninhibit
+    /// read a plain creature and unrooted it on the spot. A build carrying the old predicate and
+    /// no revoke recompute was run against this scenario on 2026-09-21 and its rootOffAtRelease
+    /// reads OK. The recompute is therefore keeping the NEW predicate from introducing a
+    /// regression, not repairing an old one -- which is why it is not optional, and why this
+    /// scenario exists.
+    ///
+    /// The release falls INSIDE the stun on purpose. Released after it, the stun's own Uninhibit
+    /// would have unrooted the body and the category would read OK over a path that has nothing
+    /// to do with the revoke.
+    class ReleasePossessionWhileStunned : public Scenario
+    {
+    public:
+        ReleasePossessionWhileStunned() : Scenario("release-possession-while-stunned", 906) {}
+
+        bool UsesPlayer() const override { return true; }
+
+        void Prepare() override
+        {
+            struct St
+            {
+                bool   took;              ///< TakePossessOf returned true
+                bool   castRan;           ///< the cast step resolved the body and cast
+                bool   auraAtApply;       ///< the 76216 holder was on it when the cast returned
+                bool   charmedAtCast;     ///< the player was its charmer then
+                bool   moverAtCast;       ///< ...and a mover session was under it
+                uint32 wordAtApply;       ///< the word that instant: MOVEFLAG_ROOT must be in it
+                uint32 heldSamples;       ///< samples before the release with the stun on it AND the possession held
+                uint32 heldRootMissing;   ///< ...on which MOVEFLAG_ROOT was gone
+                bool   releaseRan;        ///< the release step resolved the player and ran
+                uint32 wordAtRelease;     ///< the word the instant ResetControlState returned
+                bool   moverAtRelease;    ///< a mover session was STILL under it that instant
+                bool   clientAtRelease;   ///< ...and Unit::IsClientMover still read true
+                bool   stunnedAtRelease;  ///< the kernel's Stunned inhibition was still up that instant
+                bool   possessedAtRelease;///< ...and the Possessed inhibition was down
+                uint32 afterSamples;      ///< samples after the release with the stun still on it
+                uint32 afterRooted;       ///< ...on which MOVEFLAG_ROOT was back (or never left)
+                uint32 afterUninhibited;  ///< ...on which the Stunned inhibition had gone with it
+            };
+            Player* p = SpawnPlayer(SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+            Creature* body = p ? Spawn(WOLF, SE.x + 4.0f, SE.y, Ground(SE.x + 4.0f, SE.y, SE.z), 3.1f) : NULL;
+            if (!p || !body)
+            {
+                Verdict(Invalid("spawn failed"));
+                return;
+            }
+            Silence(body);
+            const ObjectGuid g = p->GetObjectGuid(), gb = body->GetObjectGuid();
+            auto st = std::make_shared<St>();
+            st->took = st->castRan = st->auraAtApply = st->charmedAtCast = st->moverAtCast = false;
+            st->releaseRan = st->moverAtRelease = st->clientAtRelease = false;
+            st->stunnedAtRelease = st->possessedAtRelease = false;
+            st->wordAtApply = st->wordAtRelease = 0;
+            st->heldSamples = st->heldRootMissing = st->afterSamples = st->afterRooted = st->afterUninhibited = 0;
+            Log("the player %s stands at (%.1f, %.1f); the wolf he will possess, stun and release under the stun 4 yd east",
+                g.GetString().c_str(), p->Where().X(), p->Where().Y());
+
+            At(kEarlyReleaseTakeAt, [this, g, gb, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Creature* b = Get(gb);
+                if (!p || !b) { return; }
+                st->took = p->TakePossessOf(b);
+                Log("the player possesses the wolf: %d, charmer=%s mover session=%d possessed=%d flags 0x%08x",
+                    st->took ? 1 : 0, b->GetCharmerGuid().GetString().c_str(),
+                    b->MoverSession() == p->GetSession() ? 1 : 0,
+                    b->GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed) ? 1 : 0,
+                    uint32(b->m_movementInfo.GetMovementFlags()));
+            });
+            At(kEarlyReleaseCastAt, [this, g, gb, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Creature* b = Get(gb);
+                if (!p || !b) { return; }
+                st->charmedAtCast = b->GetCharmerGuid() == g;
+                st->moverAtCast = b->MoverSession() == p->GetSession();
+                SelfCast(b, STUN_SELF);
+                st->castRan = true;
+                st->auraAtApply = b->HasAura(STUN_SELF);
+                st->wordAtApply = uint32(b->m_movementInfo.GetMovementFlags());
+                Log("the cast returns on the possessed body: aura=%d charmer=%d mover session=%d flags 0x%08x (MOVEFLAG_ROOT %s) stunned=%d",
+                    st->auraAtApply ? 1 : 0, st->charmedAtCast ? 1 : 0, st->moverAtCast ? 1 : 0, st->wordAtApply,
+                    (st->wordAtApply & MOVEFLAG_ROOT) ? "SET" : "MISSING",
+                    b->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned) ? 1 : 0);
+            });
+            // Registered before the sampler so it runs first at its own moment: the sample at
+            // +2500 after the cast is then already an after-sample.
+            At(kEarlyReleaseAt, [this, g, gb, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Creature* b = Get(gb);
+                if (!p || !b) { return; }
+                // Read IMMEDIATELY before the release: the release is only about the revoke if
+                // the body is still a client mover going into it, and only about a stunned body
+                // if the stun is still on.
+                st->moverAtRelease = b->MoverSession() == p->GetSession();
+                st->clientAtRelease = b->IsClientMover();
+                // Unit::ResetControlState(false), the call the possess aura's own removal makes;
+                // false so the body is not turned on its former charmer, which would put an
+                // AIM_Initialize and an AttackedBy on the path of every reading after it.
+                p->ResetControlState(false);
+                st->releaseRan = true;
+                st->wordAtRelease = uint32(b->m_movementInfo.GetMovementFlags());
+                st->stunnedAtRelease = b->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned);
+                st->possessedAtRelease = !b->GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed);
+                Log("+%4ums the possession released under the stun: charmer=%s mover session now=%d flags 0x%08x (MOVEFLAG_ROOT %s) stunned=%d possessed=%d",
+                    kEarlyReleaseAt - kEarlyReleaseCastAt, b->GetCharmerGuid().GetString().c_str(),
+                    b->MoverSession() != NULL ? 1 : 0, st->wordAtRelease,
+                    (st->wordAtRelease & MOVEFLAG_ROOT) ? "STILL SET" : "gone",
+                    st->stunnedAtRelease ? 1 : 0,
+                    b->GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed) ? 1 : 0);
+            });
+            for (uint32 i = 1; i <= 45; ++i)
+            {
+                At(kEarlyReleaseCastAt + i * 100, [this, g, gb, st, i]()
+                {
+                    Creature* b = Get(gb); if (!b) { return; }
+                    const uint32 t = i * 100;
+                    const uint32 word = uint32(b->m_movementInfo.GetMovementFlags());
+                    const bool stunned = b->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned);
+                    if (!b->HasAura(STUN_SELF))
+                    {
+                        // Past the aura's own 6 s, or pulled: neither window says anything then.
+                    }
+                    else if (!st->releaseRan)
+                    {
+                        // The held window is keyed on the possession as well as on the aura, so a
+                        // release that ran early cannot be counted here as a missing root.
+                        if (b->GetCharmerGuid() == g)
+                        {
+                            ++st->heldSamples;
+                            if (!(word & MOVEFLAG_ROOT)) { ++st->heldRootMissing; }
+                        }
+                    }
+                    else
+                    {
+                        ++st->afterSamples;
+                        if (word & MOVEFLAG_ROOT) { ++st->afterRooted; }
+                        if (!stunned) { ++st->afterUninhibited; }
+                    }
+                    if (i % 10 == 0)
+                    {
+                        Log("+%4ums aura=%d charmer=%d mover session=%d stunned=%d possessed=%d flags 0x%08x", t,
+                            b->HasAura(STUN_SELF) ? 1 : 0, b->GetCharmerGuid() == g ? 1 : 0,
+                            b->MoverSession() != NULL ? 1 : 0, stunned ? 1 : 0,
+                            b->GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed) ? 1 : 0, word);
+                    }
+                });
+            }
+            At(kEarlyReleaseVerdict, [this, st]()
+            {
+                char held[352], off[352], stun[352];
+                // --- rootedWhileHeld: the setup. Everything after it is about a root coming off,
+                // and a root that was never on cannot come off.
+                if (!st->took)
+                {
+                    snprintf(held, sizeof(held), "INVALID(TakePossessOf refused, so no possession was built)");
+                }
+                else if (!st->castRan)
+                {
+                    snprintf(held, sizeof(held), "INVALID(the cast step never ran: an actor went unresolvable)");
+                }
+                else if (!st->charmedAtCast || !st->moverAtCast)
+                {
+                    snprintf(held, sizeof(held), "INVALID(when the stun went out the body was charmed=%d and held the possessor's session=%d, so it was not a client-driven possessed body)",
+                             st->charmedAtCast ? 1 : 0, st->moverAtCast ? 1 : 0);
+                }
+                else if (!st->auraAtApply)
+                {
+                    snprintf(held, sizeof(held), "INVALID(no %u holder on it when the cast returned)", STUN_SELF);
+                }
+                else if (!(st->wordAtApply & MOVEFLAG_ROOT))
+                {
+                    snprintf(held, sizeof(held), "BUG(MOVEFLAG_ROOT was not in its m_movementInfo the instant the cast returned: 0x%08x, so the stun never client-rooted the possessed body)", st->wordAtApply);
+                }
+                else if (!st->heldSamples)
+                {
+                    snprintf(held, sizeof(held), "INVALID(no samples with the stun on it before the release while the possession held)");
+                }
+                else if (st->heldRootMissing)
+                {
+                    snprintf(held, sizeof(held), "BUG(MOVEFLAG_ROOT was gone from its m_movementInfo on %u of the %u samples before the release)", st->heldRootMissing, st->heldSamples);
+                }
+                else
+                {
+                    snprintf(held, sizeof(held), "OK(client-rooted from the instant the cast returned, 0x%08x, and on all %u samples up to the release)", st->wordAtApply, st->heldSamples);
+                }
+                // --- rootOffAtRelease and stunSurvivesRelease both need the release.
+                if (!st->releaseRan)
+                {
+                    snprintf(off, sizeof(off), "INVALID(the release step never ran: an actor went unresolvable)");
+                    snprintf(stun, sizeof(stun), "INVALID(the release step never ran)");
+                }
+                else if (!st->moverAtRelease || !st->clientAtRelease)
+                {
+                    char w[320];
+                    snprintf(w, sizeof(w), "INVALID(going into the release the body held the possessor's session=%d and Unit::IsClientMover read %d, so there was no authority for the revoke to take away)",
+                             st->moverAtRelease ? 1 : 0, st->clientAtRelease ? 1 : 0);
+                    snprintf(off, sizeof(off), "%s", w);
+                    snprintf(stun, sizeof(stun), "%s", w);
+                }
+                else if (!st->stunnedAtRelease)
+                {
+                    char w[288];
+                    snprintf(w, sizeof(w), "INVALID(the kernel's Stunned inhibition was already down when the release returned, so the release did not fall inside the stun)");
+                    snprintf(off, sizeof(off), "%s", w);
+                    snprintf(stun, sizeof(stun), "%s", w);
+                }
+                else
+                {
+                    // --- rootOffAtRelease: the finding.
+                    if (!st->possessedAtRelease)
+                    {
+                        snprintf(off, sizeof(off), "INVALID(the Possessed inhibition was still up when the release returned, so the release did not complete)");
+                    }
+                    else if (st->wordAtRelease & MOVEFLAG_ROOT)
+                    {
+                        snprintf(off, sizeof(off), "BUG(MOVEFLAG_ROOT was still in its m_movementInfo the instant the release returned: 0x%08x -- the body reverted to server-driven and nothing recomputed the projection)", st->wordAtRelease);
+                    }
+                    else if (st->afterSamples < 5)
+                    {
+                        snprintf(off, sizeof(off), "INVALID(only %u samples with the stun still on it after the release)", st->afterSamples);
+                    }
+                    else if (st->afterRooted)
+                    {
+                        snprintf(off, sizeof(off), "BUG(MOVEFLAG_ROOT was back in its m_movementInfo on %u of the %u samples with the stun still on it after the release)", st->afterRooted, st->afterSamples);
+                    }
+                    else
+                    {
+                        snprintf(off, sizeof(off), "OK(MOVEFLAG_ROOT gone the instant the release returned, 0x%08x, and still gone on all %u samples with the stun still on it: the revoke recomputed the projection)",
+                                 st->wordAtRelease, st->afterSamples);
+                    }
+                    // --- stunSurvivesRelease: and ONLY the root came off. A release that ended
+                    // the stun would satisfy rootOffAtRelease for entirely the wrong reason.
+                    if (st->afterSamples < 5)
+                    {
+                        snprintf(stun, sizeof(stun), "INVALID(only %u samples with the stun still on it after the release)", st->afterSamples);
+                    }
+                    else if (st->afterUninhibited)
+                    {
+                        snprintf(stun, sizeof(stun), "BUG(the kernel's Stunned inhibition was down on %u of the %u samples after the release while the 76216 holder was still on it, so the revoke ended the stun and not just the root)",
+                                 st->afterUninhibited, st->afterSamples);
+                    }
+                    else
+                    {
+                        snprintf(stun, sizeof(stun), "OK(the kernel's Stunned inhibition was up when the release returned and on all %u samples after it: the revoke took the root and left the block)", st->afterSamples);
+                    }
+                }
+                std::string text = std::string("rootedWhileHeld=") + held + " | rootOffAtRelease=" + off +
+                                   " | stunSurvivesRelease=" + stun;
+                Verdict(text);
+            });
+        }
+
+    private:
+        static std::string Invalid(char const* why)
+        {
+            std::string w = std::string("INVALID(") + why + ")";
+            return "rootedWhileHeld=" + w + " | rootOffAtRelease=" + w + " | stunSurvivesRelease=" + w;
+        }
+    };
+
+
     void RegisterControlScenarios(Runner& r)
     {
         r.Register(new FearBoltsAway());
@@ -3020,5 +3983,11 @@ namespace Harness
         r.Register(new PlayerConfuse());
         r.Register(new PlayerFeign());
         r.Register(new PlayerStun());
+        // The mover-authority trio (orders 904-906, 2026-09-21): the charm that grants no mover,
+        // the grant's own recompute on a body stunned before the take, and the revoke's on one
+        // released while still stunned.
+        r.Register(new CharmStunNotClientDriven());
+        r.Register(new StunThenPossessRoots());
+        r.Register(new ReleasePossessionWhileStunned());
     }
 }

@@ -240,7 +240,7 @@ namespace Harness
                 At(2400, [this, g, jump]()
                 {
                     Creature* a = Get(g); if (!a) { return; }
-                    a->CastSpell(a, STUN, true);
+                    SelfCast(a, STUN);
                     const float x = a->Where().X(), y = a->Where().Y();
                     Log("STUN 0.4 s into the jump at %.1f %.1f (%.1f yd short of the jump point) mt=%s", x, y, Dist2(x, y, jump->x, jump->y), TypeName(a));
                 });
