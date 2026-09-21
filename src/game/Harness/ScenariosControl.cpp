@@ -2316,6 +2316,695 @@ namespace Harness
     };
 
 
+    namespace
+    {
+        /// player-stun's five fixed moments, as the TIMELINE counts them: absolute offsets from
+        /// the scenario's own start, which is what Scenario::At takes. Its own set rather than
+        /// player-feign's, for the reason player-confuse gives for not taking player-fear's: a
+        /// shared constant would make one scenario the other's hostage.
+        ///
+        /// ONE TIME BASE IN THE LOG, and it is not this one: every "+Nms" line this scenario
+        /// prints is N ms AFTER THE CAST, because the cast is the event every reading is about,
+        /// and a step that logs an absolute moment subtracts it.
+        ///
+        /// The possession is taken 300 ms BEFORE the cast rather than inside the cast's own
+        /// step, and that gap is load-bearing. Unit::TakePossessOf ends in
+        /// Creature::AIM_Initialize (Unit.cpp:7178), which runs MotionMaster::Initialize on the
+        /// body -- StopMoving, a full arbiter Clear, a fresh factory native -- so a take in the
+        /// same breath as the stun would leave every reading about that body with the
+        /// re-initialisation as an alternative explanation. Three world updates pass with the
+        /// possession settled before anything is cast.
+        ///
+        /// The pull is 2.5 s after the cast, not 3.5 s as the earlier player slices used: 76216
+        /// runs 6 s flat, and the after-window wants room for the whole tail rather than the
+        /// last second of it.
+        const uint32 kStunPossessAt = 200;
+        const uint32 kStunCastAt    = 500;
+        const uint32 kStunPullAt    = 3000;   ///< +2500 after the cast, inside the aura's own 6 s
+        const uint32 kStunReleaseAt = 6600;   ///< the possession handed back, after the last sample
+        const uint32 kStunVerdictAt = 6700;
+
+        /// The stun this scenario casts, and it is deliberately NOT the harness's usual 5211
+        /// Bash. 76216 "Self Stun - 6 seconds" carries ONE effect -- SPELL_EFFECT_APPLY_AURA
+        /// with SPELL_AURA_MOD_STUN, implicit target 1 (the caster), 6000 ms flat from duration
+        /// index 32 -- and nothing beside it: Attributes 0x00000080 with AttributesEx A..G all
+        /// zero, no SpellCategories row at all (so DmgClass, Mechanic, Category and
+        /// StartRecoveryCategory every one of them read 0), no SpellInterrupts row (aura
+        /// interrupt flags 0), no SpellAuraRestrictions, no SpellShapeshift, no
+        /// SpellTargetRestrictions. Physical school, so the frost branch at the head of
+        /// HandleAuraModStun (SpellAuraControl.cpp:493) cannot fire either, and with no mechanic
+        /// there is no diminishing group, so the duration is the flat 6 s on a player as well.
+        ///
+        /// BASH WAS REJECTED WITH A NUMBER. 5211's SpellCategories row gives DefenseType 2
+        /// (SPELL_DAMAGE_CLASS_MELEE), so every application of it runs
+        /// Unit::MeleeSpellHitResult (UnitCombat.cpp:640): a ~5% miss roll, and dodge and parry
+        /// after it, because 5211 does not carry SPELL_ATTR_IMPOSSIBLE_DODGE_PARRY_BLOCK. This
+        /// scenario applies its stun THREE times in one run and all six of its categories are
+        /// keyed on the aura being on, so one unlucky roll takes the whole scenario out -- and
+        /// the harness's RNG is seeded, so it would take it out on every run rather than
+        /// occasionally, which is the worse of the two failures. 76216's damage class is NONE
+        /// and Unit::SpellHitResult returns SPELL_MISS_NONE for that without rolling anything
+        /// (UnitCombat.cpp:968-970). (Bash also wants bear form -- SpellShapeshift 67, stance
+        /// mask 16 -- and only the triggered cast's skip of the shapeshift check keeps that out
+        /// of the way; nothing here relies on that skip.)
+        ///
+        /// The one attribute 76216 does carry, SPELL_ATTR_UNK7 (0x80), is read in exactly two
+        /// places in this tree: GetErrorAtShapeshiftedCast (SpellMgr.h:702), which a triggered
+        /// cast never reaches, and a four-attribute conjunction at DBCStores.cpp:780 that one
+        /// bit alone does not satisfy. Inert for everything asserted below.
+        const uint32 STUN_SELF = 76216;
+
+        /// THE SELF-CAST IS NOT A CONVENIENCE. Spell::DoSpellHitOnUnit stands a sitting target
+        /// up itself (SpellHit.cpp:419-422), and it does so BEFORE the effects are applied, so
+        /// its own `!Blocked(Motion::ReasonStunned)` guard is still open when it runs. That
+        /// whole block sits under `if (realCaster && realCaster != unit)` (SpellHit.cpp:376): a
+        /// stun cast by somebody else would reset the stand state on the spell-hit path whether
+        /// HandleAuraModStun did or not, and moverBranch below would then read OK over a
+        /// handler that had been gutted. With caster == target that path is not taken at all and
+        /// the handler's SetStandState (SpellAuraControl.cpp:508) is the only one left.
+        /// 76216's implicit target is the caster in any case, so the self-cast is the only shape
+        /// its target map has.
+        ///
+        /// What the scenario writes into the plain player's movement-flag word just before the
+        /// cast, so the wipe under test (SpellAuraControl.cpp:507) has something to clear: a
+        /// session-less player's word is MOVEFLAG_NONE already, and a clear that clears nothing
+        /// proves nothing.
+        ///
+        /// TWO bits, and the second is the one that carries the claim. The `else` half of the
+        /// same `if` reaches Unit::StopMoving, whose spline stop removes MOVEFLAG_FORWARD and
+        /// only that (MoveSplineInit.cpp:261) -- and on a unit whose spline is already finalized,
+        /// as this standing player's is, StopMoving returns before even that
+        /// (Unit.cpp:5813-5818). MOVEFLAG_STRAFE_LEFT therefore survives every route but the
+        /// whole-word wipe, which is exactly what makes "the clientMover branch was taken"
+        /// falsifiable. Both sit in movementFlagsMask, so Player::isMoving() reads true while
+        /// they are on, and that cannot refuse the cast: SpellChecks.cpp:199 turns a moving
+        /// player's cast down only for an autorepeat spell or one carrying
+        /// AURA_INTERRUPT_FLAG_NOT_SEATED, and 76216 has no SpellInterrupts row at all.
+        const MovementFlags kStunDrivingFlags = MovementFlags(MOVEFLAG_FORWARD | MOVEFLAG_STRAFE_LEFT);
+
+        /// The kernel's own answer to "was the root DECIDED?", read off the change pipeline
+        /// rather than off the flag word. Motion::State::Desired() is what the facade committed
+        /// the instant ProjectClientRoot called SetRoot, and Pending() holds the entry a
+        /// client-driven mover's change waits in until an ack that never comes for a player with
+        /// no client (the Root row has an ack layout, PacketMatrix.cpp:53, so Apply really does
+        /// open one). Both are taken through a const Unit*: the non-const MotionState() asserts
+        /// the map phase, and a scenario step runs after the map's update rather than inside it.
+        bool RootDecided(Unit const* u) { return u->MotionState().Desired().root; }
+        bool RootInFlight(Unit const* u) { return u->MotionState().Pending().Has(Motion::ChangeType::Root); }
+    }
+
+    /// S69 (the harness's fourth player): the STUN's clientMover branch, and at its centre the
+    /// ORDERING inside that branch which until today only a comment asserted.
+    ///
+    /// Aura::HandleAuraModStun (SpellAuraControl.cpp:482) wipes the movement-flag word and
+    /// resets the stand state for a clientMover -- a player, OR a unit whose charmer is a
+    /// player -- and it does so BEFORE Inhibit(Stunned). The comment labelled M1 says why: run
+    /// it after and the wipe "erases MOVEFLAG_ROOT right back off", because Inhibit's projection
+    /// (MotionMaster::ProjectClientRoot, MotionMaster.cpp:1681) roots a stunned clientMover.
+    /// Aura::HandleAuraModRoot (SpellAuraControl.cpp:879) has the OPPOSITE order -- Inhibit
+    /// first, then the wipe -- and its own comment names the asymmetry.
+    ///
+    /// The asymmetry is real, and it is not about the plain player. Player::SetRoot
+    /// (PlayerMovement.cpp:85) never touches m_movementInfo: it applies a Motion::FlagChange and
+    /// sends it, so a player's root is a desired flag awaiting his ack and a wipe running after
+    /// Inhibit would have nothing of his to erase. Creature::SetRoot (CreatureMovement.cpp:267)
+    /// DOES write MOVEFLAG_ROOT into m_movementInfo. So M1's stated rationale bites for exactly
+    /// one shape -- the PLAYER-CHARMED CREATURE, the half of clientMover no scenario had ever
+    /// built. S34 possessed a body with a CREATURE charmer, which the projection deliberately
+    /// does not root; the three player scenarios of the last two days possessed nothing.
+    ///
+    /// Three subjects in one run, therefore, each self-casting 76216 at the same moment:
+    ///   - a plain player: the branch is taken (his driving flags wiped whole, his stand state
+    ///     reset), and his m_movementInfo carries no MOVEFLAG_ROOT, because his root is in
+    ///     flight;
+    ///   - a wolf THAT SAME PLAYER possesses: MOVEFLAG_ROOT is in its m_movementInfo the instant
+    ///     the cast returns, which it can only be if the wipe ran first;
+    ///   - a plain wolf: stopped, not rooted -- the projection never asks for its root at all.
+    /// Of those, only the second is M1 itself; the first and third are the contrast that gives
+    /// it its meaning, and without them "the flag is there" would say nothing about ordering.
+    ///
+    /// WHAT THE SCENARIO DOES NOT CLAIM: that the plain creature was STOPPED. Unit::StopMoving
+    /// at SpellAuraControl.cpp:517 is over-determined here twice over -- the Inhibit two lines
+    /// above it already blocks the body through the arbiter, and a creature standing still has a
+    /// finalized spline, on which StopMoving returns without doing anything (Unit.cpp:5813-5818).
+    /// "Not rooted" is the half of that sentence a scenario can own, and it is the half the
+    /// projection decides.
+    ///
+    /// The scenario samples for six seconds and pulls all three auras 2.5 s after the cast
+    /// (kStunPullAt, absolute +3 s) so every lift falls inside the window rather than arriving
+    /// with the spell's own expiry at the very end of it.
+    class PlayerStun : public Scenario
+    {
+    public:
+        /// Order 903, the next in the reserved player block behind player-fear's 900,
+        /// player-confuse's 901 and player-feign's 902, for the reason that block exists: the
+        /// runner refuses `MVTEST all` when a player scenario is queued before one that holds no
+        /// player (Harness.cpp Start), so player scenarios take high contiguous orders of their
+        /// own and the creature families go on growing from 64 without ever colliding with them.
+        PlayerStun() : Scenario("player-stun", 903) {}
+
+        /// The runner owes a player scenario two things: the last place in the queue and the
+        /// map's grids reset behind it. A player in world promotes the grids around him to full
+        /// state and changes Map::Update's own visitation order, and no scenario that holds none
+        /// may read that.
+        bool UsesPlayer() const override { return true; }
+
+        void Prepare() override
+        {
+            struct St
+            {
+                // --- the plain player
+                bool   castRan;          ///< the cast step resolved every actor and really cast
+                uint32 pFlagsBefore;     ///< the driving flags, read BACK after the scenario wrote them
+                uint8  pStandBefore;     ///< ...and the stand state, likewise read back
+                bool   pTargetBefore;    ///< ...and a non-empty UNIT_FIELD_TARGET to be cleared
+                bool   pStunnedBefore;   ///< already stunned before the cast: the flag, or the kernel's own
+                bool   pAuraAtApply;     ///< the 76216 holder was on him the instant the cast returned
+                uint32 pFlagsAtApply;    ///< the same word that instant
+                uint8  pStandAtApply;    ///< ...and the same stand state
+                uint32 pAuraSamples;     ///< samples before the pull with the holder on him
+                uint32 pUnflagged;       ///< ...on which UNIT_FLAG_STUNNED was off
+                uint32 pUninhibited;     ///< ...on which the kernel's Stunned inhibition was down
+                uint32 pTargeted;        ///< ...on which a target guid was back on him
+                uint32 pRootInWord;      ///< ...on which MOVEFLAG_ROOT sat in his m_movementInfo
+                uint32 pRootUndecided;   ///< ...on which the kernel had not decided his root
+                uint32 pRootPending;     ///< ...on which a Root change was still awaiting his ack
+                // the lift, anchored to the KERNEL's Stunned (see the sampler)
+                uint32 pHeldSamples;     ///< samples with that inhibition up
+                uint32 pAfterSamples;    ///< samples since it was LAST seen up
+                uint32 pEndedAt;         ///< when it went for the last time
+                bool   pFlagAfter;       ///< UNIT_FLAG_STUNNED seen on one of those
+                bool   pTargetNotBack;   ///< his victim's guid was NOT back on one of those
+                bool   pulled;           ///< the scenario's own RemoveAurasDueToSpell has run
+                uint32 pFlickers;        ///< times the inhibition went BEFORE the pull and came back
+                uint32 pDiscarded;       ///< samples those re-anchorings took back out of the after-window
+                uint32 pBackAfterPull;   ///< samples with the inhibition up AFTER the pull: a failure, never a flicker
+                // --- the wolf the player possesses
+                bool   took;             ///< TakePossessOf returned true
+                bool   bCharmedBefore;   ///< ...and the player really was its charmer at the cast
+                uint32 bFlagsBefore;     ///< its flag word before the cast: MOVEFLAG_ROOT must NOT be in it
+                bool   bAuraAtApply;     ///< the holder was on it the instant the cast returned
+                uint32 bFlagsAtApply;    ///< the same word that instant: M1's reading
+                uint32 bSamples;         ///< samples with the holder on it AND the player still its charmer
+                uint32 bRootMissing;     ///< ...on which MOVEFLAG_ROOT was gone from its word
+                // --- the plain wolf
+                bool   cAuraAtApply;
+                uint32 cFlagsBefore;
+                uint32 cFlagsAtApply;
+                bool   cStunnedAtApply;  ///< the kernel's Stunned inhibition was up on it
+                uint32 cSamples;
+                uint32 cRootInWord;      ///< samples on which MOVEFLAG_ROOT sat in its word
+                uint32 cRootWanted;      ///< ...on which it was rooted or its root had been decided
+            };
+            Player* p = SpawnPlayer(SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+            // The body 4 yd east, the plain wolf 16 yd east and the mark 8 yd west: far enough
+            // apart that nothing is in melee reach of anything, which matters because the take
+            // gives the body the PLAYER's faction and its own AI back (see the possess step).
+            Creature* body  = p     ? Spawn(WOLF,   SE.x + 4.0f,  SE.y, Ground(SE.x + 4.0f,  SE.y, SE.z), 3.1f) : NULL;
+            Creature* plain = body  ? Spawn(WOLF,   SE.x + 16.0f, SE.y, Ground(SE.x + 16.0f, SE.y, SE.z), 3.1f) : NULL;
+            Creature* mark  = plain ? Spawn(KOBOLD, SE.x - 8.0f,  SE.y, Ground(SE.x - 8.0f,  SE.y, SE.z), 0.0f) : NULL;
+            if (!p || !body || !plain || !mark)
+            {
+                Verdict(Invalid("spawn failed"));
+                return;
+            }
+            // All three, and the body among them although the take is about to undo it:
+            // AIM_Initialize hands the body a fresh factory AI, so this Silence only covers the
+            // 200 ms before the take -- but those are 200 ms with a player standing 4 yd from
+            // two hostile beasts, and an aggro there would put a melee swing (and with it
+            // Unit::DealDamage's own stand-state reset, Unit.cpp:895) on the path of every
+            // reading below. After the take the body is quiet for different reasons: it holds
+            // the player's faction, its charm info is REACT_PASSIVE/COMMAND_STAY, and the
+            // Possessed inhibition refuses it movement (S34).
+            Silence(body);
+            Silence(plain);
+            Silence(mark);
+            const ObjectGuid g = p->GetObjectGuid(), gbody = body->GetObjectGuid(),
+                             gplain = plain->GetObjectGuid(), gmark = mark->GetObjectGuid();
+            auto st = std::make_shared<St>();
+            st->castRan = st->pTargetBefore = st->pStunnedBefore = st->pAuraAtApply = false;
+            st->pFlagsBefore = st->pFlagsAtApply = 0;
+            st->pStandBefore = st->pStandAtApply = UNIT_STAND_STATE_STAND;
+            st->pAuraSamples = st->pUnflagged = st->pUninhibited = st->pTargeted = 0;
+            st->pRootInWord = st->pRootUndecided = st->pRootPending = 0;
+            st->pHeldSamples = st->pAfterSamples = st->pEndedAt = 0;
+            st->pFlagAfter = st->pTargetNotBack = st->pulled = false;
+            st->pFlickers = st->pDiscarded = st->pBackAfterPull = 0;
+            st->took = st->bCharmedBefore = st->bAuraAtApply = false;
+            st->bFlagsBefore = st->bFlagsAtApply = st->bSamples = st->bRootMissing = 0;
+            st->cAuraAtApply = st->cStunnedAtApply = false;
+            st->cFlagsBefore = st->cFlagsAtApply = st->cSamples = st->cRootInWord = st->cRootWanted = 0;
+            Log("the player %s stands at (%.1f, %.1f); the body 4 yd east, the plain wolf 16 yd east, his mark 8 yd west",
+                g.GetString().c_str(), p->Where().X(), p->Where().Y());
+
+            At(kStunPossessAt, [this, g, gbody, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Creature* b = Get(gbody);
+                if (!p || !b) { return; }
+                // Unit::TakePossessOf(Unit*) and nothing hand-rolled beside it: it is the call
+                // the possess effect makes, and it is what sets the charmer guid the stun
+                // handler's clientMover test and ProjectClientRoot both read. A player charmer
+                // takes a longer path through it than S34's creature one -- the camera, the
+                // client-control grant that makes the body client-driven, the possess action
+                // bar -- and every packet on that path goes to a socketless session and is
+                // dropped by WorldSession::SendPacket's first line.
+                st->took = p->TakePossessOf(b);
+                Log("the player possesses the wolf: %d, charmer=%s possessed=%d rooted=%d flags 0x%08x",
+                    st->took ? 1 : 0, b->GetCharmerGuid().GetString().c_str(),
+                    b->GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed) ? 1 : 0,
+                    b->IsRooted() ? 1 : 0, uint32(b->m_movementInfo.GetMovementFlags()));
+            });
+            At(kStunCastAt, [this, g, gbody, gplain, gmark, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Creature* b = Get(gbody);
+                Creature* c = Get(gplain);
+                Creature* m = Get(gmark);
+                if (!p || !b || !c || !m) { return; }
+                // Written, then READ BACK, and the read is what the verdict uses. The write
+                // could be undone between here and the cast by anything that touched the word,
+                // the stand state or the target field, and a category that assumed its own setup
+                // held would report the stun's success over a state the stun never saw.
+                p->m_movementInfo.SetMovementFlags(kStunDrivingFlags);
+                p->SetStandState(UNIT_STAND_STATE_SIT);
+                // A victim without a swing, as player-feign took one: Unit::Attack is what
+                // writes UNIT_FIELD_TARGET (Unit.cpp:3055), and the melee half is left out so
+                // that no damage is dealt anywhere in the run -- Unit::DealDamage stands a
+                // sitting player up (Unit.cpp:895), which would be an alternative explanation
+                // for the stand state, and it is also the one thing that could end a stun early.
+                p->Attack(m, false);
+                st->pFlagsBefore = uint32(p->m_movementInfo.GetMovementFlags());
+                st->pStandBefore = p->getStandState();
+                st->pTargetBefore = !p->GetTargetGuid().IsEmpty();
+                // Read before the cast, because it is the whole meaning of the state that
+                // follows: a player already stunned cannot have a stun raised on him, and a
+                // scenario that skipped this would pass on a server that was never clear.
+                st->pStunnedBefore = p->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED) ||
+                                     p->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned);
+                st->bCharmedBefore = b->GetCharmerGuid() == g;
+                st->bFlagsBefore = uint32(b->m_movementInfo.GetMovementFlags());
+                st->cFlagsBefore = uint32(c->m_movementInfo.GetMovementFlags());
+                // Three self-casts, one step, no world update between them: the body first,
+                // because it is the reading the scenario exists for and it should not be able to
+                // blame anything the other two did.
+                b->CastSpell(b, STUN_SELF, true);
+                c->CastSpell(c, STUN_SELF, true);
+                p->CastSpell(p, STUN_SELF, true);
+                // EVERY READING BELOW IS TAKEN HERE, in the cast's own step. A triggered instant
+                // spell applies its aura inside the call (Spell::Prepare -> cast(true)), so this
+                // is the state HandleAuraModStun left behind and nothing else has run yet -- and
+                // for the body's flag word that is the point, since the very next thing the
+                // scenario could do would be indistinguishable from the handler's own ordering.
+                st->castRan = true;
+                st->pAuraAtApply = p->HasAura(STUN_SELF);
+                st->pFlagsAtApply = uint32(p->m_movementInfo.GetMovementFlags());
+                st->pStandAtApply = p->getStandState();
+                st->bAuraAtApply = b->HasAura(STUN_SELF);
+                st->bFlagsAtApply = uint32(b->m_movementInfo.GetMovementFlags());
+                st->cAuraAtApply = c->HasAura(STUN_SELF);
+                st->cFlagsAtApply = uint32(c->m_movementInfo.GetMovementFlags());
+                st->cStunnedAtApply = c->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned);
+                Log("the cast returns: player aura=%d flags 0x%08x -> 0x%08x stand %u -> %u target=%d stunned=%d root decided=%d",
+                    st->pAuraAtApply ? 1 : 0, st->pFlagsBefore, st->pFlagsAtApply,
+                    uint32(st->pStandBefore), uint32(st->pStandAtApply),
+                    p->GetTargetGuid().IsEmpty() ? 0 : 1,
+                    p->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED) ? 1 : 0, RootDecided(p) ? 1 : 0);
+                Log("the cast returns: body aura=%d charmer=%d flags 0x%08x -> 0x%08x (MOVEFLAG_ROOT %s) | plain aura=%d stunned=%d flags 0x%08x -> 0x%08x root decided=%d",
+                    st->bAuraAtApply ? 1 : 0, st->bCharmedBefore ? 1 : 0, st->bFlagsBefore, st->bFlagsAtApply,
+                    (st->bFlagsAtApply & MOVEFLAG_ROOT) ? "held" : "GONE",
+                    st->cAuraAtApply ? 1 : 0, st->cStunnedAtApply ? 1 : 0, st->cFlagsBefore, st->cFlagsAtApply,
+                    RootDecided(c) ? 1 : 0);
+            });
+            At(kStunCastAt + 100, [this, g, gbody, gplain, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                Creature* b = Get(gbody); Creature* c = Get(gplain);
+                Log("+ 100ms after the cast: player aura=%d stunned=%d kernel=%d flags 0x%08x root decided=%d in flight=%d | body flags 0x%08x | plain flags 0x%08x",
+                    p->HasAura(STUN_SELF) ? 1 : 0, p->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED) ? 1 : 0,
+                    p->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned) ? 1 : 0,
+                    uint32(p->m_movementInfo.GetMovementFlags()), RootDecided(p) ? 1 : 0, RootInFlight(p) ? 1 : 0,
+                    b ? uint32(b->m_movementInfo.GetMovementFlags()) : 0,
+                    c ? uint32(c->m_movementInfo.GetMovementFlags()) : 0);
+            });
+            // Registered before the sampler so it runs first at its own moment (the timeline
+            // orders a tie by insertion): the sample at +2500 after the cast is then already an
+            // after-sample.
+            At(kStunPullAt, [this, g, gbody, gplain, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                Creature* b = Get(gbody); Creature* c = Get(gplain);
+                p->RemoveAurasDueToSpell(STUN_SELF);
+                if (b) { b->RemoveAurasDueToSpell(STUN_SELF); }
+                if (c) { c->RemoveAurasDueToSpell(STUN_SELF); }
+                // The moment that divides the scenario in two for the sampler below: before it,
+                // a gap in the stun is a flicker inside a stun that is still meant to be
+                // running; after it, the stun coming back at all is a failure.
+                st->pulled = true;
+                Log("+%4ums after the cast the auras pulled: player aura=%d stunned=%d kernel=%d target=%s | body flags 0x%08x | plain flags 0x%08x",
+                    kStunPullAt - kStunCastAt, p->HasAura(STUN_SELF) ? 1 : 0,
+                    p->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED) ? 1 : 0,
+                    p->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned) ? 1 : 0,
+                    p->GetTargetGuid().GetString().c_str(),
+                    b ? uint32(b->m_movementInfo.GetMovementFlags()) : 0,
+                    c ? uint32(c->m_movementInfo.GetMovementFlags()) : 0);
+            });
+            for (uint32 i = 1; i <= 60; ++i)
+            {
+                At(kStunCastAt + i * 100, [this, g, gbody, gplain, gmark, st, i]()
+                {
+                    Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                    Creature* b = Get(gbody);
+                    Creature* c = Get(gplain);
+                    const uint32 t = i * 100;
+                    const bool auraNow = p->HasAura(STUN_SELF);
+                    const bool flagNow = p->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_STUNNED);
+                    const bool kernelNow = p->GetMotionMaster()->Inhibited(Motion::Inhibition::Stunned);
+                    const uint32 wordNow = uint32(p->m_movementInfo.GetMovementFlags());
+                    if (auraNow && !st->pulled)
+                    {
+                        // Three readings of one state and they are not interchangeable: the
+                        // client flag is what the game shows, the kernel's inhibition is what the
+                        // movement gates read, and UNIT_FIELD_TARGET is the third thing the apply
+                        // writes. A category that read only one could not see two of them
+                        // disagree, which is the failure a projected state exists to be able to
+                        // have.
+                        ++st->pAuraSamples;
+                        if (!flagNow) { ++st->pUnflagged; }
+                        if (!kernelNow) { ++st->pUninhibited; }
+                        if (!p->GetTargetGuid().IsEmpty()) { ++st->pTargeted; }
+                        if (wordNow & MOVEFLAG_ROOT) { ++st->pRootInWord; }
+                        if (!RootDecided(p)) { ++st->pRootUndecided; }
+                        if (RootInFlight(p)) { ++st->pRootPending; }
+                    }
+                    // THE AFTER-WINDOW IS ANCHORED TO THE END OF THE STUN, not to the first gap
+                    // in it -- player-fear's rule, corrected on player-confuse, inherited here
+                    // rather than rediscovered -- and it is anchored on the KERNEL's inhibition
+                    // rather than on the client flag ON PURPOSE. The two categories must be able
+                    // to fail apart: a handler that forgot to raise UNIT_FLAG_STUNNED is
+                    // stunHeld's finding, and anchoring this window on the flag would turn that
+                    // one bug into "the stun never held" here as well, reporting one fault twice.
+                    if (kernelNow && !st->pulled)
+                    {
+                        ++st->pHeldSamples;
+                        if (st->pAfterSamples)
+                        {
+                            ++st->pFlickers;
+                            st->pDiscarded += st->pAfterSamples;
+                        }
+                        st->pAfterSamples = 0;
+                        st->pEndedAt = 0;
+                        st->pFlagAfter = false;
+                        st->pTargetNotBack = false;
+                    }
+                    else if (kernelNow)
+                    {
+                        // The inhibition is up AFTER the scenario pulled the aura. That is not a
+                        // flicker in anything: the stun was ended, on purpose, at a moment this
+                        // scenario chose, so a block standing again is a failure in its own right
+                        // and is reported as one. Above all it must NOT re-anchor -- the failing
+                        // samples gathered since the pull are exactly the evidence a re-anchoring
+                        // would erase, turning a genuine BUG into OK.
+                        ++st->pBackAfterPull;
+                    }
+                    else if (st->pHeldSamples)
+                    {
+                        if (!st->pEndedAt) { st->pEndedAt = t; }
+                        ++st->pAfterSamples;
+                        if (flagNow) { st->pFlagAfter = true; }
+                        // The removal restores the victim's guid (SpellAuraControl.cpp:587-593),
+                        // which is why the player was given a victim at all: without one that
+                        // branch runs and writes nothing, and "the target came back" would be a
+                        // sentence about an empty field.
+                        if (p->GetTargetGuid() != gmark) { st->pTargetNotBack = true; }
+                    }
+                    // The body's window is keyed on the possession as well as on the aura: the
+                    // release at the end of the run drops the charmer, and with it the
+                    // projection's clientMover, so a sample taken after that would read a body
+                    // the kernel had correctly unrooted as a missing root.
+                    if (b && !st->pulled && b->HasAura(STUN_SELF) && b->GetCharmerGuid() == g)
+                    {
+                        ++st->bSamples;
+                        if (!(uint32(b->m_movementInfo.GetMovementFlags()) & MOVEFLAG_ROOT)) { ++st->bRootMissing; }
+                    }
+                    if (c && !st->pulled && c->HasAura(STUN_SELF))
+                    {
+                        ++st->cSamples;
+                        if (uint32(c->m_movementInfo.GetMovementFlags()) & MOVEFLAG_ROOT) { ++st->cRootInWord; }
+                        if (c->IsRooted() || RootDecided(c)) { ++st->cRootWanted; }
+                    }
+                    if (i % 10 == 0)
+                    {
+                        Log("+%4ums player aura=%d stunned=%d kernel=%d flags 0x%08x target=%d | body flags 0x%08x | plain flags 0x%08x rooted=%d", t,
+                            auraNow ? 1 : 0, flagNow ? 1 : 0, kernelNow ? 1 : 0, wordNow,
+                            p->GetTargetGuid().IsEmpty() ? 0 : 1,
+                            b ? uint32(b->m_movementInfo.GetMovementFlags()) : 0,
+                            c ? uint32(c->m_movementInfo.GetMovementFlags()) : 0,
+                            c && c->IsRooted() ? 1 : 0);
+                    }
+                });
+            }
+            At(kStunReleaseAt, [this, g, gbody]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                // After the last sample, and before the runner's teardown rather than left to
+                // it: the teardown despawns the scenario's creatures BEFORE it ends its players
+                // (Harness.cpp), so a body still charmed at that point would be freed under a
+                // live charmer. ResetControlState is the call the possess aura's own removal
+                // makes, and the body is a creature, which keeps it clear of the unconditional
+                // Creature* cast in it that a possessed PLAYER would walk into.
+                p->ResetControlState(false);
+                Creature* b = Get(gbody);
+                Log("the possession released: charmer=%s body flags 0x%08x possessed=%d",
+                    b ? b->GetCharmerGuid().GetString().c_str() : "gone",
+                    b ? uint32(b->m_movementInfo.GetMovementFlags()) : 0,
+                    b && b->GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed) ? 1 : 0);
+            });
+            At(kStunVerdictAt, [this, st]()
+            {
+                char branch[288], held[304], lifted[336], m1[352], inflight[304], plainroot[320];
+                // Every branch below is reachable, and the INVALIDs come first wherever a reading
+                // could not be taken at all: a step that never ran, a spell that never landed, a
+                // setup the stun never saw, a possession that was refused. An OK printed over any
+                // of those would be the one failure a harness cannot afford -- a scenario that
+                // passes without an actor.
+                if (!st->castRan)
+                {
+                    snprintf(branch, sizeof(branch), "INVALID(the cast step never ran: an actor went unresolvable)");
+                    snprintf(held, sizeof(held), "INVALID(the cast step never ran)");
+                    snprintf(m1, sizeof(m1), "INVALID(the cast step never ran)");
+                    snprintf(inflight, sizeof(inflight), "INVALID(the cast step never ran)");
+                    snprintf(plainroot, sizeof(plainroot), "INVALID(the cast step never ran)");
+                }
+                else
+                {
+                    // --- moverBranch: the clientMover half of the `if` was taken for the player.
+                    // The driving bits are masked rather than the whole word compared to
+                    // MOVEFLAG_NONE, and that is deliberate: the very Inhibit this branch runs
+                    // before may legitimately put MOVEFLAG_ROOT into the word of a unit whose
+                    // SetRoot writes one, which is what charmedRootSurvives is about. A
+                    // whole-word test here would make this category flip on that, and the two
+                    // claims must be able to fail apart.
+                    if (!st->pAuraAtApply)
+                    {
+                        snprintf(branch, sizeof(branch), "INVALID(no %u holder on him when the cast returned, so Aura::HandleAuraModStun was never on the path)", STUN_SELF);
+                    }
+                    else if ((st->pFlagsBefore & uint32(kStunDrivingFlags)) != uint32(kStunDrivingFlags))
+                    {
+                        snprintf(branch, sizeof(branch), "INVALID(the driving flags did not stay on him up to the cast: 0x%08x, so the wipe had nothing to clear)", st->pFlagsBefore);
+                    }
+                    else if (st->pStandBefore == UNIT_STAND_STATE_STAND)
+                    {
+                        snprintf(branch, sizeof(branch), "INVALID(he was already standing before the cast: stand state %u, so the reset had nothing to do)", uint32(st->pStandBefore));
+                    }
+                    else
+                    {
+                        const bool wiped = (st->pFlagsAtApply & uint32(kStunDrivingFlags)) == 0;
+                        const bool stood = st->pStandAtApply == UNIT_STAND_STATE_STAND;
+                        snprintf(branch, sizeof(branch), "%s(the driving flags 0x%08x -> 0x%08x and the stand state %u -> %u the instant the cast returned; StopMoving clears neither on a finalized spline)",
+                                 wiped && stood ? "OK" : "BUG", st->pFlagsBefore, st->pFlagsAtApply,
+                                 uint32(st->pStandBefore), uint32(st->pStandAtApply));
+                    }
+                    // --- stunHeld
+                    if (!st->pAuraSamples)
+                    {
+                        snprintf(held, sizeof(held), "INVALID(the stun aura never held on him: on him when the cast returned=%d)", st->pAuraAtApply ? 1 : 0);
+                    }
+                    else if (st->pStunnedBefore)
+                    {
+                        snprintf(held, sizeof(held), "BUG(he was already stunned before the cast, so the stun had nothing to raise)");
+                    }
+                    else if (!st->pTargetBefore)
+                    {
+                        snprintf(held, sizeof(held), "INVALID(he held no target guid before the cast, so the clear at SpellAuraControl.cpp:511 had nothing to clear)");
+                    }
+                    else if (st->pUnflagged)
+                    {
+                        snprintf(held, sizeof(held), "BUG(UNIT_FLAG_STUNNED was off on %u of the %u samples the aura was on him)", st->pUnflagged, st->pAuraSamples);
+                    }
+                    else if (st->pUninhibited)
+                    {
+                        snprintf(held, sizeof(held), "BUG(the kernel's Stunned inhibition was down on %u of the %u samples the aura was on him)", st->pUninhibited, st->pAuraSamples);
+                    }
+                    else if (st->pTargeted)
+                    {
+                        snprintf(held, sizeof(held), "BUG(his target guid was back on %u of the %u samples the aura was on him)", st->pTargeted, st->pAuraSamples);
+                    }
+                    else
+                    {
+                        snprintf(held, sizeof(held), "OK(not stunned and holding a target guid before the cast; UNIT_FLAG_STUNNED and the kernel's Stunned inhibition both held and the target guid stayed empty on all %u samples the aura was on him)", st->pAuraSamples);
+                    }
+                    // --- charmedRootSurvives: M1 itself.
+                    if (!st->took)
+                    {
+                        snprintf(m1, sizeof(m1), "INVALID(TakePossessOf refused, so no player-charmed creature was built)");
+                    }
+                    else if (!st->bCharmedBefore)
+                    {
+                        snprintf(m1, sizeof(m1), "INVALID(the wolf's charmer was not the player when the cast went out, so the clientMover branch was never its path)");
+                    }
+                    else if (st->bFlagsBefore & MOVEFLAG_ROOT)
+                    {
+                        snprintf(m1, sizeof(m1), "INVALID(MOVEFLAG_ROOT was already in its m_movementInfo before the cast: 0x%08x, so surviving proves nothing)", st->bFlagsBefore);
+                    }
+                    else if (!st->bAuraAtApply)
+                    {
+                        snprintf(m1, sizeof(m1), "INVALID(no %u holder on it when the cast returned)", STUN_SELF);
+                    }
+                    else if (!(st->bFlagsAtApply & MOVEFLAG_ROOT))
+                    {
+                        snprintf(m1, sizeof(m1), "BUG(MOVEFLAG_ROOT was not in its m_movementInfo the instant the cast returned: 0x%08x -> 0x%08x, so the wipe ran AFTER Inhibit and erased the projection's root)",
+                                 st->bFlagsBefore, st->bFlagsAtApply);
+                    }
+                    else if (!st->bSamples)
+                    {
+                        snprintf(m1, sizeof(m1), "INVALID(no samples with the aura on it while the player was still its charmer)");
+                    }
+                    else if (st->bRootMissing)
+                    {
+                        snprintf(m1, sizeof(m1), "BUG(MOVEFLAG_ROOT was gone from its m_movementInfo on %u of the %u samples the aura was on it under the possession)", st->bRootMissing, st->bSamples);
+                    }
+                    else
+                    {
+                        snprintf(m1, sizeof(m1), "OK(0x%08x -> 0x%08x the instant the cast returned and MOVEFLAG_ROOT held on all %u samples under the possession: the wipe ran BEFORE Inhibit)",
+                                 st->bFlagsBefore, st->bFlagsAtApply, st->bSamples);
+                    }
+                    // --- playerCarriesNoRoot: the contrast that gives M1 its meaning.
+                    if (!st->pAuraSamples)
+                    {
+                        snprintf(inflight, sizeof(inflight), "INVALID(the stun aura never held on him)");
+                    }
+                    else if (st->pRootUndecided)
+                    {
+                        snprintf(inflight, sizeof(inflight), "BUG(the kernel had not decided his root on %u of the %u samples the aura was on him, so a stunned player's mover was never rooted at all)", st->pRootUndecided, st->pAuraSamples);
+                    }
+                    else if (st->pRootInWord)
+                    {
+                        snprintf(inflight, sizeof(inflight), "BUG(MOVEFLAG_ROOT sat in his m_movementInfo on %u of the %u samples the aura was on him: a player's root belongs in the change pipeline, not the word)", st->pRootInWord, st->pAuraSamples);
+                    }
+                    else
+                    {
+                        snprintf(inflight, sizeof(inflight), "OK(the kernel wanted his root on all %u samples the aura was on him and it was still awaiting his ack on %u of them, and MOVEFLAG_ROOT was in his m_movementInfo on none)",
+                                 st->pAuraSamples, st->pRootPending);
+                    }
+                    // --- plainCreatureNotRooted
+                    if (!st->cAuraAtApply)
+                    {
+                        snprintf(plainroot, sizeof(plainroot), "INVALID(no %u holder on the plain wolf when the cast returned)", STUN_SELF);
+                    }
+                    else if (!st->cStunnedAtApply)
+                    {
+                        snprintf(plainroot, sizeof(plainroot), "INVALID(the kernel's Stunned inhibition was not up on it when the cast returned, so there was no stun for the projection to read)");
+                    }
+                    else if (st->cFlagsBefore & MOVEFLAG_ROOT)
+                    {
+                        snprintf(plainroot, sizeof(plainroot), "INVALID(MOVEFLAG_ROOT was already in its m_movementInfo before the cast: 0x%08x)", st->cFlagsBefore);
+                    }
+                    else if (st->cFlagsAtApply & MOVEFLAG_ROOT)
+                    {
+                        snprintf(plainroot, sizeof(plainroot), "BUG(MOVEFLAG_ROOT was in its m_movementInfo the instant the cast returned: 0x%08x -> 0x%08x, so a stun alone rooted a creature no client moves)", st->cFlagsBefore, st->cFlagsAtApply);
+                    }
+                    else if (!st->cSamples)
+                    {
+                        snprintf(plainroot, sizeof(plainroot), "INVALID(no samples with the aura on it)");
+                    }
+                    else if (st->cRootInWord || st->cRootWanted)
+                    {
+                        snprintf(plainroot, sizeof(plainroot), "BUG(it was rooted under the stun: MOVEFLAG_ROOT in its word on %u and the kernel's root wanted on %u of the %u samples the aura was on it)",
+                                 st->cRootInWord, st->cRootWanted, st->cSamples);
+                    }
+                    else
+                    {
+                        snprintf(plainroot, sizeof(plainroot), "OK(stunned with no MOVEFLAG_ROOT in its m_movementInfo and no root decided, at the cast and on all %u samples the aura was on it)", st->cSamples);
+                    }
+                }
+                // --- stunLifted, which does not need the cast step's readings: it is entirely
+                // the sampler's, anchored on the kernel's own inhibition.
+                if (!st->pHeldSamples)
+                {
+                    snprintf(lifted, sizeof(lifted), "INVALID(the kernel's Stunned inhibition never held on him)");
+                }
+                else
+                {
+                    // The flicker note, appended to whichever branch fires below. An inhibition
+                    // that went mid-stun and came back is worth seeing even though the window no
+                    // longer counts it -- it is a finding about the block, just not this
+                    // category's -- and on a healthy run there is nothing to say.
+                    char flicker[144];
+                    if (st->pFlickers)
+                    {
+                        snprintf(flicker, sizeof(flicker), "; the inhibition flickered %u time(s) before the pull, re-anchoring the window past %u sample(s)",
+                                 st->pFlickers, st->pDiscarded);
+                    }
+                    else
+                    {
+                        flicker[0] = '\0';
+                    }
+                    // First, and ahead of the sample-count INVALID: a stun standing again after
+                    // the aura was pulled is a hard failure, and reporting "too few samples" over
+                    // the top of it would hide the one thing that went wrong.
+                    if (st->pBackAfterPull)
+                    {
+                        snprintf(lifted, sizeof(lifted), "BUG(the kernel's Stunned inhibition was up again on %u sample(s) AFTER the aura was pulled, so the stun did not end when it was ended%s)",
+                                 st->pBackAfterPull, flicker);
+                    }
+                    else if (st->pAfterSamples < 5)
+                    {
+                        snprintf(lifted, sizeof(lifted), "INVALID(only %u samples after the inhibition went%s)", st->pAfterSamples, flicker);
+                    }
+                    else if (st->pFlagAfter)
+                    {
+                        snprintf(lifted, sizeof(lifted), "BUG(UNIT_FLAG_STUNNED was still on for at least one of the %u samples after the inhibition went, %u ms after the cast%s)",
+                                 st->pAfterSamples, st->pEndedAt, flicker);
+                    }
+                    else if (st->pTargetNotBack)
+                    {
+                        snprintf(lifted, sizeof(lifted), "BUG(his victim's guid was not back in UNIT_FIELD_TARGET on at least one of the %u samples after the inhibition went, %u ms after the cast%s)",
+                                 st->pAfterSamples, st->pEndedAt, flicker);
+                    }
+                    else
+                    {
+                        snprintf(lifted, sizeof(lifted), "OK(UNIT_FLAG_STUNNED off and his victim's guid back in UNIT_FIELD_TARGET from the first of the %u samples after the inhibition went, %u ms after the cast%s)",
+                                 st->pAfterSamples, st->pEndedAt, flicker);
+                    }
+                }
+                std::string text = std::string("moverBranch=") + branch + " | stunHeld=" + held + " | stunLifted=" + lifted +
+                                   " | charmedRootSurvives=" + m1 + " | playerCarriesNoRoot=" + inflight +
+                                   " | plainCreatureNotRooted=" + plainroot;
+                Verdict(text);
+            });
+        }
+
+    private:
+        static std::string Invalid(char const* why)
+        {
+            std::string w = std::string("INVALID(") + why + ")";
+            return "moverBranch=" + w + " | stunHeld=" + w + " | stunLifted=" + w +
+                   " | charmedRootSurvives=" + w + " | playerCarriesNoRoot=" + w + " | plainCreatureNotRooted=" + w;
+        }
+    };
+
+
     void RegisterControlScenarios(Runner& r)
     {
         r.Register(new FearBoltsAway());
@@ -2330,5 +3019,6 @@ namespace Harness
         r.Register(new PlayerFear());
         r.Register(new PlayerConfuse());
         r.Register(new PlayerFeign());
+        r.Register(new PlayerStun());
     }
 }
