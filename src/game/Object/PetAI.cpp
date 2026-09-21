@@ -238,7 +238,7 @@ void PetAI::UpdateAI(const uint32 diff)
 
         if (!InReach(*owner, *m_creature, (PET_FOLLOW_DIST * 2)))
         {
-            if (!m_creature->FollowLatched())
+            if (!m_creature->IsFollowing())
             {
                 m_creature->GetMotionMaster()->MoveFollow(owner, PET_FOLLOW_DIST, PET_FOLLOW_ANGLE);
             }
@@ -364,7 +364,7 @@ void PetAI::UpdateAI(const uint32 diff)
 
             Spell* spell = new Spell(m_creature, spellInfo, false);
 
-            if (inCombat && !m_creature->FollowLatched() && spell->CanAutoCast(victim))
+            if (inCombat && !m_creature->IsFollowing() && spell->CanAutoCast(victim))
             {
                 targetSpellStore.push_back(TargetSpellList::value_type(victim, spell));
                 continue;
@@ -536,7 +536,7 @@ void PetAI::UpdateAI(const uint32 diff)
                     }
                 }
             }
-            else if (m_creature->FollowLatched())
+            else if (m_creature->IsFollowing())
             {
                 if (InReach(*owner, *m_creature, PET_FOLLOW_DIST))
                 {

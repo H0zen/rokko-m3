@@ -5801,8 +5801,9 @@ void Unit::StopMoving(bool forceSendStop /*=false*/)
         return;
     }
 
-    // Gate on the leg in flight: a home leg, an effect or a raw script leg latches nothing,
-    // and skipping those left the mover walking.
+    // Gate on the route in flight, because that is the only thing that is actually true:
+    // a home leg, an effect or a raw script leg used to set no state bit of their own, and
+    // gating on those bits left the mover walking.
     if (!GetMotionMaster()->IsMoving() && !forceSendStop)
     {
         return;

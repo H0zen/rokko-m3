@@ -3954,11 +3954,11 @@ class Unit : public WorldObject
         /// No leg in flight (the old UNIT_STAT_MOVING, negated): no roaming, chase, follow or fear
         /// route is in flight; there is no separate latch to keep in step with it.
         bool IsStopped() const { return !i_movement.IsMoving(); }
-        /// A follow native is active (the old UNIT_STAT_FOLLOW): latched at its activation, cleared
+        /// A follow is what the unit is doing (the old UNIT_STAT_FOLLOW), set at its start, cleared
         /// at its suspension or its finish, or by a whole-state wipe.
-        /// A follow is simply what is running right now. There is no separate latch to keep
-        /// in step with it any more -- that pair was the mirror this component removed.
-        bool FollowLatched() const { return i_movement.IsFollowing(); }
+        /// Is this unit following something? It reads the one thing that knows, so there is
+        /// nothing here to keep in step -- the pair that had to be kept equal is gone.
+        bool IsFollowing() const { return i_movement.IsFollowing(); }
         void StopMoving(bool forceSendStop = false);
         void InterruptMoving(bool forceSendStop = false);
         bool CommitSplinePosition(); ///< Take the running spline's position: the seat pose at once, the placement on the next Update. False when no spline runs.
