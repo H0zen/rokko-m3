@@ -25,7 +25,7 @@
 
 #pragma once
 
-// THE SIX SHAPES MOVEMENT COMES IN.
+// THE SHAPES MOVEMENT COMES IN.
 //
 // The old engine had fifteen classes. Sorted by what decides the destination and by what
 // forces the server to act again, there are six, and the fifteen game names are labels on
@@ -39,6 +39,7 @@
 //                                                         target CAN have drifted too far.
 //   FleeFrom    away from a point.                        Again: on arrival.
 //   Ballistic   physics, not a path.                      Again: on landing.
+//   HoldStill   nowhere at all, for a set time.            Again: when the time is up.
 //
 // The one rule they all obey, and the one the old patrol broke: A FAILURE IS A RETRY. A
 // route that cannot be found, a spot that cannot be reached, a destination the writer
@@ -253,6 +254,30 @@ namespace Move
             bool m_landed = false;
             std::vector<Vector3> m_points;
             std::vector<size_t> m_run;  ///< the nodes this leg covers, in order
+    };
+
+    /// STANDS THERE, ON PURPOSE, FOR A WHILE.
+    ///
+    /// The only shape that never moves anything and never sends a packet. It exists because
+    /// "stopped" and "stopped for six seconds" are different facts: a unit that is merely
+    /// stopped has nothing to bring it back, so a distract built out of a plain stop froze
+    /// the creature for good. This one holds its layer, which suspends what was running
+    /// beneath it, and then ends by itself -- and the thing underneath becomes the answer
+    /// again, which is the entire point of it.
+    class HoldStill : public Behaviour
+    {
+        public:
+            HoldStill(Kind kind, uint32_t ms) : m_kind(kind), m_ms(ms) {}
+
+            Kind What() const override { return m_kind; }
+            uint32_t Decide(uint32_t nowMs, bool restart, World& world, Plan& out) override;
+            uint32_t Arrived(uint32_t nowMs, bool cut, World& world, Plan& out) override;
+
+        private:
+            Kind m_kind;
+            uint32_t m_ms;
+            uint32_t m_untilMs = 0;
+            bool m_started = false;   ///< not "m_untilMs != 0": the clock wraps through zero
     };
 
     /// What the server knows about the thing being chased. A creature's position is exact,

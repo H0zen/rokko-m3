@@ -977,7 +977,7 @@ void Spell::EffectJump(SpellEffectEntry const* effect)
     }
 
     // Init dest coordinates
-    float x, y, z, o;
+    float x, y, z;
     if (m_targets.m_targetMask & TARGET_FLAG_DEST_LOCATION)
     {
         m_targets.getDestination(x, y, z);
@@ -1000,22 +1000,19 @@ void Spell::EffectJump(SpellEffectEntry const* effect)
                 pTarget = m_caster->GetMap()->GetUnit(((Player*)m_caster)->GetSelectionGuid());
             }
 
-            o = pTarget ? pTarget->Where().Facing() : m_caster->Where().Facing();
-        }
-        else
-        {
-            o = m_caster->Where().Facing();
+            // The facing this branch used to compute went nowhere: a jump is a parabola,
+            // and the client takes its facing from the curve's own tangent. Asking for one
+            // would only fight it.
+            (void)pTarget;
         }
     }
     else if (unitTarget)
     {
         ContactPointNear(*unitTarget, m_caster, x, y, z, CONTACT_DISTANCE);
-        o = m_caster->Where().Facing();
     }
     else if (gameObjTarget)
     {
         ContactPointNear(*gameObjTarget, m_caster, x, y, z, CONTACT_DISTANCE);
-        o = m_caster->Where().Facing();
     }
     else
     {
@@ -1027,7 +1024,7 @@ void Spell::EffectJump(SpellEffectEntry const* effect)
     ClampToAllowedZ(*m_caster, x, y, z);
 
     float speed = m_spellInfo->Speed ? m_spellInfo->Speed : 27.0f;
-    m_caster->Movement()->JumpTo(x, y, z, o, speed, 2.5f, NULL);
+    m_caster->Movement()->JumpTo(x, y, z, speed, 2.5f);
 }
 
 void Spell::EffectTeleportUnits(SpellEffectEntry const* effect)   // TODO - Use target settings for this effect!

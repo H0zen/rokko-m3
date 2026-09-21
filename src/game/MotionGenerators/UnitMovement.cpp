@@ -190,6 +190,20 @@ void UnitMovement::Tick(uint32 /*diff*/)
 
 void UnitMovement::Advance(bool legEnded, bool cut)
 {
+    // TWO PASSES AT MOST. A shape that ends takes itself off its layer, and Drop() clears
+    // the due time with it -- so whatever was suspended underneath would sit there waiting
+    // for an event that is never coming. It gets asked here instead.
+    //
+    // Bounded on purpose, and not recursion: an earlier version let the end of one shape
+    // re-enter the decision that ended it, and the server died of it.
+    if (AdvanceOnce(legEnded, cut))
+    {
+        AdvanceOnce(false, false);
+    }
+}
+
+bool UnitMovement::AdvanceOnce(bool legEnded, bool cut)
+{
     MoveStats::Decided();
     const uint32 now = getMSTime();
     MoveWorld world(*m_unit);
@@ -212,6 +226,7 @@ void UnitMovement::Advance(bool legEnded, bool cut)
     // mean; it names them and the game performs them.
     Creature* creature = m_unit->GetTypeId() == TYPEID_UNIT ? static_cast<Creature*>(m_unit) : NULL;
     Player* player = m_unit->GetTypeId() == TYPEID_PLAYER ? static_cast<Player*>(m_unit) : NULL;
+    bool dropped = false;
 
     for (size_t i = 0; i < plan.acts.size(); ++i)
     {
@@ -244,7 +259,15 @@ void UnitMovement::Advance(bool legEnded, bool cut)
                         player->TaxiAbort();
                     }
                     m_movement.Drop(Move::Kind::Taxi);
+                    dropped = true;
                 }
+                break;
+
+            case Move::ACT_EXPIRED:
+                // A shape said it is over. It comes off its layer here, in the one place
+                // that performs acts, so no shape ever has to reach into what holds it.
+                m_movement.Drop(Move::Kind(act.extra));
+                dropped = true;
                 break;
 
             default:
@@ -254,7 +277,7 @@ void UnitMovement::Advance(bool legEnded, bool cut)
 
     if (!plan.send || plan.count < 2)
     {
-        return;
+        return dropped;
     }
 
     const uint32 flags = SplineFlagsFor(plan.gait);
@@ -270,7 +293,7 @@ void UnitMovement::Advance(bool legEnded, bool cut)
         // Refused. The client would have crashed on it or teleported the mover, so nothing
         // was sent and nothing about the behaviour's state changed. It asks again shortly.
         m_movement.InFlight().Clear();
-        return;
+        return dropped;
     }
 
     // THE ROUTE IS RE-LAUNCHED FROM WHAT ACTUALLY WENT OUT, not from what the behaviour
@@ -291,6 +314,19 @@ void UnitMovement::Advance(bool legEnded, bool cut)
     m_sentFlags = written.flags;
     m_sentFacing = plan.facing;
     ++m_sentId;
+
+    // A leg went out, so the layer that laid it is plainly the answer: nothing to resume.
+    return false;
+}
+
+void UnitMovement::Distract(uint32 ms)
+{
+    if (ms == 0)
+    {
+        return;
+    }
+    m_movement.Take(new Move::HoldStill(Move::Kind::Distract, ms));
+    Advance(false, false);
 }
 
 void UnitMovement::Stop()

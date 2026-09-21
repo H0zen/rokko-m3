@@ -507,6 +507,34 @@ namespace Move
         return Decide(nowMs, false, world, out);
     }
 
+    // ---------------------------------------------------------------- HoldStill
+
+    uint32_t HoldStill::Decide(uint32_t nowMs, bool, World&, Plan& out)
+    {
+        if (!m_started)
+        {
+            m_started = true;
+            m_untilMs = nowMs + m_ms;
+        }
+
+        if (int32_t(nowMs - m_untilMs) < 0)
+        {
+            return m_untilMs;   // still holding; nothing goes on the wire, ever
+        }
+
+        // Over. Saying so is the whole of ending: the game takes this off its layer and
+        // what was suspended beneath it is asked again.
+        out.acts.push_back(Plan::Act{ ACT_EXPIRED, 0, uint32_t(m_kind) });
+        return 0;
+    }
+
+    uint32_t HoldStill::Arrived(uint32_t nowMs, bool, World& world, Plan& out)
+    {
+        // This shape lays no route, so the only way here is someone else's leg ending
+        // underneath it. Nothing about the hold changed.
+        return Decide(nowMs, false, world, out);
+    }
+
     // ------------------------------------------------------------------- Flight
 
     uint32_t Flight::Decide(uint32_t nowMs, bool, World& world, Plan& out)

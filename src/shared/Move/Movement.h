@@ -118,6 +118,7 @@ namespace Move
         ACT_NODE_REACHED,     ///< a waypoint was passed; `id` is the node
         ACT_TARGET_LOST,      ///< the unit being pursued can no longer be found
         ACT_LANDED,           ///< a jump, knockback or fall ended
+        ACT_EXPIRED,          ///< this shape is over; take it off its layer. `extra` is its Kind
         ACT_SCRIPT,           ///< run the script named by `id`
         ACT_EMOTE,
         ACT_SPELL,

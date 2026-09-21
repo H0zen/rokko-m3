@@ -50,7 +50,7 @@
 // The old engine -- the arbiter, the fifteen behaviour classes, the driver, the frame
 // adapters and the nine-thousand-line scenario harness, about eighteen thousand lines in
 // all -- is deleted. This is the whole of what replaced it on the game's side: a thin
-// surface that turns a request into one of the six shapes in src/shared/Move and gets out
+// surface that turns a request into one of the shapes in src/shared/Move and gets out
 // of the way.
 //
 // The two thousand call sites are kept deliberately. A script asking a creature to walk to
@@ -335,6 +335,11 @@ class UnitMovement
             return route.Running() && !route.Arrived(getMSTime());
         }
 
+        /// Stand still for a set time and then go back to whatever was running. Not Stop():
+        /// a stop has nothing to end it, and a distraction that never ends is a frozen
+        /// creature. This suspends what was underneath and hands it back when the time is up.
+        void Distract(uint32 ms);
+
         /// Turn on the spot, with no travel. One packet, no route.
         void FaceTo(float orientation);
         /// A raw leg at an explicit speed: what a script means by "move there this fast".
@@ -357,6 +362,9 @@ class UnitMovement
         /// game for, write and send the leg it wants or refuse it, and relaunch the route
         /// from what actually went out. Every command ends here and so does every tick.
         void Advance(bool legEnded, bool cut);
+        /// One pass of it. @return True when a shape ended and came off its layer, which
+        /// means something else is the answer now and has not been asked anything yet.
+        bool AdvanceOnce(bool legEnded, bool cut);
 
         /// Stop whatever is running if it just became forbidden. Called from the one place
         /// that can make it so, which is why the reason and the stopping cannot drift apart.

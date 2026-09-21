@@ -314,9 +314,11 @@ void Spell::EffectDistract(SpellEffectEntry const* /*effect*/)
 
     unitTarget->Movement()->StopRoute();
 
+    // Creatures only: a player is not distracted by a server-side shape, it just stops.
+    // The spell's own damage field is the duration in seconds.
     if (unitTarget->GetTypeId() == TYPEID_UNIT)
     {
-        unitTarget->Movement()->Halt();
+        unitTarget->Movement()->Distract(damage * IN_MILLISECONDS);
     }
 
     // AFTER the distract, never before it. Installing the distract suspends whatever ran,
