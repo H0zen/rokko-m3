@@ -3,7 +3,7 @@
 # Each line gives one vessel map the id of the hull model to bake into it. Map ids
 # below 1000000 are the client's own Transport<entry> rows; the rest are minted by
 # the server for hulls Blizzard shipped no map for (VESSEL_MAP_BASE + entry).
-# Generated from three_world.transports and a 4.3.4 Map.dbc; regenerate if either
+# Generated from rk_world.transports and a 4.3.4 Map.dbc; regenerate if either
 # changes.
 
 593      3015   # Ship (The Maiden's Fancy) (entry 20808)
@@ -36,6 +36,7 @@
 1203620  9582   # Alliance Submarine to Leviathan Cave (entry 203620)
 1203621  9583   # Horde Submarine to Leviathan Cave (entry 203621)
 1203626  7546   # The Spear of Durotar (entry 203626)
+742      10404  # Alliance Submarine circling Abyssal Maw (entry 203729)
 743      10308  # Horde Submarine circling Abyssal Maw (entry 203730)
 1204018  8254   # Alliance Gunship (entry 204018)
 1206328  3031   # Krazzworks to Dragonmaw Port (entry 206328)
