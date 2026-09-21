@@ -51,6 +51,7 @@
 #include <set>
 #include <atomic>
 #include "World.h"
+#include "MoveStats.h"
 #include "Database/DatabaseEnv.h"
 #include "Config/Config.h"
 #include "Platform/Define.h"
@@ -1058,6 +1059,7 @@ void World::Update(uint32 diff)
     /// <li> Handle all other objects
     ///- Update objects (maps, transport, creatures,...)
     sMapMgr.Update(diff);
+    MoveStats::Tick(diff);
     sBattleGroundMgr.Update(diff);
     sOutdoorPvPMgr.Update(diff);
 

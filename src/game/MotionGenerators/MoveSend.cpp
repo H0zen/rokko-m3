@@ -28,6 +28,7 @@
 #include "WorldPacket.h"
 #include "Opcodes.h"
 #include "Timer.h"
+#include "MoveStats.h"
 #include "wire/MonsterMoveCodec.h"
 #include "MotionMaster.h"
 #include "Geometry/Placement.h"
@@ -65,6 +66,8 @@ bool MoveSend::Leg(Unit& unit, const Move::Written& written, const Move::Facing&
     {
         // Nothing goes out. The client would either crash on it or teleport the mover, and
         // neither is better than the mover staying put until the caller tries again.
+        MoveStats::Refused(uint8(written.refusal), unit.GetObjectGuid().GetRawValue(),
+                           unit.GetEntry());
         return false;
     }
 
@@ -126,6 +129,7 @@ bool MoveSend::Leg(Unit& unit, const Move::Written& written, const Move::Facing&
     WorldPacket data(SMSG_MONSTER_MOVE, 64);
     Wire::EncodeMonsterMove(data, SMSG_MONSTER_MOVE, move);
     unit.SendMessageToSet(&data, true);
+    MoveStats::Sent(uint32(written.middle.size()) + 2);
     return true;
 }
 
@@ -176,6 +180,7 @@ void MoveSend::Face(Unit& unit, float orientation)
     WorldPacket data(SMSG_MONSTER_MOVE, 48);
     Wire::EncodeMonsterMove(data, SMSG_MONSTER_MOVE, move);
     unit.SendMessageToSet(&data, true);
+    MoveStats::Turned();
 }
 
 void MoveSend::CreateBits(Unit const& unit, ByteBuffer& data)

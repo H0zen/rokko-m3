@@ -34,6 +34,7 @@
 #include "WaypointManager.h"
 #include "ObjectMgr.h"
 #include "Timer.h"
+#include "MoveStats.h"
 
 namespace
 {
@@ -156,11 +157,17 @@ void MotionMaster::UpdateMotion(uint32 /*diff*/)
     if (due != 0 && int32(now - due) >= 0)
     {
         Serve(false, false);
+        return;
     }
+
+    // Nothing was due. This is what the whole scheduling idea buys: the visit cost two
+    // integer comparisons and no behaviour was asked anything.
+    MoveStats::Visited();
 }
 
 void MotionMaster::Serve(bool legEnded, bool cut)
 {
+    MoveStats::Decided();
     const uint32 now = getMSTime();
     MoveWorld world(*m_unit);
     Move::Plan plan;

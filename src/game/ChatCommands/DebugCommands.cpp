@@ -46,6 +46,7 @@
 #include "Player.h"
 #include "OpcodeTable.h"
 #include "Chat.h"
+#include "MoveStats.h"
 #include "Log.h"
 #include "Unit.h"
 #include "GossipDef.h"
@@ -2098,7 +2099,7 @@ bool ChatHandler::HandleDebugMovementSpeedCommand(char* args)
  */
 bool ChatHandler::HandleDebugMovementDumpCommand(char* /*args*/)
 {
-    SendSysMessage("There is no movement engine: nothing moves and nothing is held.");
+    MoveStats::ReportAndReset([this](std::string const& line) { SendSysMessage(line.c_str()); });
     return true;
 }
 

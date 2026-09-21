@@ -60,7 +60,6 @@
 #include "MapPhase.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
-#include "movement/MoveSpline.h"
 #include "CreatureLinkingMgr.h"
 #include "GameTime.h"
 #include "Geometry/Placement.h"

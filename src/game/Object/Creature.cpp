@@ -59,7 +59,6 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
-#include "movement/MoveSpline.h"
 #include "CreatureLinkingMgr.h"
 #include "DisableMgr.h"
 
