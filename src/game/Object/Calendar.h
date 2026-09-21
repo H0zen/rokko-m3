@@ -201,7 +201,10 @@ class CalendarEvent
 
     private:
         void RemoveInviteByItr(CalendarInviteMap::iterator inviteItr);
-        void RemoveAllInvite();
+        /// Frees the invites and nothing else -- no database write, no packet. This is the
+        /// destructor's helper, and it is deliberately NOT the gameplay removal above: a
+        /// destructor must not persist or notify (see ~CalendarEvent).
+        void FreeAllInvites();
 
         CalendarInviteMap m_Invitee;
 };
