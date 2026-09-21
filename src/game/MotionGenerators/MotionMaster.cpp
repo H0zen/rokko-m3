@@ -311,7 +311,10 @@ void MotionMaster::MoveChase(Unit* target, float dist, float /*angle*/)
     {
         return;
     }
-    m_sighting.reset(new MoveSighting(*m_unit));
+    if (!m_sighting)
+    {
+        m_sighting = new MoveSighting(*m_unit);
+    }
     m_movement.Take(new Move::Pursue(Move::Kind::Chase, target->GetObjectGuid().GetRawValue(),
                                      *m_sighting, dist > 0.0f ? dist : 1.0f));
     Serve(false, false);
@@ -323,7 +326,10 @@ void MotionMaster::MoveFollow(Unit* target, float dist, float /*angle*/)
     {
         return;
     }
-    m_sighting.reset(new MoveSighting(*m_unit));
+    if (!m_sighting)
+    {
+        m_sighting = new MoveSighting(*m_unit);
+    }
     m_movement.Take(new Move::Pursue(Move::Kind::Follow, target->GetObjectGuid().GetRawValue(),
                                      *m_sighting, dist > 0.0f ? dist : 2.0f));
     Serve(false, false);
