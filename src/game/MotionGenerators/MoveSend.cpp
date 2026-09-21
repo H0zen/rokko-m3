@@ -27,7 +27,10 @@
 #include "Unit.h"
 #include "WorldPacket.h"
 #include "Opcodes.h"
+#include "Timer.h"
 #include "wire/MonsterMoveCodec.h"
+#include "MotionMaster.h"
+#include "Geometry/Placement.h"
 
 namespace
 {
@@ -136,4 +139,148 @@ void MoveSend::Halt(Unit& unit)
     WorldPacket data(SMSG_MONSTER_MOVE, 32);
     Wire::EncodeMonsterMove(data, SMSG_MONSTER_MOVE, move);
     unit.SendMessageToSet(&data, true);
+}
+
+void MoveSend::SeatMove(Unit& passenger, const Geometry::Vector3& to, bool board,
+                        bool hasFacing, float facing)
+{
+    Wire::MonsterMove move;
+    move.mover = passenger.GetObjectGuid().GetRawValue();
+    move.start = Point(passenger.Where().Pos());
+    move.flags = board ? Move::SPLINE_BOARD_VEHICLE : Move::SPLINE_EXIT_VEHICLE;
+    move.duration = 0;
+    move.destination = Point(to);
+    move.path = Wire::SplinePath::Linear;
+
+    if (hasFacing)
+    {
+        move.type = Wire::MonsterMoveType::FacingAngle;
+        move.facingAngle = facing;
+    }
+
+    WorldPacket data(SMSG_MONSTER_MOVE, 64);
+    Wire::EncodeMonsterMove(data, SMSG_MONSTER_MOVE, move);
+    passenger.SendMessageToSet(&data, true);
+}
+
+void MoveSend::Face(Unit& unit, float orientation)
+{
+    Wire::MonsterMove move;
+    move.mover = unit.GetObjectGuid().GetRawValue();
+    move.start = Point(unit.Where().Pos());
+    move.type = Wire::MonsterMoveType::FacingAngle;
+    move.facingAngle = orientation;
+    move.duration = 0;
+    move.destination = move.start;
+
+    WorldPacket data(SMSG_MONSTER_MOVE, 48);
+    Wire::EncodeMonsterMove(data, SMSG_MONSTER_MOVE, move);
+    unit.SendMessageToSet(&data, true);
+}
+
+void MoveSend::CreateBits(Unit const& unit, ByteBuffer& data)
+{
+    MotionMaster const* motion = unit.GetMotionMaster();
+    const bool moving = motion && motion->IsMoving();
+    if (!data.WriteBit(moving))
+    {
+        return;
+    }
+
+    Move::Route const& route = motion->InFlight();
+    Move::Facing const& facing = motion->SentFacing();
+
+    // Every leg this server sends is linear: the client rounds the corners itself when
+    // asked, and a curved spline would be timed by the chords of its control points while
+    // it travelled the true arc, which is a speed error we have no reason to pay.
+    data.WriteBits(uint8(0), 2);
+
+    const bool hasStartTime = (motion->SentFlags() & (Move::SPLINE_PARABOLA | Move::SPLINE_ANIMATION)) != 0;
+    data.WriteBit(hasStartTime);
+    data.WriteBits(uint32(route.Count()), 22);
+
+    switch (facing.mode)
+    {
+        case Move::Facing::Mode::Unit:
+            data.WriteBits(2, 2);
+            data.WriteGuidMask<4, 3, 7, 2, 6, 1, 0, 5>(ObjectGuid(facing.unit));
+            break;
+        case Move::Facing::Mode::Angle:
+            data.WriteBits(0, 2);
+            break;
+        case Move::Facing::Mode::Spot:
+            data.WriteBits(1, 2);
+            break;
+        case Move::Facing::Mode::Travel:
+        default:
+            data.WriteBits(3, 2);
+            break;
+    }
+
+    // No parabola is ever sent with a vertical acceleration block yet; when one is, this is
+    // where it is announced.
+    data.WriteBit(false);
+    data.WriteBits(motion->SentFlags() & 0x1FFFFFF, 25);
+}
+
+void MoveSend::CreateBytes(Unit const& unit, ByteBuffer& data)
+{
+    MotionMaster const* motion = unit.GetMotionMaster();
+    const bool moving = motion && motion->IsMoving();
+
+    if (moving)
+    {
+        Move::Route const& route = motion->InFlight();
+        Move::Facing const& facing = motion->SentFacing();
+
+        // How far into the leg the observer is arriving. The client adds this to its own
+        // clock, so the creature appears where the others already see it rather than
+        // starting the walk again from the first point.
+        data << int32(getMSTime() - route.StartTime());
+
+        if (facing.mode == Move::Facing::Mode::Angle)
+        {
+            data << float(Geometry::Placement::NormalizeOrientation(facing.angle));
+        }
+        else if (facing.mode == Move::Facing::Mode::Unit)
+        {
+            data.WriteGuidBytes<5, 3, 7, 1, 6, 4, 2, 0>(ObjectGuid(facing.unit));
+        }
+
+        for (uint16 i = 0; i < route.Count(); ++i)
+        {
+            Geometry::Vector3 const& at = route.Point(i);
+            data << float(at.z);
+            data << float(at.x);
+            data << float(at.y);
+        }
+
+        if (facing.mode == Move::Facing::Mode::Spot)
+        {
+            data << float(facing.spot.x) << float(facing.spot.z) << float(facing.spot.y);
+        }
+
+        data << float(1.f);
+        data << int32(motion->SentDuration());
+        if ((motion->SentFlags() & (Move::SPLINE_PARABOLA | Move::SPLINE_ANIMATION)) != 0)
+        {
+            data << int32(0);
+        }
+        data << float(1.f);
+    }
+
+    // The final destination, which the client keeps whether a spline runs or not.
+    if (moving)
+    {
+        Geometry::Vector3 const& end = motion->InFlight().End();
+        data << float(end.z);
+        data << float(end.x);
+        data << float(end.y);
+    }
+    else
+    {
+        data << float(0.0f) << float(0.0f) << float(0.0f);
+    }
+
+    data << uint32(motion ? motion->SentId() : 0);
 }

@@ -136,31 +136,31 @@ class MotionMaster
         void MovePoint(uint32 id, float x, float y, float z, bool generatePath = true);
         void MoveSeekAssistance(float x, float y, float z);
         void MoveSeekAssistanceDistract(uint32) {}
+        void MoveFlyOrLand(uint32 id, float x, float y, float z, bool liftOff);
+        void MoveCharge(Unit* target, float speed);
+        void MoveCharge(float x, float y, float z, float speed);
+        bool MoveJump(float x, float y, float z, float horizontalSpeed, float maxHeight, uint32 id = 0);
+        void MoveFall();
         void MoveWaypoint(int32 pathId = 0, uint32 source = 0, uint32 initialDelay = 0, uint32 overwriteEntry = 0);
         bool PauseWaypoints(int32) { return false; }
         void MoveTaxiFlight(std::vector<uint32> const&, uint32, uint32) {}
         void TaxiContinue() {}
         void MoveDistract(uint32) {}
-        bool MoveJump(float, float, float, float, float, uint32 = 0) { return false; }
         bool MoveJump(Geometry::Position&, float, float, uint32 = 0) { return false; }
         bool MoveJump(float, float, float, float, float, float, Unit*) { return false; }
-        void MoveFall() {}
-        void MoveFlyOrLand(uint32, float, float, float, bool) {}
-        void MoveCharge(Unit*, float) {}
-        void MoveCharge(float, float, float, float) {}
 
         void Inhibit(Motion::Inhibition, uint64) {}
         void Uninhibit(Motion::Inhibition, uint64) {}
         bool Inhibited(Motion::Inhibition) const { return false; }
 
         void PropagateSpeedChange() {}
-        bool SetNextWaypoint(uint32) { return false; }
-        uint32 getLastReachedWaypoint() const { return 0; }
+        bool SetNextWaypoint(uint32 pointId);
+        uint32 getLastReachedWaypoint() const;
         void GetWaypointPathInformation(std::ostringstream& oss) const { oss << "No movement."; }
         bool GetWaypointPathInformation(int32&, WaypointPathOrigin&) const { return false; }
         bool AddToSelectedPatrolPause(int32) { return false; }
-        uint32 SelectedPatrolNode() const { return 0; }
-        bool GetDestination(float&, float&, float&) { return false; }
+        uint32 SelectedPatrolNode() const;
+        bool GetDestination(float& x, float& y, float& z);
 
         void Die() {}
         void CancelControl(Motion::Kind) {}
@@ -225,7 +225,24 @@ class MotionMaster
         /// the polyline the client was sent -- the same arithmetic the client does -- so the
         /// two agree to the millisecond instead of to the last position write.
         bool LivePosition(Geometry::Vector3& out) const;
-        bool IsMoving() const { return m_movement.InFlight().Running(); }
+        /// The heading the travel direction gives at this instant, which is what the client
+        /// shows: it takes the facing from the spline's tangent by itself.
+        bool LiveFacing(float& out) const;
+        bool IsMoving() const { return m_legRunning && m_movement.InFlight().Running(); }
+
+        /// Turn on the spot, with no travel. One packet, no route.
+        void FaceTo(float orientation);
+        /// A raw leg at an explicit speed: what a script means by "move there this fast".
+        void MoveAtSpeed(float x, float y, float z, float speed, bool routed);
+        /// Stop where the mover stands, and forget the route.
+        void Halt();
+
+        // ---- what a late observer must be told, so it sees the same leg as everyone else.
+        Move::Route const& InFlight() const { return m_movement.InFlight(); }
+        uint32 SentFlags() const { return m_sentFlags; }
+        uint32 SentDuration() const { return m_sentDuration; }
+        uint32 SentId() const { return m_sentId; }
+        Move::Facing const& SentFacing() const { return m_sentFacing; }
 
     private:
         /// Ask the selected behaviour, then send or refuse what it asked for.
@@ -237,6 +254,15 @@ class MotionMaster
         /// it outlives the call that made it. Raw rather than a smart pointer because the
         /// header must not need the definition to declare the member.
         class MoveSighting* m_sighting = 0;
+        /// A charge's speed, carried across the one Serve call the request makes.
+        float m_chargeSpeed = 0.0f;
+        /// What the last leg actually went out as. An observer who arrives mid-leg is told
+        /// this, so its client builds the same spline as everyone else's rather than a
+        /// second description of the same motion that will drift from the first.
+        uint32 m_sentFlags = 0;
+        uint32 m_sentDuration = 0;
+        uint32 m_sentId = 0;
+        Move::Facing m_sentFacing;
         uint32 m_legEndsAt = 0;
         bool m_legRunning = false;
         PublishedState m_published;

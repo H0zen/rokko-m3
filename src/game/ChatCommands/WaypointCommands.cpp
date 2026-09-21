@@ -46,7 +46,6 @@
 #include "CellImpl.h"
 #include "ObjectMgr.h"
 
-#include "movement/MoveSplineInit.h"
 #include <fstream>
 #include <map>
 #include <typeinfo>

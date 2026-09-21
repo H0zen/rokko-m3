@@ -40,6 +40,7 @@
 #include "Move/Movement.h"
 
 class Unit;
+class ByteBuffer;
 
 class MoveSend
 {
@@ -52,4 +53,26 @@ class MoveSend
         /// Stop where the mover stands. A separate form of the same packet: it ends right
         /// after the position, which is why it cannot be expressed as an empty leg.
         static void Halt(Unit& unit);
+
+        /// Turn on the spot. A leg of no length is the one shape the client cannot decode,
+        /// so a turn is its own packet rather than a spline going nowhere.
+        static void Face(Unit& unit, float orientation);
+
+        /// Boarding or leaving a seat. NOT a walk: the client refuses a spline carrying
+        /// either of these flags (sub_576420 returns early on 0x18000) and snaps the
+        /// passenger to the destination instead, which is the whole point of them. So this
+        /// goes out unvalidated -- there is no leg to time, no ceiling to exceed and no
+        /// zero-length segment to divide by, because no spline is built from it.
+        static void SeatMove(Unit& passenger, const Geometry::Vector3& to, bool board,
+                             bool hasFacing = false, float facing = 0.0f);
+
+        /// WHAT A LATE OBSERVER IS TOLD.
+        ///
+        /// A player who comes into range while a creature is already walking gets the leg
+        /// in the creature's create block instead of in a MonsterMove. It has to describe
+        /// the SAME leg -- same points, same duration, same start -- or that player's
+        /// client builds a second spline that drifts from everyone else's. Both halves read
+        /// the mover's own MotionMaster, which is the single description there is.
+        static void CreateBits(Unit const& unit, ByteBuffer& data);
+        static void CreateBytes(Unit const& unit, ByteBuffer& data);
 };

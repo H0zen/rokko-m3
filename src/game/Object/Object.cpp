@@ -63,7 +63,6 @@
 #include "GridNotifiersImpl.h"
 #include "ObjectPosSelector.h"
 #include "TemporarySummon.h"
-#include "movement/packet_builder.h"
 #include "CreatureLinkingMgr.h"
 #include "Chat.h"
 #include "GameTime.h"

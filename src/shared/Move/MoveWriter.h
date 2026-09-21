@@ -68,6 +68,8 @@ namespace Move
         SPLINE_FALLING       = 0x00000040,
         SPLINE_WALK          = 0x00000100,
         SPLINE_CYCLIC        = 0x00001000,
+        SPLINE_BOARD_VEHICLE = 0x00008000,  ///< the client refuses the spline and snaps to the seat
+        SPLINE_EXIT_VEHICLE  = 0x00010000,  ///< likewise, in the other direction
         SPLINE_BACKWARD      = 0x00080000,  ///< the client subtracts pi from the travel facing
         SPLINE_ROUND_CORNERS = 0x00100000,  ///< the client builds its own entry and exit curves
         SPLINE_UNCOMPRESSED  = 0x00400000,  ///< every point raw, no packing and no reach limit
@@ -101,22 +103,6 @@ namespace Move
         uint32_t flags = 0;
         float length = 0.0f;           ///< the chord sum the client will time this by
         float speed = 0.0f;            ///< what the mover will actually travel at
-    };
-
-    /// How the mover should look at the end of the leg. While the spline runs the client
-    /// takes the facing from the tangent by itself, so this only decides the end.
-    struct EndFacing
-    {
-        enum class Mode : uint8_t { Travel, Angle, Spot, Unit };
-        Mode mode = Mode::Travel;
-        float angle = 0.0f;
-        Vector3 spot;
-        uint64_t unit = 0;
-
-        static EndFacing Travel() { return EndFacing(); }
-        static EndFacing Angle(float radians) { EndFacing f; f.mode = Mode::Angle; f.angle = radians; return f; }
-        static EndFacing Spot(const Vector3& p) { EndFacing f; f.mode = Mode::Spot; f.spot = p; return f; }
-        static EndFacing Unit(uint64_t rawGuid) { EndFacing f; f.mode = Mode::Unit; f.unit = rawGuid; return f; }
     };
 
     class MoveWriter

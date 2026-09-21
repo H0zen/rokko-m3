@@ -59,7 +59,6 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
-#include "movement/MoveSplineInit.h"
 #include "movement/MoveSpline.h"
 #include "CreatureLinkingMgr.h"
 #include "DisableMgr.h"
@@ -862,7 +861,7 @@ void Creature::Update(uint32 update_diff, uint32 diff)
             // keep the swim flag in sync while moving across liquid;
             // cheap gate: position only changes mid-spline, and a set
             // flag must clear when the water is left
-            if (!movespline->Finalized() || IsSwimming())
+            if (GetMotionMaster()->IsMoving() || IsSwimming())
             {
                 UpdateSwimmingState();
             }

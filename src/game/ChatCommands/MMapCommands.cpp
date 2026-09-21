@@ -42,7 +42,8 @@
 #include "GridNotifiers.h"
 #include "GridNotifiersImpl.h"          // for mmap manager
 #include "CellImpl.h"
-#include "movement/MoveSplineInit.h"
+#include "MoveSend.h"
+#include "Move/MoveWriter.h"
 #include "GameTime.h"
 #include <fstream>
 #include <map>
@@ -154,12 +155,15 @@ bool ChatHandler::HandleMmapPathCommand(char* args)
         player->SummonCreature(WAYPOINT_NPC_ENTRY, pointPath[i].x, pointPath[i].y, pointPath[i].z, 0, TEMPSPAWN_TIMED_DESPAWN, 9000);
     }
 
-    if (followPath)
+    if (followPath && pointPath.size() >= 2)
     {
-        Movement::MoveSplineInit init(*player);
-        init.MovebyPath(pointPath);
-        init.SetWalk(false);
-        init.Launch();
+        const Move::Written written = Move::MoveWriter::Write(
+            &pointPath[0], uint16(pointPath.size()), player->GetSpeed(MOVE_RUN),
+            player->GetSpeed(MOVE_RUN));
+        if (!MoveSend::Leg(*player, written, Move::Facing()))
+        {
+            PSendSysMessage("path refused: %s", Move::MoveWriter::Why(written.refusal));
+        }
     }
 
     return true;

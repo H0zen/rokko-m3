@@ -32,10 +32,15 @@
 
 #include "MoveMap.h"
 #include "MoveMapSharedDefines.h"
-#include "movement/MoveSplineInitArgs.h"
+#include "Geometry/Vector3.h"
 
-using Movement::Vector3;
-using Movement::PointsArray;
+#include <vector>
+
+/// A path, as everything that produces or walks one sees it. It lived in the spline
+/// simulation's headers, which no longer exist; the router is where it belongs.
+typedef std::vector<Geometry::Vector3> PointsArray;
+
+using Geometry::Vector3;
 
 class Unit;
 

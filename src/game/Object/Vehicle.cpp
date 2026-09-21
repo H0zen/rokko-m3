@@ -40,12 +40,12 @@
 #include "ObjectGuid.h"
 #include "Log.h"
 #include "Unit.h"
+#include "MoveSend.h"
 #include "Creature.h"
 #include "CreatureAI.h"
 #include "ObjectMgr.h"
 #include "SQLStorages.h"
 #include "Util.h"
-#include "movement/MoveSplineInit.h"
 #include "movement/MoveSpline.h"
 #include "MapManager.h"
 #include "TemporarySummon.h"
@@ -501,11 +501,11 @@ void VehicleInfo::Board(Unit* passenger, uint8 seat)
     // finishes. A seat pose corrupted with a world position (the defect the earlier commits on
     // this branch fixed) was what once made this look like a drift toward the map origin; it
     // never was one -- (0,0,0) was always the seat frame's own origin, not the world's.
-    Movement::MoveSplineInit init(*passenger);
-    init.MoveTo(seatEntry->AttachmentOffset_0, seatEntry->AttachmentOffset_1, seatEntry->AttachmentOffset_2);
-    init.SetFacing(0.0f);
-    init.SetBoardVehicle();
-    init.Launch();
+    MoveSend::SeatMove(*passenger,
+                       Geometry::Vector3(seatEntry->AttachmentOffset_0,
+                                         seatEntry->AttachmentOffset_1,
+                                         seatEntry->AttachmentOffset_2),
+                       true, true, 0.0f);
 
     // Apply passenger modifications
     ApplySeatMods(passenger, seatEntry->Flags);
@@ -578,12 +578,13 @@ void VehicleInfo::SwitchSeat(Unit* passenger, uint8 seat)
     // INDEX, so the walk is from wherever the pose settled on the old seat to the new seat's
     // modelled point -- the same boarding-style animation Board's own spline plays; the pose
     // itself follows as the spline ticks (see Board).
-    Movement::MoveSplineInit init(*passenger);
-    init.MoveTo(seatEntry->AttachmentOffset_0, seatEntry->AttachmentOffset_1, seatEntry->AttachmentOffset_2);
-    //if (oldorientation != neworientation) (?)
-    //init.SetFacing(0.0f);                                 // local orientation ? ToDo: Set proper orientation!
-    // It seems that Seat switching is sent without SplineFlag BoardVehicle
-    init.Launch();
+    // A seat switch goes out without the boarding flag, so the client walks the passenger
+    // from where the pose settled to the new seat's modelled point rather than snapping.
+    MoveSend::SeatMove(*passenger,
+                       Geometry::Vector3(seatEntry->AttachmentOffset_0,
+                                         seatEntry->AttachmentOffset_1,
+                                         seatEntry->AttachmentOffset_2),
+                       true);
 
     // Apply passenger modifications of the new seat
     ApplySeatMods(passenger, seatEntry->Flags);
@@ -647,11 +648,8 @@ void VehicleInfo::UnBoard(Unit* passenger, bool changeVehicle)
             // SMSG_PET_DISMISS_SOUND (?)
         }
 
-        Movement::MoveSplineInit init(*passenger);
         // ToDo: Set proper unboard coordinates
-        init.MoveTo(m_owner->Where().X(), m_owner->Where().Y(), m_owner->Where().Z());
-        init.SetExitVehicle();
-        init.Launch();
+        MoveSend::SeatMove(*passenger, m_owner->Where().Pos(), false);
 
         // Despawn if passenger was accessory
         if (passenger->GetTypeId() == TYPEID_UNIT && m_accessoryGuids.find(passenger->GetObjectGuid()) != m_accessoryGuids.end())

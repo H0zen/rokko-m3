@@ -32,6 +32,7 @@
 #include "Creature.h"
 #include "CreatureAI.h"
 #include "WaypointManager.h"
+#include "ObjectMgr.h"
 #include "Timer.h"
 
 namespace
@@ -82,9 +83,44 @@ MotionMaster::~MotionMaster()
 
 void MotionMaster::Initialize()
 {
-    // Nothing is installed here. What a creature does when nothing else is asked of it is a
-    // property of its spawn, read when the spawn asks for it -- not an object parked at the
-    // bottom of a stack for the life of the unit.
+    // WHAT A CREATURE DOES WHEN NOTHING ELSE IS ASKED OF IT.
+    //
+    // Read from the spawn, once, and turned into one of the shapes. It is not a generator
+    // parked at the bottom of a stack for the life of the unit: a creature whose default is
+    // Idle ends up holding nothing at all, costs no wake-ups and owns no behaviour object.
+    Clear();
+
+    if (!m_unit || m_unit->GetTypeId() != TYPEID_UNIT)
+    {
+        return;
+    }
+    Creature* creature = static_cast<Creature*>(m_unit);
+
+    switch (creature->GetDefaultMovementType())
+    {
+        case CREATURE_MOVEMENT_RANDOM:
+        {
+            const float radius = creature->GetRespawnRadius();
+            if (radius <= 0.0f)
+            {
+                return;
+            }
+            Geometry::Vector3 centre = creature->Where().Pos();
+            if (CreatureData const* spawn = sObjectMgr.GetCreatureData(creature->GetGUIDLow()))
+            {
+                centre = Geometry::Vector3(spawn->posX, spawn->posY, spawn->posZ);
+            }
+            m_movement.Take(new Move::Scatter(Move::Kind::Wander, centre, radius, 3000, 9000));
+            Serve(false, false);
+            return;
+        }
+        case CREATURE_MOVEMENT_WAYPOINT:
+            MoveWaypoint(0, PATH_NO_PATH, 0, 0);
+            return;
+        case CREATURE_MOVEMENT_IDLE:
+        default:
+            return;
+    }
 }
 
 bool MotionMaster::LivePosition(Geometry::Vector3& out) const
@@ -167,7 +203,13 @@ void MotionMaster::Serve(bool legEnded, bool cut)
     }
 
     const uint32 flags = SplineFlagsFor(plan.gait);
-    const float pace = plan.speed > 0.0f ? plan.speed : world.Pace(plan.gait);
+    // A charge names its own speed and the behaviour does not know it, so the request
+    // carries it here rather than through a field on a shape that has no use for one.
+    float pace = plan.speed > 0.0f ? plan.speed : world.Pace(plan.gait);
+    if (m_chargeSpeed > 0.0f)
+    {
+        pace = m_chargeSpeed;
+    }
     const Move::Written written = Move::MoveWriter::Write(
         plan.points, plan.count, pace, m_unit->GetSpeed(MOVE_RUN), flags);
 
@@ -184,6 +226,10 @@ void MotionMaster::Serve(bool legEnded, bool cut)
     // client was given, and the client's own arithmetic starts from it.
     m_legEndsAt = now + written.duration;
     m_legRunning = true;
+    m_sentFlags = written.flags;
+    m_sentDuration = written.duration;
+    m_sentFacing = plan.facing;
+    ++m_sentId;
 }
 
 void MotionMaster::Clear(bool /*reset*/, bool /*all*/)
@@ -219,18 +265,35 @@ void MotionMaster::MovePoint(uint32 id, float x, float y, float z, bool /*genera
 
 void MotionMaster::MoveTargetedHome()
 {
-    // The place a creature returns to is the spot it was standing when it was pulled. A
-    // spawn point read from the database would be wrong for anything summoned, escorted or
-    // moved by a script, and the anchor is exactly the position the pull interrupted.
+    // WHERE HOME IS, in the order the answers are actually trustworthy.
+    //
+    // 1. The combat anchor, when one was recorded. Unit::Attack writes the creature's
+    //    position at the moment a NEW battle starts, so it is where the pull interrupted
+    //    it -- a point on its patrol path, or a spot inside its wander leash. Returning
+    //    there lets a patrol resume where it left off instead of walking back to node zero.
+    //
+    // 2. The spawn row, when there is no anchor. A script may send a creature home without
+    //    it ever having fought, and the anchor is a zero sentinel in that case; falling
+    //    through to the current position would make "go home" mean "stay where you are",
+    //    which is the one answer that is always wrong.
+    //
+    // 3. Its own position, for anything with neither: a summon has no database row and
+    //    nothing better is known about it.
     Geometry::Vector3 home = m_unit->Where().Pos();
     if (m_unit->GetTypeId() == TYPEID_UNIT)
     {
-        Geometry::Vector3 const& anchor = static_cast<Creature*>(m_unit)->CombatAnchor();
+        Creature* creature = static_cast<Creature*>(m_unit);
+        Geometry::Vector3 const& anchor = creature->CombatAnchor();
         if (anchor.x != 0.0f || anchor.y != 0.0f || anchor.z != 0.0f)
         {
             home = anchor;
         }
+        else if (CreatureData const* spawn = sObjectMgr.GetCreatureData(creature->GetGUIDLow()))
+        {
+            home = Geometry::Vector3(spawn->posX, spawn->posY, spawn->posZ);
+        }
     }
+
     m_movement.Take(new Move::GoToPoint(Move::Kind::Home, home));
     Serve(false, false);
 }
@@ -298,10 +361,24 @@ void MotionMaster::MoveWaypoint(int32 pathId, uint32 source, uint32 /*initialDel
     }
     Creature* creature = static_cast<Creature*>(m_unit);
 
-    uint32 entry = overwriteEntry ? overwriteEntry : creature->GetEntry();
+    const uint32 entry = overwriteEntry ? overwriteEntry : creature->GetEntry();
     WaypointPathOrigin origin = WaypointPathOrigin(source);
-    WaypointPath const* path = sWaypointMgr.GetPathFromOrigin(entry, creature->GetGUIDLow(),
-                                                              pathId, origin);
+
+    // No origin named: take whichever path the creature actually has, its own row first and
+    // its template's second, which is what a spawn set to WAYPOINT means by "its path".
+    WaypointPath* path = NULL;
+    if (origin == PATH_NO_PATH)
+    {
+        path = sWaypointMgr.GetPathFromOrigin(entry, creature->GetGUIDLow(), 0, PATH_FROM_GUID);
+        if (!path || path->empty())
+        {
+            path = sWaypointMgr.GetPathFromOrigin(entry, creature->GetGUIDLow(), 0, PATH_FROM_ENTRY);
+        }
+    }
+    else
+    {
+        path = sWaypointMgr.GetPathFromOrigin(entry, creature->GetGUIDLow(), pathId, origin);
+    }
     if (!path || path->empty())
     {
         return;
@@ -347,4 +424,147 @@ bool MotionMaster::IsFollowing() const
 {
     Move::Kind running = Move::Kind::Count;
     return m_movement.Running(running) && running == Move::Kind::Follow;
+}
+
+void MotionMaster::MoveFlyOrLand(uint32 id, float x, float y, float z, bool /*liftOff*/)
+{
+    m_movement.Take(new Move::GoToPoint(Move::Kind::FlyLand, Geometry::Vector3(x, y, z), id));
+    Serve(false, false);
+}
+
+void MotionMaster::MoveCharge(float x, float y, float z, float speed)
+{
+    Move::GoToPoint* charge = new Move::GoToPoint(Move::Kind::Effect, Geometry::Vector3(x, y, z));
+    m_movement.Take(charge);
+    m_chargeSpeed = speed;
+    Serve(false, false);
+    m_chargeSpeed = 0.0f;
+}
+
+void MotionMaster::MoveCharge(Unit* target, float speed)
+{
+    if (!target)
+    {
+        return;
+    }
+    Geometry::Vector3 const& at = target->Where().Pos();
+    MoveCharge(at.x, at.y, at.z, speed);
+}
+
+bool MotionMaster::MoveJump(float x, float y, float z, float horizontalSpeed, float maxHeight,
+                            uint32 /*id*/)
+{
+    m_movement.Take(new Move::Ballistic(Geometry::Vector3(x, y, z), horizontalSpeed, maxHeight));
+    Serve(false, false);
+    return true;
+}
+
+void MotionMaster::MoveFall()
+{
+    // A fall is a jump with no forward speed and no arc: the client computes the descent
+    // from gravity alone once the falling flag is set, so the server only names the floor.
+    MoveWorld world(*m_unit);
+    Geometry::Vector3 down = m_unit->Where().Pos();
+    if (!world.Floor(down, down.z))
+    {
+        return;
+    }
+    m_movement.Take(new Move::Ballistic(down, 0.0f, 0.0f));
+    Serve(false, false);
+}
+
+bool MotionMaster::SetNextWaypoint(uint32 pointId)
+{
+    Move::Behaviour* held = m_movement.Held(Move::Kind::Patrol);
+    if (!held)
+    {
+        return false;
+    }
+    if (!static_cast<Move::WalkNodes*>(held)->SetNext(pointId))
+    {
+        return false;
+    }
+    Serve(false, false);
+    return true;
+}
+
+uint32 MotionMaster::getLastReachedWaypoint() const
+{
+    Move::Behaviour* held = m_movement.Held(Move::Kind::Patrol);
+    return held ? static_cast<Move::WalkNodes*>(held)->Reached() : 0;
+}
+
+uint32 MotionMaster::SelectedPatrolNode() const
+{
+    Move::Behaviour* held = m_movement.Held(Move::Kind::Patrol);
+    return held ? static_cast<Move::WalkNodes*>(held)->Heading() : 0;
+}
+
+bool MotionMaster::GetDestination(float& x, float& y, float& z)
+{
+    if (!m_movement.InFlight().Running())
+    {
+        return false;
+    }
+    Geometry::Vector3 const& end = m_movement.InFlight().End();
+    x = end.x;
+    y = end.y;
+    z = end.z;
+    return true;
+}
+
+bool MotionMaster::LiveFacing(float& out) const
+{
+    if (!m_legRunning || !m_movement.InFlight().Running())
+    {
+        return false;
+    }
+    out = m_movement.InFlight().FacingAt(getMSTime());
+    return true;
+}
+
+void MotionMaster::FaceTo(float orientation)
+{
+    // No travel and no route: the mover turns where it stands. A spline would be a leg of
+    // no length, which is the one shape the client cannot decode.
+    MoveSend::Face(*m_unit, orientation);
+}
+
+void MotionMaster::Halt()
+{
+    if (m_legRunning)
+    {
+        MoveSend::Halt(*m_unit);
+        m_legRunning = false;
+    }
+    m_movement.InFlight().Clear();
+}
+
+void MotionMaster::MoveAtSpeed(float x, float y, float z, float speed, bool routed)
+{
+    MoveWorld world(*m_unit);
+    std::vector<Geometry::Vector3> points;
+    const Geometry::Vector3 to(x, y, z);
+
+    if (!routed || !world.Route(world.Here(), to, points) || points.size() < 2)
+    {
+        points.clear();
+        points.push_back(world.Here());
+        points.push_back(to);
+    }
+
+    const Move::Written written = Move::MoveWriter::Write(
+        &points[0], uint16(points.size()), speed, m_unit->GetSpeed(MOVE_RUN));
+
+    if (!MoveSend::Leg(*m_unit, written, Move::Facing()))
+    {
+        return;
+    }
+    m_movement.InFlight().Launch(&points[0], uint16(points.size()), written.speed, getMSTime());
+    m_legEndsAt = getMSTime() + written.duration;
+    m_legRunning = true;
+    m_sentFlags = written.flags;
+    m_sentDuration = written.duration;
+    m_sentFacing = Move::Facing();
+    ++m_sentId;
 }

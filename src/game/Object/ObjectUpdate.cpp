@@ -48,7 +48,7 @@
 #include "GridNotifiersImpl.h"
 #include "ObjectPosSelector.h"
 #include "TemporarySummon.h"
-#include "movement/packet_builder.h"
+#include "MoveSend.h"
 #include "CreatureLinkingMgr.h"
 #include "Chat.h"
 #include "GameTime.h"
@@ -366,7 +366,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
 
         if (isSplineEnabled)
         {
-            Movement::PacketBuilder::WriteCreateBits(*unit->movespline, *data);
+            MoveSend::CreateBits(*unit, *data);
         }
 
         data->WriteGuidMask<6>(Guid);
@@ -448,7 +448,7 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
 
         if (isSplineEnabled)
         {
-            Movement::PacketBuilder::WriteCreateBytes(*unit->movespline, *data);
+            MoveSend::CreateBytes(*unit, *data);
         }
 
         *data << float(vessel ? 0.0f : unit->Where().Z());

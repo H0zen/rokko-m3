@@ -60,7 +60,6 @@
 #include "MapPhase.h"
 #include "GridNotifiersImpl.h"
 #include "CellImpl.h"
-#include "movement/MoveSplineInit.h"
 #include "movement/MoveSpline.h"
 #include "CreatureLinkingMgr.h"
 #include "GameTime.h"
@@ -182,7 +181,6 @@ void GlobalCooldownMgr::CancelGlobalCooldown(SpellEntry const* spellInfo)
 // Methods of class Unit
 
 Unit::Unit() :
-    movespline(new Movement::MoveSpline()),
     m_charmInfo(NULL),
     i_motionMaster(this),
     m_regenTimer(0),
@@ -391,7 +389,6 @@ Unit::~Unit()
 
     delete m_charmInfo;
     delete m_vehicleInfo;
-    delete movespline;
 
     // those should be already removed at "RemoveFromWorld()" call
     MANGOS_ASSERT(m_gameObj.size() == 0);
@@ -2483,9 +2480,7 @@ void Unit::SetInFront(Unit const* target)
  */
 void Unit::SetFacingTo(float ori)
 {
-    Movement::MoveSplineInit init(*this);
-    init.SetFacing(ori);
-    init.Launch();
+    GetMotionMaster()->FaceTo(ori);
 }
 
 /**
@@ -5806,26 +5801,18 @@ void Unit::StopMoving(bool forceSendStop /*=false*/)
         return;
     }
 
-    // Gate on the spline, not on the leg latches (the old *_MOVE states): home legs, effects and raw script
-    // splines set none, and skipping them left the spline running.
-    if (movespline->Finalized() && !forceSendStop)
+    // Gate on the leg in flight: a home leg, an effect or a raw script leg latches nothing,
+    // and skipping those left the mover walking.
+    if (!GetMotionMaster()->IsMoving() && !forceSendStop)
     {
         return;
     }
 
-    // A jump or a fall is ballistic: it cannot stop mid-air, so it is left to land and
-    // its effect ends there. Only an interrupt (forced) cuts it.
-    if (movespline->Airborne() && !forceSendStop)
-    {
-        return;
-    }
-
-    // Take where the spline actually is before stopping there, so the stop packet and
-    // the placement agree. The placement itself is written on the next Update.
+    // Take where the leg actually is before stopping there, so the stop packet and the
+    // placement agree. The placement itself is written on the next Update.
     CommitSplinePosition();
 
-    Movement::MoveSplineInit init(*this);
-    init.Stop();
+    GetMotionMaster()->Halt();
 }
 
 /**
@@ -5837,17 +5824,19 @@ void Unit::InterruptMoving(bool forceSendStop /*=false*/)
 {
     // One stop path: commit the in-flight position and finalize through Stop(), which
     // sends the stop packet and leaves a spline the driver reads as cut, not arrived.
-    StopMoving(forceSendStop || !movespline->Finalized());
+    StopMoving(forceSendStop || GetMotionMaster()->IsMoving());
 }
 
 bool Unit::CommitSplinePosition()
 {
-    if (movespline->Finalized())
+    Geometry::Vector3 at;
+    if (!GetMotionMaster()->LivePosition(at))
     {
         return false;
     }
-
-    const Geometry::Position loc = movespline->ComputePosition();
+    float heading = Where().Facing();
+    GetMotionMaster()->LiveFacing(heading);
+    const Geometry::Position loc(at, heading);
 
     if (IsBoarded())
     {
@@ -6488,12 +6477,9 @@ void Unit::NearTeleportTo(float x, float y, float z, float orientation, bool cas
  * @param generatePath True to generate a path.
  * @param forceDestination True to force the exact destination.
  */
-void Unit::MonsterMoveWithSpeed(float x, float y, float z, float speed, bool generatePath, bool forceDestination)
+void Unit::MonsterMoveWithSpeed(float x, float y, float z, float speed, bool generatePath, bool /*forceDestination*/)
 {
-    Movement::MoveSplineInit init(*this);
-    init.MoveTo(x, y, z, generatePath, forceDestination);
-    init.SetVelocity(speed);
-    init.Launch();
+    GetMotionMaster()->MoveAtSpeed(x, y, z, speed, generatePath);
 }
 
 struct SetPvPHelper
@@ -6925,14 +6911,17 @@ void Unit::UpdateSplineMovement(uint32 t_diff)
         POSITION_UPDATE_DELAY = 400,
     };
 
-    if (movespline->Finalized())
+    // The leg is not simulated. Its shape, its speed and its start are known, so where the
+    // mover is at this instant is arithmetic -- the same arithmetic the client does. What
+    // this loop is for is the SERVER's bookkeeping: the grid cell, visibility and everything
+    // that reads a stored position, none of which can afford to be recomputed per query.
+    Geometry::Vector3 at;
+    if (!GetMotionMaster()->LivePosition(at))
     {
         return;
     }
 
-    movespline->updateState(t_diff);
-    bool arrived = movespline->Finalized();
-
+    const bool arrived = GetMotionMaster()->InFlight().Arrived(getMSTime());
     if (arrived)
     {
         DisableSpline();
@@ -6942,7 +6931,9 @@ void Unit::UpdateSplineMovement(uint32 t_diff)
     if (m_movesplineTimer.Passed() || arrived)
     {
         m_movesplineTimer.Reset(POSITION_UPDATE_DELAY);
-        const Geometry::Position loc = movespline->ComputePosition();
+        float heading = Where().Facing();
+        GetMotionMaster()->LiveFacing(heading);
+        const Geometry::Position loc(at, heading);
 
         if (IsBoarded())
         {
@@ -6967,17 +6958,11 @@ void Unit::UpdateSplineMovement(uint32 t_diff)
 void Unit::DisableSpline()
 {
     m_movementInfo.RemoveMovementFlag(MOVEFLAG_FORWARD);
-
-    // A spline that ran out is finished, not cut; only a live one is interrupted here.
-    if (!movespline->Finalized())
-    {
-        movespline->_Interrupt();
-    }
 }
 
 bool Unit::IsSplineEnabled() const
 {
-    return movespline->Initialized() && !movespline->Finalized();
+    return GetMotionMaster()->IsMoving();
 }
 
 bool Unit::IsInWorgenForm(bool inPermanent) const

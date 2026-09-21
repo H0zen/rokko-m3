@@ -917,11 +917,6 @@ inline WorldPacket& operator>> (WorldPacket& buf, MovementInfo& mi)
     return buf;
 }
 
-namespace Movement
-{
-    class MoveSpline;
-}
-
 /**
  * The different available diminishing return levels.
  * \see DiminishingReturn
@@ -4019,7 +4014,6 @@ class Unit : public WorldObject
 
         // Movement info
         MovementInfo m_movementInfo;
-        Movement::MoveSpline* movespline;
 
         void ScheduleAINotify(uint32 delay);
         bool IsAINotifyScheduled() const { return m_AINotifyScheduled;}
