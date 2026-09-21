@@ -160,7 +160,7 @@ bool ChatHandler::HandleMmapPathCommand(char* args)
         const Move::Written written = Move::MoveWriter::Write(
             &pointPath[0], uint16(pointPath.size()), player->GetSpeed(MOVE_RUN),
             player->GetSpeed(MOVE_RUN));
-        if (!MoveSend::Leg(*player, written, Move::Facing()))
+        if (!MoveSend::Leg(*player, written, Move::Facing(), Move::Kind::Point))
         {
             PSendSysMessage("path refused: %s", Move::MoveWriter::Why(written.refusal));
         }

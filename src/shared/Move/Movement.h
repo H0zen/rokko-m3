@@ -125,6 +125,11 @@ namespace Move
         ACT_SAY
     };
 
+    /// The shortest leg worth asking for. Below this the client has nothing to interpolate
+    /// and the writer refuses, so a shape that finds its destination this close is already
+    /// there -- it must say so rather than ask for a leg and be told no.
+    const float POINTLESS_LEG = 0.5f;
+
     /// What a Movement wants done. The map performs it and nothing else; a Plan that asks
     /// for nothing is the normal answer, because most wake-ups only move state along.
     struct Plan

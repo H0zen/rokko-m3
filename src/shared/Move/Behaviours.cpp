@@ -24,6 +24,7 @@
  */
 
 #include "Move/Behaviours.h"
+#include "Move/ClientRules.h"
 
 #include <cmath>
 
@@ -45,6 +46,24 @@ namespace Move
         {
             return (there - here).squaredMagnitude() <= within * within;
         }
+
+        /// The length of a polyline, which is what the client will time the leg by.
+        float Span(const std::vector<Vector3>& points)
+        {
+            float length = 0.0f;
+            for (size_t i = 1; i < points.size(); ++i)
+            {
+                length += (points[i] - points[i - 1]).magnitude();
+            }
+            return length;
+        }
+
+        /// A leg nobody should ask for: too short for the client to interpolate, so the
+        /// writer would refuse it and the shape would learn nothing from being told no.
+        bool GoesNowhere(const std::vector<Vector3>& points)
+        {
+            return points.size() < 2 || Span(points) < POINTLESS_LEG;
+        }
     }
 
     // ---------------------------------------------------------------- GoToPoint
@@ -57,7 +76,7 @@ namespace Move
         }
 
         const Vector3 here = world.Here();
-        if (Reached(here, m_to, 0.5f))
+        if (Reached(here, m_to, POINTLESS_LEG))
         {
             m_done = true;
             out.acts.push_back(Plan::Act{ ACT_ARRIVED, m_id, uint32_t(m_kind) });
@@ -76,6 +95,15 @@ namespace Move
             m_points.clear();
             m_points.push_back(here);
             m_points.push_back(m_to);
+        }
+
+        // The router came back with a path that covers no ground -- the destination was
+        // reachable but is where we already are. That is an arrival, not a leg.
+        if (GoesNowhere(m_points))
+        {
+            m_done = true;
+            out.acts.push_back(Plan::Act{ ACT_ARRIVED, m_id, uint32_t(m_kind) });
+            return 0;
         }
 
         m_failures = 0;
@@ -185,6 +213,35 @@ namespace Move
                 break;
             }
 
+            // Standing on the node we were heading to. It is reached, not skipped: the
+            // creature is there, so say so and carry on to the next one rather than asking
+            // for a leg of no length that the writer would refuse.
+            if (leg.size() < 2 || Span(leg) < POINTLESS_LEG)
+            {
+                if (m_points.empty())
+                {
+                    m_run.push_back(at);
+                    m_reachedWithoutWalking = true;
+                }
+                if (m_nodes[at].stops || m_nodes[at].waitMs != 0)
+                {
+                    break;
+                }
+                from = m_nodes[at].at;
+                const size_t after = at + 1 >= m_nodes.size() ? 0 : at + 1;
+                if (!m_loops && at + 1 >= m_nodes.size())
+                {
+                    break;
+                }
+                if (after == m_target)
+                {
+                    break;
+                }
+                at = after;
+                continue;
+            }
+
+            const size_t before = m_points.size();
             if (m_points.empty())
             {
                 m_points.push_back(leg.front());
@@ -193,6 +250,18 @@ namespace Move
             {
                 m_points.push_back(leg[i]);
             }
+
+            // THE WELD HAS A REACH. Every point between the first and the last travels as an
+            // offset from their midpoint, quantised into signed 11/11/10 bit fields; one
+            // yard past the edge the field changes sign and the creature walks to the far
+            // side of the map. So a node that would push the run past that reach does not
+            // join it -- the run ends here and the next one starts from this node.
+            if (before >= 2 && !Client::PacksWithoutWrapping(&m_points[0], uint16_t(m_points.size())))
+            {
+                m_points.resize(before);
+                break;
+            }
+
             m_run.push_back(at);
 
             if (m_nodes[at].stops || m_nodes[at].waitMs != 0)
@@ -211,6 +280,15 @@ namespace Move
                 break;   // a whole lap: do not weld the path onto itself
             }
             at = next;
+        }
+
+        // Already standing on the node -- no leg to send, but the node IS reached, so the
+        // arrival runs now and the patrol moves on. Without this a creature spawned exactly
+        // on its first waypoint asks for a leg of no length every time it is woken.
+        if (m_points.size() < 2 && m_reachedWithoutWalking)
+        {
+            m_reachedWithoutWalking = false;
+            return Arrived(nowMs, false, world, out);
         }
 
         // Nothing usable. The target node is UNCHANGED -- that is the rule this whole class
@@ -291,9 +369,17 @@ namespace Move
         }
 
         m_points.clear();
-        if (!world.Route(world.Here(), spot, m_points) || m_points.size() < 2)
+        if (!world.Route(world.Here(), spot, m_points))
         {
             return nowMs + RETRY_MS;
+        }
+
+        // The draw landed where the creature already stands. That is not a failure and not
+        // a leg: it is a turn of standing still, so rest and draw again.
+        if (GoesNowhere(m_points))
+        {
+            const uint32_t rest = m_restMax > m_restMin ? world.Urand(m_restMin, m_restMax) : m_restMin;
+            return nowMs + (rest == 0 ? RETRY_MS : rest);
         }
 
         out.send = true;

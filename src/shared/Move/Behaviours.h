@@ -122,6 +122,9 @@ namespace Move
             size_t m_target = 0;         ///< index of the node being walked to
             uint32_t m_reached = 0;      ///< id of the last node actually reached
             uint8_t m_failures = 0;      ///< consecutive failures on THIS node; never a skip
+            /// The run covered a node the creature was already standing on, so there is
+            /// nothing to walk but the node counts as reached.
+            bool m_reachedWithoutWalking = false;
             std::vector<Vector3> m_points;
             std::vector<size_t> m_run;   ///< node indices this leg covers, in order
     };

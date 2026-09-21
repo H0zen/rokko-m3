@@ -220,7 +220,10 @@ void MotionMaster::Serve(bool legEnded, bool cut)
     const Move::Written written = Move::MoveWriter::Write(
         plan.points, plan.count, pace, m_unit->GetSpeed(MOVE_RUN), flags);
 
-    if (!MoveSend::Leg(*m_unit, written, plan.facing))
+    Move::Kind shape = Move::Kind::Count;
+    m_movement.Running(shape);
+
+    if (!MoveSend::Leg(*m_unit, written, plan.facing, shape))
     {
         // Refused. The client would have crashed on it or teleported the mover, so nothing
         // was sent and nothing about the behaviour's state changed. It asks again shortly.
@@ -569,7 +572,7 @@ void MotionMaster::MoveAtSpeed(float x, float y, float z, float speed, bool rout
     const Move::Written written = Move::MoveWriter::Write(
         &points[0], uint16(points.size()), speed, m_unit->GetSpeed(MOVE_RUN));
 
-    if (!MoveSend::Leg(*m_unit, written, Move::Facing()))
+    if (!MoveSend::Leg(*m_unit, written, Move::Facing(), Move::Kind::Point))
     {
         return;
     }

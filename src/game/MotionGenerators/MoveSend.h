@@ -47,8 +47,11 @@ class MoveSend
     public:
         /// Encode and broadcast. Answers false when the writer refused, in which case
         /// nothing was sent and the mover has not been told to go anywhere.
+        /// `shape` is the Move::Kind that produced the leg; it is only used to name the
+        /// culprit when the writer refuses, which is the first thing worth knowing.
         static bool Leg(Unit& unit, const Move::Written& written,
-                        const Move::Facing& facing, uint32 splineId = 0);
+                        const Move::Facing& facing, Move::Kind shape = Move::Kind::Count,
+                        uint32 splineId = 0);
 
         /// Stop where the mover stands. A separate form of the same packet: it ends right
         /// after the position, which is why it cannot be expressed as an empty leg.

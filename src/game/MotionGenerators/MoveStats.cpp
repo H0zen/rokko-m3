@@ -25,6 +25,7 @@
 
 #include "MoveStats.h"
 #include "Move/MoveWriter.h"
+#include "Move/Movement.h"
 #include "Timer.h"
 #include "Log.h"
 
@@ -56,6 +57,20 @@ namespace MoveStats
         /// each kind: one broken shape must not be able to fill the log by itself.
         const uint32 NAMED_PER_KIND = 5;
         std::atomic<uint32> s_named[6];
+
+        /// Refusals by the shape that asked, so the block says which of the six is at fault
+        /// rather than only that something is.
+        std::atomic<uint64> s_byShape[uint8(Move::Kind::Count)];
+
+        char const* ShapeName(uint8 shape)
+        {
+            static char const* const NAMES[] =
+            {
+                "idle", "wander", "patrol", "follow", "chase", "point", "fly-land",
+                "home", "assist-run", "distract", "fear", "confused", "effect", "taxi"
+            };
+            return shape < uint8(Move::Kind::Count) ? NAMES[shape] : "unknown";
+        }
 
         void Bump(std::atomic<uint64>& counter)
         {
@@ -94,18 +109,23 @@ namespace MoveStats
         Bump(s_turns);
     }
 
-    void Refused(uint8 refusal, uint64 who, uint32 entry)
+    void Refused(uint8 refusal, uint8 shape, uint64 who, uint32 entry)
     {
         if (refusal >= 6)
         {
             return;
         }
         Bump(s_refusals[refusal]);
+        if (shape < uint8(Move::Kind::Count))
+        {
+            Bump(s_byShape[shape]);
+        }
 
         if (s_named[refusal].fetch_add(1, std::memory_order_relaxed) < NAMED_PER_KIND)
         {
-            sLog.outError("Move: leg refused for guid " UI64FMTD " (entry %u): %s",
-                          who, entry, Move::MoveWriter::Why(Move::Refusal(refusal)));
+            sLog.outError("Move: %s refused for guid " UI64FMTD " (entry %u): %s",
+                          ShapeName(shape), who, entry,
+                          Move::MoveWriter::Why(Move::Refusal(refusal)));
         }
     }
 
@@ -180,12 +200,28 @@ namespace MoveStats
         if (total == 0)
         {
             line("  refusals 0");
+            for (uint8 i = 0; i < uint8(Move::Kind::Count); ++i)
+            {
+                s_byShape[i].store(0, std::memory_order_relaxed);
+            }
         }
         else
         {
             // Not a warning about load. A refusal is a shape asking for something the client
-            // would have mishandled, and the shape is what needs fixing.
+            // would have mishandled, and the shape is what needs fixing -- so the shapes are
+            // named on their own line, which is the one to read first.
             line(Line("  refusals %llu --%s", (unsigned long long)total, detail.c_str()));
+
+            std::string blame;
+            for (uint8 i = 0; i < uint8(Move::Kind::Count); ++i)
+            {
+                const uint64 count = s_byShape[i].exchange(0, std::memory_order_relaxed);
+                if (count)
+                {
+                    blame += Line(" %s=%llu", ShapeName(i), (unsigned long long)count);
+                }
+            }
+            line(Line("  refused by shape --%s", blame.c_str()));
         }
     }
 }

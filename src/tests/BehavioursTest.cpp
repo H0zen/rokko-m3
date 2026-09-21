@@ -26,6 +26,7 @@
 #include "TestHarness.h"
 
 #include "Move/Behaviours.h"
+#include "Move/ClientRules.h"
 
 #include <cmath>
 
@@ -434,4 +435,78 @@ TEST(ABallisticLegLandsOnceAndReportsIt)
     jump.Arrived(1000, false, world, after);
     CHECK(jump.Landed());
     CHECK_EQ(int(after.acts[0].what), int(Move::ACT_LANDED));
+}
+
+// ------------------------------------------ what the live log caught
+
+// Thirty-seven percent of every leg the server tried to send was refused for having no
+// length, because a shape would happily ask to walk to where the creature already stood.
+// The writer caught it -- that is what it is for -- but a shape must not produce it.
+TEST(AScatterThatDrawsTheSpotItStandsOnRestsInsteadOfAskingForALeg)
+{
+    OpenField world;
+    world.here = Vector3(10.0f, 0.0f, 0.0f);
+    // The fake draws centre + radius on x; with a radius of zero that is exactly here.
+    Move::Scatter wander(Kind::Wander, Vector3(10.0f, 0.0f, 0.0f), 0.0f, 2000, 4000);
+
+    Plan plan;
+    const uint32_t due = wander.Decide(1000, false, world, plan);
+    CHECK(!plan.send);
+    CHECK(due >= uint32_t(3000));
+}
+
+TEST(APointAlreadyUnderfootIsAnArrivalNotALegThatGetsRefused)
+{
+    OpenField world;
+    world.here = Vector3(5.0f, 0.0f, 0.0f);
+    Move::GoToPoint go(Kind::Point, Vector3(5.2f, 0.0f, 0.0f), 31);
+
+    Plan plan;
+    go.Decide(1000, false, world, plan);
+    CHECK(!plan.send);
+    CHECK(go.Done());
+    CHECK_EQ(int(plan.acts[0].what), int(Move::ACT_ARRIVED));
+}
+
+// A creature spawned exactly on its first waypoint used to ask for a leg of no length every
+// time it woke. Standing on the node IS reaching it -- which is not the same as skipping it.
+TEST(APatrolStandingOnItsNodeReachesItRatherThanAskingForAnEmptyLeg)
+{
+    OpenField world;
+    world.here = Vector3(10.0f, 0.0f, 0.0f);
+    std::vector<Move::WalkNodes::Node> nodes;
+    nodes.push_back(MakeNode(1, 10.0f, 2000));
+    nodes.push_back(MakeNode(2, 30.0f, 2000));
+    Move::WalkNodes patrol(nodes);
+
+    Plan plan;
+    const uint32_t due = patrol.Decide(1000, false, world, plan);
+    CHECK(!plan.send);
+    CHECK_EQ(patrol.Reached(), uint32_t(1));
+    CHECK_EQ(patrol.Heading(), uint32_t(2));
+    CHECK_EQ(due, uint32_t(3000));
+}
+
+// THE WELD HAS A REACH. Packed middle points are offsets from the midpoint of the first and
+// last, in signed 11/11/10 bit fields; a yard past the edge the sign flips and the creature
+// walks to the far side of the map. The writer refused these; the weld must not build them.
+TEST(AWeldStopsBeforeItsPointsOutgrowThePackedFields)
+{
+    OpenField world;
+    world.here = Vector3(0.0f, 0.0f, 0.0f);
+
+    // Nodes marching away in a straight line, far enough that welding all of them would put
+    // the middle ones hundreds of yards from the midpoint of the ends.
+    std::vector<Move::WalkNodes::Node> nodes;
+    for (int i = 1; i <= 12; ++i)
+    {
+        nodes.push_back(MakeNode(uint32_t(i), float(i) * 120.0f));
+    }
+    Move::WalkNodes patrol(nodes, false);
+
+    Plan plan;
+    patrol.Decide(0, false, world, plan);
+    CHECK(Sent(plan));
+    CHECK(Move::Client::PacksWithoutWrapping(plan.points, plan.count));
+    CHECK(patrol.RunLength() < size_t(12));
 }

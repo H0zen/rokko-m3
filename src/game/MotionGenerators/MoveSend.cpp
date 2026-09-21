@@ -60,14 +60,14 @@ namespace
 }
 
 bool MoveSend::Leg(Unit& unit, const Move::Written& written, const Move::Facing& facing,
-                   uint32 splineId)
+                   Move::Kind shape, uint32 splineId)
 {
     if (!written.Ok())
     {
         // Nothing goes out. The client would either crash on it or teleport the mover, and
         // neither is better than the mover staying put until the caller tries again.
-        MoveStats::Refused(uint8(written.refusal), unit.GetObjectGuid().GetRawValue(),
-                           unit.GetEntry());
+        MoveStats::Refused(uint8(written.refusal), uint8(shape),
+                           unit.GetObjectGuid().GetRawValue(), unit.GetEntry());
         return false;
     }
 

@@ -60,10 +60,11 @@ namespace MoveStats
     void Sent(uint32 points);
     /// A turn-on-the-spot packet went out. Should stay near zero.
     void Turned();
-    /// A leg was refused; `refusal` is the Move::Refusal value. `who` and `entry` name the
-    /// mover, because a refusal is a defect in whatever asked for that leg and the first
-    /// question is always which creature it was.
-    void Refused(uint8 refusal, uint64 who, uint32 entry);
+    /// A leg was refused; `refusal` is the Move::Refusal value and `shape` the Move::Kind
+    /// that asked for it. The SHAPE is the important half: a refusal is a defect in
+    /// whatever produced the leg, and without its name the log says only that something is
+    /// wrong. The creature is named too, so the case can be reproduced.
+    void Refused(uint8 refusal, uint8 shape, uint64 who, uint32 entry);
 
     /// Called from the world update. Writes the block below to the log on its own schedule,
     /// so the numbers are there to read afterwards without anyone having been in-game with
