@@ -25,8 +25,12 @@
 
 #include "Scenario.h"
 #include "Harness.h"
+#include "HarnessAI.h"
 #include "Creature.h"
 #include "CreatureAI.h"
+#include "Pet.h"
+#include "Map.h"
+#include "ObjectMgr.h"
 #include "MotionMaster.h"
 #include "Player.h"
 #include "PlayerRegistry.h"
@@ -1207,11 +1211,17 @@ namespace Harness
     /// CancelControl, Clear(true), the death and anything nobody has enumerated are all covered
     /// by construction. This scenario proves two routes that Unit::SetFeared does not own.
     ///
-    /// WHAT IT CANNOT REACH: the real pet-possession path needs a Player possessing HIS OWN pet
-    /// (Unit.cpp:7157 `ownPet`), which is machinery the harness does not have -- a creature
-    /// possessing a creature, which S34 does exercise, never enters that branch. So the
-    /// scenario makes the same facade call TakePossessOf makes, on the same arbiter, rather
-    /// than inventing a pet. The call under test is identical; only its preconditions are not.
+    /// WHAT IT DOES NOT REACH, and no longer cannot: the real pet-possession path needs a Player
+    /// possessing HIS OWN pet (Unit.cpp:7157 `ownPet`), and a creature possessing a creature,
+    /// which S34 exercises, never enters that branch. This scenario makes the same facade call
+    /// TakePossessOf makes, on the same arbiter, rather than building a pet for it -- the call
+    /// under test is identical; only its preconditions are not -- and the note used to add that
+    /// the harness could not build one. It can, since 2026-09-21: S73
+    /// player-owned-pet-possession (order 907) builds the pet and enters the branch itself. The
+    /// division of labour is deliberate and the two do not overlap: S73 asks whether the take
+    /// ENDS the claim, and this one asks what the RUN SPEED does when a claim ends by a route
+    /// Unit::SetFeared does not own, which is a question about MotionMaster::Publish and needs no
+    /// pet at all.
     class FearSpeedFollowsTheClaim : public Scenario
     {
     public:
@@ -3968,6 +3978,801 @@ namespace Harness
     };
 
 
+    namespace
+    {
+        /// THE PET'S TEMPLATE, and it is read out of the database rather than picked by name.
+        /// 416 "Imp" is the warlock's own SUMMON_PET: `pet_levelstats` covers it from level 1 to
+        /// 85, so Pet::InitStatsForLevel takes its real branch instead of the "'Weakifying' pet
+        /// and giving it mana to make it obvious" fallback (Pet.cpp:760) that an entry with no
+        /// rows would land in; creature_template.MechanicImmuneMask is 0, so no immunity stands
+        /// between the fear and the claim under test; UnitFlags is 0 and MovementType is 0. Read
+        /// from mangos3.creature_template and mangos3.pet_levelstats on 2026-09-21.
+        ///
+        /// Its Expansion column is -1 -- as it is for every entry `pet_levelstats` covers on this
+        /// database -- so InitStatsForLevel logs one "SUMMON_PET creature_template not finished
+        /// (expansion field = -1)" errorDb line per run and falls back to the template's own melee
+        /// damage. That is a data gap far older than this scenario, it touches nothing any
+        /// category below reads, and it is named here so the next reader of the log does not go
+        /// hunting for a fault in the harness.
+        const uint32 IMP = 416;
+
+        /// THE CLAIMS ARE TAKEN THROUGH Unit::SetFeared AND Unit::SetConfused, not by casting
+        /// 5782 and 118 at the pet, AND THAT IS A MEASUREMENT, not a convenience.
+        ///
+        /// Both spells draw a hit roll against the pet. 5782's Spell.dbc row points at
+        /// SpellCategories row 764, whose DefenseType is 1 -- SPELL_DAMAGE_CLASS_MAGIC -- with
+        /// mechanic 5 (MECHANIC_FEAR); 118's points at row 53, DefenseType 1, mechanic 17. (Read
+        /// out of server-release/dbc/Spell.dbc column 35 and SpellCategories.dbc on 2026-09-21,
+        /// the same way player-stun read 76216's absent row and 5211's DefenseType 2.) A class
+        /// other than NONE sends Unit::SpellHitResult to MagicSpellHitResult
+        /// (UnitCombat.cpp:969-977), which rolls; the harness's seed is fixed, so a bad roll would
+        /// fail this scenario on EVERY run rather than occasionally -- and a pet is exactly the
+        /// shape that gets the roll, since it is neither the caster nor immune. Both mechanics are
+        /// also diminishing groups, and diminishing returns apply to a player's pet.
+        ///
+        /// The entry point costs nothing this scenario needs and buys something it wants. It is
+        /// the call Aura::HandleModFear and Aura::HandleModConfuse make one line below the aura
+        /// (S55, S58 and S65 -- the scenario that carries the asterisk this one removes -- all
+        /// take it), the claim it stamps is identical, and with `time` 0 the claim carries NO
+        /// clock: there is no aura to expire and no timer to run out, so nothing in the world can
+        /// end it except the take. "The claim was gone the instant the take returned" therefore
+        /// has exactly one explanation available to it.
+        ///
+        /// WHAT IS LOST BY IT, said plainly: the aura's own removal path is not exercised here,
+        /// and this scenario does not claim it is. player-fear and player-confuse cast the real
+        /// spells at a player and own that half.
+
+        /// player-owned-pet-possession's moments, absolute offsets from the scenario's start as
+        /// Scenario::At takes them.
+        ///
+        /// TWO TIME BASES WOULD BE ONE TOO MANY, so this scenario's log lines carry the ABSOLUTE
+        /// timeline moment and each one names its phase. Every player scenario before it had a
+        /// single event every reading was about and counted "+Nms" from it; this one has two takes
+        /// with a release between them, and a "+Nms" that silently changed anchor half way down
+        /// the log would be worse than no anchor at all.
+        ///
+        /// The fear is given 1.1 s before the first take: a flee bolt is 11-36 yd at 7.5 yd/s, so
+        /// the pet is unmistakably running by then and still well inside the 90 yd at which
+        /// Unit::ResetControlState would dismiss an out-of-range pet instead of handing it back.
+        /// The release is 1.3 s after the take, the confuse 500 ms after the release (the follow
+        /// the release lays has settled), and the second take 900 ms after the confuse.
+        const uint32 kOwnPetFearAt    = 500;
+        const uint32 kOwnPetTakeAt    = 1600;
+        const uint32 kOwnPetReleaseAt = 2900;
+        const uint32 kOwnPetConfuseAt = 3400;
+        const uint32 kOwnPetTake2At   = 4300;
+        const uint32 kOwnPetCleanupAt = 5700;   ///< the possession handed back and the pet gone, before the runner's teardown
+        const uint32 kOwnPetVerdictAt = 6000;
+
+        /// How far the flee must have carried the pet before fleeStopsAtTake will call it running.
+        /// Five yards, from the same arithmetic S60 uses for its ten: the shortest bolt this
+        /// geometry draws is 8 yd and the pet runs it at 7.5 yd/s, so 1.1 s of fleeing covers
+        /// about 8 yd. Five leaves room for the first tick's latency and for the ground under the
+        /// goal, and is still ten times anything a standing unit can produce -- nothing writes a
+        /// standing creature's position, so a pet that never fled reads 0.0 exactly.
+        const float kOwnPetFleeYd = 5.0f;
+
+        /// And how far it may drift after the take before "stopped" stops meaning it. Half a yard,
+        /// the same figure the flee family uses to tell a stop spline from a bolt (kStopSplineYd):
+        /// a feared unit runs 8.75 yd/s (7.0 base x the fear's 1.25), so ONE sample of a surviving
+        /// bolt covers 0.88 yd and already clears this.
+        const float kOwnPetStillYd = 0.5f;
+
+        /// ...measured from the fifth sample after the take, not from the take itself, and the
+        /// gap is the harness reading the world between its beats rather than anything moving.
+        /// A scenario step runs after the map's update, so the position it reads is the last one
+        /// Unit::UpdateSplineMovement relocated; Unit::StopMoving ends the spline on the
+        /// INTERPOLATED point (MoveSplineInit::Stop computes it), so the take's own stop lands as
+        /// a relocation on a later update and reads as a jump of a yard or two that no behaviour
+        /// authored. Anchoring on the take instant would count that jump as movement; anchoring
+        /// half a second later cannot miss a bolt, which would have carried the pet four yards
+        /// further by then. What the stop carried is measured anyway and printed in the verdict,
+        /// so it is bounded rather than waved away.
+        const uint32 kOwnPetSettleSamples = 5;
+    }
+
+    /// S73 (order 907, the harness's eighth player and its first pet): the ownPet branch of
+    /// Unit::TakePossessOf (Unit.cpp:7155-7176) -- the one player-only path in the movement kernel
+    /// that no scenario has ever entered, and the asterisk on S65's own header.
+    ///
+    /// The branch is gated on three things at once: the charmer is a PLAYER, the possessed body
+    /// IsPet(), and its guid is the charmer's own GetPetGuid(). A creature possessing a creature
+    /// (S34) fails the first, and the seven player scenarios of the last two days possessed a
+    /// plain wolf, which fails the other two. Inside the gate the take does two things nothing has
+    /// observed: BEFORE the grant it ends the body's control episodes --
+    /// `CancelControl(Motion::Kind::Fear)` and `CancelControl(Motion::Kind::Confused)`, commented
+    /// "the grant below needs the flee and confuse states gone" -- and AFTER the grant it stops the
+    /// body, clears the stack, installs the idle and returns, skipping the whole non-pet tail.
+    /// S65 could reach neither: "the harness cannot build a player-owned pet, so the scenario makes
+    /// the identical facade call on the identical arbiter instead" (peer/baselines/README-58a0ffc6c.md).
+    /// It can now. The pet is a real Pet object built in memory the way Spell::DoSummonPet builds a
+    /// fresh warlock minion, minus the single line of that function the harness may never run.
+    ///
+    /// THE CANCEL IS NOT OVER-DETERMINED, and that was settled by reading the arbiter before a line
+    /// of this was written:
+    ///   - Arbiter::Inhibit (Arbiter.cpp:433) moves the mobility word and reconciles the block. It
+    ///     finishes NO entry, so the Possessed inhibition the take raises twenty lines earlier
+    ///     cannot be what ended the claim.
+    ///   - Arbiter::Clear(false) (Arbiter.cpp:595) takes the command layers and the combat entry,
+    ///     and takes the CLAIMS only `if (all)` -- which the take's own `Clear(false)` is not. So
+    ///     the tail's clear cannot be what ended it either.
+    /// Delete the two CancelControl lines and nothing else, and fearEndsAtTake and
+    /// confuseEndsAtTake go BUG while every other category in this file stands.
+    ///
+    /// AND THE FLEE WOULD REALLY GO ON RUNNING. Motion::Decide (Mobility.cpp:84) blocks a
+    /// possessed body's behaviours only `if ((reasons & ReasonPossessed) && selected !=
+    /// Selected::Control)`: a selected fear or confuse plays THROUGH a possession, by design and
+    /// by the retail reference (15.4.1) -- the possessor is the one locked out. That is the whole
+    /// reason the branch exists, and it is why fleeStopsAtTake is a finding and not a tautology:
+    /// without the cancel the bolt keeps playing under the grant and the owner's client is handed
+    /// a body running somewhere on its own.
+    ///
+    /// WHAT THIS SCENARIO DOES NOT CLAIM. Not which of the tail's three calls stops the body:
+    /// StopMoving, Clear(false) and MoveIdle all bear on it and the scenario measures the state
+    /// the tail leaves, not the authorship of it. Not that the stagger was moving before the
+    /// second take: a confuse lurches inside Movement.ConfuseRadius (2 yd) and rests 800-1500 ms
+    /// between lurches, so a 900 ms window sees movement or does not by the draw, and only the
+    /// FEAR phase asserts that something was running. Not the aura removal path (see the entry
+    /// point's note above).
+    class PlayerOwnedPetPossession : public Scenario
+    {
+    public:
+        /// Order 907, the next in the reserved player block behind the mover-authority trio's
+        /// 904-906: the runner refuses `MVTEST all` when a player scenario is queued before one
+        /// that holds no player (Harness.cpp Start), so player scenarios take high contiguous
+        /// orders of their own and the creature families go on growing from 64 without ever
+        /// colliding with them.
+        PlayerOwnedPetPossession() : Scenario("player-owned-pet-possession", 907) {}
+
+        /// The runner owes a player scenario two things: the last place in the queue and the
+        /// map's grids reset behind it. A player in world promotes the grids around him to full
+        /// state and changes Map::Update's own visitation order, and no scenario that holds none
+        /// may read that.
+        bool UsesPlayer() const override { return true; }
+
+        void Prepare() override
+        {
+            /// One take's worth of readings. The two phases are the same shape -- a control
+            /// episode running, a take, a window after it -- so they are the same struct twice
+            /// rather than two flat sets of fields whose names would have to be told apart by a
+            /// suffix.
+            struct Half
+            {
+                uint32 heldSamples;   ///< samples before the take with the claim held
+                bool   kindSeen;      ///< ActiveKind() read the control's own kind on one of them
+                bool   takeRan;       ///< the take step resolved both actors and ran
+                bool   claimBefore;   ///< the claim was held the instant before the take
+                bool   auraBefore;    ///< the published auraFear with it (the fear half only)
+                bool   gateIsPet;     ///< Creature::IsPet() the instant before the take
+                bool   gateOwner;     ///< ...and its owner guid was the player
+                bool   gatePetGuid;   ///< ...and the player's own GetPetGuid() was this pet
+                bool   took;          ///< TakePossessOf returned true
+                bool   splineBefore;  ///< a spline was PLAYING the instant before the take
+                bool   claimAfter;    ///< the claim the instant the take returned: must be false
+                Motion::Kind kindAfter;   ///< ...and the selected kind then: must be Idle
+                bool   splineAfter;   ///< ...and the spline was finalized: nothing left playing
+                bool   charm;         ///< the player was its charmer the instant the take returned
+                bool   mover;         ///< ...and his session was under it
+                bool   possessed;     ///< ...and the Possessed inhibition was up
+                bool   alive;         ///< ...and the pet was alive
+                bool   stillPet;      ///< ...and still a Pet, still his
+                float  x, y;          ///< where it stood the instant the take returned
+                bool   anchored;      ///< the settled anchor below has been taken
+                float  ax, ay;        ///< where it stood kOwnPetSettleSamples later: the stillness anchor
+                float  settle;        ///< how far the take's own stop carried it to get there
+                float  drift;         ///< the farthest it got from the anchor afterwards
+                uint32 after;         ///< samples after the take, before the phase ended
+                uint32 back;          ///< ...on which the claim was held again
+                uint32 splineRunning; ///< ...on which a spline was playing again
+                uint32 lost;          ///< ...on which the possession was no longer whole
+                uint32 gone;          ///< ...on which it was no longer his live pet
+            };
+            struct St
+            {
+                bool   built;         ///< the pet exists, in world, and the player owns it
+                float  fearX, fearY;  ///< where it stood when the fear was taken
+                float  fled;          ///< the farthest it got from there before the first take
+                bool   released;      ///< the release step ran between the two phases
+                Half   fear;
+                Half   confuse;
+            };
+
+            Player* p = SpawnPlayer(SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+            // The fright. Eight yards east of the player and four east of the pet, so the flee
+            // runs WEST, past its owner rather than away from him: a pet that bolts out of the
+            // 90 yd visibility band is one Unit::ResetControlState dismisses (Unit.cpp:7287)
+            // instead of handing back, and the release below is not the thing under test.
+            Creature* k = p ? Spawn(KOBOLD, SE.x + 8.0f, SE.y, Ground(SE.x + 8.0f, SE.y, SE.z), 3.1f) : NULL;
+            Pet* pet = (p && k) ? BuildPet(p) : NULL;
+            if (!p || !k || !pet)
+            {
+                Verdict(Invalid("spawn failed"));
+                return;
+            }
+            Silence(k);
+            const ObjectGuid g = p->GetObjectGuid(), gk = k->GetObjectGuid(), gp = pet->GetObjectGuid();
+            auto st = std::make_shared<St>();
+            st->built = true;
+            st->fearX = st->fearY = st->fled = 0.0f;
+            st->released = false;
+            Zero(st->fear);
+            Zero(st->confuse);
+            Log("the player %s stands at (%.1f, %.1f); his own pet (entry %u, %s) 4 yd east, the kobold 8 yd east; IsPet=%d his pet guid=%d",
+                g.GetString().c_str(), p->Where().X(), p->Where().Y(), IMP, gp.GetString().c_str(),
+                pet->IsPet() ? 1 : 0, p->GetPetGuid() == gp ? 1 : 0);
+
+            // ---- phase 1: the fear -------------------------------------------------------
+            At(kOwnPetFearAt, [this, gk, gp, st]()
+            {
+                Pet* pet = FindPet(gp); if (!pet) { return; }
+                st->fearX = pet->Where().X();
+                st->fearY = pet->Where().Y();
+                pet->SetFeared(true, gk, FEAR, 0, 0);
+                Log("%4ums the pet is feared by the kobold: claim=%d auraFear=%d mt=%s",
+                    kOwnPetFearAt, pet->GetMotionMaster()->HoldsControl(Motion::Kind::Fear) ? 1 : 0,
+                    pet->IsFearedByAura() ? 1 : 0, Motion::KindName(pet->GetMotionMaster()->ActiveKind()));
+            });
+            // Registered before its sampler so it runs first at its own moment (the timeline
+            // orders a tie by insertion): the sample at kOwnPetTakeAt is then already an
+            // after-sample, taken against the anchor the take itself wrote.
+            At(kOwnPetTakeAt, [this, g, gp, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Pet* pet = FindPet(gp);
+                if (!p || !pet) { return; }
+                Before(*p, *pet, st->fear, true);
+                // The FARTHEST it got, as the sampler tracks it, not the reading at this instant:
+                // a bolt that has turned back would otherwise report less flee than it ran.
+                const float d = Dist2(st->fearX, st->fearY, pet->Where().X(), pet->Where().Y());
+                if (d > st->fled) { st->fled = d; }
+                st->fear.took = p->TakePossessOf(pet);
+                After(*p, *pet, st->fear, true);
+                Log("%4ums THE FIRST TAKE (his own pet, feared): gate isPet=%d owner=%d petGuid=%d | fear claim %d -> %d, auraFear %d -> %d, mt %s, ran %.1f yd | took=%d charmer=%d mover=%d possessed=%d alive=%d",
+                    kOwnPetTakeAt, st->fear.gateIsPet ? 1 : 0, st->fear.gateOwner ? 1 : 0, st->fear.gatePetGuid ? 1 : 0,
+                    st->fear.claimBefore ? 1 : 0, st->fear.claimAfter ? 1 : 0,
+                    st->fear.auraBefore ? 1 : 0, pet->IsFearedByAura() ? 1 : 0,
+                    Motion::KindName(st->fear.kindAfter), st->fled,
+                    st->fear.took ? 1 : 0, st->fear.charm ? 1 : 0, st->fear.mover ? 1 : 0,
+                    st->fear.possessed ? 1 : 0, st->fear.alive ? 1 : 0);
+            });
+            for (uint32 t = kOwnPetFearAt + 100; t < kOwnPetReleaseAt; t += 100)
+            {
+                At(t, [this, g, gp, st, t]()
+                {
+                    Player* p = sPlayerRegistry.Find(g);
+                    Pet* pet = FindPet(gp);
+                    Sample(p, pet, st->fear, Motion::Kind::Fear, st->fearX, st->fearY, &st->fled);
+                    // EVERY sample of the after-window is logged, not one in five: it is the
+                    // window fleeStopsAtTake turns on, and the settling relocation the take's own
+                    // stop leaves behind is a thing a reader should be able to watch land rather
+                    // than take on the verdict's word.
+                    if (st->fear.takeRan || t % 500 == 0)
+                    {
+                        Log("%4ums fear phase: claim=%d mt=%s spline=%s charmer=%d mover=%d possessed=%d at (%.2f, %.2f) ran %.1f yd drift %.2f yd",
+                            t, pet && pet->GetMotionMaster()->HoldsControl(Motion::Kind::Fear) ? 1 : 0,
+                            pet ? Motion::KindName(pet->GetMotionMaster()->ActiveKind()) : "gone",
+                            pet ? (pet->movespline->Finalized() ? "done" : "PLAYING") : "-",
+                            pet && p && pet->GetCharmerGuid() == p->GetObjectGuid() ? 1 : 0,
+                            pet && p && pet->MoverSession() == p->GetSession() ? 1 : 0,
+                            pet && pet->GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed) ? 1 : 0,
+                            pet ? pet->Where().X() : 0.0f, pet ? pet->Where().Y() : 0.0f,
+                            st->fled, st->fear.drift);
+                    }
+                });
+            }
+            At(kOwnPetReleaseAt, [this, g, gp, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Pet* pet = FindPet(gp);
+                if (!p || !pet) { return; }
+                // Unit::ResetControlState(false), the call the possess aura's own removal makes;
+                // false so the body is not turned on its former charmer. Its own pet branch
+                // (Unit.cpp:7284-7295) is a path no scenario had entered either -- it lays the
+                // follow back on -- and the second phase needs the possession handed back, since
+                // a player has exactly one GetPetGuid() and therefore one own pet to take.
+                p->ResetControlState(false);
+                st->released = true;
+                Log("%4ums the possession handed back: charmer=%s his pet guid still this pet=%d mt=%s",
+                    kOwnPetReleaseAt, pet->GetCharmerGuid().GetString().c_str(),
+                    p->GetPetGuid() == pet->GetObjectGuid() ? 1 : 0,
+                    Motion::KindName(pet->GetMotionMaster()->ActiveKind()));
+            });
+
+            // ---- phase 2: the confuse ----------------------------------------------------
+            At(kOwnPetConfuseAt, [this, gk, gp]()
+            {
+                Pet* pet = FindPet(gp); if (!pet) { return; }
+                pet->SetConfused(true, gk, POLYMORPH, 0);
+                Log("%4ums the pet is confused: claim=%d mt=%s", kOwnPetConfuseAt,
+                    pet->GetMotionMaster()->HoldsControl(Motion::Kind::Confused) ? 1 : 0,
+                    Motion::KindName(pet->GetMotionMaster()->ActiveKind()));
+            });
+            At(kOwnPetTake2At, [this, g, gp, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Pet* pet = FindPet(gp);
+                if (!p || !pet) { return; }
+                Before(*p, *pet, st->confuse, false);
+                st->confuse.took = p->TakePossessOf(pet);
+                After(*p, *pet, st->confuse, false);
+                Log("%4ums THE SECOND TAKE (his own pet, confused): gate isPet=%d owner=%d petGuid=%d | confuse claim %d -> %d, mt %s | took=%d charmer=%d mover=%d possessed=%d alive=%d",
+                    kOwnPetTake2At, st->confuse.gateIsPet ? 1 : 0, st->confuse.gateOwner ? 1 : 0,
+                    st->confuse.gatePetGuid ? 1 : 0, st->confuse.claimBefore ? 1 : 0,
+                    st->confuse.claimAfter ? 1 : 0, Motion::KindName(st->confuse.kindAfter),
+                    st->confuse.took ? 1 : 0, st->confuse.charm ? 1 : 0, st->confuse.mover ? 1 : 0,
+                    st->confuse.possessed ? 1 : 0, st->confuse.alive ? 1 : 0);
+            });
+            for (uint32 t = kOwnPetConfuseAt + 100; t < kOwnPetCleanupAt; t += 100)
+            {
+                At(t, [this, g, gp, st, t]()
+                {
+                    Player* p = sPlayerRegistry.Find(g);
+                    Pet* pet = FindPet(gp);
+                    Sample(p, pet, st->confuse, Motion::Kind::Confused, 0.0f, 0.0f, NULL);
+                    if (t % 500 == 0)
+                    {
+                        Log("%4ums confuse phase: claim=%d mt=%s charmer=%d mover=%d possessed=%d drift %.2f yd",
+                            t, pet && pet->GetMotionMaster()->HoldsControl(Motion::Kind::Confused) ? 1 : 0,
+                            pet ? Motion::KindName(pet->GetMotionMaster()->ActiveKind()) : "gone",
+                            pet && p && pet->GetCharmerGuid() == p->GetObjectGuid() ? 1 : 0,
+                            pet && p && pet->MoverSession() == p->GetSession() ? 1 : 0,
+                            pet && pet->GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed) ? 1 : 0,
+                            st->confuse.drift);
+                    }
+                });
+            }
+
+            At(kOwnPetCleanupAt, [this, g, gp]()
+            {
+                EndPet(sPlayerRegistry.Find(g), FindPet(gp));
+            });
+            At(kOwnPetVerdictAt, [this, st]()
+            {
+                Verdict(Read(*st));
+            });
+        }
+
+    private:
+        // ---- the pet ---------------------------------------------------------------------
+
+        /// Map::GetCreature answers only the HIGHGUID_UNIT store (Map.cpp:3063), so
+        /// Scenario::Get cannot resolve a pet; HIGHGUID_PET lives in its own one, which
+        /// Pet::AddToWorld inserts into. Every step re-resolves through here, as every other
+        /// scenario re-resolves its actors by guid.
+        Pet* FindPet(ObjectGuid guid) const
+        {
+            Map* map = GetMap();
+            return map ? map->GetPet(guid) : NULL;
+        }
+
+        /**
+         * A player-owned pet, in memory, with no row in `character_pet` and no write to the
+         * character database -- the machinery S65 said the harness did not have.
+         *
+         * IT IS Spell::DoSummonPet's OWN RECIPE (SpellEffectSummonLock.cpp:937-1011), in its
+         * order, MINUS exactly one line. That function's player branch ends
+         * `spawnCreature->SavePetToDB(PET_SAVE_AS_CURRENT)`; everything before it is pure memory,
+         * and this builder stops there. The pet it makes is therefore a SUMMON_PET -- the type
+         * DoSummonPet gives a fresh minion when no stored row answers -- and not a faked creature
+         * dressed up to satisfy the gate: Pet::IsPet() is the Creature subtype its constructor
+         * passes, GetPetGuid() is set by Unit::SetPet, and Pet::Update runs its whole controlled
+         * -pet loop over it every tick.
+         *
+         * THE ORDER IS LOAD-BEARING IN THREE PLACES:
+         *   1. SetOwnerGuid comes before AIM_Initialize, because MotionMaster::Initialize reads
+         *      it: a creature whose owner guid is a player takes the IDLE factory default
+         *      whatever its template's MovementType says ("A player's pet has no factory
+         *      default", MotionMaster.cpp:735). Set it after, and the pet would carry whatever
+         *      default its entry names and "the fear moved it" would have a second explanation.
+         *   2. SetOwnerGuid also comes before InitStatsForLevel, which resolves GetOwner() for
+         *      the owner's class bonus (Pet.cpp:700-717) and logs an error without one.
+         *   3. SetActiveObjectState comes before Map::Add, as Scenario::Spawn does it: the map
+         *      ticks the cells around players plus the active list, and the registration point
+         *      for a new object is the add.
+         *
+         * WHAT OWNS IT: this scenario, start to finish. Nothing else in the server made it and
+         * nothing else will free it -- the runner's End() sweep despawns TemporarySummons from
+         * Spawned() and hands Find'd creatures back, and a Pet is neither -- so EndPet below runs
+         * as the scenario's last act but one, before the verdict and well before the teardown.
+         */
+        Pet* BuildPet(Player* owner)
+        {
+            Map* map = GetMap();
+            CreatureInfo const* cinfo = ObjectMgr::GetCreatureTemplate(IMP);
+            if (!map || !owner || !cinfo)
+            {
+                Log("ERR pet: no map, no owner, or no creature template %u", IMP);
+                return NULL;
+            }
+            const float x = owner->Where().X() + 4.0f;
+            const float y = owner->Where().Y();
+            Load(x, y);
+            Pet* pet = new Pet(SUMMON_PET);
+            CreatureCreatePos pos(map, x, y, Ground(x, y, owner->Where().Z()), 0.0f, 1);
+            const uint32 petNumber = sObjectMgr.GeneratePetNumber();
+            if (!pet->Create(map->GenerateLocalLowGuid(HIGHGUID_PET), pos, cinfo, petNumber))
+            {
+                delete pet;
+                Log("ERR pet: Pet::Create failed for entry %u", IMP);
+                return NULL;
+            }
+            pet->SetSpawn(pos);
+            pet->SetOwnerGuid(owner->GetObjectGuid());     // (1) and (2) above
+            pet->SetCreatorGuid(owner->GetObjectGuid());
+            pet->setFaction(owner->getFaction());          // so the kobold is its enemy, as the owner's
+            pet->SetUInt32Value(UNIT_FIELD_PET_NAME_TIMESTAMP, 0);
+            pet->InitStatsForLevel(owner->getLevel());
+            pet->GetCharmInfo()->SetPetNumber(petNumber, pet->isControlled());
+            pet->GetCharmInfo()->SetReactState(REACT_DEFENSIVE);
+            pet->InitPetCreateSpells();                    // memory only: the action bar, the family passives, the owner's pet auras
+            pet->SetActiveObjectState(true);               // (3) above
+            map->Add((Creature*)pet);
+            pet->AIM_Initialize();
+            // The factory AI dropped from under a recording decorator, as Scenario::Silence does
+            // it for a spawned actor -- which cannot be used here, because Silence refuses
+            // anything Spawn did not hand out and a Pet is not a TemporarySummon. It is not
+            // optional: PetAI::UpdateAI draws from urand for its autocast pick (PetAI.cpp:399),
+            // re-lays a follow on its owner and selects hostile targets, so a live one would both
+            // perturb the seeded stream every other scenario shares and fight the claims under
+            // test for the wheel.
+            pet->SetAI(new HarnessAI(pet, pet->AI(), this));
+            if (HarnessAI* recording = dynamic_cast<HarnessAI*>(pet->AI()))
+            {
+                delete recording->Release();
+            }
+            owner->SetPet(pet);                            // UNIT_FIELD_SUMMON: the gate's third conjunct
+            return pet;
+        }
+
+        /**
+         * The pet's end, and THE ONE PLACE THIS SCENARIO COULD HAVE WRITTEN TO THE CHARACTER
+         * DATABASE. Pet::Unsummon ends in `SavePetToDB(mode)` unconditionally (Pet.cpp:390), and
+         * a SUMMON_PET passes that function's first two gates -- it has an entry and
+         * isControlled() is true -- so a pet with a live player owner would have a row INSERTed
+         * for a character that does not exist.
+         *
+         * The owner guid is therefore cleared FIRST, before anything that can route into
+         * Unsummon. That closes SavePetToDB's third gate (`GetOwnerGuid().IsPlayer()`,
+         * PetDatabase.cpp:407) for every path out of here at once, including the two that are not
+         * obvious: Unit::ResetControlState dismisses an out-of-range pet with
+         * RemovePet(PET_SAVE_REAGENTS) (Unit.cpp:7289), and Pet::Update unsummons a pet whose
+         * owner it cannot resolve. Both then find their save refused instead of relying on the
+         * pet having stayed close enough, or on this step having run at all.
+         *
+         * Then the charm, then the pet guid, then the removal. Ordered that way because
+         * ResetControlState reads GetPetGuid() to choose its own pet branch, and clearing the
+         * guid first would send it down the wrong one.
+         */
+        void EndPet(Player* p, Pet* pet)
+        {
+            if (!pet)
+            {
+                Log("ERR cleanup: the pet was already gone");
+                return;
+            }
+            pet->SetOwnerGuid(ObjectGuid());
+            if (p)
+            {
+                if (p->GetCharmGuid() == pet->GetObjectGuid())
+                {
+                    p->ResetControlState(false);
+                }
+                if (p->GetPetGuid() == pet->GetObjectGuid())
+                {
+                    p->SetPet(NULL);
+                }
+            }
+            pet->Unsummon(PET_SAVE_NOT_IN_SLOT);
+            Log("%4ums the pet released and unsummoned: charmer=%d his pet guid=%d",
+                kOwnPetCleanupAt, p && p->GetCharmGuid() ? 1 : 0, p && p->GetPetGuid() ? 1 : 0);
+        }
+
+        // ---- the readings ----------------------------------------------------------------
+
+        /// The fields are named rather than value-initialised so that adding one to Half without
+        /// adding it here is a compile error rather than a field that silently reads zero.
+        template <class H>
+        static void Zero(H& h)
+        {
+            h.heldSamples = h.after = h.back = h.splineRunning = h.lost = h.gone = 0;
+            h.kindSeen = h.takeRan = h.claimBefore = h.auraBefore = false;
+            h.gateIsPet = h.gateOwner = h.gatePetGuid = false;
+            h.took = h.splineBefore = h.claimAfter = h.splineAfter = false;
+            h.kindAfter = Motion::Kind::Idle;
+            h.charm = h.mover = h.possessed = h.alive = h.stillPet = false;
+            h.anchored = false;
+            h.x = h.y = h.ax = h.ay = h.settle = h.drift = 0.0f;
+        }
+
+        /// Read IMMEDIATELY before a take and used by every category: the conjunct that makes
+        /// each of them falsifiable. A claim that was not held going in cannot be ended by the
+        /// take, and a body that did not satisfy the gate never entered the branch at all.
+        template <class H>
+        void Before(Player& p, Pet& pet, H& h, bool isFear) const
+        {
+            h.takeRan     = true;
+            h.claimBefore = pet.GetMotionMaster()->HoldsControl(isFear ? Motion::Kind::Fear : Motion::Kind::Confused);
+            h.auraBefore  = pet.IsFearedByAura();
+            // The kernel's own answer to "is a leg running", and the reading the stillness
+            // categories turn on: a fear whose claim survived the take would still be playing one.
+            h.splineBefore = !pet.movespline->Finalized();
+            h.gateIsPet   = pet.IsPet();
+            h.gateOwner   = pet.GetOwnerGuid() == p.GetObjectGuid();
+            h.gatePetGuid = p.GetPetGuid() == pet.GetObjectGuid();
+        }
+
+        /// And IMMEDIATELY after it returns, in one breath with the call: the claim, the selected
+        /// kind, the possession the take built, and the pet itself.
+        template <class H>
+        void After(Player& p, Pet& pet, H& h, bool isFear) const
+        {
+            h.claimAfter = pet.GetMotionMaster()->HoldsControl(isFear ? Motion::Kind::Fear : Motion::Kind::Confused);
+            h.kindAfter  = pet.GetMotionMaster()->ActiveKind();
+            h.splineAfter = pet.movespline->Finalized();
+            h.charm      = pet.GetCharmerGuid() == p.GetObjectGuid();
+            h.mover      = pet.MoverSession() == p.GetSession();
+            h.possessed  = pet.GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed);
+            h.alive      = pet.IsAlive();
+            h.stillPet   = pet.IsPet() && p.GetPetGuid() == pet.GetObjectGuid();
+            h.x          = pet.Where().X();
+            h.y          = pet.Where().Y();
+        }
+
+        /// One 100 ms sample of a phase. Before the take it counts the episode; after it, the
+        /// window the take anchors -- and the window is anchored to the TAKE, a deliberate end at
+        /// a moment this scenario chose, so a claim held again inside it is not a flicker to
+        /// re-anchor past but a failure in its own right, counted and reported as one.
+        /// `fled` is NULL for a phase that measures no travel of its own -- the confuse's, whose
+        /// stagger stays inside Movement.ConfuseRadius and rests between lurches, so a window
+        /// this short would be measuring the draw rather than the behaviour.
+        template <class H>
+        void Sample(Player* p, Pet* pet, H& h, Motion::Kind kind, float x0, float y0, float* fled) const
+        {
+            if (!pet)
+            {
+                if (h.takeRan) { ++h.after; ++h.gone; }
+                return;
+            }
+            const bool held = pet->GetMotionMaster()->HoldsControl(kind);
+            if (!h.takeRan)
+            {
+                if (held)
+                {
+                    ++h.heldSamples;
+                    if (pet->GetMotionMaster()->ActiveKind() == kind) { h.kindSeen = true; }
+                }
+                if (fled)
+                {
+                    const float d = Dist2(x0, y0, pet->Where().X(), pet->Where().Y());
+                    if (d > *fled) { *fled = d; }
+                }
+                return;
+            }
+            const uint32 n = h.after;   // this sample's index in the after-window, from 0
+            ++h.after;
+            if (held) { ++h.back; }
+            if (!pet->movespline->Finalized()) { ++h.splineRunning; }
+            if (!p || pet->GetCharmerGuid() != p->GetObjectGuid() ||
+                pet->MoverSession() != p->GetSession() ||
+                !pet->GetMotionMaster()->Inhibited(Motion::Inhibition::Possessed))
+            {
+                ++h.lost;
+            }
+            if (!pet->IsAlive() || !pet->IsPet() || !p || p->GetPetGuid() != pet->GetObjectGuid())
+            {
+                ++h.gone;
+            }
+            if (n == kOwnPetSettleSamples)
+            {
+                h.ax = pet->Where().X();
+                h.ay = pet->Where().Y();
+                h.settle = Dist2(h.x, h.y, h.ax, h.ay);
+                h.anchored = true;
+            }
+            else if (h.anchored)
+            {
+                const float d = Dist2(h.ax, h.ay, pet->Where().X(), pet->Where().Y());
+                if (d > h.drift) { h.drift = d; }
+            }
+        }
+
+        template <class S>
+        std::string Read(S& st) const
+        {
+            char gate[416], fear[448], flee[416], conf[448], poss[416], survive[416];
+            // --- ownPetGateHeld: the branch's own precondition, and the reason this scenario
+            // exists at all. Everything below is about what the take did INSIDE the gate, so a
+            // gate that did not hold makes the rest a report about the ordinary tail.
+            if (!st.built || !st.fear.takeRan || !st.confuse.takeRan)
+            {
+                snprintf(gate, sizeof(gate), "INVALID(the pet was not built, or a take step never ran: built=%d first take=%d second take=%d)",
+                         st.built ? 1 : 0, st.fear.takeRan ? 1 : 0, st.confuse.takeRan ? 1 : 0);
+            }
+            else if (!st.fear.gateIsPet || !st.confuse.gateIsPet)
+            {
+                snprintf(gate, sizeof(gate), "BUG(Creature::IsPet() read false before a take: first=%d second=%d -- the body was not a Pet and Unit.cpp:7157 could not have been entered)",
+                         st.fear.gateIsPet ? 1 : 0, st.confuse.gateIsPet ? 1 : 0);
+            }
+            else if (!st.fear.gateOwner || !st.confuse.gateOwner || !st.fear.gatePetGuid || !st.confuse.gatePetGuid)
+            {
+                snprintf(gate, sizeof(gate), "BUG(it was not HIS pet before a take: owner guid first=%d second=%d, his GetPetGuid() first=%d second=%d)",
+                         st.fear.gateOwner ? 1 : 0, st.confuse.gateOwner ? 1 : 0,
+                         st.fear.gatePetGuid ? 1 : 0, st.confuse.gatePetGuid ? 1 : 0);
+            }
+            else if (!st.fear.took || !st.confuse.took)
+            {
+                snprintf(gate, sizeof(gate), "BUG(TakePossessOf refused a take it had every precondition for: first=%d second=%d)",
+                         st.fear.took ? 1 : 0, st.confuse.took ? 1 : 0);
+            }
+            else
+            {
+                snprintf(gate, sizeof(gate), "OK(all three conjuncts of Unit.cpp:7157 held at both takes: a player charmer, Creature::IsPet(), and a body whose guid was his own GetPetGuid())");
+            }
+            // --- fearEndsAtTake and confuseEndsAtTake: the finding, twice.
+            Episode(st.fear, "fear", "the 5782 claim", st.built, fear, sizeof(fear));
+            Episode(st.confuse, "confuse", "the 118 claim", st.built && st.released, conf, sizeof(conf));
+            // --- fleeStopsAtTake: what the branch's tail leaves behind. Its "was running" half
+            // is what keeps it from passing over a pet that never went anywhere.
+            if (!st.built || !st.fear.takeRan)
+            {
+                snprintf(flee, sizeof(flee), "INVALID(the pet was not built, or the first take step never ran)");
+            }
+            else if (!st.fear.took || !st.fear.claimBefore)
+            {
+                snprintf(flee, sizeof(flee), "INVALID(no fear was running into the take: claim held=%d, take returned %d)",
+                         st.fear.claimBefore ? 1 : 0, st.fear.took ? 1 : 0);
+            }
+            else if (st.fled < kOwnPetFleeYd || !st.fear.splineBefore)
+            {
+                snprintf(flee, sizeof(flee), "INVALID(no flee leg was playing into the take: it had covered %.1f yd of the %.1f yd this reads as running and its spline was %s, so there was nothing for the stop to end)",
+                         st.fled, kOwnPetFleeYd, st.fear.splineBefore ? "playing" : "already finalized (the flee was resting between bolts)");
+            }
+            else if (st.fear.kindAfter != Motion::Kind::Idle)
+            {
+                snprintf(flee, sizeof(flee), "BUG(the selected behaviour the instant the take returned was %s, not Idle: the tail's Clear(false) and MoveIdle did not leave the body idle after it had run %.1f yd)",
+                         Motion::KindName(st.fear.kindAfter), st.fled);
+            }
+            else if (!st.fear.splineAfter)
+            {
+                snprintf(flee, sizeof(flee), "BUG(a spline was still playing the instant the take returned, after %.1f yd of flee: the tail's StopMoving did not end the leg and the bolt runs on under the grant)",
+                         st.fled);
+            }
+            else if (!st.fear.anchored || st.fear.after < kOwnPetSettleSamples + 5)
+            {
+                snprintf(flee, sizeof(flee), "INVALID(only %u samples after the first take, too few to leave %u for the stop to land and five to read)",
+                         st.fear.after, kOwnPetSettleSamples);
+            }
+            else if (st.fear.splineRunning)
+            {
+                snprintf(flee, sizeof(flee), "BUG(a spline was playing again on %u of the %u samples after the take)", st.fear.splineRunning, st.fear.after);
+            }
+            else if (st.fear.drift > kOwnPetStillYd)
+            {
+                snprintf(flee, sizeof(flee), "BUG(it moved %.2f yd over the %u samples from the settled anchor, past the %.2f yd a stopped body allows, with no spline playing on any of them)",
+                         st.fear.drift, st.fear.after - kOwnPetSettleSamples, kOwnPetStillYd);
+            }
+            else
+            {
+                snprintf(flee, sizeof(flee), "OK(a leg playing and %.1f yd run from where it was feared; the take returned with the selected behaviour Idle and the spline finalized, the stop carried it a further %.2f yd, and it then moved %.2f yd over the remaining %u samples with no spline playing on any of the %u)",
+                         st.fled, st.fear.settle, st.fear.drift, st.fear.after - kOwnPetSettleSamples, st.fear.after);
+            }
+            // --- possessionSurvivesTake: the first refusal of a hollow pass. A take that ended
+            // the possession would end the claims with it and every finding above would be true
+            // for the wrong reason.
+            const uint32 after = st.fear.after + st.confuse.after;
+            const uint32 lost = st.fear.lost + st.confuse.lost;
+            if (!st.built || !st.fear.takeRan || !st.confuse.takeRan)
+            {
+                snprintf(poss, sizeof(poss), "INVALID(the pet was not built, or a take step never ran)");
+            }
+            else if (!st.fear.charm || !st.confuse.charm || !st.fear.mover || !st.confuse.mover ||
+                     !st.fear.possessed || !st.confuse.possessed)
+            {
+                snprintf(poss, sizeof(poss), "BUG(a take returned without the possession it is supposed to build: charmer first=%d second=%d, his session under it first=%d second=%d, Possessed inhibition first=%d second=%d)",
+                         st.fear.charm ? 1 : 0, st.confuse.charm ? 1 : 0,
+                         st.fear.mover ? 1 : 0, st.confuse.mover ? 1 : 0,
+                         st.fear.possessed ? 1 : 0, st.confuse.possessed ? 1 : 0);
+            }
+            else if (after < 10)
+            {
+                snprintf(poss, sizeof(poss), "INVALID(only %u samples after the two takes together)", after);
+            }
+            else if (lost)
+            {
+                snprintf(poss, sizeof(poss), "BUG(the possession was not whole on %u of the %u samples after the takes: the charm, the mover session or the Possessed inhibition had gone)",
+                         lost, after);
+            }
+            else
+            {
+                snprintf(poss, sizeof(poss), "OK(both takes returned with the pet charmed by him, his session under it and the Possessed inhibition up, and all three held on all %u samples after them)", after);
+            }
+            // --- petSurvivesTake: the second refusal. A take that killed or unsummoned the pet
+            // would also have ended its flee, and the claim would read gone for no better reason.
+            const uint32 gone = st.fear.gone + st.confuse.gone;
+            if (!st.built || !st.fear.takeRan || !st.confuse.takeRan)
+            {
+                snprintf(survive, sizeof(survive), "INVALID(the pet was not built, or a take step never ran)");
+            }
+            else if (!st.fear.alive || !st.confuse.alive || !st.fear.stillPet || !st.confuse.stillPet)
+            {
+                snprintf(survive, sizeof(survive), "BUG(a take returned with the pet no longer his live pet: alive first=%d second=%d, still his Pet first=%d second=%d)",
+                         st.fear.alive ? 1 : 0, st.confuse.alive ? 1 : 0,
+                         st.fear.stillPet ? 1 : 0, st.confuse.stillPet ? 1 : 0);
+            }
+            else if (after < 10)
+            {
+                snprintf(survive, sizeof(survive), "INVALID(only %u samples after the two takes together)", after);
+            }
+            else if (gone)
+            {
+                snprintf(survive, sizeof(survive), "BUG(the pet was gone, dead, or no longer his on %u of the %u samples after the takes: the take ended the pet and not just the flee)",
+                         gone, after);
+            }
+            else
+            {
+                snprintf(survive, sizeof(survive), "OK(it was still in the map, alive, a Pet and his own on all %u samples after both takes)", after);
+            }
+            return std::string("ownPetGateHeld=") + gate + " | fearEndsAtTake=" + fear +
+                   " | fleeStopsAtTake=" + flee + " | confuseEndsAtTake=" + conf +
+                   " | possessionSurvivesTake=" + poss + " | petSurvivesTake=" + survive;
+        }
+
+        /// One control episode's verdict text: held right up to the take, gone the instant it
+        /// returned, and never held again inside the window the take anchors.
+        template <class H>
+        void Episode(H const& h, char const* name, char const* what, bool ready, char* out, size_t size) const
+        {
+            if (!ready || !h.takeRan)
+            {
+                snprintf(out, size, "INVALID(the %s phase never reached its take: the pet or the player went unresolvable)", name);
+                return;
+            }
+            if (!h.took)
+            {
+                snprintf(out, size, "INVALID(TakePossessOf refused, so no take was made for %s to be ended by)", what);
+                return;
+            }
+            if (!h.claimBefore)
+            {
+                snprintf(out, size, "INVALID(%s was not held the instant before the take, so the take had nothing to cancel)", what);
+                return;
+            }
+            if (!h.kindSeen || h.heldSamples < 3)
+            {
+                snprintf(out, size, "INVALID(%s was held on only %u sample(s) before the take and was the selected behaviour on %s of them)",
+                         what, h.heldSamples, h.kindSeen ? "one" : "none");
+                return;
+            }
+            if (h.claimAfter)
+            {
+                snprintf(out, size, "BUG(%s was STILL held the instant the take returned, on all %u samples before it: the ownPet branch's CancelControl did not run, and Motion::Decide lets a selected Control play through a possession)",
+                         what, h.heldSamples);
+                return;
+            }
+            if (h.after < 5)
+            {
+                snprintf(out, size, "INVALID(only %u samples after the %s take)", h.after, name);
+                return;
+            }
+            if (h.back)
+            {
+                snprintf(out, size, "BUG(%s was held again on %u of the %u samples after the take, so the take did not end the episode it cancelled)",
+                         what, h.back, h.after);
+                return;
+            }
+            snprintf(out, size, "OK(%s was held on all %u samples up to the take and the instant before it, gone the instant it returned, and never held again on any of the %u samples after it)",
+                     what, h.heldSamples, h.after);
+        }
+
+        static std::string Invalid(char const* why)
+        {
+            std::string w = std::string("INVALID(") + why + ")";
+            return "ownPetGateHeld=" + w + " | fearEndsAtTake=" + w + " | fleeStopsAtTake=" + w +
+                   " | confuseEndsAtTake=" + w + " | possessionSurvivesTake=" + w + " | petSurvivesTake=" + w;
+        }
+    };
+
+
     void RegisterControlScenarios(Runner& r)
     {
         r.Register(new FearBoltsAway());
@@ -3989,5 +4794,9 @@ namespace Harness
         r.Register(new CharmStunNotClientDriven());
         r.Register(new StunThenPossessRoots());
         r.Register(new ReleasePossessionWhileStunned());
+        // The last player-only path (order 907, 2026-09-21): the ownPet branch of
+        // Unit::TakePossessOf, which needs a player possessing HIS OWN PET and which S65's
+        // header had to record as unreachable.
+        r.Register(new PlayerOwnedPetPossession());
     }
 }
