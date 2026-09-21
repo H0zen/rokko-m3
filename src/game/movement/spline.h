@@ -78,11 +78,26 @@ namespace Movement
              */
             enum
             {
-                // could be modified, affects segment length evaluation precision
-                // lesser value saves more performance in cost of lower precision
-                // minimal value is 1
-                // client's value is 20, blizzs use 2-3 steps to compute length
-                STEPS_PER_SEGMENT = 3
+                // THE CLIENT'S OWN VALUE, and it has to be, because the two numbers are
+                // compared without either side saying so.
+                //
+                // A segment's length is measured by sampling it and summing the chords
+                // between samples. Every chord is shorter than the arc it spans, so a
+                // coarser sampling always understates a curve -- never overstates it. At
+                // three steps the shortfall on a real turn is percent, not fractions of
+                // one, and it is entirely one-sided.
+                //
+                // That matters because the duration we send is length divided by speed,
+                // and the client (Wow.exe 15595, sub_5CB460) throws our duration away and
+                // recomputes it from a length IT measured at twenty steps. Understating
+                // the length hands the client a duration too short for the path it sees,
+                // so it stretches the move and the mover lands late -- every time, on
+                // every curve, with nothing reporting it.
+                //
+                // Nothing is paid for this on a straight path: SegLengthLinear is the
+                // chord itself and does not consult this at all. Only Catmullrom and
+                // Bezier sample, and only at spline setup.
+                STEPS_PER_SEGMENT = 20
             };
             static_assert(STEPS_PER_SEGMENT > 0, "shouldn't be lesser than 1");
 

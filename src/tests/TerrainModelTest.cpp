@@ -38,6 +38,13 @@ using namespace world::terrain;
 
 namespace
 {
+    std::vector<ICollisionModel::LocalLiquid> LiquidsAt(const WmoModel& m, const Vec3& p)
+    {
+        std::vector<ICollisionModel::LocalLiquid> out;
+        m.LiquidsLocal(p, out);
+        return out;
+    }
+
     // Brute force over the same soup is the only arbiter that assumes nothing. Never
     // score one acceleration structure against another.
     std::optional<float> BruteForce(const TriSoup& soup, const Vec3& o, const Vec3& d,
@@ -278,16 +285,35 @@ TEST(WmoLiquidRejectsPointsOutsideTheFootprint)
 
     WmoModel m(TriSoup{}, {}, std::move(groups), 0);
 
-    const auto inside = m.LiquidLocal(Vec3{1.f, 1.f, 0.f});
-    REQUIRE(inside.has_value());
-    CHECK_EQ(inside->z, 12.f);
-    CHECK_EQ(inside->entry, uint16_t(13));
+    const auto inside = LiquidsAt(m, Vec3{1.f, 1.f, 0.f});
+    REQUIRE(inside.size() == 1u);
+    CHECK_EQ(inside[0].z, 12.f);
+    CHECK_EQ(inside[0].entry, uint16_t(13));
 
     // Truncating a negative offset to int yields 0, so a point up to one tile outside
     // the low corner used to land on tile (0,0) and report liquid that is not there.
-    CHECK(!m.LiquidLocal(Vec3{-1.f, 1.f, 0.f}).has_value());
-    CHECK(!m.LiquidLocal(Vec3{1.f, -1.f, 0.f}).has_value());
-    CHECK(!m.LiquidLocal(Vec3{1000.f, 1.f, 0.f}).has_value());
+    CHECK(LiquidsAt(m, Vec3{-1.f, 1.f, 0.f}).empty());
+    CHECK(LiquidsAt(m, Vec3{1.f, -1.f, 0.f}).empty());
+    CHECK(LiquidsAt(m, Vec3{1000.f, 1.f, 0.f}).empty());
+}
+
+TEST(WmoLiquidReportsEveryStoreyOverOneFootprint)
+{
+    // MLIQ is indexed by X and Y alone, so a canal and the sewer under it are two groups
+    // over one footprint and neither knows which storey was asked about. Answering with
+    // the first match would resolve a question about height using storage order; the
+    // model hands back both and the column selects.
+    std::vector<WmoModel::Group> groups;
+    groups.push_back(FlatLiquidGroup(2, 2, 40.f, 0, 13, uint8_t(LiquidKind::Water)));
+    groups.push_back(FlatLiquidGroup(2, 2, 12.f, 0, 20, uint8_t(LiquidKind::Slime)));
+
+    WmoModel m(TriSoup{}, {}, std::move(groups), 0);
+
+    const auto both = LiquidsAt(m, Vec3{1.f, 1.f, 0.f});
+    REQUIRE(both.size() == 2u);
+    CHECK_EQ(both[0].z, 40.f);
+    CHECK_EQ(both[1].z, 12.f);
+    CHECK_EQ(both[1].entry, uint16_t(20));
 }
 
 TEST(WmoLiquidHonoursTheDryTileNibble)
@@ -296,7 +322,7 @@ TEST(WmoLiquidHonoursTheDryTileNibble)
     groups.push_back(FlatLiquidGroup(2, 2, 12.f, 0x0F, 13, uint8_t(LiquidKind::Water)));
 
     WmoModel m(TriSoup{}, {}, std::move(groups), 0);
-    CHECK(!m.LiquidLocal(Vec3{1.f, 1.f, 0.f}).has_value());
+    CHECK(LiquidsAt(m, Vec3{1.f, 1.f, 0.f}).empty());
 }
 
 TEST(WmoLiquidOnlyGroupIsNotEmpty)

@@ -24,6 +24,8 @@
  */
 
 #include "MoveSplineInit.h"
+#include "Move/ClientRules.h"
+#include "Move/Leg.h"
 #include "MoveSplineSpeed.h"
 #include "MoveSpline.h"
 #include "packet_builder.h"
@@ -151,6 +153,34 @@ namespace Movement
         args.path[0] = real_position.Pos();
         args.initialOrientation = real_position.Facing();
 
+        // AND THEN STRIP WHAT THAT JUST CREATED. Forcing point zero to the mover's own
+        // position is right -- it is what keeps the client from splicing its position in
+        // front and walking a longer path than we timed -- but a patrol that reaches a
+        // node, waits, and sets off again from that node has just had point zero set to
+        // the very waypoint that is already point one.
+        //
+        // The client does not deduplicate a normal path (only its cyclic one does, at
+        // 2.4e-7), so it builds a segment of no length and divides by it. That division is
+        // an integer atan2 in fixed point, sub_AC3C00 in Wow.exe 15595, and it takes the
+        // whole client down with ERROR #132.
+        //
+        // NEVER BELOW TWO POINTS, though, and never a refusal. Returning 0 from here does
+        // not mean "already there" to the caller -- MotionDriver reads it as the spline
+        // REFUSING the leg and marks the mover blocked, so a patrol gives up on the node
+        // and jumps to another. Whole paths were collapsing that way and the patrols
+        // wandered between a few scattered points. A leg whose every point folds into one
+        // is a leg that goes nowhere, which is what the original path already said, so it
+        // goes out unchanged and behaves exactly as it did before any of this.
+        if (args.path.size() > 1)
+        {
+            const uint16 before = uint16(args.path.size());
+            const uint16 kept = Move::Client::StripDeadSegments(&args.path[0], before);
+            if (kept >= 2)
+            {
+                args.path.resize(kept);
+            }
+        }
+
         uint32 moveFlags = unit.m_movementInfo.GetMovementFlags();
         if (args.walk)
         {
@@ -176,6 +206,36 @@ namespace Movement
         unit.m_movementInfo.SetMovementFlags((MovementFlags)moveFlags);
         move_spline.Initialize(args);
 
+        // THE NEW ENGINE RUNNING BESIDE THE OLD ONE, answering only into the log.
+        //
+        // Move::Leg keeps the polyline instead of re-simulating it, and the point of
+        // keeping it is that a position can then be read at any instant rather than
+        // written every 400 ms. Before anything is switched over, the two have to be shown
+        // to describe the same motion on real traffic -- and the cheapest place they can
+        // disagree is the duration, which is the whole path divided by one speed.
+        //
+        // A LINEAR path must agree exactly: both measure the same chords. A SMOOTH one is
+        // expected to differ, because MoveSpline measures the Catmull-Rom curve and a Leg
+        // measures the chords between its points, so only the linear case is reported.
+        // Silence here is the evidence; a line is a discrepancy worth reading.
+        if (!args.flags.isSmooth() && args.path.size() > 1)
+        {
+            Move::Leg shadow;
+            if (shadow.Launch(&args.path[0], uint16(args.path.size()), args.velocity, 0))
+            {
+                const int32 theirs = move_spline.Duration();
+                const int32 ours = int32(shadow.Duration());
+                const int32 drift = ours > theirs ? ours - theirs : theirs - ours;
+                if (theirs > 0 && drift * 20 > theirs)
+                {
+                    sLog.outError("Move::Leg shadow: %s over %u point(s) at %.2f yd/s -- "
+                                  "spline says %d ms, leg says %d ms (%d ms apart)",
+                                  unit.GetGuidStr().c_str(), uint32(args.path.size()),
+                                  args.velocity, theirs, ours, drift);
+                }
+            }
+        }
+
         WorldPacket data(SMSG_MONSTER_MOVE, 64);
         data << unit.GetPackGUID();
 
@@ -197,10 +257,34 @@ namespace Movement
             data << int8(-1);
         }
 
+        // WHAT THE CLIENT WILL MAKE OF THIS, asked before it goes out rather than guessed
+        // at afterwards. The client does not obey our duration: it measures the polyline
+        // it ended up with, divides by a speed of its own, and uses that (Wow.exe 15595,
+        // sub_5CB460 and sub_A27900). So a leg that asks to travel faster than four times
+        // the mover's speed is not refused, it is silently stretched -- the mover arrives
+        // late and no existing check says a word. This reports it.
+        const int32 sentDuration = move_spline.Duration();
+        if (sentDuration > 0)
+        {
+            const float sentLength = float(sentDuration) * args.velocity * 0.001f;
+            const Move::Client::Verdict verdict =
+                Move::Client::Inspect(sentLength, uint32(sentDuration),
+                                      unit.GetSpeed(SelectSpeedType(moveFlags)),
+                                      args.flags.raw());
+            if (verdict.tooFast)
+            {
+                sLog.outError("MoveSplineInit::Launch: %s asks for %.2f yd/s over %.2f yd, "
+                              "above the client's ceiling of %.2f -- the client will stretch "
+                              "this leg by %d ms (flags 0x%08X)",
+                              unit.GetGuidStr().c_str(), verdict.askedSpeed, sentLength,
+                              verdict.ceiling, verdict.stretchMs, args.flags.raw());
+            }
+        }
+
         PacketBuilder::WriteMonsterMove(move_spline, data);
         unit.SendMessageToSet(&data, true);
 
-        return move_spline.Duration();
+        return sentDuration;
     }
 
     /**

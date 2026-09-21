@@ -89,6 +89,7 @@ target_link_libraries(game
         shared_db
         proto
         motion
+        movement
         RecastNavigation::Detour
         ZLIB::ZLIB
         $<$<BOOL:${SCRIPT_LIB_SD3}>:mangosscript>

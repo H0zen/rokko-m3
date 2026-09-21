@@ -29,7 +29,6 @@ namespace world::terrain
         LiquidKind liquid = LiquidKind::None;
         uint16_t liquidEntry = 0;
         bool deep = false;
-        bool fromAdt = false;  ///< tile (ADT) liquid, not carried by a model
 
         bool Solid() const { return kind != SurfaceKind::Liquid; }
 
@@ -55,7 +54,7 @@ namespace world::terrain
                 m_surfaces.push_back(s);
             }
 
-            void AddLiquid(const LiquidInfo& info, bool fromAdt = false)
+            void AddLiquid(const LiquidInfo& info)
             {
                 Surface s;
                 s.z = info.level;
@@ -63,7 +62,6 @@ namespace world::terrain
                 s.liquid = info.kind;
                 s.liquidEntry = info.entry;
                 s.deep = info.deep;
-                s.fromAdt = fromAdt;
                 m_surfaces.push_back(s);
             }
 
@@ -111,22 +109,41 @@ namespace world::terrain
             /// below, the nearest surface ABOVE is the floor it would stand on once
             /// freed. Answering with the highest surface anywhere instead hands back the
             /// roof of whatever the hill is under.
-            std::optional<float> Floor(float z, float tolerance = 2.0f) const
+            ///
+            /// `reach` bounds that upward fallback, and it is an argument because this is
+            /// a SELECTION and a selection bounds itself. It used to be bounded by
+            /// accident: the gather stopped at the caller's window, so nothing further up
+            /// than that was in the column to be found. Now that an instance is swept
+            /// over its own extent, a ceiling two hundred yards overhead is present -- and
+            /// without this bound a point in open air with nothing beneath it would take
+            /// that ceiling for its floor. The default is the window the engine passed,
+            /// so the answer is what it always was.
+            std::optional<float> Floor(float z, float tolerance = 2.0f,
+                                       float reach = 50.0f) const
             {
                 if (auto below = HighestSolidAtOrBelow(z + tolerance))
                 {
                     return below;
                 }
-                return LowestSolidAbove(z + tolerance);
+                if (auto above = LowestSolidAbove(z + tolerance))
+                {
+                    if (*above <= z + reach)
+                    {
+                        return above;
+                    }
+                }
+                return std::nullopt;
             }
 
-            std::optional<Surface> HighestLiquid(bool includeAdt = true) const
+            /// The highest liquid anywhere in the gather, with no point of view. The
+            /// map-wide question -- "is there water at this XY at all" -- and nothing
+            /// else: a point inside a building wants LiquidOver.
+            std::optional<Surface> HighestLiquid() const
             {
                 std::optional<Surface> best;
                 for (const Surface& s : m_surfaces)
                 {
-                    if (s.kind == SurfaceKind::Liquid &&
-                        (includeAdt || !s.fromAdt) && (!best || s.z > best->z))
+                    if (s.kind == SurfaceKind::Liquid && (!best || s.z > best->z))
                     {
                         best = s;
                     }
@@ -134,21 +151,55 @@ namespace world::terrain
                 return best;
             }
 
-            /// Whether any baked model surface lies in the sweep -- the cheap
-            /// pre-test for "could this point be inside a WMO at all".
-            bool HasStatic() const
+            /// The liquid a point at `z` is actually in, or under, or standing above.
+            ///
+            /// The selection HighestLiquid cannot make: a surface only counts when no
+            /// solid lies between the point and it. Water over the roof above your head
+            /// is someone else's water -- a player on a dry floor inside Undercity would
+            /// otherwise be handed the Tirisfal lake eighty yards overhead and drown
+            /// standing up. The same test in the other direction discards a canal one
+            /// storey below the walkway you are on.
+            ///
+            /// Ties go to the liquid, so a point exactly level with a floor that is also
+            /// a water surface is still in the water.
+            std::optional<Surface> LiquidOver(float z) const
             {
+                std::optional<Surface> best;
                 for (const Surface& s : m_surfaces)
                 {
-                    if (s.kind == SurfaceKind::Static)
+                    if (s.kind != SurfaceKind::Liquid)
                     {
-                        return true;
+                        continue;
                     }
+                    if (best && s.z <= best->z)
+                    {
+                        continue;
+                    }
+                    if (!Reaches(z, s.z))
+                    {
+                        continue;
+                    }
+                    best = s;
                 }
-                return false;
+                return best;
             }
 
         private:
+            /// Is the open interval between the two heights free of solid surfaces?
+            bool Reaches(float from, float to) const
+            {
+                const float lo = from < to ? from : to;
+                const float hi = from < to ? to : from;
+                for (const Surface& s : m_surfaces)
+                {
+                    if (s.Solid() && s.z > lo && s.z < hi)
+                    {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
             std::vector<Surface> m_surfaces;
     };
 }

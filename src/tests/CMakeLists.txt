@@ -56,11 +56,17 @@ set(SRC_GRP_TESTS
     AuthCryptTest.cpp
     ClientParserTest.cpp
     TerrainModelTest.cpp
+    ColumnSelectionTest.cpp
     TileSerializerTest.cpp
     ModelMapTest.cpp
     NavBinningTest.cpp
     DynamicCollisionTest.cpp
     PlacementTest.cpp
+    LegTest.cpp
+    CrossingsTest.cpp
+    ScheduleTest.cpp
+    AimTest.cpp
+    SelectionTest.cpp
     ${CMAKE_SOURCE_DIR}/src/game/WorldHandlers/DynamicCollision.cpp
     ${CMAKE_SOURCE_DIR}/src/game/WorldHandlers/GameObjectModel.cpp
     ${CMAKE_SOURCE_DIR}/src/game/Server/SessionMailbox.cpp
@@ -114,6 +120,7 @@ target_compile_definitions(mangos_tests PRIVATE MANGOS_TEST_DATA_DIR="${CMAKE_CU
 target_link_libraries(mangos_tests
     PRIVATE
         motion
+        movement
         proto
         shared_db
         mangos_crypto

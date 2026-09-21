@@ -94,7 +94,7 @@
 //
 // The file names themselves are not generated and live in Common/ServerDefines.h.
 
-#define SYSCONFDIR "@CONF_INSTALL_DIR@/"
+#define SYSCONFDIR "@CONF_RUNTIME_DIR@/"
 
 #define MANGOSD_CONFIG_LOCATION         SYSCONFDIR "mangosd.conf"
 #define REALMD_CONFIG_LOCATION          SYSCONFDIR "realmd.conf"

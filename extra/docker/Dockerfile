@@ -23,12 +23,11 @@ COPY . .
 # server, and the tests are CI's business. CI is what proves this source tree compiles
 # and passes; this stage only has to produce the two daemons.
 # WITHOUT_GIT because .dockerignore excludes .git; the OCI revision label carries the
-# commit instead. CONF_INSTALL_DIR is explicit because its default `../etc` resolves to
-# /etc when the prefix is /mangos.
+# commit instead. The configs need no flag: they install to <prefix>/etc.
 RUN cmake -S . -B build -G Ninja \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ \
-        -DCMAKE_INSTALL_PREFIX=/mangos -DCONF_INSTALL_DIR=/mangos/etc -DWITHOUT_GIT=1 \
+        -DCMAKE_INSTALL_PREFIX=/mangos -DWITHOUT_GIT=1 \
         -DBUILD_MANGOSD=1 -DBUILD_REALMD=1 -DBUILD_TOOLS=0 \
         -DSCRIPT_LIB_SD3=1 -DPCH=1 \
     && cmake --build build --parallel \

@@ -25,7 +25,7 @@ add_custom_command(
             -DPROJECT_VERSION_MAJOR=${PROJECT_VERSION_MAJOR}
             -DPROJECT_VERSION_MINOR=${PROJECT_VERSION_MINOR}
             -DPROJECT_VERSION_PATCH=${PROJECT_VERSION_PATCH}
-            -DCONF_INSTALL_DIR=${CONF_INSTALL_DIR}
+            -DCONF_RUNTIME_DIR=${CONF_RUNTIME_DIR}
             -P "${CMAKE_SOURCE_DIR}/cmake/MangosVersion.cmake"
     DEPENDS ${GIT_STATE_FILES}
             "${CMAKE_SOURCE_DIR}/src/shared/BuildInfo.h.in"

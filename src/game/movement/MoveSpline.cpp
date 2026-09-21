@@ -285,6 +285,14 @@ namespace Movement
         CHECK(path.size() > 1);
         CHECK(velocity > 0.1f);
         CHECK(time_perc >= 0.f && time_perc <= 1.f);
+
+        // Nothing used to look at the numbers themselves, so a single NaN anywhere in the
+        // path went out on the wire and killed every client that could see the mover. The
+        // cost is a handful of comparisons on a path that is almost always two points.
+        for (size_t i = 0; i < path.size(); ++i)
+        {
+            CHECK(path[i].isFinite());
+        }
         // CHECK(_checkPathBounds());
         return true;
 #undef CHECK

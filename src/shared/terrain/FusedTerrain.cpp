@@ -320,26 +320,29 @@ namespace world::terrain
             return column;
         }
 
-        // Deliberately not clipped to zBottom. A heightmap sample is a single value the
-        // tile already holds, so there is nothing to gain by hiding it, and a caller
+        // Deliberately not clipped at either end. A heightmap sample is a single value
+        // the tile already holds, so there is nothing to gain by hiding it, and a caller
         // probing from far above (MAX_HEIGHT) would otherwise get an empty column on a
         // map whose only surface is terrain.
+        //
+        // The clip at zTop was worse than pointless: a point below the surface -- anyone
+        // inside a city built under a lake -- dropped the ground overhead while the ADT
+        // liquid on that same ground stayed, so the column described a lake with nothing
+        // holding it up. Selections that walk upward (a ceiling, a blocker between a
+        // point and a water surface) need that ground to be there; selections that walk
+        // downward are bounded by their own argument and never saw it anyway.
         if (tile)
         {
             if (auto h = tile->TerrainHeight(x, y))
             {
-                if (*h <= zTop)
-                {
-                    column.AddSolid(*h, SurfaceKind::Terrain);
-                }
+                column.AddSolid(*h, SurfaceKind::Terrain);
             }
         }
 
-        const float span = zTop - zBottom;
-        const Vec3 originWorld{x, y, zTop};
         const Vec3 downWorld{0.0f, 0.0f, -1.0f};
 
         std::vector<float> hits;
+        std::vector<ICollisionModel::LocalLiquid> liquids;
 
         auto probe = [&](const std::vector<StaticInstance>& instances)
         {
@@ -350,51 +353,70 @@ namespace world::terrain
                     continue;
                 }
                 const Aabb& wb = inst.worldBounds;
-                if (!wb.coversColumn(x, y) || wb.hi.z < zBottom || wb.lo.z > zTop + 0.1f)
+                if (!wb.coversColumn(x, y))
                 {
                     continue;
                 }
+
+                // The instance is swept over its OWN extent, not the caller's window.
+                //
+                // The window used to be a filter on what got gathered, and that made the
+                // column a function of who was asking: a caller probing a 50-yard box
+                // around a unit got a column with the building's other floors missing,
+                // not because they are not there but because nothing looked. A gather
+                // that answers differently depending on the question cannot be selected
+                // over honestly, so the window no longer reaches this far in.
+                //
+                // Callers still bound their own selections -- Floor(z), LowestSolidAbove
+                // and the rest all take the height they care about -- and those are
+                // unaffected by surfaces they were never going to return.
+                const float sweepTop = std::max(zTop, wb.hi.z + 1.0f);
+                const float sweepBottom = std::min(zBottom, wb.lo.z - 1.0f);
+                const Vec3 sweepOrigin{x, y, sweepTop};
 
                 // Every instance -- a map's global WMO included -- stores its model in
                 // model space plus a placement. A global WMO's placement is NOT identity:
                 // it carries the half-turn about Z, so raycasting the raw model in world
                 // space misses the floor on every global-WMO map but the one whose
                 // placement happens to be identity.
-                const Vec3 originLocal = inst.xf.worldToLocal(originWorld);
+                const Vec3 originLocal = inst.xf.worldToLocal(sweepOrigin);
                 const Vec3 dirLocal = inst.xf.worldToLocalDirection(downWorld);
 
-                // localToWorld(o + t*d) == originWorld + t*downWorld, so t is already a
+                // localToWorld(o + t*d) == sweepOrigin + t*downWorld, so t is already a
                 // world distance whatever the instance scale.
                 hits.clear();
-                inst.model->RaycastAll(originLocal, dirLocal, span, hits);
+                inst.model->RaycastAll(originLocal, dirLocal, sweepTop - sweepBottom, hits);
                 for (const float t : hits)
                 {
-                    column.AddSolid(zTop - t, SurfaceKind::Static);
+                    column.AddSolid(sweepTop - t, SurfaceKind::Static);
                 }
 
                 // The ray origin doubles as the liquid probe: MLIQ is indexed by local X
                 // and Y alone, and every real placement is a Z-rotation plus a
                 // translation, so which height along the column it is taken from cannot
                 // change the pair those come out as.
-                const Vec3 pointLocal = inst.xf.worldToLocal(originWorld);
-                if (auto local = inst.model->LiquidLocal(pointLocal))
+                const Vec3 pointLocal = inst.xf.worldToLocal(sweepOrigin);
+                liquids.clear();
+                inst.model->LiquidsLocal(pointLocal, liquids);
+                for (const ICollisionModel::LocalLiquid& local : liquids)
                 {
-                    const LiquidKind kind = static_cast<LiquidKind>(local->kind);
-                    if (kind != LiquidKind::None)
+                    const LiquidKind kind = static_cast<LiquidKind>(local.kind);
+                    if (kind == LiquidKind::None)
                     {
-                        // Lift the surface back through the placement itself: it sits
-                        // directly over the query column, so transforming that exact
-                        // point is exact. Reconstructing the lift by hand applies the
-                        // placement scale twice and assumes the model's local Z is
-                        // parallel to world Z.
-                        const Vec3 surfaceLocal{pointLocal.x, pointLocal.y, local->z};
-                        LiquidInfo info;
-                        info.level = inst.xf.localToWorld(surfaceLocal).z;
-                        info.kind = kind;
-                        info.entry = local->entry;
-                        info.deep = local->deep;
-                        column.AddLiquid(info);
+                        continue;
                     }
+                    // Lift the surface back through the placement itself: it sits
+                    // directly over the query column, so transforming that exact
+                    // point is exact. Reconstructing the lift by hand applies the
+                    // placement scale twice and assumes the model's local Z is
+                    // parallel to world Z.
+                    const Vec3 surfaceLocal{pointLocal.x, pointLocal.y, local.z};
+                    LiquidInfo info;
+                    info.level = inst.xf.localToWorld(surfaceLocal).z;
+                    info.kind = kind;
+                    info.entry = local.entry;
+                    info.deep = local.deep;
+                    column.AddLiquid(info);
                 }
             }
         };
@@ -412,7 +434,7 @@ namespace world::terrain
         {
             if (auto adt = tile->LiquidAt(x, y))
             {
-                column.AddLiquid(*adt, true);
+                column.AddLiquid(*adt);
             }
         }
 

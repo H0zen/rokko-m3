@@ -93,12 +93,38 @@ namespace Geometry
 
             void LeaveFrame() { m_where.frame = Frame(); }
 
-            void MoveTo(const Vector3& pos) { m_where.at.pos = pos; }
-            void MoveTo(float x, float y, float z) { m_where.at.pos = Vector3(x, y, z); }
-            void MoveTo(const Vector3& pos, float facing) { m_where.at.pos = pos; Face(facing); }
+            /// A POSITION THAT IS NOT A NUMBER IS NOT A POSITION, so it is not taken. The
+            /// object keeps where it last was instead of becoming NaN.
+            ///
+            /// This is the only door every writer goes through -- Place() hands out a
+            /// mutable reference and the callers mutate it directly -- so it is the only
+            /// place a single test can cover all of them. And it has to be covered: a NaN
+            /// here reaches the update block and the wire, and the 4.3.4 client turns a
+            /// position into an integer to take a bearing from it. (int)NaN is 0x80000000,
+            /// which its fixed-point atan2 (sub_AC3C00) then divides by zero, taking the
+            /// whole client down with ERROR #132.
+            ///
+            /// Silent because this is a value type with nothing to log to. A caller that
+            /// wants to know can ask IsFinite(); the boundaries that matter -- the spline
+            /// packet in particular -- check and report on their own.
+            void MoveTo(const Vector3& pos)
+            {
+                if (pos.isFinite())
+                {
+                    m_where.at.pos = pos;
+                }
+            }
+            void MoveTo(float x, float y, float z) { MoveTo(Vector3(x, y, z)); }
+            void MoveTo(const Vector3& pos, float facing) { MoveTo(pos); Face(facing); }
             void MoveTo(float x, float y, float z, float facing) { MoveTo(Vector3(x, y, z), facing); }
 
-            void Face(float facing) { m_where.at.facing = NormalizeOrientation(facing); }
+            void Face(float facing)
+            {
+                if (Geometry::isFinite(facing))
+                {
+                    m_where.at.facing = NormalizeOrientation(facing);
+                }
+            }
             void FaceToward(const Vector3& target) { Face(BearingTo(target)); }
             void Resize(float extent) { m_extent = extent; }
 

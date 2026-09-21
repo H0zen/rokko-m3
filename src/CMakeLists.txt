@@ -1,5 +1,6 @@
 add_subdirectory(shared/Crypto)
 add_subdirectory(shared/Geometry)
+add_subdirectory(shared/Move)
 add_subdirectory(shared/terrain)
 
 add_subdirectory(shared)
@@ -26,6 +27,8 @@ endif()
 add_subdirectory(tools/mep)
 
 add_subdirectory(tools/height-check)
+
+add_subdirectory(tools/column-audit)
 
 add_subdirectory(tools/loadtest)
 

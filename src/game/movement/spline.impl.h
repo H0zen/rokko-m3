@@ -80,7 +80,23 @@ namespace Movement
         length_type length_ = t * length();
         index = computeIndexInBounds(length_);
         MANGOS_ASSERT(index < index_hi);
-        u = (length_ - length(index)) / (float)length(index, index + 1);
+
+        // A SEGMENT CAN HAVE NO DURATION, and dividing by it produced a NaN position.
+        //
+        // initLengths accumulates time into an int32 (`time += SegLength(i) * velocityInv`)
+        // and only asserts that the running total never DECREASES, so a segment worth less
+        // than a millisecond leaves lengths[i+1] == lengths[i]. The guard in
+        // MoveSpline::init_spline catches only a spline that is short overall; one dead
+        // segment in the middle of a multi-point path reaches here, and 0/0 is NaN.
+        //
+        // That NaN is not a server-side curiosity. It goes out in the position and the
+        // 4.3.4 client turns it into an integer to take a bearing (sub_AC3C00, an atan2 in
+        // fixed point): (int)NaN is 0x80000000, `<< 10` leaves zero, and the function
+        // divides -1 by 0 -- ERROR #132, INT_DIVIDE_BY_ZERO, the whole client gone.
+        //
+        // A segment with no duration is entirely at its start, so that is what it answers.
+        const length_type segment = length(index, index + 1);
+        u = segment ? (length_ - length(index)) / (float)segment : 0.0f;
     }
 
     /**

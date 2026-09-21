@@ -67,7 +67,7 @@ namespace world::terrain
         return AreaResult{m_groups[gi].groupWmoId, m_groups[gi].mogpFlags, *t};
     }
 
-    std::optional<ICollisionModel::LocalLiquid> WmoModel::LiquidLocal(const Vec3& p) const
+    void WmoModel::LiquidsLocal(const Vec3& p, std::vector<LocalLiquid>& out) const
     {
         for (const Group& g : m_groups)
         {
@@ -113,12 +113,14 @@ namespace world::terrain
                 z = H(tx, ty) + dx * sx + dy * sy;
             }
 
-            LocalLiquid out;
-            out.z = z;
-            out.entry = lq.entry;
-            out.kind = lq.kind;
-            return out;
+            // Every group that carries liquid over this XY, not the first one found:
+            // MLIQ has no storey in it, so stopping here would answer a question about
+            // height with the order the groups happen to sit in.
+            LocalLiquid found;
+            found.z = z;
+            found.entry = lq.entry;
+            found.kind = lq.kind;
+            out.push_back(found);
         }
-        return std::nullopt;
     }
 }

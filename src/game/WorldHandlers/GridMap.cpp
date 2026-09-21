@@ -80,11 +80,6 @@ namespace
     const uint32 LIQUID_OUTLAND_OCEAN_ROW = 15;
     const uint32 LIQUID_FIRST_OVERRIDABLE_ROW = 21;
 
-    // MOGP group flag: the group is an interior. Outside (ADT) liquid must not
-    // reach a point inside one -- Vashj'ir's L'ghorek air pocket, a dry hold
-    // under the sea -- only liquid the WMO itself carries counts there.
-    const uint32 MOGP_FLAG_INTERIOR = 0x2000;
-
     // LiquidType.dbc SoundBank is the family the client uses (0 water .. 3 slime), and
     // MAP_LIQUID_TYPE_* is one bit per family in that order. The DBC is the authority:
     // the tile carries the row id, never a pre-chewed category.
@@ -367,28 +362,23 @@ GridMapLiquidStatus TerrainInfo::getLiquidStatus(float x, float y, float z,
     const world::terrain::Column column =
         ColumnAt(x, y, z + FLOOR_BURIED_LIFT, z - FLOOR_SEARCH_DOWN);
 
-    auto liquid = column.HighestLiquid();
+    // The liquid THIS point is in, not the highest one the column happens to hold. Both
+    // halves of the answer below -- the surface and the floor under it -- have to come
+    // from the same storey, or a dry floor inside a building reports the water over its
+    // roof and the player drowns standing up.
+    //
+    // This replaces a narrower test that asked GetAreaInfo whether the point sat in an
+    // interior WMO group and, if so, dropped tile liquid. That covered one case of three
+    // (it could not tell a canal from the sewer under it), cost a second full scan of the
+    // map's models per query, and was gated on the column holding a static surface --
+    // which is exactly what a windowed gather used to hide. A solid between the point and
+    // the surface is the whole question, and it is cheaper to ask directly.
+    const auto liquid = column.LiquidOver(z);
     if (!liquid || !liquid->liquidEntry)
     {
         return LIQUID_MAP_NO_WATER;
     }
 
-    // Tile liquid is the OUTSIDE water. When the point sits inside a WMO
-    // interior group, drop it and keep only what the model itself carries.
-    if (liquid->fromAdt && column.HasStatic())
-    {
-        uint32 mogpFlags = 0;
-        int32 adtId = 0, rootId = 0, groupId = 0;
-        if (GetAreaInfo(x, y, z, mogpFlags, adtId, rootId, groupId) &&
-            (mogpFlags & MOGP_FLAG_INTERIOR))
-        {
-            liquid = column.HighestLiquid(false);
-            if (!liquid || !liquid->liquidEntry)
-            {
-                return LIQUID_MAP_NO_WATER;
-            }
-        }
-    }
     const LiquidInfo info = liquid->AsLiquid();
 
     uint32 entry = info.entry;

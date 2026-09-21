@@ -24,6 +24,8 @@
  */
 
 #include "TestHarness.h"
+
+#include <limits>
 #include "Geometry/Placement.h"
 
 #include <cmath>
@@ -427,4 +429,52 @@ TEST(Placement_AsLocationDropsTheExtentAndKeepsTheFrame)
     CHECK(other.ShareFrame(emissary));
     CHECK(Approx(other.Extent(), 0.75f));
     CHECK(Approx(other.DistanceTo(emissary), 0.0f));
+}
+
+// A position that is not a number is not a position. Place() hands out a mutable
+// reference and every writer mutates it directly, so MoveTo is the one door they all go
+// through -- and a NaN that gets past it reaches the update block and the wire, where the
+// 4.3.4 client turns it into an integer to take a bearing and divides by zero.
+TEST(Placement_RefusesAPositionThatIsNotANumber)
+{
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+    const float inf = std::numeric_limits<float>::infinity();
+
+    Geometry::Placement p;
+    p.EnterFrame(Geometry::Frame::World(0, 0), Geometry::Vector3(10.f, 20.f, 30.f), 1.0f);
+
+    p.MoveTo(Geometry::Vector3(nan, 20.f, 30.f));
+    CHECK(p.IsFinite());
+    CHECK(p.X() == 10.f);
+
+    p.MoveTo(Geometry::Vector3(10.f, inf, 30.f));
+    CHECK(p.IsFinite());
+    CHECK(p.Y() == 20.f);
+
+    p.MoveTo(1.f, 2.f, nan);
+    CHECK(p.IsFinite());
+    CHECK(p.Z() == 30.f);
+
+    // A real move still lands.
+    p.MoveTo(Geometry::Vector3(1.f, 2.f, 3.f));
+    CHECK(p.X() == 1.f);
+    CHECK(p.Z() == 3.f);
+}
+
+TEST(Placement_RefusesAFacingThatIsNotANumber)
+{
+    const float nan = std::numeric_limits<float>::quiet_NaN();
+
+    Geometry::Placement p;
+    p.EnterFrame(Geometry::Frame::World(0, 0), Geometry::Vector3(1.f, 2.f, 3.f), 1.0f);
+
+    p.Face(nan);
+    CHECK(p.IsFinite());
+    CHECK(p.Facing() == 1.0f);
+
+    // And a move carrying a bad facing keeps neither half from being sane.
+    p.MoveTo(Geometry::Vector3(4.f, 5.f, 6.f), nan);
+    CHECK(p.IsFinite());
+    CHECK(p.X() == 4.f);
+    CHECK(p.Facing() == 1.0f);
 }
