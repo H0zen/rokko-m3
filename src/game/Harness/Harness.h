@@ -75,6 +75,15 @@ namespace Harness
     /// MVTEST DONE always comes (long-follow needs about four).
     static const uint32 kScenarioMaxMs = 300000;
 
+    /// The harness's own player guids. NOT GeneratePlayerLowGuid(): that advances a real counter,
+    /// so two runs would differ and the record would stop being byte-identical.
+    /// They live here rather than in Harness.cpp's anonymous namespace because the runner owns
+    /// the refusal that reserves the block and Scenario::SpawnPlayer hands the guids out.
+    static const uint32 kHarnessPlayerGuidFirst = 0x00F00000;
+    static const uint32 kHarnessPlayerGuidCount = 8;
+    /// One account id for every harness session. It is never written anywhere.
+    static const uint32 kHarnessAccountId = 0x00F00000;
+
     /**
      * The GM harness runner (design v2 §12): the registry of scenarios in the old
      * harness's order, the map they run on (Kalimdor, Mulgore), the clock, and the

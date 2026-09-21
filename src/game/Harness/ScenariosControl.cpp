@@ -28,6 +28,9 @@
 #include "Creature.h"
 #include "CreatureAI.h"
 #include "MotionMaster.h"
+#include "Player.h"
+#include "PlayerRegistry.h"
+#include "WorldSession.h"
 #include "World.h"
 #include "Log.h"
 #include "movement/MoveSpline.h"
@@ -668,6 +671,187 @@ namespace Harness
         };
 
 
+    namespace
+    {
+        /// Whether the player is his own mover, read where the handoff actually writes it:
+        /// the session's authority set, which WorldSession::GrantMover adds the guid to and
+        /// RevokeMover drops it from, and the unit's own mover session, which the same pair
+        /// sets and clears (WorldSession.cpp:145-167). Both halves, because RevokeMover clears
+        /// the pointer only while it is this session's to clear -- reading either alone would
+        /// call a half-done handoff finished. Nothing else is consulted: the packet the
+        /// transition sends goes nowhere on a socketless session, and UNIT_FLAG_FLEEING answers
+        /// a different question.
+        bool OwnMover(Player* p)
+        {
+            WorldSession* s = p->GetSession();
+            return s && s->Movers().IsMember(p->GetObjectGuid().GetRawValue()) && p->MoverSession() == s;
+        }
+    }
+
+    /// S63 (the harness's first player): the fear's CONTROL HANDOFF, the half of Unit::SetFeared
+    /// no creature can exercise. A fear landing on a player revokes the client's authority over
+    /// him before the flee leg is laid (UnitSpeed.cpp:305-311) and the last one going gives it
+    /// back (UnitSpeed.cpp:357-364); until today the only witness to either was a human in a
+    /// game client. A kobold casts 5782 -- the spell, as S60 does, not the entry point every
+    /// other scenario calls -- at a session-less harness player, the scenario samples for six
+    /// seconds and pulls the aura at +4 s so the handback falls inside that window rather than
+    /// waiting on the spell's own duration.
+    class PlayerFear : public Scenario
+    {
+    public:
+        /// Order 900, not 63. Player scenarios take the 900 block precisely so they always sort
+        /// last: the runner refuses `MVTEST all` when a player scenario is queued before one
+        /// that holds no player (Harness.cpp Start), and with contiguous orders 1..63 the very
+        /// next family registered would take 64, fire that guard and break `all` until somebody
+        /// renumbered. A reserved high block makes the ordering promise hold by construction, so
+        /// the creature families can go on growing from 64 without ever colliding with it.
+        PlayerFear() : Scenario("player-fear", 900) {}
+
+        /// The runner owes a player scenario two things: the last place in the queue and the
+        /// map's grids reset behind it. A player in world promotes the grids around him to full
+        /// state and changes Map::Update's own visitation order, and no scenario that holds none
+        /// may read that.
+        bool UsesPlayer() const override { return true; }
+
+        void Prepare() override
+        {
+            struct St
+            {
+                float  x0, y0;            ///< where he stood when the fear landed
+                float  far2;              ///< the farthest he got from there
+                bool   selfBefore;        ///< his own mover before the cast (the spawn's grant held)
+                bool   auraLanded;        ///< the 5782 holder was on him 100 ms after the cast
+                uint32 fearedSamples;     ///< samples with the fear's claim held
+                uint32 afterSamples;      ///< samples after it went
+                bool   selfWhileFeared;   ///< still his own mover on one of those first samples
+                bool   allSelfAfter;      ///< his own mover on every one of the second
+                bool   taxi;              ///< IsTaxiFlying() on any sample
+                uint32 endedAt;           ///< when the claim was first seen gone
+            };
+            Player* p = SpawnPlayer(SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+            Creature* k = p ? Spawn(KOBOLD, SE.x + 6.0f, SE.y, Ground(SE.x + 6.0f, SE.y, SE.z), 3.1f) : NULL;
+            if (!p || !k)
+            {
+                Verdict("controlTaken=INVALID(spawn failed) | playerFlees=INVALID(spawn failed) | controlReturned=INVALID(spawn failed) | notHeldByTaxi=INVALID(spawn failed)");
+                return;
+            }
+            Silence(k);
+            const ObjectGuid g = p->GetObjectGuid(), gk = k->GetObjectGuid();
+            auto st = std::make_shared<St>();
+            st->x0 = st->y0 = st->far2 = 0.0f;
+            st->selfBefore = st->auraLanded = st->selfWhileFeared = st->taxi = false;
+            st->allSelfAfter = true;
+            st->fearedSamples = st->afterSamples = st->endedAt = 0;
+            Log("the player %s stands at (%.1f, %.1f), the kobold 6 yd east", g.GetString().c_str(), p->Where().X(), p->Where().Y());
+
+            At(500, [this, g, gk, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Creature* k = Get(gk);
+                if (!p || !k) { return; }
+                st->x0 = p->Where().X();
+                st->y0 = p->Where().Y();
+                // Read before the cast, because it is the whole meaning of the revoke that
+                // follows: a player who was never his own mover cannot have it taken from him,
+                // and a scenario that skipped this would pass on a server that never granted.
+                st->selfBefore = OwnMover(p);
+                if (p->IsTaxiFlying()) { st->taxi = true; }
+                k->CastSpell(p, FEAR, true);
+                Log("the kobold casts %u on the player at (%.1f, %.1f): his own mover before it=%d", FEAR, st->x0, st->y0, st->selfBefore ? 1 : 0);
+            });
+            At(600, [this, g, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                st->auraLanded = p->HasAura(FEAR);
+                Log("+ 100ms after the cast: aura=%d feared=%d rooted=%d his own mover=%d", st->auraLanded ? 1 : 0,
+                    p->Blocked(Motion::ReasonFeared) ? 1 : 0, p->IsRooted() ? 1 : 0, OwnMover(p) ? 1 : 0);
+            });
+            // Registered before the sampler so it runs first at its own moment (the timeline
+            // orders a tie by insertion): the sample at +4000 is then already an after-sample.
+            At(4000, [this, g, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                p->RemoveAurasDueToSpell(FEAR);
+                Log("+4000ms the aura pulled: aura=%d feared=%d his own mover=%d taxi=%d", p->HasAura(FEAR) ? 1 : 0,
+                    p->Blocked(Motion::ReasonFeared) ? 1 : 0, OwnMover(p) ? 1 : 0, p->IsTaxiFlying() ? 1 : 0);
+            });
+            for (uint32 i = 1; i <= 60; ++i)
+            {
+                At(500 + i * 100, [this, g, st, i]()
+                {
+                    Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                    const uint32 t = i * 100;
+                    const float d = Dist2(st->x0, st->y0, p->Where().X(), p->Where().Y());
+                    if (d > st->far2) { st->far2 = d; }
+                    // Sampled, not assumed: the handback at UnitSpeed.cpp:361 is refused under a
+                    // flight, so a taxi anywhere in the run would be an alternative explanation
+                    // for every other reading here.
+                    if (p->IsTaxiFlying()) { st->taxi = true; }
+                    const bool self = OwnMover(p);
+                    if (p->Blocked(Motion::ReasonFeared))
+                    {
+                        ++st->fearedSamples;
+                        if (self) { st->selfWhileFeared = true; }
+                    }
+                    else if (st->fearedSamples)
+                    {
+                        if (!st->endedAt) { st->endedAt = t; }
+                        ++st->afterSamples;
+                        if (!self) { st->allSelfAfter = false; }
+                    }
+                    if (i % 10 == 0)
+                    {
+                        Log("+%4ums %.1f yd out (farthest %.1f), feared=%d his own mover=%d", t, d, st->far2,
+                            p->Blocked(Motion::ReasonFeared) ? 1 : 0, self ? 1 : 0);
+                    }
+                });
+            }
+            At(6600, [this, st]()
+            {
+                char taken[200], flees[96], returned[176], taxi[80];
+                if (!st->fearedSamples)
+                {
+                    snprintf(taken, sizeof(taken), "INVALID(the fear never held: aura=%d)", st->auraLanded ? 1 : 0);
+                    snprintf(flees, sizeof(flees), "INVALID(the fear never held)");
+                    snprintf(returned, sizeof(returned), "INVALID(the fear never held)");
+                }
+                else
+                {
+                    if (!st->selfBefore)
+                    {
+                        snprintf(taken, sizeof(taken), "BUG(he was not his own mover before the cast, so the revoke had nothing to take)");
+                    }
+                    else
+                    {
+                        snprintf(taken, sizeof(taken), "%s(his own mover before the cast, the session's authority %s him on all %u samples while feared)",
+                                 st->selfWhileFeared ? "BUG" : "OK", st->selfWhileFeared ? "still on" : "off", st->fearedSamples);
+                    }
+                    // Ten yards is the line between fleeing and standing, as S60 reads it: a
+                    // bolt is 11-36 yd and the first is under way well inside four seconds.
+                    snprintf(flees, sizeof(flees), "%s(%.1f yd from where he was feared)", st->far2 >= 10.0f ? "OK" : "BUG", st->far2);
+                    if (st->afterSamples < 5)
+                    {
+                        snprintf(returned, sizeof(returned), "INVALID(only %u samples after the aura went)", st->afterSamples);
+                    }
+                    else if (st->allSelfAfter)
+                    {
+                        snprintf(returned, sizeof(returned), "OK(his own mover again from the first of the %u samples after the aura went, %u ms after the cast)",
+                                 st->afterSamples, st->endedAt);
+                    }
+                    else
+                    {
+                        snprintf(returned, sizeof(returned), "BUG(not his own mover on every one of the %u samples after the aura went, %u ms after the cast)",
+                                 st->afterSamples, st->endedAt);
+                    }
+                }
+                snprintf(taxi, sizeof(taxi), "%s(IsTaxiFlying() %s throughout)", st->taxi ? "BUG" : "OK", st->taxi ? "held" : "false");
+                std::string text = std::string("controlTaken=") + taken + " | playerFlees=" + flees + " | controlReturned=" + returned + " | notHeldByTaxi=" + taxi;
+                Verdict(text);
+            });
+        }
+    };
+
+
     void RegisterControlScenarios(Runner& r)
     {
         r.Register(new FearBoltsAway());
@@ -676,5 +860,6 @@ namespace Harness
         r.Register(new FearRefreshSameClaim());
         r.Register(new ConfuseInTheAir());
         r.Register(new FearAuraMoves());
+        r.Register(new PlayerFear());
     }
 }
