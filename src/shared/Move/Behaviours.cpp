@@ -657,7 +657,13 @@ namespace Move
         {
             const Vector3 toward = quarry.at - here;
             const float span = toward.magnitude();
-            aim = (span > 0.0001f) ? here + toward * ((span - stop) / span) : here;
+
+            // Already nearer than the stop distance: that is the goal, not a problem. The
+            // ratio below goes NEGATIVE when span is under stop, which would put the aim
+            // behind the pursuer and walk it backwards away from what it is chasing.
+            aim = (span > stop && span > 0.0001f)
+                ? here + toward * ((span - stop) / span)
+                : here;
         }
 
         // CLOSE ENOUGH IS A RANGE, NOT A LINE. Being already at the place is the goal, so

@@ -85,6 +85,26 @@ UnitMovement::~UnitMovement()
     delete m_sighting;
 }
 
+namespace
+{
+    /// Where control goes when nothing has taken it: a player drives itself, a creature is
+    /// driven by the server, and that never changes for either.
+    Authority RestingAuthority(Unit const* unit)
+    {
+        return (unit && unit->GetTypeId() == TYPEID_PLAYER) ? Authority::Client : Authority::Server;
+    }
+
+    uint32 NextCounter(uint32& seed)
+    {
+        const uint32 issued = seed++;
+        if (seed == 0)
+        {
+            seed = 1;   // zero means "nothing outstanding"
+        }
+        return issued;
+    }
+}
+
 void UnitMovement::UseDefault()
 {
     // WHAT A CREATURE DOES WHEN NOTHING ELSE IS ASKED OF IT.
@@ -743,25 +763,6 @@ void UnitMovement::ReleaseEveryRestriction()
 
 // -------------------------------------------------------------------- who is driving
 
-namespace
-{
-    /// Where control goes when nothing has taken it: a player drives itself, a creature is
-    /// driven by the server, and that never changes for either.
-    Authority RestingAuthority(Unit const* unit)
-    {
-        return (unit && unit->GetTypeId() == TYPEID_PLAYER) ? Authority::Client : Authority::Server;
-    }
-
-    uint32 NextCounter(uint32& seed)
-    {
-        const uint32 issued = seed++;
-        if (seed == 0)
-        {
-            seed = 1;   // zero means "nothing outstanding"
-        }
-        return issued;
-    }
-}
 
 uint32 UnitMovement::TakeControl()
 {

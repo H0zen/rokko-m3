@@ -116,6 +116,10 @@ namespace Move
             /// the client is walking several without the server hearing from it.
             size_t RunLength() const { return m_run.size(); }
             bool SetNext(uint32_t nodeId);
+            /// Stand still for a while before carrying on -- a player struck up a
+            /// conversation, a script asked. The node being walked to does not change: a
+            /// pause is not a reason to give up on a destination.
+            void WaitFor(uint32_t ms) { m_waitUntilMs = ms; }
             void Replace(std::vector<Node> nodes);
 
         private:
