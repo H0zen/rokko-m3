@@ -266,7 +266,7 @@ struct boss_razorscale : public CreatureScript
                     uint32 uiSpeedRate = m_creature->GetSpeedRate(MOVE_RUN);
                     m_creature->SetWalk(false);
                     m_creature->SetSpeedRate(MOVE_RUN, SPEED_RATE_RAZORSCALE);
-                    m_creature->Movement()->FlyTo(1, afRazorscaleGroundPos[0], afRazorscaleGroundPos[1], afRazorscaleGroundPos[2], false);
+                    m_creature->Movement()->FlyTo(1, afRazorscaleGroundPos[0], afRazorscaleGroundPos[1], afRazorscaleGroundPos[2]);
                     m_creature->SetSpeedRate(MOVE_RUN, uiSpeedRate);
 
                     m_uiPhase = PHASE_TRANSITION;
@@ -562,7 +562,7 @@ struct boss_razorscale : public CreatureScript
                                     // use upgraded speed rate for FlyOrLand. This isn't supported by DB but it's confirmed to happen on retail
                                     uint32 uiSpeedRate = m_creature->GetSpeedRate(MOVE_RUN);
                                     m_creature->SetSpeedRate(MOVE_RUN, SPEED_RATE_RAZORSCALE);
-                                    m_creature->Movement()->FlyTo(1, fX, fY, fZ, true);
+                                    m_creature->Movement()->FlyTo(1, fX, fY, fZ);
                                     m_creature->SetSpeedRate(MOVE_RUN, uiSpeedRate);
 
                                     // reset timers

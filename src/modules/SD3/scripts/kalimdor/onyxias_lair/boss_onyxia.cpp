@@ -474,7 +474,7 @@ struct boss_onyxia : public CreatureScript
                         DoScriptText(SAY_PHASE_3_TRANS, m_creature);
 
                         float fGroundZ = m_creature->GetMap()->GetHeight(m_creature->GetPhaseMask(), m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z());
-                        m_creature->Movement()->FlyTo(POINT_ID_LAND, m_creature->Where().X(), m_creature->Where().Y(), fGroundZ, false);
+                        m_creature->Movement()->FlyTo(POINT_ID_LAND, m_creature->Where().X(), m_creature->Where().Y(), fGroundZ);
                         return;
                     }
 
@@ -579,7 +579,7 @@ struct boss_onyxia : public CreatureScript
                                 {
                                     m_pInstance->SetData(TYPE_ONYXIA, DATA_LIFTOFF);
                                 }
-                                m_creature->Movement()->FlyTo(POINT_ID_IN_AIR, aMoveData[POINT_ID_SOUTH].fX, aMoveData[POINT_ID_SOUTH].fY, aMoveData[POINT_ID_SOUTH].fZ, true);
+                                m_creature->Movement()->FlyTo(POINT_ID_IN_AIR, aMoveData[POINT_ID_SOUTH].fX, aMoveData[POINT_ID_SOUTH].fY, aMoveData[POINT_ID_SOUTH].fZ);
                                 break;
                             case PHASE_BREATH_PRE:
                                 m_creature->Movement()->GoTo(POINT_ID_INIT_NORTH, aMoveData[POINT_ID_NORTH].fX, aMoveData[POINT_ID_NORTH].fY, aMoveData[POINT_ID_NORTH].fZ);
