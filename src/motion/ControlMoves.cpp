@@ -170,7 +170,16 @@ namespace Motion
 
         m_point = point;
         m_havePoint = true;
-        m_rest = int32(svc.Urand(m_p.geometry.restMin, m_p.geometry.restMax));
+        // Two modes, not one band (the cadence note of 2026-09-21). Retail rests after about
+        // every OTHER leg and chains the rest straight on; we rested after every one. The coin
+        // is drawn through the port like every other draw -- never rand() -- so the harness's
+        // seeded record stays reproducible, and it is drawn FIRST and unconditionally, so a
+        // bolt's place in the stream does not depend on the branch it takes. A LOW roll rests:
+        // that keeps the rested branch the one a Services stub answering its minimum exercises.
+        const uint32 restedPercent = m_p.geometry.chainPercent < 100 ? 100 - m_p.geometry.chainPercent : 0;
+        m_rest = svc.Urand(1, 100) <= restedPercent
+                     ? int32(svc.Urand(m_p.geometry.restMin, m_p.geometry.restMax))
+                     : 0;   // chained: the next bolt is laid as this one ends
 
         Step s = Step::Of(MoveIntent::Move(m_point, MOVE_REQUIRE_PATH).WithinLength(m_p.geometry.legLimit));
         s.effects.push_back(Effect::Latch(LatchLeg, 0));   // the generator added the bit before its Move

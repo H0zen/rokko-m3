@@ -49,8 +49,22 @@ namespace Motion
                                           ///< The longest pick this geometry draws is 1.3 * minQuiet = 36.4 yd,
                                           ///< so a route may bend to about 1.6 times its straight line before
                                           ///< it is refused and another point is drawn.
-        uint32 restMin = 800;             ///< the rest standing after a bolt, ms
+        uint32 restMin = 800;             ///< the RESTED branch's band: the rest standing after a bolt, ms
         uint32 restMax = 1500;
+        uint32 chainPercent = 50;         ///< how often a bolt is CHAINED straight into the next one with no
+                                          ///< rest at all, in percent (0 = always rest, the pre-2026-09-21
+                                          ///< behaviour; 100 = never rest).
+                                          ///< Retail's own cadence, measured over 11 MOD_FEAR episodes in the
+                                          ///< Cataclysm 4.0.6a dumps (peer/retail-fear-movement-2026-09-20.md,
+                                          ///< 27 consecutive-leg gaps inside confirmed aura windows):
+                                          ///<   min -3708  p10 -1943  p25 -521  median +114  p75 +1341  p90 +2376  max +7791 ms
+                                          ///< About half those gaps are at or under 300 ms -- a chain, not a
+                                          ///< rest (a quarter are NEGATIVE: retail re-issues the next spline
+                                          ///< before the previous one expires) -- and the other half fall in
+                                          ///< 300-3200 ms, which restMin/restMax already sit inside. Our own
+                                          ///< diagnostic of 2026-09-20 measured 6 gaps, mean 1033 ms, ZERO
+                                          ///< chained: we rested after EVERY leg where retail rests after
+                                          ///< about every other one. This parameter is that missing branch.
         uint32 retryMs = 50;              ///< after a refused point or a blocked leg
         float  closeFactorMin = 0.4f;     ///< inside minQuiet: dist = f * (minQuiet - d)
         float  closeFactorMax = 1.3f;

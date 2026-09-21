@@ -2635,7 +2635,11 @@ TEST(MotionBehaviour_FearPickDrawsInTheGeneratorsOrder)
     Sight s = Standing(0.0f, 0.0f);
     f.Activate(s, svc);
     Step t = f.Tick(s, svc, 100);                    // rest 0: the first pick at once
-    CHECK(CallsAre(svc, { "frand", "fright", "frand", "frand", "groundPoint", "urand" }));
+    // Two urand at the end, not one: the rest is two-mode now (the cadence change of
+    // 2026-09-21). The first is the coin -- always drawn, so a bolt's place in the stream does
+    // not depend on the branch it takes -- and the second the rested band's own draw, which the
+    // fake reaches because it answers every draw its minimum and a LOW roll rests.
+    CHECK(CallsAre(svc, { "frand", "fright", "frand", "frand", "groundPoint", "urand", "urand" }));
     CHECK(t.apply);
     CHECK(t.intent.act == MoveIntent::Act::Move);
     CHECK_EQ(t.intent.flags, uint32(MOVE_REQUIRE_PATH));
@@ -2666,7 +2670,57 @@ TEST(MotionBehaviour_FearPickDrawsInTheGeneratorsOrder)
     CHECK(svc.calls.empty());
     Step n = f.Tick(s, svc, 100);                    // 800: the next bolt
     CHECK(n.intent.act == MoveIntent::Act::Move);
+    CHECK(CallsAre(svc, { "frand", "fright", "frand", "frand", "groundPoint", "urand", "urand" }));
+}
+
+/// The chained branch (the cadence change of 2026-09-21): retail chains about half its legs
+/// straight into the next with no rest at all, and a coin that lands above the rested share
+/// must leave the rest at zero, so the very next standing tick bolts again. The fake here
+/// answers every draw its MAXIMUM, which is the branch the ordinary fake never reaches.
+TEST(MotionBehaviour_FearChainsTheNextBoltWhenTheCoinSaysSo)
+{
+    class TopServices : public FakeServices
+    {
+        public:
+            uint32 Urand(uint32 /*min*/, uint32 max) override { calls.push_back("urand"); return max; }
+    };
+    // The DEFAULT itself, pinned. Nothing else here can: the minimum-answering fake takes the
+    // rested branch and the maximum-answering one the chained branch for any chainPercent in
+    // 1..99, and the harness's distribution band admits anything from 20% to 85%. A default
+    // quietly moved from 50 to 80 would pass every other assertion in the tree, so the number
+    // retail's ~52% chose is asserted outright.
+    CHECK_EQ(FearGeometry().chainPercent, 50u);
+    CHECK_EQ(FearGeometry().restMin, 800u);
+    CHECK_EQ(FearGeometry().restMax, 1500u);
+
+    TopServices svc;
+    FrightEast(svc);
+    FearBehaviour f(Feared());
+    Sight s = Standing(0.0f, 0.0f);
+    f.Activate(s, svc);
+    Step t = f.Tick(s, svc, 100);                    // the first bolt; the coin reads 100 > 50: chained
+    CHECK(t.intent.act == MoveIntent::Act::Move);
+    // One urand only: the chained branch never draws the band.
     CHECK(CallsAre(svc, { "frand", "fright", "frand", "frand", "groundPoint", "urand" }));
+    svc.calls.clear();
+    // Standing again with no rest left: the next bolt is laid on that very tick, not 800 ms later.
+    Step n = f.Tick(s, svc, 100);
+    CHECK(n.intent.act == MoveIntent::Act::Move);
+    CHECK(CallsAre(svc, { "frand", "fright", "frand", "frand", "groundPoint", "urand" }));
+    REQUIRE(n.effects.size() == size_t(1));
+    CHECK(n.effects[0].kind == Effect::Latches);
+    CHECK_EQ(n.effects[0].latchSet, uint8(LatchLeg));
+    // chainPercent = 0 is the single-mode cadence again: every bolt rests, whatever the coin says.
+    FearBehaviour::Params always = Feared();
+    always.geometry.chainPercent = 0;
+    FearBehaviour g(always);
+    g.Activate(s, svc);
+    svc.calls.clear();
+    CHECK(g.Tick(s, svc, 100).intent.act == MoveIntent::Act::Move);
+    CHECK(CallsAre(svc, { "frand", "fright", "frand", "frand", "groundPoint", "urand", "urand" }));
+    svc.calls.clear();
+    CHECK(g.Tick(s, svc, 100).intent.act == MoveIntent::Act::Hold);   // resting: the band's maximum, 1500
+    CHECK(svc.calls.empty());
 }
 
 TEST(MotionBehaviour_FearRefusedGroundAndBlockedLegRetryWithoutTheRestDraw)
@@ -2691,13 +2745,13 @@ TEST(MotionBehaviour_FearRefusedGroundAndBlockedLegRetryWithoutTheRestDraw)
     svc.groundFails = false;
     svc.calls.clear();
     f.Tick(s, svc, 50);                                             // a point laid
-    CHECK_EQ(svc.calls.size(), size_t(6));
+    CHECK_EQ(svc.calls.size(), size_t(7));                          // five for the pick, then the coin and the band
     svc.calls.clear();
     Sight blocked = Standing(0.0f, 0.0f);
     blocked.status.blocked = true;
     Step b = f.Tick(blocked, svc, 100);
     CHECK(b.intent.act == MoveIntent::Act::Move);                   // the same tick picked again
-    CHECK_EQ(svc.calls.size(), size_t(6));
+    CHECK_EQ(svc.calls.size(), size_t(7));
     svc.calls.clear();
     Sight blockedShort = Standing(0.0f, 0.0f);
     blockedShort.status.blocked = true;
@@ -2731,7 +2785,7 @@ TEST(MotionBehaviour_FearBandsAndAnUnresolvedFright)
         Sight s = Standing(0.0f, 0.0f);
         f.Activate(s, svc);
         f.Tick(s, svc, 100);
-        CHECK(CallsAre(svc, { "frand", "fright", "frand", "frand", "groundPoint", "urand" }));
+        CHECK(CallsAre(svc, { "frand", "fright", "frand", "frand", "groundPoint", "urand", "urand" }));
         CHECK(Close(svc.lastGuess, Vector3(9.0f, 0.0f, 0.5f), 0.01f));
     }
     // No fright at all: the first draw's bearing (0) holds, the close band from a zero distance:
@@ -2742,7 +2796,7 @@ TEST(MotionBehaviour_FearBandsAndAnUnresolvedFright)
         Sight s = Standing(0.0f, 0.0f);
         f.Activate(s, svc);
         f.Tick(s, svc, 100);
-        CHECK(CallsAre(svc, { "frand", "fright", "frand", "frand", "groundPoint", "urand" }));   // the fright asked, found nothing
+        CHECK(CallsAre(svc, { "frand", "fright", "frand", "frand", "groundPoint", "urand", "urand" }));   // the fright asked, found nothing
         CHECK(Close(svc.lastGuess.x, 11.2f * std::cos(-M_PI_F / 8.0f), 0.01f));
         CHECK(Close(svc.lastGuess.y, 11.2f * std::sin(-M_PI_F / 8.0f), 0.01f));
     }

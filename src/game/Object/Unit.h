@@ -1721,6 +1721,16 @@ class Unit : public WorldObject
         bool Blocked(UnitState) const = delete;
         /// Feigning death, as of the last movement commit: the old UNIT_STAT_DIED (a feign alone; a real death is IsAlive()'s).
         bool IsFeigningDeath() const { return i_motionMaster.Published().feign; }
+        /**
+         * Feared by an AURA, as of the last movement commit: a Fear claim whose identity names
+         * a spell. Blocked(Motion::ReasonFeared) answers a wider question -- the AI's own
+         * low-health flee (Creature::DoFleeToGetAssistance) raises that reason too, with no
+         * spell behind it -- so anything that must apply to a fear EFFECT and not to a mob
+         * running away on its own asks this instead. Today that is the fear's x1.25 run speed.
+         * @return true if a fear aura's claim was held at the last movement commit
+         * \see Blocked
+         */
+        bool IsFearedByAura() const { return i_motionMaster.Published().auraFear; }
         /// Rooted, stunned or feigning death: the old UNIT_STAT_CAN_NOT_MOVE.
         bool CannotMove() const { return Blocked(Motion::kCannotMoveReasons) || IsFeigningDeath(); }
         /// Stunned, feared, confused or feigning death: the old UNIT_STAT_CAN_NOT_REACT.

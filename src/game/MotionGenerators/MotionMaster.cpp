@@ -1701,6 +1701,9 @@ void MotionMaster::Publish()
 {
     PublishedState next;
     next.reasons = static_cast<uint8>(m_arbiter.Reasons() & kPublishedReasons);
+    // An aura's fear apart from the AI's own low-health flee, which raises the same reason.
+    // Read from the claims, so it ends exactly when the claim does, however the claim ends.
+    next.auraFear = m_arbiter.HasAuraClaim(Motion::Kind::Fear);
     std::vector<uint64> const& dead = m_arbiter.Sources(Motion::Inhibition::Dead);
     for (size_t i = 0; i < dead.size(); ++i)
     {
@@ -1709,7 +1712,35 @@ void MotionMaster::Publish()
             next.feign = true;
         }
     }
-    m_published = next;
+    const bool wasAuraFear = m_published.auraFear;
+    m_published = next;   // assigned FIRST: UpdateSpeed below reads Unit::IsFearedByAura() out of it
+
+    // Retail's x1.25 for a fear aura (Unit::UpdateSpeed) follows the published flag, so that
+    // every route by which the claim can begin or end is covered by construction -- the aura's
+    // own Release, the possession take's CancelControl (Unit.cpp:7149), a full Clear, the death,
+    // and any route nobody has enumerated yet. Enumerating them is what went wrong twice before:
+    // the shell can only patch the callers it has thought of, and the flag is the one place they
+    // all pass through.
+    //
+    // Safe at this point, checked rather than assumed:
+    //  - No recursion. Commit() runs from Scope::~Scope BEFORE m_depth is decremented, so m_depth
+    //    is still 1 here; any facade call made from below would open a NESTED scope, which never
+    //    commits and so never publishes. A publish cannot re-enter a publish.
+    //  - Nothing below opens one anyway. UpdateSpeed reaches back into the kernel exactly twice:
+    //    Unit::PropagateSpeedChange -> MotionMaster::PropagateSpeedChange, which only walks
+    //    m_bound calling SpeedChanged() (no scope, no arbiter mutation, no queued event) -- and
+    //    it is the right moment for it, the selection having just been reconciled; and
+    //    SetSpeedRate's CallForAllControlledUnits, which touches pets and charms, each with its
+    //    own MotionMaster and its own published state.
+    //  - The map phase. SetSpeedRate emits, and Unit::SendEmissions calls AssertMotionOwner.
+    //    Publish() runs inside a facade call already bound by that same rule, and emitting from
+    //    inside a commit is what the outcome effects already do (Effect::RestoreGait -> SetWalk
+    //    -> SendEmissions). No new ownership class is introduced.
+    //  - Cost. Only on a change, which is twice per fear episode.
+    if (next.auraFear != wasAuraFear)
+    {
+        m_owner->UpdateSpeed(MOVE_RUN, true);
+    }
 }
 
 /**

@@ -88,6 +88,12 @@ namespace Motion
     /// "Rooted", "Stunned", "Dead", "Possessed", "none".
     char const* InhibitionName(Inhibition what);
 
+    /// The spell a ControlClaim-shaped identity names (see SourceDomain below for the shape,
+    /// and Motion::ControlClaim in the shell, which builds it). Zero means the claim was NOT
+    /// taken by an aura: the AI's own low-health flee (Creature::DoFleeToGetAssistance) and a
+    /// script's fear both pass 0 there, and they are the only takers that do.
+    inline uint32 ClaimSpell(uint64 claim) { return uint32(claim >> 40); }
+
     /// The domain of a source, in the value's top nibble. An aura's source is its
     /// ControlClaim-shaped identity (spell << 40 | effect << 32 | caster counter), whose
     /// top nibble is 0 for every 4.3.4 spell id; the other domains never collide with it.
