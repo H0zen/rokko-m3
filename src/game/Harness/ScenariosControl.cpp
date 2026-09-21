@@ -1596,6 +1596,299 @@ namespace Harness
     };
 
 
+    namespace
+    {
+        /// player-confuse's two fixed moments, as the TIMELINE counts them: absolute offsets
+        /// from the scenario's own start, which is what Scenario::At takes. They are its own
+        /// rather than shared with player-fear's pair on purpose -- the two scenarios have no
+        /// reason to move together, and a shared constant would make one of them the other's
+        /// hostage.
+        ///
+        /// ONE TIME BASE IN THE LOG, and it is not this one, for the same reason it is not in
+        /// player-fear: every "+Nms" line this scenario prints is N ms AFTER THE CAST, because
+        /// that is the event every reading is about, and a step that logs an absolute moment
+        /// subtracts the cast.
+        const uint32 kConfuseCastAt = 500;
+        const uint32 kConfusePullAt = 4000;
+
+        /// How much of the confuse's own envelope the player must cover before playerWanders
+        /// will call it movement.
+        ///
+        /// A confuse is NOT a flee, so player-fear's ten yards would read BUG on a perfect one:
+        /// the stagger lurches inside Movement.ConfuseRadius -- 2 yd by default -- of the spot
+        /// the unit was confused at, and none of it is meant to travel anywhere. So the
+        /// threshold is a SHARE of the configured envelope, as S55's verdict is, and still says
+        /// what it means on a server that has moved the radius.
+        ///
+        /// A quarter, and not less, because a quarter is already far outside anything a
+        /// standing player can produce: nothing writes a standing player's position, so he reads
+        /// 0.0 exactly and fails at any positive threshold at all, and the margin is there for
+        /// the ground under the lurches rather than for noise.
+        ///
+        /// A quarter, and not more, because the reading is the PLAYER's own position, not the
+        /// goal, and a confuse is under no obligation to reach either. Each lurch's destination
+        /// is drawn with its radial distance uniform on [0, radius)
+        /// (Map::GetReachableRandomPointOnGround: `range = rand_norm_f() * radius`), so one
+        /// lurch alone clears a quarter of the envelope three times in four and the six-second
+        /// window holds four to seven of them at the 800-1500 ms stagger -- but the stagger runs
+        /// MID-LEG (ControlMoves.cpp Tick), so a lurch drawn near the rim can be superseded
+        /// before it is walked, and the farthest the player is actually SEEN is well short of
+        /// the farthest goal. A half or a whole envelope would be measuring the draw's luck.
+        const float kWanderShareOfEnvelope = 0.25f;
+    }
+
+    /// S67 (the harness's second player): the confuse's CONTROL HANDOFF, the half of
+    /// Unit::SetConfused no creature can exercise. player-fear proved the pair of calls for the
+    /// fear (UnitSpeed.cpp:355-359, 427-430); this proves the confuse's own
+    /// (UnitSpeed.cpp:458-462 on apply, UnitSpeed.cpp:500-503 on removal) -- a second copy of
+    /// the rule, in a second function, which nothing but a player reaches and which until today
+    /// only a human in a game client had ever watched work.
+    ///
+    /// The kobold casts 118 -- the spell, as S60 and player-fear do, not the entry point S55 and
+    /// S58 call. Its two effects in 4.3.4 are Mod Confuse at index 0 (which is why every other
+    /// scenario keys its claim on `POLYMORPH, 0`) and the sheep Transform at index 1; the sheep
+    /// is along for the ride and changes nothing here, and taking the spell rather than the
+    /// entry point is what puts Aura::HandleModConfuse on the path. The scenario samples for six
+    /// seconds and pulls the aura 3.5 s after the cast (kConfusePullAt, absolute +4 s), so the
+    /// handback falls inside that window instead of waiting on the spell's own 50 s.
+    class PlayerConfuse : public Scenario
+    {
+    public:
+        /// Order 901, in the reserved player block behind player-fear's 900, for the reason
+        /// that block exists: the runner refuses `MVTEST all` when a player scenario is queued
+        /// before one that holds no player (Harness.cpp Start), so player scenarios take high
+        /// contiguous orders of their own and the creature families go on growing from 64
+        /// without ever colliding with them.
+        PlayerConfuse() : Scenario("player-confuse", 901) {}
+
+        /// The runner owes a player scenario two things: the last place in the queue and the
+        /// map's grids reset behind it. A player in world promotes the grids around him to full
+        /// state and changes Map::Update's own visitation order, and no scenario that holds none
+        /// may read that.
+        bool UsesPlayer() const override { return true; }
+
+        void Prepare() override
+        {
+            struct St
+            {
+                float  x0, y0;             ///< where he stood when the confuse landed -- the stagger's anchor too
+                float  far2;               ///< the farthest he got from there
+                bool   selfBefore;         ///< his own mover before the cast (the spawn's grant held)
+                bool   auraLanded;         ///< the 118 holder was on him 100 ms after the cast
+                uint32 confusedSamples;    ///< samples with the confuse's claim held
+                uint32 afterSamples;       ///< samples since the claim was LAST seen held
+                bool   selfWhileConfused;  ///< still his own mover on one of those first samples
+                bool   allSelfAfter;       ///< his own mover on every one of the second
+                uint32 taxiSamples;        ///< samples IsTaxiFlying() was actually read on
+                bool   taxi;               ///< ...and true on any of them
+                uint32 endedAt;            ///< when the claim went for the last time
+                bool   pulled;             ///< the scenario's own RemoveAurasDueToSpell has run
+                uint32 flickers;           ///< times the claim went unpublished BEFORE the pull and came back
+                uint32 discarded;          ///< samples those re-anchorings took back out of the after-window
+                uint32 backAfterPull;      ///< samples with the claim published AFTER the pull: a failure, never a flicker
+            };
+            Player* p = SpawnPlayer(SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+            Creature* k = p ? Spawn(KOBOLD, SE.x + 6.0f, SE.y, Ground(SE.x + 6.0f, SE.y, SE.z), 3.1f) : NULL;
+            if (!p || !k)
+            {
+                Verdict("controlTaken=INVALID(spawn failed) | playerWanders=INVALID(spawn failed) | controlReturned=INVALID(spawn failed) | notHeldByTaxi=INVALID(spawn failed)");
+                return;
+            }
+            Silence(k);
+            const ObjectGuid g = p->GetObjectGuid(), gk = k->GetObjectGuid();
+            auto st = std::make_shared<St>();
+            st->x0 = st->y0 = st->far2 = 0.0f;
+            st->selfBefore = st->auraLanded = st->selfWhileConfused = st->taxi = false;
+            st->allSelfAfter = true;
+            st->confusedSamples = st->afterSamples = st->taxiSamples = st->endedAt = 0;
+            st->pulled = false;
+            st->flickers = st->discarded = st->backAfterPull = 0;
+            Log("the player %s stands at (%.1f, %.1f), the kobold 6 yd east, envelope %.1f yd", g.GetString().c_str(),
+                p->Where().X(), p->Where().Y(), sWorld.getConfig(CONFIG_FLOAT_MOVEMENT_CONFUSE_RADIUS));
+
+            At(kConfuseCastAt, [this, g, gk, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Creature* k = Get(gk);
+                if (!p || !k) { return; }
+                st->x0 = p->Where().X();
+                st->y0 = p->Where().Y();
+                // Read before the cast, because it is the whole meaning of the revoke that
+                // follows: a player who was never his own mover cannot have it taken from him,
+                // and a scenario that skipped this would pass on a server that never granted.
+                st->selfBefore = OwnMover(p);
+                if (p->IsTaxiFlying()) { st->taxi = true; }
+                ++st->taxiSamples;
+                k->CastSpell(p, POLYMORPH, true);
+                Log("the kobold casts %u on the player at (%.1f, %.1f): his own mover before it=%d", POLYMORPH, st->x0, st->y0, st->selfBefore ? 1 : 0);
+            });
+            At(kConfuseCastAt + 100, [this, g, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                st->auraLanded = p->HasAura(POLYMORPH);
+                Log("+ 100ms after the cast: aura=%d confused=%d rooted=%d his own mover=%d", st->auraLanded ? 1 : 0,
+                    p->Blocked(Motion::ReasonConfused) ? 1 : 0, p->IsRooted() ? 1 : 0, OwnMover(p) ? 1 : 0);
+            });
+            // Registered before the sampler so it runs first at its own moment (the timeline
+            // orders a tie by insertion): the sample at +3500 after the cast is then already an
+            // after-sample.
+            At(kConfusePullAt, [this, g, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                p->RemoveAurasDueToSpell(POLYMORPH);
+                // The moment that divides the scenario in two for the sampler below: before it,
+                // a gap in the claim is a flicker inside a confuse that is still meant to be
+                // running; after it, the claim coming back at all is a failure.
+                st->pulled = true;
+                Log("+%4ums after the cast the aura pulled: aura=%d confused=%d his own mover=%d taxi=%d",
+                    kConfusePullAt - kConfuseCastAt, p->HasAura(POLYMORPH) ? 1 : 0,
+                    p->Blocked(Motion::ReasonConfused) ? 1 : 0, OwnMover(p) ? 1 : 0, p->IsTaxiFlying() ? 1 : 0);
+            });
+            for (uint32 i = 1; i <= 60; ++i)
+            {
+                At(kConfuseCastAt + i * 100, [this, g, st, i]()
+                {
+                    Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                    const uint32 t = i * 100;
+                    const float d = Dist2(st->x0, st->y0, p->Where().X(), p->Where().Y());
+                    if (d > st->far2) { st->far2 = d; }
+                    // Sampled, not assumed, and COUNTED: the handback at UnitSpeed.cpp:500 is
+                    // refused under a flight, so a taxi anywhere in the run would be an
+                    // alternative explanation for every other reading here -- and a run that
+                    // never read the flag at all has not established that it was false, which
+                    // is why the verdict below asks how many of these there were.
+                    if (p->IsTaxiFlying()) { st->taxi = true; }
+                    ++st->taxiSamples;
+                    const bool self = OwnMover(p);
+                    const bool claimHeld = p->Blocked(Motion::ReasonConfused);
+                    if (claimHeld && !st->pulled)
+                    {
+                        ++st->confusedSamples;
+                        if (self) { st->selfWhileConfused = true; }
+                        // THE AFTER-WINDOW IS ANCHORED TO THE END OF THE CONFUSE, not to the
+                        // first gap in it -- player-fear's own rule, and inherited here in its
+                        // corrected form rather than rediscovered. A claim that reads
+                        // unpublished on one sample and published again on the next -- BEFORE
+                        // the scenario pulls the aura, while the confuse is still meant to be
+                        // running -- was a flicker, not the handback, and everything counted
+                        // since that gap belongs to the confuse's own window, where the control
+                        // is CORRECTLY revoked. Counted as after-samples they would read "not
+                        // his own mover after the aura went" and this category would print BUG
+                        // on a working server. So the window re-anchors here, and what it
+                        // discards is counted and said.
+                        if (st->afterSamples)
+                        {
+                            ++st->flickers;
+                            st->discarded += st->afterSamples;
+                        }
+                        st->afterSamples = 0;
+                        st->endedAt = 0;
+                        st->allSelfAfter = true;
+                    }
+                    else if (claimHeld)
+                    {
+                        // The claim is published AFTER the scenario pulled the aura. That is not
+                        // a flicker in anything: the confuse was ended, on purpose, at a moment
+                        // this scenario chose, so a claim standing again is a failure in its own
+                        // right and is reported as one. Above all it must NOT re-anchor -- the
+                        // failing control samples gathered since the pull are exactly the
+                        // evidence a re-anchoring would erase, turning a genuine BUG into OK,
+                        // which is the worse direction to be wrong in.
+                        // Nor does it touch confusedSamples or selfWhileConfused. Those two
+                        // answer controlTaken, which asks about the revoke at ONSET; a stale
+                        // claim long after the pull is controlReturned's finding, and letting it
+                        // reach the other category would make one event print BUG twice, once
+                        // falsely.
+                        ++st->backAfterPull;
+                    }
+                    else if (st->confusedSamples)
+                    {
+                        if (!st->endedAt) { st->endedAt = t; }
+                        ++st->afterSamples;
+                        if (!self) { st->allSelfAfter = false; }
+                    }
+                    if (i % 10 == 0)
+                    {
+                        Log("+%4ums %.1f yd out (farthest %.1f), confused=%d his own mover=%d", t, d, st->far2,
+                            p->Blocked(Motion::ReasonConfused) ? 1 : 0, self ? 1 : 0);
+                    }
+                });
+            }
+            At(kConfuseCastAt + 6100, [this, st]()
+            {
+                const float radius = sWorld.getConfig(CONFIG_FLOAT_MOVEMENT_CONFUSE_RADIUS);
+                char taken[200], wanders[144], returned[296], taxi[112];
+                if (!st->confusedSamples)
+                {
+                    snprintf(taken, sizeof(taken), "INVALID(the confuse never held: aura=%d)", st->auraLanded ? 1 : 0);
+                    snprintf(wanders, sizeof(wanders), "INVALID(the confuse never held)");
+                    snprintf(returned, sizeof(returned), "INVALID(the confuse never held)");
+                }
+                else
+                {
+                    if (!st->selfBefore)
+                    {
+                        snprintf(taken, sizeof(taken), "BUG(he was not his own mover before the cast, so the revoke had nothing to take)");
+                    }
+                    else
+                    {
+                        snprintf(taken, sizeof(taken), "%s(his own mover before the cast, the session's authority %s him on all %u samples while confused)",
+                                 st->selfWhileConfused ? "BUG" : "OK", st->selfWhileConfused ? "still on" : "off", st->confusedSamples);
+                    }
+                    // A share of the envelope, not a distance (kWanderShareOfEnvelope): the
+                    // stagger is not going anywhere, and a standing player reads 0.0.
+                    snprintf(wanders, sizeof(wanders), "%s(%.1f yd from where he was confused, of the %.1f yd envelope; the line is %.1f)",
+                             st->far2 >= kWanderShareOfEnvelope * radius ? "OK" : "BUG", st->far2, radius, kWanderShareOfEnvelope * radius);
+                    // The flicker note, appended to whichever branch fires below. A claim that
+                    // went unpublished mid-confuse and came back is worth seeing even though the
+                    // window no longer counts it -- it is a finding about the claim, just not
+                    // this category's -- and on a healthy run there is nothing to say.
+                    char flicker[112];
+                    if (st->flickers)
+                    {
+                        snprintf(flicker, sizeof(flicker), "; the claim flickered %u time(s) before the pull, re-anchoring the window past %u sample(s)",
+                                 st->flickers, st->discarded);
+                    }
+                    else
+                    {
+                        flicker[0] = '\0';
+                    }
+                    // First, and ahead of the sample-count INVALID: a claim standing again after
+                    // the aura was pulled is a hard failure, and reporting "too few samples"
+                    // over the top of it would hide the one thing that went wrong.
+                    if (st->backAfterPull)
+                    {
+                        snprintf(returned, sizeof(returned), "BUG(the confuse's claim was published again on %u sample(s) AFTER the aura was pulled, so the confuse did not end when it was ended; of the %u control sample(s) since the pull he was his own mover on %s%s)",
+                                 st->backAfterPull, st->afterSamples, st->allSelfAfter ? "all" : "not all", flicker);
+                    }
+                    else if (st->afterSamples < 5)
+                    {
+                        snprintf(returned, sizeof(returned), "INVALID(only %u samples after the aura went%s)", st->afterSamples, flicker);
+                    }
+                    else if (st->allSelfAfter)
+                    {
+                        snprintf(returned, sizeof(returned), "OK(his own mover again from the first of the %u samples after the aura went, %u ms after the cast%s)",
+                                 st->afterSamples, st->endedAt, flicker);
+                    }
+                    else
+                    {
+                        snprintf(returned, sizeof(returned), "BUG(not his own mover on every one of the %u samples after the aura went, %u ms after the cast%s)",
+                                 st->afterSamples, st->endedAt, flicker);
+                    }
+                }
+                // Sampled, so it is allowed to say it was never sampled. A run whose player went
+                // unresolvable reads nothing here rather than the false comfort of "false
+                // throughout", which is what an unconditional OK would have printed over zero
+                // readings.
+                if (!st->taxiSamples) { snprintf(taxi, sizeof(taxi), "INVALID(IsTaxiFlying() was never read)"); }
+                else { snprintf(taxi, sizeof(taxi), "%s(IsTaxiFlying() %s over %u samples)", st->taxi ? "BUG" : "OK", st->taxi ? "held" : "false throughout", st->taxiSamples); }
+                std::string text = std::string("controlTaken=") + taken + " | playerWanders=" + wanders + " | controlReturned=" + returned + " | notHeldByTaxi=" + taxi;
+                Verdict(text);
+            });
+        }
+    };
+
+
     void RegisterControlScenarios(Runner& r)
     {
         r.Register(new FearBoltsAway());
@@ -1608,5 +1901,6 @@ namespace Harness
         r.Register(new LowHealthFleeSpeed());
         r.Register(new FearSpeedFollowsTheClaim());
         r.Register(new PlayerFear());
+        r.Register(new PlayerConfuse());
     }
 }
