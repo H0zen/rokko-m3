@@ -510,3 +510,63 @@ TEST(AWeldStopsBeforeItsPointsOutgrowThePackedFields)
     CHECK(Move::Client::PacksWithoutWrapping(plan.points, plan.count));
     CHECK(patrol.RunLength() < size_t(12));
 }
+
+// THE CRASH. A patrol whose nodes all sit within a stride of each other used to recurse
+// between laying a leg and reporting an arrival -- Lay found everything collapsed, called
+// Arrived, which advanced a node and called Lay, for ever -- and took the server down with
+// the stack. Reporting must never lay; it asks for a wake-up, which is bounded.
+TEST(APatrolWhoseNodesAllSitUnderfootDoesNotRecurse)
+{
+    OpenField world;
+    world.here = Vector3(0.0f, 0.0f, 0.0f);
+
+    std::vector<Move::WalkNodes::Node> nodes;
+    nodes.push_back(MakeNode(1, 0.0f));
+    nodes.push_back(MakeNode(2, 0.1f));
+    nodes.push_back(MakeNode(3, 0.2f));
+    Move::WalkNodes patrol(nodes);
+
+    Plan plan;
+    const uint32_t due = patrol.Decide(1000, false, world, plan);
+    CHECK(!plan.send);
+    CHECK(due > uint32_t(1000));
+    CHECK(patrol.Reached() != uint32_t(0));
+}
+
+// The one-node degenerate case, which is the shortest path to that same loop.
+TEST(ASingleNodePatrolStandingOnItAsksForAWakeUpNotAnotherLeg)
+{
+    OpenField world;
+    world.here = Vector3(4.0f, 0.0f, 0.0f);
+
+    std::vector<Move::WalkNodes::Node> nodes;
+    nodes.push_back(MakeNode(1, 4.0f));
+    Move::WalkNodes patrol(nodes);
+
+    Plan plan;
+    const uint32_t due = patrol.Decide(500, false, world, plan);
+    CHECK(!plan.send);
+    CHECK(due > uint32_t(500));
+    CHECK_EQ(patrol.Reached(), uint32_t(1));
+}
+
+// Arriving still lays the next leg -- that path is one call deep and must keep working, or
+// every patrol would pause for a wake-up between nodes.
+TEST(AnArrivalWithNoWaitStillLaysTheNextLegImmediately)
+{
+    OpenField world;
+    std::vector<Move::WalkNodes::Node> nodes;
+    nodes.push_back(MakeNode(1, 10.0f, 0));
+    nodes.push_back(MakeNode(2, 20.0f, 500));
+    nodes.push_back(MakeNode(3, 40.0f, 500));
+    Move::WalkNodes patrol(nodes);
+
+    Plan first;
+    patrol.Decide(0, false, world, first);
+    CHECK(Sent(first));
+
+    world.here = Vector3(20.0f, 0.0f, 0.0f);
+    Plan after;
+    patrol.Arrived(3000, false, world, after);
+    CHECK_EQ(patrol.Reached(), uint32_t(2));
+}

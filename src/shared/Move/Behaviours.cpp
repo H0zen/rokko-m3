@@ -282,13 +282,18 @@ namespace Move
             at = next;
         }
 
-        // Already standing on the node -- no leg to send, but the node IS reached, so the
-        // arrival runs now and the patrol moves on. Without this a creature spawned exactly
-        // on its first waypoint asks for a leg of no length every time it is woken.
+        // Standing on the nodes the run covered -- they are reached, but there is no leg to
+        // send. Report them and come back shortly from the node after.
+        //
+        // THIS MUST NOT CALL Arrived. Arrived lays the next leg, and laying it can land here
+        // again: a path whose nodes all sit within a stride of each other recurses between
+        // the two until the stack runs out, which is exactly how this crashed the server
+        // once already. A wake-up is bounded; a recursive call is not.
         if (m_points.size() < 2 && m_reachedWithoutWalking)
         {
             m_reachedWithoutWalking = false;
-            return Arrived(nowMs, false, world, out);
+            const uint32_t wait = Reap(out);
+            return nowMs + (wait ? wait : RETRY_MS);
         }
 
         // Nothing usable. The target node is UNCHANGED -- that is the rule this whole class
@@ -313,16 +318,15 @@ namespace Move
         return 0;
     }
 
-    uint32_t WalkNodes::Arrived(uint32_t nowMs, bool cut, World& world, Plan& out)
+    uint32_t WalkNodes::Reap(Plan& out)
     {
-        if (cut || m_run.empty())
+        if (m_run.empty())
         {
-            // Not an arrival. No node is marked reached and the target does not move.
-            return nowMs;
+            return 0;
         }
 
-        // Every node the leg covered was passed, in order, so each one is reported. The
-        // last of them is where the creature now stands.
+        // Every node the run covered was passed, in order, so each one is reported. The last
+        // of them is where the creature now stands.
         for (size_t i = 0; i < m_run.size(); ++i)
         {
             const Node& node = m_nodes[m_run[i]];
@@ -331,22 +335,36 @@ namespace Move
         }
 
         const Node& last = m_nodes[m_run.back()];
+        const uint32_t wait = last.waitMs;
+
         size_t next = m_run.back() + 1;
         if (next >= m_nodes.size())
         {
-            if (!m_loops)
-            {
-                m_run.clear();
-                return 0;
-            }
-            next = 0;
+            next = m_loops ? 0 : m_run.back();
         }
         m_target = next;
         m_run.clear();
+        return wait;
+    }
 
-        if (last.waitMs != 0)
+    uint32_t WalkNodes::Arrived(uint32_t nowMs, bool cut, World& world, Plan& out)
+    {
+        if (cut || m_run.empty())
         {
-            return nowMs + last.waitMs;
+            // Not an arrival. No node is marked reached and the target does not move.
+            return nowMs;
+        }
+
+        const bool wasLast = !m_loops && m_run.back() + 1 >= m_nodes.size();
+        const uint32_t wait = Reap(out);
+
+        if (wasLast)
+        {
+            return 0;
+        }
+        if (wait != 0)
+        {
+            return nowMs + wait;
         }
         return Lay(nowMs, world, out);
     }

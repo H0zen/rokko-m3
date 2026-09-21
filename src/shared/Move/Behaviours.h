@@ -115,6 +115,11 @@ namespace Move
         private:
             size_t IndexOf(uint32_t nodeId) const;
             uint32_t Lay(uint32_t nowMs, World& world, Plan& out);
+            /// Report every node the finished run covered, advance to the one after it, and
+            /// answer how long the last of them asks the creature to wait. Shared by the
+            /// arrival and by the case where the run covered nodes without walking any
+            /// distance -- which is why it is a function and not part of either.
+            uint32_t Reap(Plan& out);
 
             std::vector<Node> m_nodes;
             bool m_loops;
