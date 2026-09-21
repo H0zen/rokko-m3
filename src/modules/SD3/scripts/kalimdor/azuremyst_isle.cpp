@@ -155,7 +155,7 @@ struct npc_draenei_survivor : public CreatureScript
                         pPlayer->TalkedToCreature(m_creature->GetEntry(), m_creature->GetObjectGuid());
                     }
 
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     m_creature->GetMotionMaster()->MovePoint(0, -4115.053711f, -13754.831055f, 73.508949f);
 
                     m_uiRunAwayTimer = 10000;

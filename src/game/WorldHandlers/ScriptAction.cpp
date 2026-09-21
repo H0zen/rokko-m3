@@ -442,7 +442,7 @@ bool ScriptAction::HandleScriptStep()
             }
             else
             {
-                ((Unit*)pSource)->GetMotionMaster()->Clear();
+                ((Unit*)pSource)->GetMotionMaster()->StopAndDefault();
                 ((Unit*)pSource)->GetMotionMaster()->MovePoint(0, m_script->x, m_script->y, m_script->z);
             }
             break;
@@ -861,7 +861,7 @@ bool ScriptAction::HandleScriptStep()
                 case CREATURE_MOVEMENT_RANDOM:
                     if (m_script->data_flags & SCRIPT_FLAG_COMMAND_ADDITIONAL)
                     {
-                        ((Creature*)pSource)->GetMotionMaster()->MoveRandomAroundPoint(pSource->Where().X(), pSource->Where().Y(), pSource->Where().Z(), float(m_script->movement.wanderDistance));
+                        ((Creature*)pSource)->GetMotionMaster()->Wander(pSource->Where().X(), pSource->Where().Y(), pSource->Where().Z(), float(m_script->movement.wanderDistance));
                     }
                     else
                     {
@@ -872,7 +872,7 @@ bool ScriptAction::HandleScriptStep()
                         respZ = pRespawnOwner->Spawn().Z();
                         wander_distance = pRespawnOwner->GetRespawnRadius();
                         wander_distance = m_script->movement.wanderDistance ? m_script->movement.wanderDistance : wander_distance;
-                        ((Creature*)pSource)->GetMotionMaster()->MoveRandomAroundPoint(respX, respY, respZ, wander_distance);
+                        ((Creature*)pSource)->GetMotionMaster()->Wander(respX, respY, respZ, wander_distance);
                     }
                     break;
                 case CREATURE_MOVEMENT_WAYPOINT:

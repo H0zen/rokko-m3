@@ -470,7 +470,7 @@ struct boss_illidan_stormrage : public CreatureScript
 
             DoCastSpellIfCan(m_creature, SPELL_DEATH, CAST_TRIGGERED);
             DoCastSpellIfCan(m_creature, SPELL_TELEPORT_MAIEV, CAST_TRIGGERED);
-            m_creature->GetMotionMaster()->Clear();
+            m_creature->GetMotionMaster()->StopAndDefault();
             m_creature->GetMotionMaster()->MoveIdle();
 
             // Signal Maiev to start the outro dialogue
@@ -556,7 +556,7 @@ struct boss_illidan_stormrage : public CreatureScript
                     m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                     m_creature->SetTargetGuid(m_creature->getVictim()->GetObjectGuid());
                     SetCombatMovement(false);
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
                     if (m_pInstance)
                     {
@@ -707,7 +707,7 @@ struct boss_illidan_stormrage : public CreatureScript
                 m_creature->RemoveAllAuras();
                 m_creature->SetLevitate(true);
                 SetCombatMovement(false);
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->HandleEmote(EMOTE_ONESHOT_LIFTOFF);
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                 return;
@@ -722,7 +722,7 @@ struct boss_illidan_stormrage : public CreatureScript
                     m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
 
                     SetCombatMovement(false);
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     m_creature->GetMotionMaster()->MoveIdle();
 
                     m_uiPhase = PHASE_TRANSITION;
@@ -806,7 +806,7 @@ struct boss_illidan_stormrage : public CreatureScript
                             m_uiShadowDemonTimer = 30000;
 
                             SetCombatMovement(false);
-                            m_creature->GetMotionMaster()->Clear();
+                            m_creature->GetMotionMaster()->StopAndDefault();
                             m_creature->GetMotionMaster()->MoveIdle();
                         }
                     }
@@ -976,7 +976,7 @@ struct boss_illidan_stormrage : public CreatureScript
                             m_uiPhase = PHASE_TRANSITION;
 
                             SetCombatMovement(true);
-                            m_creature->GetMotionMaster()->Clear();
+                            m_creature->GetMotionMaster()->StopAndDefault();
                             m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
                         }
                     }
@@ -989,7 +989,7 @@ struct boss_illidan_stormrage : public CreatureScript
                             m_uiPhase = PHASE_TRANSITION;
 
                             SetCombatMovement(true);
-                            m_creature->GetMotionMaster()->Clear();
+                            m_creature->GetMotionMaster()->StopAndDefault();
                             m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
                         }
                     }

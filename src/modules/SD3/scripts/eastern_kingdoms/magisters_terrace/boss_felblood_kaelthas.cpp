@@ -205,7 +205,7 @@ struct boss_felblood_kaelthas : public CreatureScript
             m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             m_creature->ClearAllReactives();
-            m_creature->GetMotionMaster()->Clear();
+            m_creature->GetMotionMaster()->StopAndDefault();
             m_creature->GetMotionMaster()->MoveIdle();
         }
 
@@ -419,7 +419,7 @@ struct boss_felblood_kaelthas : public CreatureScript
                     if (DoCastSpellIfCan(m_creature, SPELL_TELEPORT_CENTER, CAST_INTERRUPT_PREVIOUS) == CAST_OK)
                     {
                         SetCombatMovement(false);
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         m_creature->GetMotionMaster()->MoveIdle();
 
                         m_bIsFirstPhase = false;
@@ -562,7 +562,7 @@ struct mob_felkael_phoenix : public CreatureScript
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
             m_creature->ClearAllReactives();
             m_creature->SetTargetGuid(ObjectGuid());
-            m_creature->GetMotionMaster()->Clear();
+            m_creature->GetMotionMaster()->StopAndDefault();
             m_creature->GetMotionMaster()->MoveIdle();
             m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
 
@@ -581,7 +581,7 @@ struct mob_felkael_phoenix : public CreatureScript
             if (DoCastSpellIfCan(m_creature, SPELL_REBIRTH_DMG) == CAST_OK)
             {
                 m_creature->SetHealth(m_creature->GetMaxHealth());
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 DoStartMovement(m_creature->getVictim());
                 m_bFakeDeath = false;
 

@@ -151,7 +151,7 @@ struct boss_mr_smite : public CreatureScript
             float fX, fY, fZ;
             ContactPointNear(*pChest, m_creature, fX, fY, fZ, CONTACT_DISTANCE);
 
-            m_creature->GetMotionMaster()->Clear();
+            m_creature->GetMotionMaster()->StopAndDefault();
             m_creature->SetFacingToObject(pChest);
             m_creature->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
         }

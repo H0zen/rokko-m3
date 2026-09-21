@@ -255,7 +255,7 @@ struct boss_leotheras_the_blind : public CreatureScript
                             DoScriptText(SAY_SWITCH_TO_DEMON, m_creature);
 
                             SetCombatMovement(false);
-                            m_creature->GetMotionMaster()->Clear();
+                            m_creature->GetMotionMaster()->StopAndDefault();
                             m_creature->GetMotionMaster()->MoveIdle();
 
                             DoResetThreat();
@@ -354,7 +354,7 @@ struct boss_leotheras_the_blind : public CreatureScript
                 m_creature->HandleEmote(EMOTE_ONESHOT_KNEEL);
 
                 SetCombatMovement(false);
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->GetMotionMaster()->MoveIdle();
 
                 m_bIsFinalForm = true;

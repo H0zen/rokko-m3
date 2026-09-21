@@ -291,7 +291,7 @@ struct boss_brutallus : public CreatureScript
                 pTarget->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
                 pTarget->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                 pTarget->ClearAllReactives();
-                pTarget->GetMotionMaster()->Clear();
+                pTarget->GetMotionMaster()->StopAndDefault();
                 pTarget->GetMotionMaster()->MoveIdle();
                 pTarget->SetStandState(UNIT_STAND_STATE_DEAD);
 

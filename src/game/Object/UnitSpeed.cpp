@@ -303,7 +303,7 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
         // Control is taken once per episode (design v2 §8), before the flee spline is laid:
         // a second fear or confuse on an already controlled player sends no second revoke.
         if (GetTypeId() == TYPEID_PLAYER &&
-            !GetMotionMaster()->HoldsControl(Motion::Kind::Fear) && !GetMotionMaster()->HoldsControl(Motion::Kind::Confused))
+            (GetMotionMaster()->Reasons() & (Motion::ReasonFeared | Motion::ReasonConfused)) == 0)
         {
             ((Player*)this)->SetClientControl(this, 0);
         }
@@ -314,8 +314,8 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
     }
     else
     {
-        const bool released = GetMotionMaster()->ReleaseControl(claim);
-        if (GetMotionMaster()->HoldsControl(Motion::Kind::Fear))
+        GetMotionMaster()->CancelControl(Motion::Kind::Fear);
+        if (GetMotionMaster()->Reasons() & Motion::ReasonFeared)
         {
             return;   // another fear drives (reference §3.6): the flag stays, control stays taken
         }
@@ -351,12 +351,12 @@ void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 t
             }
         }
 
-        // Control returns with the last control aura (P2-D's rule): ReleaseControl's commit
+        // Control returns with the last control aura: ending the confusion here is what
         // published the last claim's end, so the grant passes; a remaining confuse keeps
         // control until its own removal. Not under a taxi: a claim refused under a
         // flight has nothing to give back, and the flight keeps the control until its landing or
         // abort, which grant (P5-B family 5).
-        if (GetTypeId() == TYPEID_PLAYER && !GetMotionMaster()->HoldsControl(Motion::Kind::Confused) && !IsTaxiFlying())
+        if (GetTypeId() == TYPEID_PLAYER && !(GetMotionMaster()->Reasons() & Motion::ReasonConfused) && !IsTaxiFlying())
         {
             ((Player*)this)->SetClientControl(this, 1);
         }
@@ -388,7 +388,7 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 
 
         // Control is taken once per episode (design v2 §8), before the wander is laid.
         if (GetTypeId() == TYPEID_PLAYER &&
-            !GetMotionMaster()->HoldsControl(Motion::Kind::Fear) && !GetMotionMaster()->HoldsControl(Motion::Kind::Confused))
+            (GetMotionMaster()->Reasons() & (Motion::ReasonFeared | Motion::ReasonConfused)) == 0)
         {
             ((Player*)this)->SetClientControl(this, 0);
         }
@@ -401,8 +401,8 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 
     }
     else
     {
-        const bool released = GetMotionMaster()->ReleaseControl(claim);
-        if (GetMotionMaster()->HoldsControl(Motion::Kind::Confused))
+        GetMotionMaster()->CancelControl(Motion::Kind::Confused);
+        if (GetMotionMaster()->Reasons() & Motion::ReasonConfused)
         {
             return;   // another confuse drives: the flag stays, control stays taken
         }
@@ -429,7 +429,7 @@ void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID, uint8 
         }
 
         // As for a fear: not under a taxi, whose landing or abort grants.
-        if (GetTypeId() == TYPEID_PLAYER && !GetMotionMaster()->HoldsControl(Motion::Kind::Fear) && !IsTaxiFlying())
+        if (GetTypeId() == TYPEID_PLAYER && !(GetMotionMaster()->Reasons() & Motion::ReasonFeared) && !IsTaxiFlying())
         {
             ((Player*)this)->SetClientControl(this, 1);
         }

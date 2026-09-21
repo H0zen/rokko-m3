@@ -524,7 +524,7 @@ struct npc_rethhedron : public CreatureScript
             if (!m_bEventFinished && m_creature->GetHealthPercent() < 10.0f)
             {
                 m_creature->InterruptNonMeleeSpells(false);
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->GetMotionMaster()->MovePoint(POINT_ID_PORTAL_FRONT, afRethhedronPos[0][0], afRethhedronPos[0][1], afRethhedronPos[0][2]);
                 m_bEventFinished = true;
             }
@@ -572,7 +572,7 @@ struct npc_rethhedron : public CreatureScript
             {
                 if (m_uiDelayTimer <= uiDiff)
                 {
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     m_creature->GetMotionMaster()->MovePoint(POINT_ID_PORTAL, afRethhedronPos[1][0], afRethhedronPos[1][1], afRethhedronPos[1][2]);
                     m_uiDelayTimer = 0;
                 }

@@ -131,7 +131,7 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
                 {
                     pet->StopMoving();
                     pet->AttackStop(true);
-                    pet->GetMotionMaster()->Clear();
+                    pet->GetMotionMaster()->StopAndDefault();
                     ((Pet*)pet)->SetStayPosition(true);
                     ((Pet*)pet)->SetIsRetreating();
                     ((Pet*)pet)->SetSpellOpener();
@@ -142,7 +142,7 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
                 {
                     pet->StopMoving();
                     pet->AttackStop(true);
-                    pet->GetMotionMaster()->Clear();
+                    pet->GetMotionMaster()->StopAndDefault();
                     ((Pet*)pet)->SetStayPosition();
                     ((Pet*)pet)->SetIsRetreating(true);
                     ((Pet*)pet)->SetSpellOpener();
@@ -164,7 +164,7 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
                         if (pet->getVictim() != targetUnit)
                         {
                             pet->AttackStop();
-                            pet->GetMotionMaster()->Clear();
+                            pet->GetMotionMaster()->StopAndDefault();
 
                             if (((Creature*)pet)->AI())
                             {
@@ -282,7 +282,7 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
 
             _player->SetInCombatState(true, unit_target);
 
-            pet->GetMotionMaster()->Halt();
+            pet->GetMotionMaster()->StopRoute();
 
             Spell* spell = new Spell(pet, spellInfo, false);
 
@@ -298,7 +298,7 @@ void WorldSession::HandlePetAction(WorldPacket& recv_data)
                 delete spell;
 
                 pet->AttackStop();
-                pet->GetMotionMaster()->Clear();
+                pet->GetMotionMaster()->StopAndDefault();
 
                 ((Creature*)pet)->AI()->AttackStart(unit_target);
                  // 10% chance to play special warlock pet attack talk, else growl
@@ -858,7 +858,7 @@ void WorldSession::HandlePetCastSpellOpcode(WorldPacket& recvPacket)
 
     targets.ReadAdditionalData(recvPacket, cast_flags);
 
-    pet->GetMotionMaster()->Halt();
+    pet->GetMotionMaster()->StopRoute();
 
     Spell* spell = new Spell(pet, spellInfo, triggeredByAura ? true : false, pet->GetObjectGuid(), triggeredByAura ? triggeredByAura->GetSpellProto() : NULL);
     spell->m_cast_count = cast_count;                       // probably pending spell cast

@@ -230,7 +230,7 @@ struct boss_sindragosa : public CreatureScript
                 m_uiPhase = SINDRAGOSA_PHASE_AGGRO;
                 SetCombatMovement(false);
                 m_creature->SetWalk(true);
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->GetMotionMaster()->MovePoint(SINDRAGOSA_POINT_AIR_CENTER, SindragosaPosition[1][0], SindragosaPosition[1][1], SindragosaPosition[1][2], false);
             }
         }

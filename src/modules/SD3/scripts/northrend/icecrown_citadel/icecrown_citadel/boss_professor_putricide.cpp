@@ -281,7 +281,7 @@ struct boss_professor_putricide : public CreatureScript
 
                             if (DoCastSpellIfCan(m_creature, spellId) == CAST_OK)
                             {
-                                m_creature->GetMotionMaster()->Clear();
+                                m_creature->GetMotionMaster()->StopAndDefault();
                                 SetCombatMovement(false);
                                 m_creature->GetMotionMaster()->MovePoint(POINT_PUTRICIDE_SPAWN, fPutricidePosition[0][0], fPutricidePosition[0][1], fPutricidePosition[0][2]);
                                 m_uiPhase = PHASE_RUNNING_ONE;
@@ -348,7 +348,7 @@ struct boss_professor_putricide : public CreatureScript
                 case PHASE_TRANSITION_ONE:
                     if (m_uiTransitionTimer <= uiDiff)
                     {
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         SetCombatMovement(true);
                         m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
                         m_uiPhase = PHASE_TWO;
@@ -379,7 +379,7 @@ struct boss_professor_putricide : public CreatureScript
 
                             if (DoCastSpellIfCan(m_creature, spellId) == CAST_OK)
                             {
-                                m_creature->GetMotionMaster()->Clear();
+                                m_creature->GetMotionMaster()->StopAndDefault();
                                 SetCombatMovement(false);
                                 m_creature->GetMotionMaster()->MovePoint(POINT_PUTRICIDE_SPAWN, fPutricidePosition[0][0], fPutricidePosition[0][1], fPutricidePosition[0][2]);
                                 m_uiPhase = PHASE_RUNNING_TWO;
@@ -465,7 +465,7 @@ struct boss_professor_putricide : public CreatureScript
                 case PHASE_TRANSITION_TWO:
                     if (m_uiTransitionTimer <= uiDiff)
                     {
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         SetCombatMovement(true);
                         m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
                         m_uiPhase = PHASE_THREE;

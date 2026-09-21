@@ -3409,7 +3409,7 @@ struct npc_acherus_deathcharger : public CreatureScript
                 m_creature->SetLootRecipient(nullptr);
 
                 // Stop movemnet
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->GetMotionMaster()->MoveIdle();
 
                 // Prepare to be mounted

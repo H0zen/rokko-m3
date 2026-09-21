@@ -33,6 +33,7 @@
 #include "CreatureAI.h"
 #include "WaypointManager.h"
 #include "ObjectMgr.h"
+#include "ObjectLookup.h"
 #include "Timer.h"
 #include "MoveStats.h"
 
@@ -89,7 +90,7 @@ void UnitMovement::Initialize()
     // Read from the spawn, once, and turned into one of the shapes. It is not a generator
     // parked at the bottom of a stack for the life of the unit: a creature whose default is
     // Idle ends up holding nothing at all, costs no wake-ups and owns no behaviour object.
-    Clear();
+    Stop();
 
     if (!m_unit || m_unit->GetTypeId() != TYPEID_UNIT)
     {
@@ -111,8 +112,7 @@ void UnitMovement::Initialize()
             {
                 centre = Geometry::Vector3(spawn->posX, spawn->posY, spawn->posZ);
             }
-            m_movement.Take(new Move::Scatter(Move::Kind::Wander, centre, radius, 3000, 9000));
-            Serve(false, false);
+            Wander(centre.x, centre.y, centre.z, radius);
             return;
         }
         case CREATURE_MOVEMENT_WAYPOINT:
@@ -143,12 +143,13 @@ void UnitMovement::UpdateMotion(uint32 /*diff*/)
 
     const uint32 now = getMSTime();
 
-    // The leg we sent has run out. This is the only thing that happens on its own: the
+    // The route we sent has run out. This is the only thing that happens on its own: the
     // client walks the polyline alone and there is no packet in which it says so, which is
-    // exactly why the moment is computed instead of waited for.
-    if (m_legRunning && int32(now - m_legEndsAt) >= 0)
+    // exactly why the moment is computed rather than waited for. The route itself knows
+    // when it ends, so there is no second copy of that instant to keep in step.
+    Move::Route const& route = m_movement.InFlight();
+    if (route.Running() && route.Arrived(now))
     {
-        m_legRunning = false;
         Serve(true, false);
         return;
     }
@@ -174,6 +175,10 @@ void UnitMovement::Serve(bool legEnded, bool cut)
 
     if (legEnded)
     {
+        // The route that just ended is no longer in flight. Clearing it before the
+        // behaviour answers means "still running" cannot outlive the leg it described --
+        // and if a new leg is laid below, it replaces this cleanly.
+        m_movement.InFlight().Clear();
         m_movement.Ended(now, cut, world, plan);
     }
     else
@@ -210,13 +215,7 @@ void UnitMovement::Serve(bool legEnded, bool cut)
     }
 
     const uint32 flags = SplineFlagsFor(plan.gait);
-    // A charge names its own speed and the behaviour does not know it, so the request
-    // carries it here rather than through a field on a shape that has no use for one.
-    float pace = plan.speed > 0.0f ? plan.speed : world.Pace(plan.gait);
-    if (m_chargeSpeed > 0.0f)
-    {
-        pace = m_chargeSpeed;
-    }
+    const float pace = plan.speed > 0.0f ? plan.speed : world.Pace(plan.gait);
     const Move::Written written = Move::MoveWriter::Write(
         plan.points, plan.count, pace, m_unit->GetSpeed(MOVE_RUN), flags);
 
@@ -228,31 +227,46 @@ void UnitMovement::Serve(bool legEnded, bool cut)
         // Refused. The client would have crashed on it or teleported the mover, so nothing
         // was sent and nothing about the behaviour's state changed. It asks again shortly.
         m_movement.InFlight().Clear();
-        m_legRunning = false;
         return;
     }
 
-    // The duration the WRITER computed, not the one the route holds: it is the number the
-    // client was given, and the client's own arithmetic starts from it.
-    m_legEndsAt = now + written.duration;
-    m_legRunning = true;
+    // THE ROUTE IS RE-LAUNCHED FROM WHAT ACTUALLY WENT OUT, not from what the behaviour
+    // asked for. The writer strips points the client would choke on and re-times what is
+    // left, so the polyline it produced is the one the client walks -- and if the route
+    // held the behaviour's version instead, PositionNow() would describe a leg nobody is
+    // walking. One description, and it is the one on the wire.
+    std::vector<Geometry::Vector3> sent;
+    sent.reserve(written.middle.size() + 2);
+    sent.push_back(written.start);
+    for (size_t i = 0; i < written.middle.size(); ++i)
+    {
+        sent.push_back(written.middle[i]);
+    }
+    sent.push_back(written.destination);
+    m_movement.InFlight().Launch(&sent[0], uint16(sent.size()), written.speed, now);
+
     m_sentFlags = written.flags;
-    m_sentDuration = written.duration;
     m_sentFacing = plan.facing;
     ++m_sentId;
 }
 
-void UnitMovement::Clear(bool /*reset*/, bool /*all*/)
+void UnitMovement::Stop()
 {
+    const bool wasMoving = IsMoving();
     m_movement.Clear();
-    if (m_legRunning)
+    if (wasMoving)
     {
         MoveSend::Halt(*m_unit);
-        m_legRunning = false;
     }
 }
 
-void UnitMovement::MovementExpired(bool /*reset*/)
+void UnitMovement::StopAndDefault()
+{
+    Stop();
+    Initialize();
+}
+
+void UnitMovement::Finish()
 {
     Move::Kind running = Move::Kind::Count;
     if (m_movement.Running(running))
@@ -264,7 +278,7 @@ void UnitMovement::MovementExpired(bool /*reset*/)
 
 void UnitMovement::MoveIdle()
 {
-    Clear();
+    Stop();
 }
 
 void UnitMovement::MovePoint(uint32 id, float x, float y, float z, bool /*generatePath*/)
@@ -308,10 +322,20 @@ void UnitMovement::MoveTargetedHome()
     Serve(false, false);
 }
 
-void UnitMovement::MoveRandomAroundPoint(float x, float y, float z, float radius, float /*verticalZ*/)
+void UnitMovement::Wander(float x, float y, float z, float radius)
 {
-    m_movement.Take(new Move::Scatter(Move::Kind::Wander, Geometry::Vector3(x, y, z),
-                                      radius, 3000, 9000));
+    const Geometry::Vector3 centre(x, y, z);
+    Creature* creature = (m_unit && m_unit->GetTypeId() == TYPEID_UNIT)
+        ? static_cast<Creature*>(m_unit) : NULL;
+
+    if (creature && creature->CanFly())
+    {
+        m_movement.Take(new Move::Orbit(Move::Kind::Wander, centre, radius));
+    }
+    else
+    {
+        m_movement.Take(new Move::Scatter(Move::Kind::Wander, centre, radius, 3000, 9000));
+    }
     Serve(false, false);
 }
 
@@ -414,6 +438,8 @@ void UnitMovement::MoveWaypoint(int32 pathId, uint32 source, uint32 /*initialDel
         nodes.push_back(node);
     }
 
+    m_pathId = pathId;
+    m_pathOrigin = origin;
     m_movement.Take(new Move::WalkNodes(nodes));
     Serve(false, false);
 }
@@ -451,10 +477,9 @@ void UnitMovement::MoveFlyOrLand(uint32 id, float x, float y, float z, bool /*li
 void UnitMovement::MoveCharge(float x, float y, float z, float speed)
 {
     Move::GoToPoint* charge = new Move::GoToPoint(Move::Kind::Effect, Geometry::Vector3(x, y, z));
+    charge->AtSpeed(speed);
     m_movement.Take(charge);
-    m_chargeSpeed = speed;
     Serve(false, false);
-    m_chargeSpeed = 0.0f;
 }
 
 void UnitMovement::MoveCharge(Unit* target, float speed)
@@ -531,7 +556,7 @@ bool UnitMovement::GetDestination(float& x, float& y, float& z)
 
 bool UnitMovement::LiveFacing(float& out) const
 {
-    if (!m_legRunning || !m_movement.InFlight().Running())
+    if (!IsMoving())
     {
         return false;
     }
@@ -546,12 +571,11 @@ void UnitMovement::FaceTo(float orientation)
     MoveSend::Face(*m_unit, orientation);
 }
 
-void UnitMovement::Halt()
+void UnitMovement::StopRoute()
 {
-    if (m_legRunning)
+    if (IsMoving())
     {
         MoveSend::Halt(*m_unit);
-        m_legRunning = false;
     }
     m_movement.InFlight().Clear();
 }
@@ -577,10 +601,7 @@ void UnitMovement::MoveAtSpeed(float x, float y, float z, float speed, bool rout
         return;
     }
     m_movement.InFlight().Launch(&points[0], uint16(points.size()), written.speed, getMSTime());
-    m_legEndsAt = getMSTime() + written.duration;
-    m_legRunning = true;
     m_sentFlags = written.flags;
-    m_sentDuration = written.duration;
     m_sentFacing = Move::Facing();
     ++m_sentId;
 }
@@ -651,7 +672,7 @@ void UnitMovement::Forbidden()
     // a rooted unit that keeps walking is the defect this class exists to make impossible.
     if (!MayMove())
     {
-        Halt();
+        StopRoute();
         m_movement.Clear();
     }
 }
@@ -670,19 +691,6 @@ void UnitMovement::ReleaseEveryRestriction()
     Release();
 }
 
-std::vector<UnitMovement::HeldView> UnitMovement::Held() const
-{
-    std::vector<HeldView> held;
-    Move::Kind running = Move::Kind::Count;
-    if (m_movement.Running(running))
-    {
-        HeldView view;
-        view.kind = ToGame(running);
-        view.selected = true;
-        held.push_back(view);
-    }
-    return held;
-}
 
 // -------------------------------------------------------------------- who is driving
 
@@ -720,4 +728,101 @@ void UnitMovement::Release()
     {
         m_authority = Authority::Server;
     }
+}
+
+void UnitMovement::PropagateSpeedChange()
+{
+    // The packet spelled a speed as a duration over a length. Change the speed and that
+    // duration now describes a different one, so the leg is laid again from where the mover
+    // actually is -- which is what the route already knows.
+    if (!IsMoving())
+    {
+        return;
+    }
+    StopRoute();
+    Serve(false, false);
+}
+
+void UnitMovement::CancelControl(Motion::Kind kind)
+{
+    switch (kind)
+    {
+        case Motion::Kind::Fear:     m_movement.Drop(Move::Kind::Fear);     break;
+        case Motion::Kind::Confused: m_movement.Drop(Move::Kind::Confused); break;
+        case Motion::Kind::Distract: m_movement.Drop(Move::Kind::Distract); break;
+        default: return;
+    }
+    Serve(false, false);
+}
+
+void UnitMovement::ExpireCombat()
+{
+    m_movement.Drop(Move::Kind::Chase);
+    Serve(false, false);
+}
+
+void UnitMovement::RelocateSelected(float, float, float, float)
+{
+    StopRoute();
+}
+
+Unit* UnitMovement::ChaseTarget() const
+{
+    Move::Behaviour* held = m_movement.Held(Move::Kind::Chase);
+    if (!held || !m_unit)
+    {
+        return NULL;
+    }
+    return ObjectLookup::GetUnit(*m_unit, ObjectGuid(static_cast<Move::Pursue*>(held)->Target()));
+}
+
+Unit* UnitMovement::FollowTarget() const
+{
+    Move::Behaviour* held = m_movement.Held(Move::Kind::Follow);
+    if (!held || !m_unit)
+    {
+        return NULL;
+    }
+    return ObjectLookup::GetUnit(*m_unit, ObjectGuid(static_cast<Move::Pursue*>(held)->Target()));
+}
+
+bool UnitMovement::PauseWaypoints(int32 ms)
+{
+    Move::Behaviour* held = m_movement.Held(Move::Kind::Patrol);
+    if (!held || ms <= 0)
+    {
+        return false;
+    }
+    StopRoute();
+    static_cast<Move::WalkNodes*>(held)->WaitFor(uint32(ms));
+    return true;
+}
+
+bool UnitMovement::AddToSelectedPatrolPause(int32 ms)
+{
+    return PauseWaypoints(ms);
+}
+
+bool UnitMovement::GetWaypointPathInformation(int32& pathId, WaypointPathOrigin& origin) const
+{
+    if (!m_movement.Held(Move::Kind::Patrol))
+    {
+        return false;
+    }
+    pathId = m_pathId;
+    origin = m_pathOrigin;
+    return true;
+}
+
+void UnitMovement::GetWaypointPathInformation(std::ostringstream& oss) const
+{
+    int32 pathId = 0;
+    WaypointPathOrigin origin = PATH_NO_PATH;
+    if (!GetWaypointPathInformation(pathId, origin))
+    {
+        oss << "no waypoint path";
+        return;
+    }
+    oss << "path " << pathId << " (origin " << uint32(origin) << "), heading for node "
+        << SelectedPatrolNode() << ", last reached " << getLastReachedWaypoint();
 }

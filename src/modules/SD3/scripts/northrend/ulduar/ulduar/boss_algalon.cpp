@@ -362,7 +362,7 @@ struct boss_algalon : public CreatureScript
                 case NPC_COLLAPSING_STAR:
                     // cast Collapse and move around spawn point
                     pSummoned->CastSpell(pSummoned, SPELL_COLLAPSE, true);
-                    pSummoned->GetMotionMaster()->MoveRandomAroundPoint(pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z(), 30.0f);
+                    pSummoned->GetMotionMaster()->Wander(pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z(), 30.0f);
                     ++m_uiActiveStars;
                     m_lSummonedGuids.push_back(pSummoned->GetObjectGuid());
                     break;

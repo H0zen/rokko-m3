@@ -254,7 +254,7 @@ struct boss_lord_marrowgar : public CreatureScript
                             fX = pTarget->Where().X();
                             fY = pTarget->Where().Y();
                             fZ = pTarget->Where().Z();
-                            m_creature->GetMotionMaster()->Clear();
+                            m_creature->GetMotionMaster()->StopAndDefault();
                             m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
                             m_uiBoneStormChargeTimer = 3000;
                             m_uiPhase = PHASE_BONE_STORM_CHARGING;

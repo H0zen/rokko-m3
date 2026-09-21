@@ -66,6 +66,11 @@ namespace Move
             uint32_t Decide(uint32_t nowMs, bool restart, World& world, Plan& out) override;
             uint32_t Arrived(uint32_t nowMs, bool cut, World& world, Plan& out) override;
 
+            /// Travel at an explicit pace rather than the mover's own. A charge is the case
+            /// this exists for: the speed belongs to the request, and carrying it past the
+            /// shape in a field on the caller was a crutch.
+            void AtSpeed(float ydPerSec) { m_speed = ydPerSec; }
+
             bool Done() const { return m_done; }
             uint32_t Id() const { return m_id; }
 
@@ -74,6 +79,7 @@ namespace Move
             Vector3 m_to;
             uint32_t m_id;
             bool m_walk;
+            float m_speed = 0.0f;   ///< 0 = the mover's own pace
             bool m_done = false;
             uint8_t m_failures = 0;
             std::vector<Vector3> m_points;
@@ -127,6 +133,7 @@ namespace Move
             size_t m_target = 0;         ///< index of the node being walked to
             uint32_t m_reached = 0;      ///< id of the last node actually reached
             uint8_t m_failures = 0;      ///< consecutive failures on THIS node; never a skip
+            uint32_t m_waitUntilMs = 0;  ///< an outside pause still owed, in milliseconds
             /// The run covered a node the creature was already standing on, so there is
             /// nothing to walk but the node counts as reached.
             bool m_reachedWithoutWalking = false;
@@ -156,6 +163,49 @@ namespace Move
             uint32_t m_restMin;
             uint32_t m_restMax;
             bool m_walk;
+            std::vector<Vector3> m_points;
+    };
+
+    /// A SEVENTH SHAPE, and the only one that is not a destination.
+    ///
+    /// A flier at rest does not pick a spot and walk to it -- it circles. The path is an
+    /// inclined ellipse and it is deterministic: an angle that advances, not a draw. That is
+    /// why it is its own shape rather than a flag on Scatter, which has no notion of a
+    /// heading that continues.
+    ///
+    /// THE INCLINE IS NOT A PARAMETER, and the client is the reason. For a unit with the
+    /// flying or swimming flag it sets the model's pitch to asin(tangent.z) on every
+    /// evaluation (sub_A27380 in Wow.exe 15595), so the creature's nose follows the slope of
+    /// the path whether that looks right or not. The steepest slope of this ellipse is
+    /// asin(band / radius), and there is exactly one ratio that looks like a bird circling
+    /// rather than one diving and pulling up -- so the band is a quarter of the radius and
+    /// nobody is asked to choose it.
+    ///
+    /// That ratio also makes the shape scale-free: a circle of ten yards and one of a
+    /// hundred are inclined by the same fourteen degrees, so a bat and a dragon look alike
+    /// doing it.
+    class Orbit : public Behaviour
+    {
+        public:
+            Orbit(Kind kind, const Vector3& centre, float radius);
+
+            Kind What() const override { return m_kind; }
+            uint32_t Decide(uint32_t nowMs, bool restart, World& world, Plan& out) override;
+            uint32_t Arrived(uint32_t nowMs, bool cut, World& world, Plan& out) override;
+            bool Anchor(Vector3& pos, float& facing) const override;
+
+            /// The steepest climb or dive this orbit can ask for, in radians. What the
+            /// client will pitch the model to at the worst point of the circle.
+            float SteepestPitch() const;
+
+        private:
+            Vector3 At(float angle) const;
+
+            Kind m_kind;
+            Vector3 m_centre;
+            float m_radius;
+            float m_verticalBand;
+            float m_angle = 0.0f;
             std::vector<Vector3> m_points;
     };
 

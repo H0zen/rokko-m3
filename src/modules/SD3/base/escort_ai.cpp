@@ -105,7 +105,7 @@ void npc_escortAI::AttackStart(Unit* pWho)
 
         if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Point)
         {
-            m_creature->GetMotionMaster()->MovementExpired();
+            m_creature->GetMotionMaster()->Finish();
         }
 
         if (IsCombatMovement())
@@ -628,7 +628,7 @@ void npc_escortAI::Start(bool bRun, const Player* pPlayer, const Quest* pQuest, 
 
     if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
     {
-        m_creature->GetMotionMaster()->MovementExpired();
+        m_creature->GetMotionMaster()->Finish();
         m_creature->GetMotionMaster()->MoveIdle();
         debug_log("SD3: EscortAI start with a waypoint default, changed to MoveIdle.");
     }

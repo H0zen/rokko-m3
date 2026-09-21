@@ -360,7 +360,7 @@ struct npc_grark_lorkrub : public CreatureScript
 
                     m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                     m_creature->ClearAllReactives();
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     m_creature->GetMotionMaster()->MoveIdle();
                     m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
                     break;
@@ -621,7 +621,7 @@ struct npc_klinfran_the_crazed : public CreatureScript
         void BeginEvent(ObjectGuid playerGuid)
         {
             m_hunterGuid = playerGuid;
-            m_creature->GetMotionMaster()->Clear(false);
+            m_creature->GetMotionMaster()->Stop();
             m_creature->GetMotionMaster()->MoveIdle();
             m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);
             m_bTransform = true;

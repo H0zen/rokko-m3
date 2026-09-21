@@ -139,7 +139,7 @@ struct boss_razorscale : public CreatureScript
             m_bIsRegularMode = pCreature->GetMap()->IsRegularDifficulty();
             m_uiMaxHarpoons = m_bIsRegularMode ? 2 : 4;
 
-            m_creature->GetMotionMaster()->MoveRandomAroundPoint(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 10.0f);
+            m_creature->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 10.0f);
         }
 
         ScriptedInstance* m_pInstance;
@@ -225,7 +225,7 @@ struct boss_razorscale : public CreatureScript
                 m_pInstance->SetData(TYPE_RAZORSCALE, FAIL);
             }
 
-            m_creature->GetMotionMaster()->MoveRandomAroundPoint(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 10.0f);
+            m_creature->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), 10.0f);
         }
 
         void JustSummoned(Creature* pSummoned) override

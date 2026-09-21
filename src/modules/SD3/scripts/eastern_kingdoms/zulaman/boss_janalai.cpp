@@ -484,7 +484,7 @@ struct npc_amanishi_hatcher : public CreatureScript
             // Used when a hatcher is forced to switch sides
             if (m_bWaypointEnd && uiPointId)
             {
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_uiHatchlingTimer = 1000;
                 return;
             }
@@ -495,7 +495,7 @@ struct npc_amanishi_hatcher : public CreatureScript
 
             if (uiCount == m_uiWaypoint)
             {
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_uiHatchlingTimer = 1000;
                 m_bWaypointEnd = true;
             }

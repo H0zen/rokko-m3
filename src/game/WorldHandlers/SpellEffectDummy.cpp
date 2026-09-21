@@ -2085,7 +2085,7 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                     {
                         if (unitTarget->GetMotionMaster()->IsFollowing())
                         {
-                            unitTarget->GetMotionMaster()->MovementExpired();
+                            unitTarget->GetMotionMaster()->Finish();
                         }
 
                         unitTarget->MonsterMoveWithSpeed(pTargetDummy->Where().X(), pTargetDummy->Where().Y(), pTargetDummy->Where().Z(), 24.f);

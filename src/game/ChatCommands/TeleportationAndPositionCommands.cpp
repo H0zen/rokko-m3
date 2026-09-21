@@ -140,7 +140,7 @@ bool ChatHandler::HandleGoHelper(Player* player, uint32 mapid, float x, float y,
     // stop flight if need
     if (player->IsTaxiFlying())
     {
-        player->GetMotionMaster()->MovementExpired();
+        player->GetMotionMaster()->Finish();
         player->m_taxi.ClearTaxiDestinations();
     }
     // save only in non-flight case
@@ -253,7 +253,7 @@ bool ChatHandler::HandleSummonCommand(char* args)
         // stop flight if need
         if (target->IsTaxiFlying())
         {
-            target->GetMotionMaster()->MovementExpired();
+            target->GetMotionMaster()->Finish();
             target->m_taxi.ClearTaxiDestinations();
         }
         // save only in non-flight case
@@ -422,7 +422,7 @@ bool ChatHandler::HandleAppearCommand(char* args)
         // stop flight if need
         if (_player->IsTaxiFlying())
         {
-            _player->GetMotionMaster()->MovementExpired();
+            _player->GetMotionMaster()->Finish();
             _player->m_taxi.ClearTaxiDestinations();
         }
         // save only in non-flight case
@@ -556,7 +556,7 @@ bool ChatHandler::HandleGroupgoCommand(char* args)
         // stop flight if need
         if (pl->IsTaxiFlying())
         {
-            pl->GetMotionMaster()->MovementExpired();
+            pl->GetMotionMaster()->Finish();
             pl->m_taxi.ClearTaxiDestinations();
         }
         // save only in non-flight case
@@ -1788,7 +1788,7 @@ bool ChatHandler::HandleTeleGroupCommand(char* args)
         // stop flight if need
         if (pl->IsTaxiFlying())
         {
-            pl->GetMotionMaster()->MovementExpired();
+            pl->GetMotionMaster()->Finish();
             pl->m_taxi.ClearTaxiDestinations();
         }
         // save only in non-flight case

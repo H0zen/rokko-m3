@@ -976,7 +976,7 @@ void VehicleInfo::ApplySeatMods(Unit* passenger, uint32 seatFlags)
         ((Creature*)passenger)->AI()->SetCombatMovement(false);
         // Not entirely sure how this must be handled in relation to CONTROL
         // But in any way this at least would require some changes in the movement system most likely
-        passenger->GetMotionMaster()->Clear(false, true);
+        passenger->GetMotionMaster()->Stop();
         passenger->GetMotionMaster()->MoveIdle();
     }
 }

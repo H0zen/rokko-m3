@@ -131,7 +131,7 @@ struct mob_mature_netherwing_drake : public CreatureScript
                     {
                         if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
                         {
-                            m_creature->GetMotionMaster()->MovementExpired();
+                            m_creature->GetMotionMaster()->Finish();
                         }
 
                         m_creature->GetMotionMaster()->MoveIdle();
@@ -166,7 +166,7 @@ struct mob_mature_netherwing_drake : public CreatureScript
                     Reset();
                     m_creature->SetLevitate(true);
                     m_creature->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     m_uiCreditTimer = 0;
                 }
                 else

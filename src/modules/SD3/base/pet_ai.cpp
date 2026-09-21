@@ -127,7 +127,7 @@ void ScriptedPetAI::ResetPetCombat()
     }
     else
     {
-        m_creature->GetMotionMaster()->Clear(false);
+        m_creature->GetMotionMaster()->Stop();
         m_creature->GetMotionMaster()->MoveIdle();
     }
 

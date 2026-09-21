@@ -798,7 +798,7 @@ struct npc_anchorite_barada : public CreatureScript
                     {
                         m_creature->SetFacingToObject(pColonel);
                     }
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     m_creature->SetStandState(UNIT_STAND_STATE_KNEEL);
                     m_bEventComplete = true;
                     break;
@@ -843,7 +843,7 @@ struct npc_anchorite_barada : public CreatureScript
                     if (Creature* pColonel = m_creature->GetMap()->GetCreature(m_colonelGuid))
                     {
                         pColonel->CastSpell(pColonel, SPELL_JULES_VOMITS, true);
-                        pColonel->GetMotionMaster()->MoveRandomAroundPoint(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 3.0f, 5.0f);
+                        pColonel->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z() + 3.0f, 5.0f);
                     }
                     break;
                 case NPC_COLONEL_JULES:

@@ -350,7 +350,7 @@ struct boss_urom : public CreatureScript
 
                     // Resume combat movement
                     SetCombatMovement(true);
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
                     m_uiExplosionExpireTimer = 0;
                 }

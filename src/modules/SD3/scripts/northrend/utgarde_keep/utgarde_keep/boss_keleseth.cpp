@@ -140,7 +140,7 @@ struct mob_vrykul_skeleton : public CreatureScript
                 m_uiReviveTimer = 6000;
                 m_creature->SetHealth(0);
                 m_creature->RemoveAllAurasOnDeath();
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->SetFlag(UNIT_DYNAMIC_FLAGS, UNIT_DYNFLAG_DEAD);
                 m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
                 return;

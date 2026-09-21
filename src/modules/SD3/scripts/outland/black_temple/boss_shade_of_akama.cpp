@@ -750,7 +750,7 @@ struct mob_ashtongue_sorcerer : public CreatureScript
             // Channel on the Shade when reached the calculated point
             if (DoCastSpellIfCan(m_creature, SPELL_SHADE_SOUL_CHANNEL) == CAST_OK)
             {
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->GetMotionMaster()->MoveIdle();
             }
         }

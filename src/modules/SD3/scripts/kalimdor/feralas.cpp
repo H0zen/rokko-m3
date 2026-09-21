@@ -311,7 +311,7 @@ struct npc_shay_leafrunner : public CreatureScript
 
                         float fX, fY, fZ;
                         FindFreeSpotNear(*m_creature, m_creature, fX, fY, fZ, 0, frand(25.0f, 40.0f), frand(0, 2 * M_PI_F));
-                        m_creature->GetMotionMaster()->MoveRandomAroundPoint(fX, fY, fZ, 20.0f);
+                        m_creature->GetMotionMaster()->Wander(fX, fY, fZ, 20.0f);
                     }
                     else
                     {

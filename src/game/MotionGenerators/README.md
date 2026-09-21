@@ -12,8 +12,8 @@ The facade `MotionMaster` is the movement kernel campaign's shim for the vendore
 | MoveTargetedHome | 28 |
 | MoveWaypoint | 27 |
 | ActiveKind | 20 |
-| MoveRandomAroundPoint | 16 |
-| MovementExpired | 10 |
+| Wander | 16 |
+| Finish | 10 |
 | MoveJump | 8 |
 | MoveFlyOrLand | 4 |
 | IsPatrolling | 3 |

@@ -182,7 +182,7 @@ void GlobalCooldownMgr::CancelGlobalCooldown(SpellEntry const* spellInfo)
 
 Unit::Unit() :
     m_charmInfo(NULL),
-    i_motionMaster(this),
+    i_movement(this),
     m_regenTimer(0),
     m_vehicleInfo(NULL),
     m_ThreatManager(this),
@@ -3026,7 +3026,6 @@ bool Unit::Attack(Unit* victim, bool meleeAttack)
     // The event row: a new combat drops a running distract (a no-op otherwise). Before the
     // victim is assigned, so a cancelled assistance distract's finalizer sees no victim and
     // does not stop and restart this very attack from inside it.
-    GetMotionMaster()->CombatStarted();
 
     // Set our target — but NOT for PACIFIED creatures (training dummies, etc.).
     // The Cata 4.3.4 client auto-rotates a unit's model toward its UNIT_FIELD_TARGET
@@ -4483,7 +4482,7 @@ void Unit::SetDeathState(DeathState s)
         UnsummonAllTotems();
 
         StopMoving();
-        i_movement.Clear();
+        i_movement.StopAndDefault();
 
         // Unsummon vehicle accessories
         if (IsVehicle())
@@ -5793,7 +5792,7 @@ bool Unit::IsRooted() const
 
 void Unit::StopMoving(bool forceSendStop /*=false*/)
 {
-    i_movement.Halt();
+    i_movement.StopRoute();
 
     // not need send any packets if not in world
     if (!IsInWorld())
@@ -5813,7 +5812,7 @@ void Unit::StopMoving(bool forceSendStop /*=false*/)
     // placement agree. The placement itself is written on the next Update.
     CommitSplinePosition();
 
-    GetMotionMaster()->Halt();
+    GetMotionMaster()->StopRoute();
 }
 
 /**
@@ -7138,7 +7137,7 @@ bool Unit::TakePossessOf(Unit* possessed)
         if (ownPet)
         {
             possessed->StopMoving();
-            possessed->GetMotionMaster()->Clear(false);
+            possessed->GetMotionMaster()->Stop();
             possessed->GetMotionMaster()->MoveIdle();
             return true;
         }

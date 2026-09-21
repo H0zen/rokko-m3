@@ -111,6 +111,7 @@ namespace Move
         out.points = &m_points[0];
         out.count = uint16_t(m_points.size());
         out.gait = m_walk ? GAIT_WALK : GAIT_RUN;
+        out.speed = m_speed;
         return 0;
     }
 
@@ -184,6 +185,15 @@ namespace Move
         if (m_nodes.empty())
         {
             return 0;
+        }
+
+        // Somebody outside asked this patrol to stand still. The node it was walking to is
+        // untouched -- a pause is not a reason to give up on a destination.
+        if (m_waitUntilMs != 0)
+        {
+            const uint32_t wait = m_waitUntilMs;
+            m_waitUntilMs = 0;
+            return nowMs + wait;
         }
         if (m_target >= m_nodes.size())
         {
@@ -413,6 +423,88 @@ namespace Move
             ? world.Urand(m_restMin, m_restMax)
             : m_restMin;
         return nowMs + (rest == 0 ? 1 : rest);
+    }
+
+    // -------------------------------------------------------------------- Orbit
+
+    namespace
+    {
+        /// How much of the circle one packet carries. A whole turn in one leg would be
+        /// cheapest, but the polyline has to stay inside the packed reach and the client
+        /// must have points close enough together that the chords it walks look like a
+        /// circle rather than a polygon.
+        const float ORBIT_ARC = 1.5707963f;   // a quarter turn
+        const uint16_t ORBIT_POINTS = 9;      // eight chords over that quarter
+
+        /// How far the circle rises and falls, as a share of its radius. The slope this
+        /// produces -- asin(0.25), about fourteen degrees -- is the whole reason for the
+        /// number, and it does not depend on how big the circle is.
+        const float ORBIT_BAND_SHARE = 0.25f;
+    }
+
+    Orbit::Orbit(Kind kind, const Vector3& centre, float radius)
+        : m_kind(kind), m_centre(centre), m_radius(radius < 1.0f ? 1.0f : radius),
+          m_verticalBand(m_radius * ORBIT_BAND_SHARE)
+    {
+    }
+
+    float Orbit::SteepestPitch() const
+    {
+        return std::asin(m_verticalBand / m_radius);
+    }
+
+    Vector3 Orbit::At(float angle) const
+    {
+        return Vector3(m_centre.x + m_radius * std::cos(angle),
+                       m_centre.y + m_radius * std::sin(angle),
+                       m_centre.z + m_verticalBand * std::sin(angle));
+    }
+
+    bool Orbit::Anchor(Vector3& pos, float& facing) const
+    {
+        pos = m_centre;
+        facing = 0.0f;
+        return true;
+    }
+
+    uint32_t Orbit::Decide(uint32_t, bool restart, World& world, Plan& out)
+    {
+        // Coming back after something else held the flier: pick up the circle at the point
+        // nearest to where it actually is, so it does not swing across the middle to rejoin.
+        if (restart)
+        {
+            const Vector3 here = world.Here();
+            m_angle = std::atan2(here.y - m_centre.y, here.x - m_centre.x);
+        }
+
+        m_points.clear();
+        m_points.reserve(ORBIT_POINTS);
+        for (uint16_t i = 0; i < ORBIT_POINTS; ++i)
+        {
+            const float step = ORBIT_ARC * float(i) / float(ORBIT_POINTS - 1);
+            m_points.push_back(At(m_angle + step));
+        }
+
+        out.send = true;
+        out.points = &m_points[0];
+        out.count = uint16_t(m_points.size());
+        // No routing and no ground: it flies, so the navmesh has nothing to say about it.
+        out.gait = GAIT_FLY | GAIT_STRAIGHT;
+        return 0;
+    }
+
+    uint32_t Orbit::Arrived(uint32_t nowMs, bool cut, World& world, Plan& out)
+    {
+        if (cut)
+        {
+            return nowMs;
+        }
+        m_angle += ORBIT_ARC;
+        if (m_angle > 6.2831853f)
+        {
+            m_angle -= 6.2831853f;
+        }
+        return Decide(nowMs, false, world, out);
     }
 
     // ------------------------------------------------------------------- Pursue

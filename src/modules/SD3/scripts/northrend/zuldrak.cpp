@@ -262,7 +262,7 @@ struct npc_decaying_ghoul : public CreatureScript
                 // move the ghoul to the feeding target
                 float fX, fY, fZ;
                 m_creature->SetWalk(false);
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 ContactPointNear(*pInvoker, m_creature, fX, fY, fZ);
 
                 m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);

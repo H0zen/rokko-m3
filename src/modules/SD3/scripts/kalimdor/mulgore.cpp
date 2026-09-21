@@ -96,7 +96,7 @@ struct npc_kyle_the_frenzied : public CreatureScript
 
                 if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
                 {
-                    m_creature->GetMotionMaster()->MovementExpired();
+                    m_creature->GetMotionMaster()->Finish();
                     m_creature->GetMotionMaster()->MoveIdle();
                     m_creature->StopMoving();
                 }
@@ -180,7 +180,7 @@ struct npc_kyle_the_frenzied : public CreatureScript
                         case 5:
                             m_creature->HandleEmote(EMOTE_STATE_NONE);
                             Reset();
-                            m_creature->GetMotionMaster()->Clear();
+                            m_creature->GetMotionMaster()->StopAndDefault();
                             break;
                     }
                 }

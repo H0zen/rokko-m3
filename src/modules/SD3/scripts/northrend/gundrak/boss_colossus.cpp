@@ -248,7 +248,7 @@ struct boss_drakkari_colossus : public CreatureScript
                 m_creature->RemoveAurasDueToSpell(SPELL_FREEZE_ANIM);
 
                 SetCombatMovement(true);
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
                 ((Creature*)pCaster)->ForcedDespawn();
             }

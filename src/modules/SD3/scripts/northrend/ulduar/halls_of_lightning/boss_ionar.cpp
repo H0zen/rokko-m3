@@ -377,7 +377,7 @@ struct spell_ionar_disperse : public SpellScript
 
             if (pCreatureTarget->GetMotionMaster()->ActiveKind() == Motion::Kind::Chase)
             {
-                pCreatureTarget->GetMotionMaster()->MovementExpired();
+                pCreatureTarget->GetMotionMaster()->Finish();
             }
 
             return true;

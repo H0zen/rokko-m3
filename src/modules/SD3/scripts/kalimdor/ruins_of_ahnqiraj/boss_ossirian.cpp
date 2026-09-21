@@ -183,7 +183,7 @@ struct boss_ossirian : public CreatureScript
             {
                 // The movement of this isn't very clear - may require additional research
                 pSummoned->CastSpell(pSummoned, SPELL_SAND_STORM, true);
-                pSummoned->GetMotionMaster()->MoveRandomAroundPoint(aCrystalSpawnPos[0], aCrystalSpawnPos[1], aCrystalSpawnPos[2], 100.0f);
+                pSummoned->GetMotionMaster()->Wander(aCrystalSpawnPos[0], aCrystalSpawnPos[1], aCrystalSpawnPos[2], 100.0f);
             }
         }
 

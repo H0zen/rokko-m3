@@ -180,7 +180,7 @@ struct boss_forgemaster_garfrost : public CreatureScript
 
             if (m_creature->getVictim())
             {
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
             }
         }

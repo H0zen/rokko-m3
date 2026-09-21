@@ -255,7 +255,7 @@ struct npc_kiljaeden_controller : public CreatureScript
                 case NPC_KALECGOS:
                     if (Creature* pKalec = m_pInstance->GetSingleCreatureFromStorage(NPC_KALECGOS))
                     {
-                        pKalec->GetMotionMaster()->Clear();
+                        pKalec->GetMotionMaster()->StopAndDefault();
                         pKalec->GetMotionMaster()->MoveIdle();
                         pKalec->CastSpell(pKalec, SPELL_KALEC_TELEPORT, true);
                         pKalec->SetLevitate(false);
@@ -509,7 +509,7 @@ struct boss_kiljaeden : public CreatureScript
             {
                 DoScriptText(SAY_KALECGOS_INTRO, pSummoned);
                 pSummoned->CastSpell(pSummoned, SPELL_ARCANE_BOLT, true);
-                pSummoned->GetMotionMaster()->MoveRandomAroundPoint(m_creature->Where().X(), m_creature->Where().Y(), pSummoned->Where().Z(), 30.0f);
+                pSummoned->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), pSummoned->Where().Z(), 30.0f);
             }
             else if (pSummoned->GetEntry() == NPC_SHIELD_ORB)
             {
@@ -529,7 +529,7 @@ struct boss_kiljaeden : public CreatureScript
                 fY = near2d3.y;
 
                 // Move to new position
-                pSummoned->GetMotionMaster()->Clear();
+                pSummoned->GetMotionMaster()->StopAndDefault();
                 pSummoned->GetMotionMaster()->MovePoint(1, fX, fY, pSummoned->Where().Z());
             }
             else if (pSummoned->GetEntry() == NPC_SINISTER_REFLECTION)
@@ -887,7 +887,7 @@ struct npc_shield_orb : public CreatureScript
                 fY = near2d1.y;
 
                 // Move to new position
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->GetMotionMaster()->MovePoint(1, fX, fY, m_creature->Where().Z());
             }
         }

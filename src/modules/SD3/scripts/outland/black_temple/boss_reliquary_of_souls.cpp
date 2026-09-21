@@ -418,7 +418,7 @@ struct essence_base_AI : public ScriptedAI
         m_creature->ModifyAuraState(AURA_STATE_HEALTHLESS_35_PERCENT, false);
         m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
         m_creature->ClearAllReactives();
-        m_creature->GetMotionMaster()->Clear();
+        m_creature->GetMotionMaster()->StopAndDefault();
 
         if (!m_pInstance)
         {

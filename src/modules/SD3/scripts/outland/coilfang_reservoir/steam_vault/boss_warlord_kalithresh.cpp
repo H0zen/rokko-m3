@@ -257,7 +257,7 @@ struct aura_dummy_warlord_rage : public AuraScript
                 {
                     if (pTarget->getVictim())
                     {
-                        pTarget->GetMotionMaster()->MovementExpired();
+                        pTarget->GetMotionMaster()->Finish();
                         pTarget->GetMotionMaster()->MoveChase(pTarget->getVictim());
                     }
                 }

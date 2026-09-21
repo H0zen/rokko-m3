@@ -246,7 +246,7 @@ struct boss_vazruden_herald : public CreatureScript
             // Remove Idle MMGen
             if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Idle)
             {
-                m_creature->GetMotionMaster()->MovementExpired(false);
+                m_creature->GetMotionMaster()->Finish();
             }
 
             m_creature->GetMotionMaster()->MovePoint(POINT_ID_FLYING, fX, fY, fZ);

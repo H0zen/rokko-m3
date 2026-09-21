@@ -312,7 +312,7 @@ struct boss_brundir : public CreatureScript
         {
             if (pTarget)
             {
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->GetMotionMaster()->MovePoint(0, pTarget->Where().X(), pTarget->Where().Y(), m_creature->Where().Z());
             }
         }

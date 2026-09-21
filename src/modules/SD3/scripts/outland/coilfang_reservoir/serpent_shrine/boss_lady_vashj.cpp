@@ -384,7 +384,7 @@ struct boss_lady_vashj : public CreatureScript
 
                         SetCombatMovement(false);
 
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         m_creature->GetMotionMaster()->MovePoint(POINT_MOVE_CENTER, afMiddlePos[0], afMiddlePos[1], afMiddlePos[2]);
 
                         m_uiPhase = PHASE_2;

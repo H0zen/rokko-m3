@@ -1330,7 +1330,7 @@ struct npc_spring_rabbit : public CreatureScript
             float fX, fY, fZ;
             FindFreeSpotNear(*m_creature, m_creature, fX, fY, fZ, m_creature->Where().Extent(), fDist * 0.5f, m_fMoveAngle);
 
-            m_creature->GetMotionMaster()->Clear();
+            m_creature->GetMotionMaster()->StopAndDefault();
             m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
         }
 

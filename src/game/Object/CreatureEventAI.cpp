@@ -904,7 +904,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                                 m_attackDistance = 0.0f;
                                 m_attackAngle = 0.0f;
 
-                                m_creature->GetMotionMaster()->Clear(false);
+                                m_creature->GetMotionMaster()->Stop();
                                 m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), m_attackDistance, m_attackAngle);
                                 break;
                             default:
@@ -1131,7 +1131,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                 if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Chase)
                 {
                     // The chase that runs now is re-issued with the new distance and angle; a masked chase keeps its mask (the Clear below would cut it)
-                    m_creature->GetMotionMaster()->Clear(false);
+                    m_creature->GetMotionMaster()->Stop();
                     m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), m_attackDistance, m_attackAngle);
                 }
             }
@@ -1340,7 +1340,7 @@ void CreatureEventAI::ProcessAction(CreatureEventAI_Action const& action, uint32
                     m_creature->GetMotionMaster()->MoveIdle();
                     break;
                 case CREATURE_MOVEMENT_RANDOM:
-                    m_creature->GetMotionMaster()->MoveRandomAroundPoint(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), float(action.changeMovement.wanderDistance));
+                    m_creature->GetMotionMaster()->Wander(m_creature->Where().X(), m_creature->Where().Y(), m_creature->Where().Z(), float(action.changeMovement.wanderDistance));
                     break;
                 case CREATURE_MOVEMENT_WAYPOINT:
                     m_creature->GetMotionMaster()->MoveWaypoint();

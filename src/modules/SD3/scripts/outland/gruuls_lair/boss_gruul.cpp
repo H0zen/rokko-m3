@@ -281,7 +281,7 @@ struct boss_gruul : public CreatureScript
                     if (DoCastSpellIfCan(m_creature, SPELL_GROUND_SLAM) == CAST_OK)
                     {
                         DoScriptText(urand(0, 1) ? SAY_SLAM1 : SAY_SLAM2, m_creature);
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         m_creature->GetMotionMaster()->MoveIdle();
 
                         m_bPerformingGroundSlam = true;

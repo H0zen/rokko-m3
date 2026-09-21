@@ -69,9 +69,11 @@
 
 #include "Platform/Define.h"
 #include "Mobility.h"
+#include "Timer.h"
 #include "WaypointManager.h"
 #include "Move/Movement.h"
 #include "Mobility.h"
+#include "Timer.h"
 
 #include <sstream>
 #include <vector>
@@ -152,11 +154,35 @@ class UnitMovement
         /// due, which is almost all of them almost all of the time: a creature walking a
         /// forty-yard leg has nothing to do for the eight seconds it takes.
         void UpdateMotion(uint32 diff);
-        void Clear(bool reset = true, bool all = false);
-        void MovementExpired(bool reset = true);
+        /// Stop, and stay stopped. Everything the unit was doing is dropped and nothing
+        /// takes its place.
+        void Stop();
+        /// Stop, then go back to what this unit does when nothing else is asked of it --
+        /// its patrol, its wander, or standing there. NOT the same as Finish(), which
+        /// brings back whatever was suspended underneath: this one throws all of that away
+        /// and starts again from the spawn's own default.
+        ///
+        /// It is what almost every caller wants, and the old Clear(reset = true) meant it
+        /// and then did not do it -- the parameter was ignored, so a creature that finished
+        /// a scripted move or left combat stood still for ever.
+        void StopAndDefault();
+        /// What was running has finished. ONLY the top goes: whatever was suspended
+        /// beneath it becomes the answer again by itself, which is the whole reason a fear
+        /// can interrupt a chase and the chase come back without anyone storing it.
+        ///
+        /// The old spelling took a `reset` flag asking whether the behaviour left exposed
+        /// should start again from where the unit now stands. That is no longer a question:
+        /// the component compares the layer that laid the route in flight against the one
+        /// selected now, and asks a behaviour that did not lay it afresh, always.
+        void Finish();
 
         void MoveIdle();
-        void MoveRandomAroundPoint(float x, float y, float z, float radius, float verticalZ = 0.0f);
+        /// Idle movement inside a leash. WHICH KIND is not the caller's to choose: a flier
+        /// circles, anything else draws a reachable point and goes to it, and whether this
+        /// creature flies is asked live -- a shapeshift or an aura changes the answer long
+        /// after the spawn decided what it does by default. Water needs no case of its own:
+        /// the draw already picks points in a volume for a swimmer.
+        void Wander(float x, float y, float z, float radius);
         void MoveTargetedHome();
         void MoveFollow(Unit* target, float dist, float angle);
         void MoveChase(Unit* target, float dist = 0.0f, float angle = 0.0f);
@@ -164,19 +190,13 @@ class UnitMovement
         void MoveFleeing(Unit* enemy, uint32 timeLimit = 0, uint64 = 0);
         void MovePoint(uint32 id, float x, float y, float z, bool generatePath = true);
         void MoveSeekAssistance(float x, float y, float z);
-        void MoveSeekAssistanceDistract(uint32) {}
         void MoveFlyOrLand(uint32 id, float x, float y, float z, bool liftOff);
         void MoveCharge(Unit* target, float speed);
         void MoveCharge(float x, float y, float z, float speed);
         bool MoveJump(float x, float y, float z, float horizontalSpeed, float maxHeight, uint32 id = 0);
         void MoveFall();
         void MoveWaypoint(int32 pathId = 0, uint32 source = 0, uint32 initialDelay = 0, uint32 overwriteEntry = 0);
-        bool PauseWaypoints(int32) { return false; }
-        void MoveTaxiFlight(std::vector<uint32> const&, uint32, uint32) {}
-        void TaxiContinue() {}
-        void MoveDistract(uint32) {}
-        bool MoveJump(Geometry::Position&, float, float, uint32 = 0) { return false; }
-        bool MoveJump(float, float, float, float, float, float, Unit*) { return false; }
+        bool PauseWaypoints(int32 ms);
 
         // ---- WHAT IS FORBIDDEN, counted by source. A reason holds while any source holds
         // it, so two roots from two casters need two releases. Read straight from here:
@@ -194,12 +214,15 @@ class UnitMovement
         /// A Dead source that is not the death itself: a feign.
         bool Feigning() const;
 
-        void PropagateSpeedChange() {}
+        /// A speed changed under a route that was timed with the old one. The client was
+        /// given a duration, not a speed, so the leg in flight still carries the old pace:
+        /// it has to be laid again or the mover walks at a speed nobody asked for.
+        void PropagateSpeedChange();
         bool SetNextWaypoint(uint32 pointId);
         uint32 getLastReachedWaypoint() const;
-        void GetWaypointPathInformation(std::ostringstream& oss) const { oss << "No movement."; }
-        bool GetWaypointPathInformation(int32&, WaypointPathOrigin&) const { return false; }
-        bool AddToSelectedPatrolPause(int32) { return false; }
+        void GetWaypointPathInformation(std::ostringstream& oss) const;
+        bool GetWaypointPathInformation(int32& pathId, WaypointPathOrigin& origin) const;
+        bool AddToSelectedPatrolPause(int32 ms);
         uint32 SelectedPatrolNode() const;
         bool GetDestination(float& x, float& y, float& z);
 
@@ -223,35 +246,26 @@ class UnitMovement
         /// Should a movement packet from this unit's client be believed right now?
         bool TrustsClient() const { return m_authority == Authority::Client; }
 
-        void CancelControl(Motion::Kind) {}
-        void ExpireCombat() {}
-        bool ReleaseControl(uint64) { return false; }
-        bool HoldsControl(Motion::Kind) const { return false; }
-        void RelocateSelected(float, float, float, float) {}
+        /// End a kind that is holding the unit -- a fear, a confusion -- because something
+        /// outside movement decided it is over.
+        void CancelControl(Motion::Kind kind);
+        void ExpireCombat();
+        /// The unit was put somewhere by something other than movement. Whatever leg was in
+        /// flight described a journey from a place it is no longer at, so it ends here.
+        void RelocateSelected(float x, float y, float z, float o);
 
         /// A respawn or a revive: every source of every restriction is released and control
         /// goes back to whoever normally has it. Nothing that held this unit before it died
         /// still applies afterwards.
         void ReleaseEveryRestriction();
 
-        struct HeldView
-        {
-            Motion::Kind kind = Motion::Kind::Idle;
-            bool selected = false;
-            bool reachable = true;
-            uint64 target = 0;
-        };
-        std::vector<HeldView> Held() const;
-
         Motion::Kind ActiveKind() const;
         bool IsChasing() const;
-        Unit* ChaseTarget() const { return 0; }
+        Unit* ChaseTarget() const;
         bool IsFollowing() const;
-        Unit* FollowTarget() const { return 0; }
+        Unit* FollowTarget() const;
         bool IsPatrolling() const;
-        bool IsOnTaxi() const { return false; }
-        bool IsReachable() const { return true; }
-        void CombatStarted() {}
+        bool IsOnTaxi() const { return (Reasons() & Motion::ReasonOnTaxi) != 0; }
 
         /// Where the mover is at this instant. While a route runs this is arithmetic over
         /// the polyline the client was sent -- the same arithmetic the client does -- so the
@@ -260,19 +274,29 @@ class UnitMovement
         /// The heading the travel direction gives at this instant, which is what the client
         /// shows: it takes the facing from the spline's tangent by itself.
         bool LiveFacing(float& out) const;
-        bool IsMoving() const { return m_legRunning && m_movement.InFlight().Running(); }
+        /// Is a route actually under way right now? Derived, not stored: the route knows
+        /// its own points and its own end, and a second flag beside it would be one more
+        /// pair to keep equal.
+        bool IsMoving() const
+        {
+            Move::Route const& route = m_movement.InFlight();
+            return route.Running() && !route.Arrived(getMSTime());
+        }
 
         /// Turn on the spot, with no travel. One packet, no route.
         void FaceTo(float orientation);
         /// A raw leg at an explicit speed: what a script means by "move there this fast".
         void MoveAtSpeed(float x, float y, float z, float speed, bool routed);
         /// Stop where the mover stands, and forget the route.
-        void Halt();
+        /// Stop the route in flight and say so on the wire, but keep doing whatever this
+        /// is -- a speed change that has to re-lay its leg, a relocation. Distinct from
+        /// Stop(), which drops the doing as well.
+        void StopRoute();
 
         // ---- what a late observer must be told, so it sees the same leg as everyone else.
         Move::Route const& InFlight() const { return m_movement.InFlight(); }
         uint32 SentFlags() const { return m_sentFlags; }
-        uint32 SentDuration() const { return m_sentDuration; }
+        uint32 SentDuration() const { return m_movement.InFlight().Duration(); }
         uint32 SentId() const { return m_sentId; }
         Move::Facing const& SentFacing() const { return m_sentFacing; }
 
@@ -280,7 +304,7 @@ class UnitMovement
         /// Ask the selected behaviour, then send or refuse what it asked for.
         void Serve(bool legEnded, bool cut);
 
-        /// Halt whatever is running because it just became forbidden.
+        /// Stop whatever is running because it just became forbidden.
         void Forbidden();
 
         Unit* m_unit;
@@ -295,15 +319,14 @@ class UnitMovement
         /// it outlives the call that made it. Raw rather than a smart pointer because the
         /// header must not need the definition to declare the member.
         class MoveSighting* m_sighting = 0;
-        /// A charge's speed, carried across the one Serve call the request makes.
-        float m_chargeSpeed = 0.0f;
         /// What the last leg actually went out as. An observer who arrives mid-leg is told
         /// this, so its client builds the same spline as everyone else's rather than a
         /// second description of the same motion that will drift from the first.
+        /// Which path the patrol walks, remembered because the GM commands ask and the shape
+        /// itself is told only the nodes.
+        int32 m_pathId = 0;
+        WaypointPathOrigin m_pathOrigin = PATH_NO_PATH;
         uint32 m_sentFlags = 0;
-        uint32 m_sentDuration = 0;
         uint32 m_sentId = 0;
         Move::Facing m_sentFacing;
-        uint32 m_legEndsAt = 0;
-        bool m_legRunning = false;
 };

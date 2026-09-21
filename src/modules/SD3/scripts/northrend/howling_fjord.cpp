@@ -939,7 +939,7 @@ struct npc_firecrackers_bunny : public CreatureScript
                     // Move bat to the point
                     float fX, fY, fZ;
                     pBat->SetWalk(false);
-                    pBat->GetMotionMaster()->Clear();
+                    pBat->GetMotionMaster()->StopAndDefault();
                     ContactPointNear(*m_creature, pBat, fX, fY, fZ);
                     pBat->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
 

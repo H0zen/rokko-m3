@@ -361,7 +361,7 @@ void FollowerAI::StartFollow(Player* pLeader, uint32 uiFactionForFollower, const
 
     if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Patrol)
     {
-        m_creature->GetMotionMaster()->Clear();
+        m_creature->GetMotionMaster()->StopAndDefault();
         m_creature->GetMotionMaster()->MoveIdle();
         debug_log("SD3: FollowerAI start with a waypoint default, set to MoveIdle.");
     }
@@ -411,7 +411,7 @@ void FollowerAI::SetFollowComplete(bool bWithEndEvent)
     if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Follow)
     {
         m_creature->StopMoving();
-        m_creature->GetMotionMaster()->Clear();
+        m_creature->GetMotionMaster()->StopAndDefault();
         m_creature->GetMotionMaster()->MoveIdle();
     }
 
@@ -444,7 +444,7 @@ void FollowerAI::SetFollowPaused(bool bPaused)
         if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Follow)
         {
             m_creature->StopMoving();
-            m_creature->GetMotionMaster()->Clear();
+            m_creature->GetMotionMaster()->StopAndDefault();
             m_creature->GetMotionMaster()->MoveIdle();
         }
     }

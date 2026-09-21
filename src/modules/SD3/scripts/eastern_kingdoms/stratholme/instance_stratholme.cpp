@@ -351,7 +351,7 @@ struct is_stratholme : public InstanceScript
                                 Creature* pAbom = instance->GetCreature(*itr);
                                 if (pAbom && pAbom->GetMotionMaster()->ActiveKind() == Motion::Kind::Point)
                                 {
-                                    pAbom->GetMotionMaster()->MovementExpired();
+                                    pAbom->GetMotionMaster()->Finish();
                                 }
                             }
                         }

@@ -117,7 +117,7 @@ void PetAI::AttackStart(Unit* u)
         // TMGs call CreatureRelocation which via MoveInLineOfSight can call this function
         // thus with the following clear the original TMG gets invalidated and crash, doh
         // hope it doesn't start to leak memory without this :-/
-        // i_pet->Clear();
+        // i_pet->StopAndDefault();
         if (!m_creature->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_DISABLE_MOVE))
         {
             HandleMovementOnAttackStart(u);
@@ -182,7 +182,7 @@ void PetAI::_stopAttack()
     }
     else
     {
-        m_creature->GetMotionMaster()->Clear(false);
+        m_creature->GetMotionMaster()->Stop();
         m_creature->GetMotionMaster()->MoveIdle();
     }
     m_creature->AttackStop();
@@ -261,7 +261,7 @@ void PetAI::UpdateAI(const uint32 diff)
                 && HasLineOfSight(*m_creature, *victim))
         {
             // stop moving
-            m_creature->GetMotionMaster()->Halt();
+            m_creature->GetMotionMaster()->StopRoute();
 
             // auto turn to target
             m_creature->SetInFront(victim);
@@ -522,7 +522,7 @@ void PetAI::UpdateAI(const uint32 diff)
 
                         if (!m_creature->IsStopped())
                         {
-                            m_creature->GetMotionMaster()->Clear(false);
+                            m_creature->GetMotionMaster()->Stop();
                             m_creature->GetMotionMaster()->MoveIdle();
                         }
                         else if (m_creature->Where().Facing() != StayPosO)
@@ -540,7 +540,7 @@ void PetAI::UpdateAI(const uint32 diff)
             {
                 if (InReach(*owner, *m_creature, PET_FOLLOW_DIST))
                 {
-                    m_creature->GetMotionMaster()->Clear(false);
+                    m_creature->GetMotionMaster()->Stop();
                     m_creature->GetMotionMaster()->MoveIdle();
                 }
             }

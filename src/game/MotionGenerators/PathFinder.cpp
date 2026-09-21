@@ -289,7 +289,7 @@ void PathFinder::BuildPolyPath(const Vector3& startPos, const Vector3& endPos)
     // reset the path type before rebuilding (TC parity): m_type persists
     // across calculate() calls, so a stale PATHFIND_INCOMPLETE from one
     // far-from-poly moment otherwise sticks to every later clean path,
-    // and IsReachable() consumers evade/drop a perfectly reachable target
+    // and callers evade or drop a perfectly reachable target
     m_type = PATHFIND_NORMAL;
 
     dtStatus dtResult;

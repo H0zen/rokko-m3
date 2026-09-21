@@ -145,7 +145,7 @@ struct boss_ouro : public CreatureScript
                     m_ouroTriggerGuid = pSummoned->GetObjectGuid();
                     // no break;
                 case NPC_DIRT_MOUND:
-                    pSummoned->GetMotionMaster()->MoveRandomAroundPoint(pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z(), 40.0f);
+                    pSummoned->GetMotionMaster()->Wander(pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z(), 40.0f);
                     break;
             }
         }

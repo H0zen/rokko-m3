@@ -197,7 +197,7 @@ struct boss_sjonnir : public CreatureScript
                 return;
             }
 
-            pSummoned->GetMotionMaster()->MoveRandomAroundPoint(pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z(), 10.0f);
+            pSummoned->GetMotionMaster()->Wander(pSummoned->Where().X(), pSummoned->Where().Y(), pSummoned->Where().Z(), 10.0f);
         }
 
         void KilledUnit(Unit* /*pVictim*/) override

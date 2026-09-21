@@ -248,7 +248,7 @@ struct boss_magtheridon : public CreatureScript
                 if (!m_uiQuakeCount)
                 {
                     SetCombatMovement(false);
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     m_creature->GetMotionMaster()->MoveIdle();
                 }
 
@@ -263,7 +263,7 @@ struct boss_magtheridon : public CreatureScript
                 else
                 {
                     SetCombatMovement(true);
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
 
                     m_uiQuakeTimer = 43000;

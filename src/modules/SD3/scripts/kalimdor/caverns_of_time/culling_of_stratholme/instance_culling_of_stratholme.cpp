@@ -1007,7 +1007,7 @@ struct is_culling_of_stratholme : public InstanceScript
 
                             if (Creature* pUndead = pSummoner->SummonCreature(uiEntry, fX, fY, fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0))
                             {
-                                pUndead->GetMotionMaster()->MoveRandomAroundPoint(pUndead->Where().X(), pUndead->Where().Y(), pUndead->Where().Z(), 10.0f);
+                                pUndead->GetMotionMaster()->Wander(pUndead->Where().X(), pUndead->Where().Y(), pUndead->Where().Z(), 10.0f);
                             }
                         }
                     }
@@ -1016,7 +1016,7 @@ struct is_culling_of_stratholme : public InstanceScript
                     {
                         if (Creature* pUndead = pSummoner->SummonCreature(uiEntry, m_aBurningScourgeLocs[i].m_fX, m_aBurningScourgeLocs[i].m_fY, m_aBurningScourgeLocs[i].m_fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0))
                         {
-                            pUndead->GetMotionMaster()->MoveRandomAroundPoint(pUndead->Where().X(), pUndead->Where().Y(), pUndead->Where().Z(), 10.0f);
+                            pUndead->GetMotionMaster()->Wander(pUndead->Where().X(), pUndead->Where().Y(), pUndead->Where().Z(), 10.0f);
                         }
                     }
 
@@ -1030,7 +1030,7 @@ struct is_culling_of_stratholme : public InstanceScript
 
                         if (Creature* pUndead = pSummoner->SummonCreature(NPC_ZOMBIE, fX, fY, fZ, 0, TEMPSPAWN_DEAD_DESPAWN, 0))
                         {
-                            pUndead->GetMotionMaster()->MoveRandomAroundPoint(pUndead->Where().X(), pUndead->Where().Y(), pUndead->Where().Z(), 10.0f);
+                            pUndead->GetMotionMaster()->Wander(pUndead->Where().X(), pUndead->Where().Y(), pUndead->Where().Z(), 10.0f);
                         }
                     }
                 }

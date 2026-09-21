@@ -714,7 +714,7 @@ struct dummy_dragonAI : public ScriptedAI
         // this is the end (!)
         if (uiPointId == POINT_ID_LAND)
         {
-            m_creature->GetMotionMaster()->Clear();
+            m_creature->GetMotionMaster()->StopAndDefault();
             m_bCanMoveFree = false;
             m_creature->SetInCombatWithZone();
             return;

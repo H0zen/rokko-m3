@@ -179,7 +179,7 @@ struct npc_eris_havenfire : public CreatureScript
             }
 
             ++m_uiSaveCounter;
-            pSummoned->GetMotionMaster()->Clear();
+            pSummoned->GetMotionMaster()->StopAndDefault();
 
             pSummoned->RemoveAllAuras();
             pSummoned->CastSpell(pSummoned, SPELL_ENTER_THE_LIGHT_DND, false);

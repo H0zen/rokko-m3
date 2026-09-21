@@ -183,7 +183,7 @@ struct boss_blood_queen_lanathel : public CreatureScript
                         m_creature->SetLevitate(true);
                         m_creature->SetByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
 
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         m_creature->GetMotionMaster()->MovePoint(POINT_CENTER_AIR, aQueenPosition[1][0], aQueenPosition[1][1], aQueenPosition[1][2], false);
                     }
                 }
@@ -196,7 +196,7 @@ struct boss_blood_queen_lanathel : public CreatureScript
                     m_creature->SetLevitate(false);
                     m_creature->RemoveByteFlag(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
 
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     if (m_creature->getVictim())
                     {
                         m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
@@ -244,7 +244,7 @@ struct boss_blood_queen_lanathel : public CreatureScript
                     if (m_uiPhaseTimer < uiDiff)
                     {
                         SetCombatMovement(false);
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         m_creature->GetMotionMaster()->MovePoint(POINT_CENTER_GROUND, aQueenPosition[0][0], aQueenPosition[0][1], aQueenPosition[0][2]);
 
                         m_uiPhase = PHASE_RUNNING;
@@ -351,7 +351,7 @@ struct boss_blood_queen_lanathel : public CreatureScript
                         m_uiPhase = PHASE_FLYING;
                         m_uiPhaseTimer = 0;
 
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         m_creature->GetMotionMaster()->MovePoint(POINT_CENTER_GROUND, aQueenPosition[0][0], aQueenPosition[0][1], aQueenPosition[0][2]);
                     }
                     else

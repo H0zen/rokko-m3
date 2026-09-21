@@ -252,7 +252,7 @@ struct npc_oil_stained_wolf : public CreatureScript
                         if (m_bCanCrapInPublic)
                         {
                             DoCastSpellIfCan(m_creature, SPELL_SUMMON_DROPPINGS);
-                            m_creature->GetMotionMaster()->Clear();
+                            m_creature->GetMotionMaster()->StopAndDefault();
                             Reset();
                         }
                         else
@@ -982,7 +982,7 @@ struct spell_drake_turn_in : public SpellScript
             pCreatureTarget->CastSpell(pRaelorasz, SPELL_DRAKE_COMPLETION_PING, true);
             float fX, fY, fZ;
             ContactPointNear(*pRaelorasz, pCreatureTarget, fX, fY, fZ, CONTACT_DISTANCE);
-            pCreatureTarget->GetMotionMaster()->Clear(true, true);
+            pCreatureTarget->GetMotionMaster()->Stop();
             pCreatureTarget->GetMotionMaster()->MovePoint(0, fX, fY, fZ);
         }
         return true;
@@ -1138,7 +1138,7 @@ struct aura_reinforced_net : public AuraScript
             }
 
             // move the flamespitter to the ground level
-            pCreature->GetMotionMaster()->Clear();
+            pCreature->GetMotionMaster()->StopAndDefault();
             pCreature->SetWalk(false);
 
             float fGroundZ = pCreature->GetMap()->GetHeight(pCreature->GetPhaseMask(), pCreature->Where().X(), pCreature->Where().Y(), pCreature->Where().Z());

@@ -208,7 +208,7 @@ struct boss_saviana : public CreatureScript
                         m_creature->SetByteValue(UNIT_FIELD_BYTES_1, 3, UNIT_BYTE1_FLAG_ALWAYS_STAND | UNIT_BYTE1_FLAG_FLY_ANIM);
                         m_creature->SetLevitate(true);
 
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         m_creature->GetMotionMaster()->MovePoint(POINT_AIR, aAirPositions[0], aAirPositions[1], aAirPositions[2]);
                     }
                     else
@@ -231,7 +231,7 @@ struct boss_saviana : public CreatureScript
                             fX = m_creature->Spawn().X();
                             fY = m_creature->Spawn().Y();
                             fZ = m_creature->Spawn().Z();
-                            m_creature->GetMotionMaster()->Clear();
+                            m_creature->GetMotionMaster()->StopAndDefault();
                             m_creature->GetMotionMaster()->MovePoint(POINT_GROUND, fX, fY, fZ);
                         }
                         else

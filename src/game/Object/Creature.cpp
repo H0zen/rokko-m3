@@ -765,7 +765,7 @@ void Creature::Update(uint32 update_diff, uint32 diff)
                 {
                     SetDeathState(JUST_DIED);
                     SetHealth(0);
-                    i_movement.Clear();
+                    i_movement.StopAndDefault();
                     clearUnitState(UNIT_STAT_ALL_STATE);
                     i_movement.ReleaseEveryRestriction();
                     LoadCreatureAddon(true);

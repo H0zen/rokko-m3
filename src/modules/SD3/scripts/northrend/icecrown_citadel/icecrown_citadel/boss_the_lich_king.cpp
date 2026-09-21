@@ -418,7 +418,7 @@ struct boss_the_lich_king_icc : public CreatureScript
                     if (m_creature->GetHealthPercent() <= 70.0f)
                     {
                         // phase transition
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         m_creature->GetMotionMaster()->MovePoint(POINT_CENTER_LAND, fLichKingPosition[1][0], fLichKingPosition[1][1], fLichKingPosition[1][2]);
                         m_uiPhase = PHASE_RUNNING_WINTER_ONE;
                         return;
@@ -577,7 +577,7 @@ struct boss_the_lich_king_icc : public CreatureScript
                         // TODO: destroy platform
 
                         m_uiPhase = (m_uiPhase == PHASE_QUAKE_ONE ? PHASE_TWO : PHASE_THREE);
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
                         return;
                     }
@@ -592,7 +592,7 @@ struct boss_the_lich_king_icc : public CreatureScript
                     if (m_creature->GetHealthPercent() <= 40.0f)
                     {
                         // phase transition
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         m_creature->GetMotionMaster()->MovePoint(POINT_CENTER_LAND, fLichKingPosition[1][0], fLichKingPosition[1][1], fLichKingPosition[1][2]);
                         m_uiPhaseTimer = 60000;
                         m_uiPhase = PHASE_RUNNING_WINTER_TWO;

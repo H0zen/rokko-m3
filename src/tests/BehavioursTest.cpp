@@ -608,3 +608,59 @@ TEST(APursuitFurtherOutThanThatStillWalks)
     CHECK(Sent(plan));
     CHECK(std::fabs(chase.AimedAt().x - 25.0f) < 0.01f);
 }
+
+// ------------------------------------------------------------------- Orbit
+
+// The client pitches a flying model to asin(tangent.z) on every evaluation, so the steepest
+// slope of the circle IS the steepest angle the creature's nose reaches. A band anywhere
+// near the radius is a bird diving and pulling up every few seconds.
+TEST(AnOrbitIsInclinedTheSameWhateverItsSize)
+{
+    // The pitch the client will put on the model is asin(band / radius), and the band is a
+    // share of the radius -- so the angle is the same for a bat's circle and a dragon's.
+    Move::Orbit small(Kind::Wander, Vector3(0.0f, 0.0f, 100.0f), 8.0f);
+    Move::Orbit large(Kind::Wander, Vector3(0.0f, 0.0f, 100.0f), 120.0f);
+
+    CHECK(std::fabs(small.SteepestPitch() - large.SteepestPitch()) < 0.001f);
+    CHECK(small.SteepestPitch() < 0.26f);   // about fourteen degrees: a bird circling
+    CHECK(small.SteepestPitch() > 0.20f);   // and not a flat circle either
+}
+
+TEST(AnOrbitSendsAnArcAndKeepsGoingRoundFromWhereItStopped)
+{
+    OpenField world;
+    world.here = Vector3(40.0f, 0.0f, 100.0f);
+    Move::Orbit orbit(Kind::Wander, Vector3(0.0f, 0.0f, 100.0f), 40.0f);
+
+    Plan first;
+    orbit.Decide(0, false, world, first);
+    CHECK(Sent(first));
+    CHECK(first.count > 2);
+    CHECK((first.gait & Move::GAIT_FLY) != 0);
+
+    const Vector3 endOfFirst = first.points[first.count - 1];
+
+    Plan second;
+    orbit.Arrived(5000, false, world, second);
+    CHECK(Sent(second));
+    // The next arc begins where the last one ended: a circle, not a set of chords scattered
+    // around one.
+    CHECK((second.points[0] - endOfFirst).magnitude() < 0.5f);
+}
+
+// Every point of the orbit sits on the circle, which is what makes it a circle and not a
+// drifting spiral.
+TEST(EveryPointOfAnOrbitIsOnItsCircle)
+{
+    OpenField world;
+    Move::Orbit orbit(Kind::Wander, Vector3(10.0f, -5.0f, 60.0f), 25.0f);
+
+    Plan plan;
+    orbit.Decide(0, false, world, plan);
+    for (uint16_t i = 0; i < plan.count; ++i)
+    {
+        const float dx = plan.points[i].x - 10.0f;
+        const float dy = plan.points[i].y + 5.0f;
+        CHECK(std::fabs(std::sqrt(dx * dx + dy * dy) - 25.0f) < 0.01f);
+    }
+}

@@ -645,7 +645,7 @@ struct npc_artorius_the_doombringer : public CreatureScript
         void BeginEvent(ObjectGuid playerGuid)
         {
             m_hunterGuid = playerGuid;
-            m_creature->GetMotionMaster()->Clear(false);
+            m_creature->GetMotionMaster()->Stop();
             m_creature->GetMotionMaster()->MoveIdle();
             m_creature->SetUInt32Value(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_NONE);
             m_bTransform = true;

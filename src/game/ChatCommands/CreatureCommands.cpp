@@ -1021,7 +1021,7 @@ bool ChatHandler::HandleNpcUnFollowCommand(char* /*args*/)
     }
 
     UnitMovement* creatureMotion = creature->GetMotionMaster();
-    if (creatureMotion->ActiveKind() != Motion::Kind::Follow || creatureMotion->FollowTarget() != player)   // MovementExpired ends the selection, so the follow must be what runs now
+    if (creatureMotion->ActiveKind() != Motion::Kind::Follow || creatureMotion->FollowTarget() != player)   // Finish ends the selection, so the follow must be what runs now
     {
         PSendSysMessage(LANG_CREATURE_NOT_FOLLOW_YOU, creature->GetName());
         SetSentErrorMessage(true);
@@ -1029,7 +1029,7 @@ bool ChatHandler::HandleNpcUnFollowCommand(char* /*args*/)
     }
 
     // reset movement
-    creatureMotion->MovementExpired(true);
+    creatureMotion->Finish(true);
 
     PSendSysMessage(LANG_CREATURE_NOT_FOLLOW_YOU_NOW, creature->GetName());
     return true;

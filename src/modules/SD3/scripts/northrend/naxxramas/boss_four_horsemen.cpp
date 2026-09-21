@@ -194,7 +194,7 @@ struct boss_lady_blaumeux : CreatureScript
 
             // Stop moving when it reaches the corner
             m_bIsCornerMovement = false;
-            m_creature->GetMotionMaster()->Clear();
+            m_creature->GetMotionMaster()->StopAndDefault();
             m_creature->GetMotionMaster()->MoveIdle();
         }
 
@@ -348,7 +348,7 @@ struct boss_rivendare_naxx : public CreatureScript
             // Start moving when it reaches the corner
             SetCombatMovement(true);
             m_bIsCornerMovement = false;
-            m_creature->GetMotionMaster()->Clear();
+            m_creature->GetMotionMaster()->StopAndDefault();
             if (m_creature->getVictim())
             {
                 m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
@@ -481,7 +481,7 @@ struct boss_thane_korthazz : public CreatureScript
             // Start moving when it reaches the corner
             SetCombatMovement(true);
             m_bIsCornerMovement = false;
-            m_creature->GetMotionMaster()->Clear();
+            m_creature->GetMotionMaster()->StopAndDefault();
             if (m_creature->getVictim())
             {
                 m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
@@ -615,7 +615,7 @@ struct boss_sir_zeliek :CreatureScript
 
             // Stop moving when it reaches the corner
             m_bIsCornerMovement = false;
-            m_creature->GetMotionMaster()->Clear();
+            m_creature->GetMotionMaster()->StopAndDefault();
             m_creature->GetMotionMaster()->MoveIdle();
         }
 

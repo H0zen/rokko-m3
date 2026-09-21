@@ -839,7 +839,7 @@ struct go_veil_skith_cage : public GameObjectScript
                     case 3: DoScriptText(SAY_THANKS_4, *itr); break;
                 }
 
-                (*itr)->GetMotionMaster()->Clear();
+                (*itr)->GetMotionMaster()->StopAndDefault();
                 (*itr)->GetMotionMaster()->MovePoint(0, -2648.049f, 5274.573f, 1.691529f);
             }
         }

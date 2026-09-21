@@ -830,7 +830,7 @@ struct boss_arugal : public CreatureScript
 
             if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Chase)
             {
-                m_creature->GetMotionMaster()->Clear(false);
+                m_creature->GetMotionMaster()->Stop();
                 m_creature->GetMotionMaster()->MoveIdle();
                 m_creature->StopMoving();
             }
@@ -845,7 +845,7 @@ struct boss_arugal : public CreatureScript
 
             if (m_creature->GetMotionMaster()->ActiveKind() == Motion::Kind::Idle)
             {
-                m_creature->GetMotionMaster()->Clear(false);
+                m_creature->GetMotionMaster()->Stop();
                 m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim(), 0.0f, 0.0f);
             }
         }

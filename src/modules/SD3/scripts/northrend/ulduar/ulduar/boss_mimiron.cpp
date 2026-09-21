@@ -984,7 +984,7 @@ struct boss_leviathan_mk2 : public CreatureScript
             {
                 m_creature->RemoveAurasDueToSpell(SPELL_FREEZE_ANIM);
                 SetCombatMovement(true);
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 DoStartMovement(m_creature->getVictim());
                 m_uiPhase = PHASE_FULL_ROBOT;
             }
@@ -1643,7 +1643,7 @@ struct boss_aerial_unit : public CreatureScript
                     DoCastSpellIfCan(m_creature, SPELL_HALF_HEAL, CAST_TRIGGERED);
                     m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
 
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     m_creature->GetMotionMaster()->MovePoint(0, afAerialMovePos[0], afAerialMovePos[1], afAerialMovePos[2]);
                     m_uiPhase = PHASE_TRANSITION;
                 }
@@ -1678,7 +1678,7 @@ struct boss_aerial_unit : public CreatureScript
                 DoCastSpellIfCan(m_creature, SPELL_MAGNETIC_CORE_VISUAL, CAST_INTERRUPT_PREVIOUS);
                 m_uiMagneticTimer = 20000;
 
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->GetMotionMaster()->MovePoint(0, pCaster->Where().X(), pCaster->Where().Y(), pCaster->Where().Z());
             }
         }
@@ -1741,7 +1741,7 @@ struct boss_aerial_unit : public CreatureScript
             {
                 if (m_uiMagneticTimer <= uiDiff)
                 {
-                    m_creature->GetMotionMaster()->Clear();
+                    m_creature->GetMotionMaster()->StopAndDefault();
                     m_creature->GetMotionMaster()->MovePoint(0, m_creature->Where().X(), m_creature->Where().Y(), afAerialMovePos[2]);
 
                     m_creature->RemoveAurasDueToSpell(SPELL_MAGNETIC_CORE_VISUAL);
@@ -1773,7 +1773,7 @@ struct boss_aerial_unit : public CreatureScript
                         float fX, fY, fZ;
                         ContactPointNear(*m_creature->getVictim(), m_creature, fX, fY, fZ, 3 * ATTACK_DISTANCE);
 
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         m_creature->GetMotionMaster()->MovePoint(0, fX, fY, m_creature->Where().Z());
                     }
                     m_uiCombatMoveTimer = 2000;

@@ -270,7 +270,7 @@ struct boss_high_astromancer_solarian : public CreatureScript
                         DoScriptText(SAY_VOIDB, m_creature);
 
                         SetCombatMovement(true);
-                        m_creature->GetMotionMaster()->Clear();
+                        m_creature->GetMotionMaster()->StopAndDefault();
                         m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
                     }
 
@@ -424,7 +424,7 @@ struct boss_high_astromancer_solarian : public CreatureScript
                             }
 
                             SetCombatMovement(true);
-                            m_creature->GetMotionMaster()->Clear();
+                            m_creature->GetMotionMaster()->StopAndDefault();
                             m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
 
                             // Set as visible and reset spells timers

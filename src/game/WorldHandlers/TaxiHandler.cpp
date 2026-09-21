@@ -163,10 +163,18 @@ void WorldSession::SendDoFlight(uint32 mountDisplayId, std::vector<uint32> const
 
     while (GetPlayer()->GetMotionMaster()->IsOnTaxi())
     {
-        GetPlayer()->GetMotionMaster()->MovementExpired(false);
+        GetPlayer()->GetMotionMaster()->Finish();
     }
 
-    GetPlayer()->GetMotionMaster()->MoveTaxiFlight(route, startNode, mountDisplayId);
+    // Taxi is not implemented on this branch: there is no shape for it yet and the seizure
+    // protocol it needs (UnitMovement::Seize) has no caller. Said once so the gap is visible
+    // rather than a flight that silently never starts.
+    static bool toldNoTaxi = false;
+    if (!toldNoTaxi)
+    {
+        toldNoTaxi = true;
+        sLog.outError("Taxi flight requested but movement has no taxi shape yet (said once)");
+    }
 }
 
 /**

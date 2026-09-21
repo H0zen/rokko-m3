@@ -240,12 +240,11 @@ void WorldSession::HandleMoveWorldportAckOpcode()
             // The crossing's ack: the next map's leg, or the flight's end when this is not the
             // map it aimed at (P5-B family 5). The control stays revoked across the crossing:
             // SendInitialPacketsBeforeAddToMap skipped its grant.
-            GetPlayer()->GetMotionMaster()->TaxiContinue();
             return;
         }
 
         // battleground state prepare, stop flight (the abort clears the route and returns the control)
-        GetPlayer()->GetMotionMaster()->MovementExpired();
+        GetPlayer()->GetMotionMaster()->Finish();
     }
 
     if (mInstance)

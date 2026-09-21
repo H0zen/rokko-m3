@@ -144,7 +144,7 @@ struct boss_scarlet_commander_mograine : public CreatureScript
 
                 pWhitemane->GetMotionMaster()->MovePoint(1, 1163.113370f, 1398.856812f, 32.527786f);
 
-                m_creature->GetMotionMaster()->MovementExpired();
+                m_creature->GetMotionMaster()->Finish();
                 m_creature->GetMotionMaster()->MoveIdle();
 
                 m_creature->SetHealth(0);

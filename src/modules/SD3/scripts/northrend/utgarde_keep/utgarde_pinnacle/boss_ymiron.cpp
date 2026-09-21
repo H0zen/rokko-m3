@@ -254,7 +254,7 @@ struct boss_ymiron : public CreatureScript
             // Channeling is finished - resume combat
             if (m_creature->getVictim())
             {
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 m_creature->GetMotionMaster()->MoveChase(m_creature->getVictim());
             }
 

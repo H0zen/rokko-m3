@@ -973,7 +973,7 @@ void Spell::EffectScriptEffect(SpellEffectEntry const* effect)
                             {
                                 if (pTarget->GetMotionMaster()->IsMoving())
                                 {
-                                    pTarget->GetMotionMaster()->MovementExpired();
+                                    pTarget->GetMotionMaster()->Finish();
                                 }
 
                                 // trigger cast of quest complete script (see code for this spell below)

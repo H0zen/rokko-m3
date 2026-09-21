@@ -209,7 +209,7 @@ struct boss_najentus : public CreatureScript
             {
                 DoCastSpellIfCan(m_creature, SPELL_TIDAL_SHIELD, CAST_INTERRUPT_PREVIOUS | CAST_TRIGGERED);
 
-                m_creature->GetMotionMaster()->Clear(false);
+                m_creature->GetMotionMaster()->Stop();
                 m_creature->GetMotionMaster()->MoveIdle();
                 SetCombatMovement(false);
 

@@ -166,7 +166,7 @@ void Aura::HandleModPossessPet(bool apply, bool Real)
         }
 
         pet->StopMoving();
-        pet->GetMotionMaster()->Clear(false);
+        pet->GetMotionMaster()->Stop();
         pet->GetMotionMaster()->MoveIdle();
 
         caster->TakePossessOf(target);

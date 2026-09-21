@@ -189,7 +189,7 @@ struct boss_selin_fireheart : public CreatureScript
             {
                 m_bDrainingCrystal = false;
                 SetCombatMovement(true);
-                m_creature->GetMotionMaster()->Clear();
+                m_creature->GetMotionMaster()->StopAndDefault();
                 DoStartMovement(m_creature->getVictim());
             }
         }

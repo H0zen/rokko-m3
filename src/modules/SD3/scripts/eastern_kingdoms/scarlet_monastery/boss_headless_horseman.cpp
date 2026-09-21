@@ -480,7 +480,7 @@ struct boss_head_of_horseman : public CreatureScript
 
                 // run around the graveyard
                 m_creature->SetWalk(false);
-                m_creature->GetMotionMaster()->MoveRandomAroundPoint(pInvoker->Where().X(), pInvoker->Where().Y(), pInvoker->Where().Z(), 40.0f);
+                m_creature->GetMotionMaster()->Wander(pInvoker->Where().X(), pInvoker->Where().Y(), pInvoker->Where().Z(), 40.0f);
             }
             // rejoin head by force - body healed
             else if (eventType == AI_EVENT_CUSTOM_B)
@@ -494,7 +494,7 @@ struct boss_head_of_horseman : public CreatureScript
         {
             // script targets on body
             m_creature->RemoveAllAurasOnEvade();
-            m_creature->GetMotionMaster()->Clear();
+            m_creature->GetMotionMaster()->StopAndDefault();
             m_creature->GetMotionMaster()->MoveIdle();
 
             m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);

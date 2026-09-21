@@ -365,7 +365,7 @@ struct spell_volkhan_temper : public SpellScript
 
             if (pCaster->getVictim())
             {
-                pCaster->GetMotionMaster()->Clear();
+                pCaster->GetMotionMaster()->StopAndDefault();
                 pCaster->GetMotionMaster()->MoveChase(pCaster->getVictim());
             }
 
