@@ -29,7 +29,7 @@
 #include "Dynamic/FactoryHolder.h"
 #include "ObjectGuid.h"
 #include "SharedDefines.h"
-#include "Arbiter.h"
+#include "MotionMaster.h"
 
 class WorldObject;
 class GameObject;

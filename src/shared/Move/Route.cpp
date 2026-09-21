@@ -23,7 +23,7 @@
  * and lore are copyrighted by Blizzard Entertainment, Inc.
  */
 
-#include "Move/Leg.h"
+#include "Move/Route.h"
 
 #include "Geometry/GeometryMath.h"
 
@@ -31,7 +31,7 @@
 
 namespace Move
 {
-    bool Leg::Launch(const Geometry::Vector3* points, uint16_t count, float speed,
+    bool Route::Launch(const Geometry::Vector3* points, uint16_t count, float speed,
                      uint32_t startMs)
     {
         // clear() rather than a fresh vector: a chase re-aims several times a second on
@@ -81,7 +81,7 @@ namespace Move
         return true;
     }
 
-    void Leg::Clear()
+    void Route::Clear()
     {
         m_points.clear();
         m_cumulative.clear();
@@ -90,7 +90,7 @@ namespace Move
         m_cursor = 0;
     }
 
-    uint32_t Leg::Duration() const
+    uint32_t Route::Duration() const
     {
         if (!Running())
         {
@@ -100,7 +100,7 @@ namespace Move
         return ms == 0 ? 1u : ms;
     }
 
-    uint16_t Leg::SegmentAt(float distance) const
+    uint16_t Route::SegmentAt(float distance) const
     {
         const uint16_t last = uint16_t(m_points.size() - 1);
 
@@ -117,7 +117,7 @@ namespace Move
         return m_cursor;
     }
 
-    float Leg::DistanceAt(uint32_t nowMs) const
+    float Route::DistanceAt(uint32_t nowMs) const
     {
         if (!Running())
         {
@@ -133,7 +133,7 @@ namespace Move
         return travelled >= total ? total : travelled;
     }
 
-    Geometry::Vector3 Leg::At(uint32_t nowMs) const
+    Geometry::Vector3 Route::At(uint32_t nowMs) const
     {
         if (m_points.empty())
         {
@@ -166,7 +166,7 @@ namespace Move
         return m_points[seg].lerp(m_points[seg + 1], u);
     }
 
-    float Leg::FacingAt(uint32_t nowMs) const
+    float Route::FacingAt(uint32_t nowMs) const
     {
         if (!Running())
         {
@@ -188,7 +188,7 @@ namespace Move
         return angle >= 0.0f ? angle : angle + 2.0f * Geometry::pif();
     }
 
-    bool Leg::Arrived(uint32_t nowMs) const
+    bool Route::Arrived(uint32_t nowMs) const
     {
         if (!Running())
         {
@@ -198,7 +198,7 @@ namespace Move
         return elapsed > 0 && float(elapsed) * m_speed * 0.001f >= Length();
     }
 
-    uint32_t Leg::TimeAtDistance(float distance) const
+    uint32_t Route::TimeAtDistance(float distance) const
     {
         if (!Running())
         {

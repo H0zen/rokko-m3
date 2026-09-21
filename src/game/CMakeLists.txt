@@ -10,8 +10,6 @@ source_group("Chat Commands" FILES ${SRC_GRP_CHAT_COMMANDS})
 file(GLOB SRC_GRP_MAP_THREAD Maps/*.cpp Maps/*.h)
 source_group("Map Threading" FILES ${SRC_GRP_MAP_THREAD})
 
-file(GLOB SRC_GRP_HARNESS Harness/*.cpp Harness/*.h)
-source_group("Harness" FILES ${SRC_GRP_HARNESS})
 
 file(GLOB SRC_GRP_MOTION_GEN MotionGenerators/*.cpp MotionGenerators/*.h)
 source_group("Motion generators" FILES ${SRC_GRP_MOTION_GEN})
@@ -47,7 +45,6 @@ add_library(game STATIC
     ${SRC_GRP_BATTLEGROUND}
     ${SRC_GRP_CHAT_COMMANDS}
     ${SRC_GRP_MAP_THREAD}
-    ${SRC_GRP_HARNESS}
     ${SRC_GRP_MOTION_GEN}
     ${SRC_GRP_MOVEMENT}
     ${SRC_GRP_OBJECT}
@@ -65,7 +62,6 @@ target_include_directories(game
         AuctionHouseBot
         BattleGround
         ChatCommands
-        Harness
         Maps
         MotionGenerators
         Object
@@ -88,8 +84,8 @@ target_link_libraries(game
         geometry
         shared_db
         proto
-        motion
         movement
+        motion
         RecastNavigation::Detour
         ZLIB::ZLIB
         $<$<BOOL:${SCRIPT_LIB_SD3}>:mangosscript>

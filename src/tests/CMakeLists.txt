@@ -36,15 +36,9 @@ set(SRC_GRP_TESTS
     TimeBaseTest.cpp
     MotionWritersTest.cpp
     MotionStateTest.cpp
-    HarnessTest.cpp
     WorldClockTest.cpp
     RNGSeedTest.cpp
     MotionAuthorityTest.cpp
-    MotionArbiterTest.cpp
-    MotionMobilityTest.cpp
-    MotionBehaviourTest.cpp
-    MotionTaxiTest.cpp
-    TargetKinematicsTest.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/TimeSync.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/Walker.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/Control.cpp
@@ -62,15 +56,16 @@ set(SRC_GRP_TESTS
     NavBinningTest.cpp
     DynamicCollisionTest.cpp
     PlacementTest.cpp
-    LegTest.cpp
+    RouteTest.cpp
     CrossingsTest.cpp
     ScheduleTest.cpp
-    AimTest.cpp
     SelectionTest.cpp
+    MovementTest.cpp
+    MoveWriterTest.cpp
+    BehavioursTest.cpp
     ${CMAKE_SOURCE_DIR}/src/game/WorldHandlers/DynamicCollision.cpp
     ${CMAKE_SOURCE_DIR}/src/game/WorldHandlers/GameObjectModel.cpp
     ${CMAKE_SOURCE_DIR}/src/game/Server/SessionMailbox.cpp
-    ${CMAKE_SOURCE_DIR}/src/game/Harness/Timeline.cpp
     ByteBufferStressTest.cpp
     CodecStressTest.cpp
     PacketCodecTest.cpp
@@ -110,7 +105,7 @@ target_include_directories(mangos_tests
         ${CMAKE_SOURCE_DIR}/src/game/WorldHandlers
         ${CMAKE_SOURCE_DIR}/src/game/Server
         ${CMAKE_SOURCE_DIR}/src/game/MotionGenerators
-        ${CMAKE_SOURCE_DIR}/src/game/Harness
+        ${CMAKE_SOURCE_DIR}/src/motion
         ${CMAKE_SOURCE_DIR}/src/game/movement
         ${CMAKE_SOURCE_DIR}/src/realmd
         ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src)
@@ -119,8 +114,8 @@ target_compile_definitions(mangos_tests PRIVATE MANGOS_TEST_DATA_DIR="${CMAKE_CU
 
 target_link_libraries(mangos_tests
     PRIVATE
-        motion
         movement
+        motion
         proto
         shared_db
         mangos_crypto
@@ -151,11 +146,6 @@ add_test(NAME proto_boundary
         -DSOURCE_ROOT=${CMAKE_SOURCE_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckProtoBoundary.cmake)
 
-add_test(NAME motion_boundary
-    COMMAND ${CMAKE_COMMAND}
-        -DSOURCE_ROOT=${CMAKE_SOURCE_DIR}
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckMotionBoundary.cmake)
-
 add_test(NAME warden_dormant_boundary
     COMMAND ${CMAKE_COMMAND}
         -DSOURCE_ROOT=${CMAKE_SOURCE_DIR}
@@ -185,16 +175,6 @@ add_test(NAME opcode_denylist
     COMMAND ${CMAKE_COMMAND}
         -DSOURCE_ROOT=${CMAKE_SOURCE_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckOpcodeDenylist.cmake)
-
-add_test(NAME motion_shim
-    COMMAND ${CMAKE_COMMAND}
-        -DSOURCE_ROOT=${CMAKE_SOURCE_DIR}
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckMotionMasterShim.cmake)
-
-add_test(NAME motion_blocked_masks
-    COMMAND ${CMAKE_COMMAND}
-        -DSOURCE_ROOT=${CMAKE_SOURCE_DIR}
-        -P ${CMAKE_CURRENT_SOURCE_DIR}/CheckBlockedMasks.cmake)
 
 add_test(NAME client_map_id
     COMMAND ${CMAKE_COMMAND}

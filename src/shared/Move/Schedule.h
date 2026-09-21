@@ -27,7 +27,7 @@
 
 // WHAT IS DUE, AND WHEN. The other half of scheduling a leg instead of watching it.
 //
-// Crossings.h says at which distances a path changes cell and Leg::TimeAtDistance turns
+// Crossings.h says at which distances a path changes cell and Route::TimeAtDistance turns
 // those into moments. This holds the moments. A tick asks what has come due since the last
 // one instead of asking every mover where it is, so a map full of units walking quietly
 // across the middle of a cell costs a comparison against the earliest due time and nothing

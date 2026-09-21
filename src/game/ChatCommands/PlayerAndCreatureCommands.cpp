@@ -263,44 +263,7 @@ bool ChatHandler::HandleMovegensCommand(char* /*args*/)
 
     PSendSysMessage(LANG_MOVEGENS_LIST, (unit->GetTypeId() == TYPEID_PLAYER ? "Player" : "Creature"), unit->GetGUIDLow());
 
-    MotionMaster* mm = unit->GetMotionMaster();
-    float x = 0.0f, y = 0.0f, z = 0.0f;
-    const bool hasDestination = mm->GetDestination(x, y, z);
-    std::vector<MotionMaster::HeldView> held = mm->Held();
-    for (size_t i = 0; i < held.size(); ++i)
-    {
-        // One line per held entry in the debug dump's style: the layer, the kind, the marks,
-        // and what it tracks (the entry's own guid, resolved here) or where the selected one goes.
-        std::string line = std::string("  [") + Motion::LayerName(Motion::LayerOf(held[i].kind)) + "] " + Motion::KindName(held[i].kind);
-        if (held[i].selected)
-        {
-            line += " (selected)";
-        }
-        if (!held[i].reachable)
-        {
-            line += " (unreachable)";
-        }
-        char tail[256];
-        tail[0] = '\0';
-        if (held[i].target)
-        {
-            Unit* target = ObjectLookup::GetUnit(*unit, ObjectGuid(held[i].target));
-            if (target)
-            {
-                snprintf(tail, sizeof(tail), " -> %s %s (lowguid %u)", target->GetTypeId() == TYPEID_PLAYER ? "player" : "creature", target->GetName(), target->GetGUIDLow());
-            }
-            else
-            {
-                snprintf(tail, sizeof(tail), " -> <gone>");
-            }
-        }
-        else if (hasDestination && held[i].selected && (held[i].kind == Motion::Kind::Point || held[i].kind == Motion::Kind::FlyLand || held[i].kind == Motion::Kind::Home))
-        {
-            snprintf(tail, sizeof(tail), " -> (%.2f %.2f %.2f)", x, y, z);
-        }
-        line += tail;
-        SendSysMessage(line.c_str());
-    }
+    SendSysMessage("  nothing: there is no movement engine, so no behaviour is held.");
     return true;
 }
 

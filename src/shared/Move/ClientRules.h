@@ -215,6 +215,57 @@ namespace Move
             return kept;
         }
 
+        /// HOW FAR A PACKED PATH MAY REACH FROM ITS OWN MIDPOINT.
+        ///
+        /// A linear path does not send its intermediate points. It sends the first and the
+        /// last as raw floats and every point between them as an offset from
+        /// midpoint(first, last), quantised at WIRE_STEP and truncated into signed fields
+        /// of 11, 11 and 10 bits (ByteBuffer::appendPackXYZ; the client decodes it in
+        /// sub_5AA9D0). Eleven signed bits of quarter-yards reach 256 yd, ten reach 128.
+        ///
+        /// One yard past that the field does not clamp, it WRAPS: the offset comes out
+        /// with the opposite sign and the client walks to a point on the other side of the
+        /// mover. The test is per point and against the midpoint, not against a bounding
+        /// box -- a path whose two ends are close together can still swing far from the
+        /// line between them, and a box would pass it.
+        const float PACK_REACH_XY = 256.0f;
+        const float PACK_REACH_Z = 128.0f;
+
+        inline bool PacksWithoutWrapping(const Geometry::Vector3* points, uint16_t count)
+        {
+            if (!points || count < 3)
+            {
+                return true;
+            }
+            const Geometry::Vector3 middle = (points[0] + points[count - 1]) * 0.5f;
+            for (uint16_t i = 1; i + 1 < count; ++i)
+            {
+                const Geometry::Vector3 offset = middle - points[i];
+                if (offset.x <= -PACK_REACH_XY || offset.x >= PACK_REACH_XY ||
+                    offset.y <= -PACK_REACH_XY || offset.y >= PACK_REACH_XY ||
+                    offset.z <= -PACK_REACH_Z || offset.z >= PACK_REACH_Z)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        /// The longest leading run of a polyline that survives packing, never fewer than
+        /// two points. Shortening the run moves the midpoint as well as dropping points,
+        /// so this walks down rather than assuming the property is monotone.
+        inline uint16_t PackableRun(const Geometry::Vector3* points, uint16_t count)
+        {
+            for (uint16_t run = count; run > 2; --run)
+            {
+                if (PacksWithoutWrapping(points, run))
+                {
+                    return run;
+                }
+            }
+            return count >= 2 ? uint16_t(2) : count;
+        }
+
         /// What the client will make of a leg we are about to send.
         struct Verdict
         {

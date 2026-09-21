@@ -27,7 +27,7 @@
 
 // WHERE A PATH CHANGES CELL, computed once instead of watched for.
 //
-// A mover's position is cheap to ask for (Leg::At) but changing cell is not: it moves the
+// A mover's position is cheap to ask for (Route::At) but changing cell is not: it moves the
 // object between grid containers and wakes every observer around it. Today that is found
 // by comparing the cell every tick for every mover, which is why the position is only
 // written a few times a second in the first place -- the comparison is the cost, not the
@@ -36,7 +36,7 @@
 // It does not have to be watched for. The whole path is known the moment the leg is laid,
 // so the distances at which it crosses a cell boundary are known then too: it is a segment
 // against a set of evenly spaced planes, a division per crossing. Feed each distance to
-// Leg::TimeAtDistance and the tick has a due time to wait for rather than a question to
+// Route::TimeAtDistance and the tick has a due time to wait for rather than a question to
 // keep asking. A leg that stays inside one cell -- most of them -- schedules nothing at
 // all and costs nothing per tick.
 //

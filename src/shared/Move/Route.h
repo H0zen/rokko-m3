@@ -50,10 +50,10 @@
 
 namespace Move
 {
-    class Leg
+    class Route
     {
         public:
-            Leg() : m_speed(0.0f), m_startMs(0), m_cursor(0) {}
+            Route() : m_speed(0.0f), m_startMs(0), m_cursor(0) {}
 
             /// Take a polyline and a speed. `startMs` is the server clock at the moment
             /// the client begins it. Returns false, and leaves the leg empty, for input

@@ -15,24 +15,6 @@ set(SRC_GRP_MOTION
     State.cpp
     Mobility.h
     Mobility.cpp
-    Arbiter.h
-    Arbiter.cpp
-    MoveIntent.h
-    BehaviourModel.h
-    SimpleMoves.h
-    SimpleMoves.cpp
-    DefaultMoves.h
-    DefaultMoves.cpp
-    PatrolWelding.h
-    PatrolWelding.cpp
-    TargetKinematics.h
-    TargetKinematics.cpp
-    TrackingMoves.h
-    TrackingMoves.cpp
-    ControlMoves.h
-    ControlMoves.cpp
-    TaxiMove.h
-    TaxiMove.cpp
 )
 source_group("motion" FILES ${SRC_GRP_MOTION})
 

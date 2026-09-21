@@ -61,7 +61,6 @@
 #include "MapManager.h"
 #include "TransportMap.h"
 #include "Transports.h"
-#include "Harness.h"
 
 /**
  * @brief Handler for HandleDebugSendSpellFailCommand command.
@@ -2095,105 +2094,20 @@ bool ChatHandler::HandleDebugMovementSpeedCommand(char* args)
 }
 
 /**
- * @brief .debug movement dump [player]: the arbiter's held behaviours by layer, the
- *        selected one marked, the parked factory default if any, and, when
- *        Movement.DecisionRing is on, its last thirty-two decisions.
+ * @brief .debug movement dump: there is no movement engine, so there is nothing to dump.
  */
-bool ChatHandler::HandleDebugMovementDumpCommand(char* args)
+bool ChatHandler::HandleDebugMovementDumpCommand(char* /*args*/)
 {
-    Unit* unit = getSelectedUnit();
-    if (args && *args)
-    {
-        Player* player = NULL;
-        if (!ExtractPlayerTarget(&args, &player))
-        {
-            return false;
-        }
-        unit = player;
-    }
-    if (!unit)
-    {
-        SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
-        SetSentErrorMessage(true);
-        return false;
-    }
-    MotionMaster* mm = unit->GetMotionMaster();
-    Motion::Arbiter const& arbiter = mm->Arbiter();
-    std::vector<Motion::Held> contents = arbiter.Contents();
-    std::optional<Motion::Held> selected = arbiter.Selected();
-    PSendSysMessage("movement of %s: %u held, selected %s, generation %u",
-                    unit->GetGuidStr().c_str(), uint32(contents.size()),
-                    selected ? Motion::KindName(selected->kind) : "none", arbiter.Generation());
-    Motion::MobilityDecision decision = mm->Mobility();
-    std::string reasons;
-    static char const* const reasonNames[] = { "Rooted", "Stunned", "Dead", "Possessed", "Feared", "Confused", "Distracted", "OnTaxi" };
-    static_assert(sizeof(reasonNames) / sizeof(reasonNames[0]) == 8, "the dump's reason names out of sync with Motion::Reason");
-    for (unsigned bit = 0; bit < 8; ++bit)
-    {
-        if (decision.reasons & (1u << bit))
-        {
-            reasons += reasons.empty() ? reasonNames[bit] : std::string(" ") + reasonNames[bit];
-        }
-    }
-    PSendSysMessage("  block: %s; rooted by %u source(s), stunned by %u, dead by %u, possessed by %u; selected may move=%d turn=%d dominant=%s",
-                    reasons.empty() ? "none" : reasons.c_str(),
-                    uint32(arbiter.Sources(Motion::Inhibition::Rooted).size()), uint32(arbiter.Sources(Motion::Inhibition::Stunned).size()),
-                    uint32(arbiter.Sources(Motion::Inhibition::Dead).size()), uint32(arbiter.Sources(Motion::Inhibition::Possessed).size()),
-                    decision.mayMove ? 1 : 0, decision.mayTurn ? 1 : 0, Motion::InhibitionName(decision.dominant));
-    if (std::optional<Motion::Held> const& fallback = arbiter.Fallback())
-    {
-        PSendSysMessage("  fallback %s seq %u", Motion::KindName(fallback->kind), fallback->seq);
-    }
-    for (size_t i = 0; i < contents.size(); ++i)
-    {
-        Motion::Held const& h = contents[i];
-        PSendSysMessage("  [%s] %s id %u seq %u%s%s%s", Motion::LayerName(Motion::LayerOf(h.kind)), Motion::KindName(h.kind),
-                        h.id, h.seq, h.claim ? " claim" : "", mm->IsActivated(h.seq) ? " activated" : "",
-                        (selected && selected->seq == h.seq) ? " (selected)" : "");
-    }
-    if (!arbiter.RingEnabled())
-    {
-        SendSysMessage("  ring: off (Movement.DecisionRing = 0)");
-        return true;
-    }
-    std::vector<Motion::Decision> decisions = arbiter.Decisions();
-    PSendSysMessage("  ring: %u decisions", uint32(decisions.size()));
-    for (size_t i = 0; i < decisions.size(); ++i)
-    {
-        Motion::Decision const& d = decisions[i];
-        PSendSysMessage("  #%u g%u %s %s id %u: %s -> %s", uint32(i), d.generation, Motion::OpName(d.op), Motion::KindName(d.kind), d.id,
-                        d.hadBefore ? Motion::KindName(d.before.kind) : "-", d.hadAfter ? Motion::KindName(d.after.kind) : "-");
-    }
+    SendSysMessage("There is no movement engine: nothing moves and nothing is held.");
     return true;
 }
 
 /**
- * @brief .debug movement scenario <name|all|status>: runs the GM harness's movement
- *        scenarios headless (movement P0-C) and prints their MVTEST lines to the log.
+ * @brief .debug movement scenario: the scenario harness existed to exercise the movement
+ *        engine and was deleted with it.
  */
-bool ChatHandler::HandleDebugMovementScenarioCommand(char* args)
+bool ChatHandler::HandleDebugMovementScenarioCommand(char* /*args*/)
 {
-    char* what = ExtractArg(&args);
-    if (!what)
-    {
-        return false;
-    }
-    if (strcmp(what, "status") == 0)
-    {
-        PSendSysMessage("harness: %s", sHarness.Status().c_str());
-        return true;
-    }
-    uint32 seedBase = Harness::kSeedBase;
-    if (!ExtractOptUInt32(&args, seedBase, Harness::kSeedBase))
-    {
-        return false;
-    }
-    if (!sHarness.Start(what, seedBase))
-    {
-        PSendSysMessage("harness: could not start %s (%s)", what, sHarness.Status().c_str());
-        SetSentErrorMessage(true);
-        return false;
-    }
-    PSendSysMessage("harness: started %s (seed base %u)", what, seedBase);
+    SendSysMessage("There is no movement engine: no scenario to run.");
     return true;
 }

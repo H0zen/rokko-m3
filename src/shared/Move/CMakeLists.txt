@@ -1,11 +1,15 @@
 add_library(movement STATIC
-    Aim.cpp
-    Aim.h
+    Behaviours.cpp
+    Behaviours.h
     ClientRules.h
     Crossings.cpp
     Crossings.h
-    Leg.cpp
-    Leg.h
+    MoveWriter.cpp
+    MoveWriter.h
+    Movement.cpp
+    Movement.h
+    Route.cpp
+    Route.h
     Schedule.cpp
     Schedule.h
     Selection.cpp

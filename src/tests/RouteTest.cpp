@@ -27,7 +27,7 @@
 
 #include "Geometry/GeometryMath.h"
 #include "Move/ClientRules.h"
-#include "Move/Leg.h"
+#include "Move/Route.h"
 
 #include <cmath>
 #include <cstdlib>
@@ -35,7 +35,7 @@
 #include <vector>
 
 using Geometry::Vector3;
-using Move::Leg;
+using Move::Route;
 
 namespace
 {
@@ -47,20 +47,20 @@ namespace
     }
 
     /// A straight ten-yard walk east at one yard per second, starting at t = 1000.
-    Leg Straight()
+    Route Straight()
     {
         const Vector3 pts[2] = {Vector3(0.f, 0.f, 0.f), Vector3(10.f, 0.f, 0.f)};
-        Leg leg;
+        Route leg;
         leg.Launch(pts, 2, 1.0f, 1000);
         return leg;
     }
 
     /// Ten east, then ten north. Twenty yards over two segments.
-    Leg Corner()
+    Route Corner()
     {
         const Vector3 pts[3] = {Vector3(0.f, 0.f, 0.f), Vector3(10.f, 0.f, 0.f),
                                 Vector3(10.f, 10.f, 0.f)};
-        Leg leg;
+        Route leg;
         leg.Launch(pts, 3, 2.0f, 0);
         return leg;
     }
@@ -161,7 +161,7 @@ TEST(LegRefusesInputNoMoverCouldFollow)
 {
     const Vector3 one(1.f, 2.f, 3.f);
     const Vector3 same[2] = {one, one};
-    Leg leg;
+    Route leg;
 
     CHECK(!leg.Launch(nullptr, 2, 1.0f, 0));
     CHECK(!leg.Launch(same, 1, 1.0f, 0));
@@ -176,14 +176,14 @@ TEST(LegRefusesAPointThatIsNotANumber)
 {
     const float nan = std::numeric_limits<float>::quiet_NaN();
     const Vector3 pts[2] = {Vector3(0.f, 0.f, 0.f), Vector3(nan, 0.f, 0.f)};
-    Leg leg;
+    Route leg;
     CHECK(!leg.Launch(pts, 2, 1.0f, 0));
     CHECK(!leg.Running());
 }
 
 TEST(LegMeasuresItsOwnPathAndStatesItsDuration)
 {
-    const Leg leg = Corner();
+    const Route leg = Corner();
     CHECK(Near(leg.Length(), 20.0f));
     CHECK_EQ(leg.Duration(), uint32_t(10000));      // 20 yd at 2 yd/s
     CHECK_EQ(leg.EndTime(), uint32_t(10000));
@@ -191,7 +191,7 @@ TEST(LegMeasuresItsOwnPathAndStatesItsDuration)
 
 TEST(LegIsAtItsStartBeforeItBegins)
 {
-    const Leg leg = Straight();
+    const Route leg = Straight();
     CHECK(NearPoint(leg.At(0), Vector3(0.f, 0.f, 0.f)));
     CHECK(NearPoint(leg.At(999), Vector3(0.f, 0.f, 0.f)));
     CHECK(NearPoint(leg.At(1000), Vector3(0.f, 0.f, 0.f)));
@@ -200,7 +200,7 @@ TEST(LegIsAtItsStartBeforeItBegins)
 
 TEST(LegInterpolatesAlongOneSegment)
 {
-    const Leg leg = Straight();
+    const Route leg = Straight();
     CHECK(NearPoint(leg.At(3000), Vector3(2.f, 0.f, 0.f)));
     CHECK(NearPoint(leg.At(6000), Vector3(5.f, 0.f, 0.f)));
     CHECK(Near(leg.DistanceAt(6000), 5.0f));
@@ -208,7 +208,7 @@ TEST(LegInterpolatesAlongOneSegment)
 
 TEST(LegStopsAtItsEndAndStaysThere)
 {
-    const Leg leg = Straight();
+    const Route leg = Straight();
     CHECK(NearPoint(leg.At(11000), Vector3(10.f, 0.f, 0.f)));
     CHECK(NearPoint(leg.At(99000), Vector3(10.f, 0.f, 0.f)));
     CHECK(leg.Arrived(11000));
@@ -218,7 +218,7 @@ TEST(LegStopsAtItsEndAndStaysThere)
 
 TEST(LegCrossesFromOneSegmentToTheNext)
 {
-    const Leg leg = Corner();
+    const Route leg = Corner();
     CHECK(NearPoint(leg.At(2500), Vector3(5.f, 0.f, 0.f)));     // 5 yd in
     CHECK(NearPoint(leg.At(5000), Vector3(10.f, 0.f, 0.f)));    // exactly the corner
     CHECK(NearPoint(leg.At(7500), Vector3(10.f, 5.f, 0.f)));    // 5 yd up the second leg
@@ -229,8 +229,8 @@ TEST(LegCrossesFromOneSegmentToTheNext)
 // tick that produced it.
 TEST(LegReadsTheSameWhetherWalkedForwardOrProbedAtRandom)
 {
-    const Leg forward = Corner();
-    const Leg probed = Corner();
+    const Route forward = Corner();
+    const Route probed = Corner();
 
     std::vector<Vector3> walked;
     for (uint32_t t = 0; t <= 11000; t += 250)
@@ -253,7 +253,7 @@ TEST(LegReadsTheSameWhetherWalkedForwardOrProbedAtRandom)
 
 TEST(LegFacesAlongTheSegmentItIsOn)
 {
-    const Leg leg = Corner();
+    const Route leg = Corner();
     CHECK(Near(leg.FacingAt(2500), 0.0f));                                // east
     CHECK(Near(leg.FacingAt(7500), 0.5f * Geometry::pif()));              // north
 }
@@ -261,7 +261,7 @@ TEST(LegFacesAlongTheSegmentItIsOn)
 // A mover that has stopped keeps looking the way it was going; it does not snap north.
 TEST(LegKeepsItsLastHeadingAfterItArrives)
 {
-    const Leg leg = Corner();
+    const Route leg = Corner();
     CHECK(Near(leg.FacingAt(99000), 0.5f * Geometry::pif()));
 }
 
@@ -269,7 +269,7 @@ TEST(LegKeepsItsLastHeadingAfterItArrives)
 // known at launch, so the moment it passes any distance is known at launch too.
 TEST(LegAnswersWhenItWillBeSomewhereWithoutBeingTicked)
 {
-    const Leg leg = Corner();
+    const Route leg = Corner();
 
     const uint32_t atCorner = leg.TimeAtDistance(10.0f);
     CHECK_EQ(atCorner, uint32_t(5000));
@@ -285,7 +285,7 @@ TEST(LegSurvivesTheServerClockWrapping)
 {
     const Vector3 pts[2] = {Vector3(0.f, 0.f, 0.f), Vector3(10.f, 0.f, 0.f)};
     const uint32_t justBeforeWrap = 0xFFFFFC18u;        // 1000 ms short of zero
-    Leg leg;
+    Route leg;
     REQUIRE(leg.Launch(pts, 2, 1.0f, justBeforeWrap));
 
     CHECK(NearPoint(leg.At(justBeforeWrap + 2000u), Vector3(2.f, 0.f, 0.f)));
@@ -300,7 +300,7 @@ TEST(LegStepsOverADuplicatedPointWithoutDividingByZero)
 {
     const Vector3 pts[4] = {Vector3(0.f, 0.f, 0.f), Vector3(5.f, 0.f, 0.f),
                             Vector3(5.f, 0.f, 0.f), Vector3(10.f, 0.f, 0.f)};
-    Leg leg;
+    Route leg;
     REQUIRE(leg.Launch(pts, 4, 1.0f, 0));
 
     CHECK(Near(leg.Length(), 10.0f));
@@ -315,7 +315,7 @@ TEST(LegRelaunchKeepsNothingOfTheOldOne)
                               Vector3(20.f, 0.f, 0.f)};
     const Vector3 second[2] = {Vector3(0.f, 0.f, 0.f), Vector3(0.f, 4.f, 0.f)};
 
-    Leg leg;
+    Route leg;
     REQUIRE(leg.Launch(first, 3, 1.0f, 0));
     (void)leg.At(15000);                                  // park the cursor at the end
 
@@ -336,7 +336,7 @@ TEST(ALegWeBuildSurvivesTheClientsArithmeticUnchanged)
 {
     const Vector3 pts[4] = {Vector3(0.f, 0.f, 0.f), Vector3(12.f, 0.f, 0.f),
                             Vector3(12.f, 9.f, 0.f), Vector3(20.f, 9.f, 0.f)};
-    Leg leg;
+    Route leg;
     REQUIRE(leg.Launch(pts, 4, 7.0f, 5000));
     CHECK(Near(leg.Length(), 29.0f));
 
@@ -356,7 +356,7 @@ TEST(ALegWeBuildSurvivesTheClientsArithmeticUnchanged)
 TEST(ALegThatOutrunsTheCeilingIsCaughtBeforeItIsSent)
 {
     const Vector3 pts[2] = {Vector3(0.f, 0.f, 0.f), Vector3(30.f, 0.f, 0.f)};
-    Leg leg;
+    Route leg;
     REQUIRE(leg.Launch(pts, 2, 300.0f, 0));
 
     const float ceiling = Move::Client::SpeedCeiling(7.0f, 0);

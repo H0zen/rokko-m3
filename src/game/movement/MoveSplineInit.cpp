@@ -25,7 +25,7 @@
 
 #include "MoveSplineInit.h"
 #include "Move/ClientRules.h"
-#include "Move/Leg.h"
+#include "Move/Route.h"
 #include "MoveSplineSpeed.h"
 #include "MoveSpline.h"
 #include "packet_builder.h"
@@ -208,7 +208,7 @@ namespace Movement
 
         // THE NEW ENGINE RUNNING BESIDE THE OLD ONE, answering only into the log.
         //
-        // Move::Leg keeps the polyline instead of re-simulating it, and the point of
+        // Move::Route keeps the polyline instead of re-simulating it, and the point of
         // keeping it is that a position can then be read at any instant rather than
         // written every 400 ms. Before anything is switched over, the two have to be shown
         // to describe the same motion on real traffic -- and the cheapest place they can
@@ -233,7 +233,7 @@ namespace Movement
         // Silence here is the evidence; a line is a discrepancy worth reading.
         if (!args.flags.isSmooth() && !args.flags.falling && args.path.size() > 1)
         {
-            Move::Leg shadow;
+            Move::Route shadow;
             if (shadow.Launch(&args.path[0], uint16(args.path.size()), args.velocity, 0))
             {
                 const int32 theirs = move_spline.Duration() - 1;
@@ -241,7 +241,7 @@ namespace Movement
                 const int32 drift = ours > theirs ? ours - theirs : theirs - ours;
                 if (theirs > 0 && drift * 20 > theirs)
                 {
-                    sLog.outError("Move::Leg shadow: %s over %u point(s) at %.2f yd/s -- "
+                    sLog.outError("Move::Route shadow: %s over %u point(s) at %.2f yd/s -- "
                                   "spline says %d ms, leg says %d ms (%d ms apart, "
                                   "flags 0x%08X)",
                                   unit.GetGuidStr().c_str(), uint32(args.path.size()),
