@@ -635,7 +635,7 @@ struct boss_arugal : public CreatureScript
                                     pLeader = pVoidwalker;
                                 }
 
-                                if (CreatureAI* pVoidwalkerAI = pVoidwalker->AI())
+                                if (pVoidwalker->AI())
                                 {
                                     SendAIEvent(AI_EVENT_CUSTOM_A, pLeader, pVoidwalker, i);
                                     //pVoidwalkerAI->SetPosition(i, pLeader);

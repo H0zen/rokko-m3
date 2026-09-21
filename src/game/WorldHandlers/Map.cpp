@@ -1328,7 +1328,6 @@ void Map::CreatureRelocation(Creature* creature, float x, float y, float z, floa
 {
     MANGOS_ASSERT(CheckGridIntegrity(creature, false));
 
-    Cell old_cell = creature->GetCurrentCell();
     Cell new_cell(MaNGOS::ComputeCellPair(x, y));
 
     // do move or do move to respawn or remove creature if previous all fail
@@ -2168,10 +2167,9 @@ void Map::AddToActive(WorldObject* obj)
 
         if (!c->IsPet() && c->HasStaticDBSpawnData())
         {
-            float x, y, z;
+            float x, y;
             x = c->Spawn().X();
     y = c->Spawn().Y();
-    z = c->Spawn().Z();
             GridPair p = MaNGOS::ComputeGridPair(x, y);
             if (getNGrid(p.x_coord, p.y_coord))
             {
@@ -2220,10 +2218,9 @@ void Map::RemoveFromActive(WorldObject* obj)
 
         if (!c->IsPet() && c->HasStaticDBSpawnData())
         {
-            float x, y, z;
+            float x, y;
             x = c->Spawn().X();
     y = c->Spawn().Y();
-    z = c->Spawn().Z();
             GridPair p = MaNGOS::ComputeGridPair(x, y);
             if (getNGrid(p.x_coord, p.y_coord))
             {

@@ -137,7 +137,7 @@ void Unit::SetPowerByIndex(uint32 powerIndex, int32 val)
         val = 0;
     }
 
-    if (GetPowerByIndex(powerIndex) == val)
+    if (int32(GetPowerByIndex(powerIndex)) == val)
     {
         return;
     }

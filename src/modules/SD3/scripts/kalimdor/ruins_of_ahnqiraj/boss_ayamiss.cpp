@@ -211,13 +211,12 @@ struct boss_ayamiss : public CreatureScript
                 // The spell which summons these guys was removed in 2.0.1 -> therefore we need to summon them manually at a random location around the area
                 // The summon locations is guesswork - the real location is supposed to be handled by world triggers
                 // There should be about 24 swarmers per min
-                float fX, fY, fZ;
+                float fX, fY;
                 for (uint8 i = 0; i < 2; ++i)
                 {
                     const Geometry::Vector3 randSpot1 = RandomGroundPointNear(*m_creature, Geometry::Vector3(aAyamissSpawnLocs[2].m_fX, aAyamissSpawnLocs[2].m_fY, aAyamissSpawnLocs[2].m_fZ), 80.0f);
                     fX = randSpot1.x;
                     fY = randSpot1.y;
-                    fZ = randSpot1.z;
                     m_creature->SummonCreature(NPC_SWARMER, fX, fY, aAyamissSpawnLocs[2].m_fZ, 0.0f, TEMPSPAWN_CORPSE_DESPAWN, 0);
                 }
                 m_uiSummonSwarmerTimer = 5000;

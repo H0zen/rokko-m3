@@ -27,7 +27,7 @@
  * @file CreatureVendorTrainer.cpp
  * @brief Cohesion split of Creature.cpp -- creature vendor and trainer data accessors.
  *
- * Same Creature class; no behaviour change. CMake file(GLOB Object/*.cpp)
+ * Same Creature class; no behaviour change. CMake file(GLOB) over Object/
  * picks this file up automatically; Creature.h is unchanged.
  */
 

@@ -625,7 +625,7 @@ void WorldSession::SendSpiritResurrect()
     }
 }
 
-void WorldSession::HandleReturnToGraveyardOpcode(WorldPacket& recv_data)
+void WorldSession::HandleReturnToGraveyardOpcode(WorldPacket& /*recv_data*/)
 {
     Corpse* corpse = _player->GetCorpse();
     if (!corpse)

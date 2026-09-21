@@ -629,7 +629,7 @@ void WorldSession::HandleBattleFieldPortOpcode(WorldPacket& recv_data)
  *
  * @param recv_data The received packet data.
  */
-void WorldSession::HandleLeaveBattlefieldOpcode(WorldPacket& recv_data)
+void WorldSession::HandleLeaveBattlefieldOpcode(WorldPacket& /*recv_data*/)
 {
     DEBUG_LOG("WORLD: Received opcode CMSG_LEAVE_BATTLEFIELD");
 
@@ -944,14 +944,14 @@ void WorldSession::HandleReportPvPAFK(WorldPacket& recv_data)
     reportedPlayer->ReportedAfkBy(_player);
 }
 
-void WorldSession::HandleRequestRatedBGStatsOpcode(WorldPacket& recv_data)
+void WorldSession::HandleRequestRatedBGStatsOpcode(WorldPacket& /*recv_data*/)
 {
     // null packet
 
     GetPlayer()->SendRatedBGStats();
 }
 
-void WorldSession::HandleRequestPvPOptionsEnabledOpcode(WorldPacket& recv_data)
+void WorldSession::HandleRequestPvPOptionsEnabledOpcode(WorldPacket& /*recv_data*/)
 {
     // null packet
 
@@ -964,7 +964,7 @@ void WorldSession::HandleRequestPvPOptionsEnabledOpcode(WorldPacket& recv_data)
     SendPacket(&data);
 }
 
-void WorldSession::HandleRequestPvPRewardsOpcode(WorldPacket& recv_data)
+void WorldSession::HandleRequestPvPRewardsOpcode(WorldPacket& /*recv_data*/)
 {
     // null packet
 

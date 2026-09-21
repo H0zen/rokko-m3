@@ -323,6 +323,11 @@ namespace Harness
                     Log("phase A: the kobold walks %.0f yd straight (+x) to %.1f %.1f", kLine, tx, ty);
                 });
 
+                // The const locals in these capture lists look redundant to clang, which reports
+                // -Wunused-lambda-capture for them, but MSVC refuses to compile the lambda without
+                // them (C3493, "cannot be implicitly captured because no default capture mode has
+                // been specified") -- even for a constexpr one, as RedirectStreamTest's PER_THREAD
+                // shows. The captures stay and the clang warning is turned off in the build flags.
                 auto verdict = [this, st, secs, kPhaseAStart, kRadius]()
                 {
                     std::string routineBudget, reacquires, noOrbit, engages;

@@ -56,7 +56,7 @@
 
 /**
  * @file WorldObjectChat.cpp
- * @brief Cohesion split of Object.cpp -- WorldObject chat/messaging: monster say/yell/emote/whisper, localized text broadcast, message-to-set delivery and despawn/custom-anim packets. Same WorldObject class; no behaviour change. CMake file(GLOB Object/*.cpp) picks this file up automatically; Object.h is unchanged.
+ * @brief Cohesion split of Object.cpp -- WorldObject chat/messaging: monster say/yell/emote/whisper, localized text broadcast, message-to-set delivery and despawn/custom-anim packets. Same WorldObject class; no behaviour change. CMake file(GLOB) over Object/ picks this file up automatically; Object.h is unchanged.
  */
 
 /**
@@ -67,7 +67,7 @@
  *
  * Sends a monster say message to nearby players.
  */
-void WorldObject::MonsterSay(const char* text, uint32 language, Unit const* target) const
+void WorldObject::MonsterSay(const char* text, uint32 /*language*/, Unit const* target) const
 {
     WorldPacket data(SMSG_MESSAGECHAT, 200);
     ChatHandler::BuildChatPacket(data, CHAT_MSG_MONSTER_SAY, text, LANG_UNIVERSAL, CHAT_TAG_NONE, GetObjectGuid(), GetName(),
@@ -83,7 +83,7 @@ void WorldObject::MonsterSay(const char* text, uint32 language, Unit const* targ
  *
  * Sends a monster yell message to nearby players.
  */
-void WorldObject::MonsterYell(const char* text, uint32 language, Unit const* target) const
+void WorldObject::MonsterYell(const char* text, uint32 /*language*/, Unit const* target) const
 {
     WorldPacket data(SMSG_MESSAGECHAT, 200);
     ChatHandler::BuildChatPacket(data, CHAT_MSG_MONSTER_YELL, text, LANG_UNIVERSAL, CHAT_TAG_NONE, GetObjectGuid(), GetName(),

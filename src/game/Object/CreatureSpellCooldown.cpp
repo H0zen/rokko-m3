@@ -27,7 +27,7 @@
  * @file CreatureSpellCooldown.cpp
  * @brief Cohesion split of Creature.cpp -- creature spell-cooldown management.
  *
- * Same Creature class; no behaviour change. CMake file(GLOB Object/*.cpp)
+ * Same Creature class; no behaviour change. CMake file(GLOB) over Object/
  * picks this file up automatically; Creature.h is unchanged.
  */
 

@@ -93,6 +93,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         -Wno-c++11-narrowing
         -Wno-inconsistent-missing-override
         -Wno-switch
+        -Wno-unused-lambda-capture
     )
 endif()
 

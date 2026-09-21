@@ -257,7 +257,7 @@ struct boss_reliquary_of_souls : public CreatureScript
         {
         }
 
-        void ReceiveAIEvent(AIEventType eventType, Creature *pSender, Unit *pInvoker, uint32 /*data*/) override
+        void ReceiveAIEvent(AIEventType eventType, Creature *pSender, Unit */*pInvoker*/, uint32 /*data*/) override
         {
             if (eventType == AI_EVENT_CUSTOM_A && pSender->GetEntry() == NPC_ENSLAVED_SOUL)
             {

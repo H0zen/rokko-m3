@@ -447,7 +447,7 @@ void Aura::HandleAuraSafeFall(bool Apply, bool Real)
     }
 }
 
-void Aura::HandleModIncreaseSpellPowerPct(bool apply, bool Real)
+void Aura::HandleModIncreaseSpellPowerPct(bool /*apply*/, bool /*Real*/)
 {
     if (GetTarget()->GetTypeId() != TYPEID_PLAYER)
     {
@@ -457,7 +457,7 @@ void Aura::HandleModIncreaseSpellPowerPct(bool apply, bool Real)
     ((Player*)GetTarget())->UpdateSpellDamageAndHealingBonus();
 }
 
-void Aura::HandleOverrideSpellPowerByAp(bool apply, bool Real)
+void Aura::HandleOverrideSpellPowerByAp(bool /*apply*/, bool /*Real*/)
 {
     if (GetTarget()->GetTypeId() != TYPEID_PLAYER)
     {

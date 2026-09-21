@@ -614,7 +614,7 @@ struct is_sunwell_plateau : public InstanceScript
 
             // Misc
             uint8 m_uiDeceiversKilled;
-            uint32 m_uiSpectralRealmTimer;
+            [[maybe_unused]] uint32 m_uiSpectralRealmTimer;
             uint32 m_uiKalecRespawnTimer;
             uint32 m_uiMuruBerserkTimer;
             uint32 m_uiKiljaedenYellTimer;

@@ -450,7 +450,8 @@ bool ChatHandler::HandleNpcAIInfoCommand(char* /*args*/)
 
     std::string strScript = pTarget->GetScriptName();
     std::string strAI = pTarget->GetAIName();
-    char const* cstrAIClass = pTarget->AI() ? typeid(*pTarget->AI()).name() : " - ";
+    CreatureAI* pTargetAI = pTarget->AI();
+    char const* cstrAIClass = pTargetAI ? typeid(*pTargetAI).name() : " - ";
 
     PSendSysMessage(LANG_NPC_AI_NAMES,
                     strAI.empty() ? " - " : strAI.c_str(),
@@ -1374,7 +1375,8 @@ namespace
         return watched->GetMap()->GetAnyTypeCreature(guid);
     }
 
-    void PrintNpcWatchCreatureDetails(ChatHandler& handler, Creature* target)
+    // Kept for `.npc watch` diagnostics though nothing calls it at present.
+    [[maybe_unused]] void PrintNpcWatchCreatureDetails(ChatHandler& handler, Creature* target)
     {
         float x = target->Where().X();
         float y = target->Where().Y();

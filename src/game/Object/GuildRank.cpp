@@ -32,7 +32,7 @@
  * @file GuildRank.cpp
  * @brief Cohesion split of Guild.cpp -- guild rank create/delete/reorder and
  * rank name/rights management. Same Guild class; no behaviour change. CMake
- * file(GLOB Object/*.cpp) picks this file up automatically; Guild.h is unchanged.
+ * file(GLOB) over Object/ picks this file up automatically; Guild.h is unchanged.
  */
 
 /**
@@ -92,7 +92,7 @@ void Guild::DelRank(uint32 rankId)
         return;
     }
 
-    RankList::iterator itr = m_Ranks.erase(m_Ranks.begin() + rankId);
+    m_Ranks.erase(m_Ranks.begin() + rankId);
     // delete lowest guild_rank
     CharacterDatabase.BeginTransaction();
     CharacterDatabase.PExecute("DELETE FROM `guild_rank` WHERE `rid` ='%u' AND `guildid` ='%u'", rankId, m_Id);

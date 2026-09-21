@@ -142,7 +142,7 @@ void CurrencyMgr::ModifyCount(uint32 id, int32 count, bool modifyWeek, bool modi
         newWeekCount = weekCap;
         newTotalCount -= delta;
     }
-    initWeek &= weekCap != currency->MaxEarnablePerWeek;
+    initWeek &= uint32(weekCap) != currency->MaxEarnablePerWeek;
 
     if (newTotalCount != oldTotalCount)
     {

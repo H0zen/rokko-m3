@@ -47,19 +47,19 @@ struct is_blackrock_depths : public InstanceScript
 };
 
 instance_blackrock_depths::instance_blackrock_depths(Map* pMap) : ScriptedInstance(pMap),
+    m_bIsBarDoorOpen(false),
     m_uiBarAleCount(0),
-    m_uiBrokenKegs(0),
-    m_uiCofferDoorsOpened(0),
-    m_uiDwarfRound(0),
-    m_uiDwarfFightTimer(0),
     m_uiPatronEmoteTimer(2000),
+    m_uiBrokenKegs(0),
     m_uiPatrolTimer(0),
     m_uiStolenAles(0),
     m_uiDagranTimer(0),
+    m_uiCofferDoorsOpened(0),
+    m_uiDwarfFightTimer(0),
+    m_uiDwarfRound(0),
     m_fArenaCenterX(0.0f),
     m_fArenaCenterY(0.0f),
-    m_fArenaCenterZ(0.0f),
-    m_bIsBarDoorOpen(false)
+    m_fArenaCenterZ(0.0f)
 {
     Initialize();
 }
@@ -479,7 +479,7 @@ void instance_blackrock_depths::SetData(uint32 uiType, uint32 uiData)
             m_auiEncounter[6] = uiData;
             return;
         case TYPE_SIGNAL:
-            if (AreaTriggerEntry const *at = sAreaTriggerStore.LookupEntry(uiData))
+            if (sAreaTriggerStore.LookupEntry(uiData))
             {
                 m_uiArenaCenterAT = uiData;
             }
@@ -546,7 +546,7 @@ void instance_blackrock_depths::SetData(uint32 uiType, uint32 uiData)
         case TYPE_PLUGGER:
             if (uiData == SPECIAL)
             {
-                if (Creature* pPlugger = GetSingleCreatureFromStorage(NPC_PLUGGER_SPAZZRING))
+                if (GetSingleCreatureFromStorage(NPC_PLUGGER_SPAZZRING))
                 {
                     ++m_uiStolenAles;
                     if (m_uiStolenAles == 3)

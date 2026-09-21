@@ -27,7 +27,7 @@
  * @file PlayerItemValidation.cpp
  * @brief Cohesion split of PlayerItem.cpp -- Can/_CanStore inventory placement and use/ammo checks.
  *        Same `Player` class; no behaviour change. CMake
- *        `file(GLOB Object/*.cpp)` picks this file up automatically;
+ *        `file(GLOB) over Object/` picks this file up automatically;
  *        Player.h is unchanged.
  */
 
@@ -1688,7 +1688,7 @@ InventoryResult Player::CanUseAmmo(uint32 item) const
  *
  * @param item The ammo item entry to equip.
  */
-void Player::SetAmmo(uint32 item)
+void Player::SetAmmo(uint32 /*item*/)
 {
     //if (!item)
     //    return;

@@ -228,14 +228,14 @@ void WorldSession::HandleEjectPassenger(WorldPacket& recvPacket)
     }
 }
 
-void WorldSession::HandleRequestVehiclePrevSeat(WorldPacket& recv_data)
+void WorldSession::HandleRequestVehiclePrevSeat(WorldPacket& /*recv_data*/)
 {
     DEBUG_LOG("WORLD: Received CMSG_REQUEST_VEHICLE_PREV_SEAT");
 
         // ToDo
 }
 
-void WorldSession::HandleRequestVehicleNextSeat(WorldPacket& recv_data)
+void WorldSession::HandleRequestVehicleNextSeat(WorldPacket& /*recv_data*/)
 {
     DEBUG_LOG("WORLD: Received CMSG_REQUEST_VEHICLE_NEXT_SEAT");
 

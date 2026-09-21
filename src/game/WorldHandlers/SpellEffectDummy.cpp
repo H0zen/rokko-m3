@@ -1827,7 +1827,7 @@ void Spell::EffectDummy(SpellEffectEntry const* effect)
                     {
                         const SpellEntry* pSpell = sSpellStore.LookupEntry(spellCredit[i]);
 
-                        if (pSpell->GetEffectMiscValue(EFFECT_INDEX_0) == unitTarget->GetEntry())
+                        if (uint32(pSpell->GetEffectMiscValue(EFFECT_INDEX_0)) == unitTarget->GetEntry())
                         {
                             m_caster->CastSpell(m_caster, spellCredit[i], true);
                             break;

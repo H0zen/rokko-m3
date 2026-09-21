@@ -711,10 +711,9 @@ void CreatureLinkingHolder::SetFollowing(Creature* pWho, Creature* pWhom)
 // Function to check if a slave belongs to a boss by range-issue
 bool CreatureLinkingHolder::IsSlaveInRangeOfBoss(Creature const* pSlave, Creature const* pBoss, uint16 searchRange) const
 {
-    float sX, sY, sZ;
+    float sX, sY;
     sX = pSlave->Spawn().X();
     sY = pSlave->Spawn().Y();
-    sZ = pSlave->Spawn().Z();
     return IsSlaveInRangeOfBoss(pBoss, sX, sY, searchRange);
 }
 
@@ -735,10 +734,9 @@ bool CreatureLinkingHolder::IsSlaveInRangeOfBoss(Creature const* pBoss, float sX
     }
 
     // Do some calculations
-    float mX, mY, mZ, dx, dy;
+    float mX, mY, dx, dy;
     mX = pBoss->Spawn().X();
     mY = pBoss->Spawn().Y();
-    mZ = pBoss->Spawn().Z();
 
     dx = sX - mX;
     dy = sY - mY;
@@ -762,10 +760,9 @@ bool CreatureLinkingHolder::CanSpawn(Creature* pCreature) const
         return true;
     }
 
-    float sx, sy, sz;
+    float sx, sy;
     sx = pCreature->Spawn().X();
     sy = pCreature->Spawn().Y();
-    sz = pCreature->Spawn().Z();
     return CanSpawn(0, pCreature->GetMap(), pInfo, sx, sy);
 }
 

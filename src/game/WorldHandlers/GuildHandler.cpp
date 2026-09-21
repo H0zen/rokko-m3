@@ -118,7 +118,7 @@ void WorldSession::HandleGuildCreateOpcode(WorldPacket& recvPacket)
  * @param player The invited player.
  * @param alreadyInGuild Unused legacy flag for prior guild membership checks.
  */
-void WorldSession::SendGuildInvite(Player* player, bool alreadyInGuild /*= false*/)
+void WorldSession::SendGuildInvite(Player* player, bool /*alreadyInGuild*/ /*= false*/)
 {
     Guild* guild = sGuildMgr.GetGuildById(GetPlayer()->GetGuildId());
     if (!guild)
@@ -1350,7 +1350,7 @@ void WorldSession::HandleGuildBankDepositMoney(WorldPacket& recv_data)
     // logging money
     if (_player->GetSession()->GetSecurity() > SEC_PLAYER && sWorld.getConfig(CONFIG_BOOL_GM_LOG_TRADE))
     {
-        sLog.outCommand(_player->GetSession()->GetAccountId(), "GM %s (Account: %u) deposit money (Amount: %u) to guild bank (Guild ID %u)",
+        sLog.outCommand(_player->GetSession()->GetAccountId(), "GM %s (Account: %u) deposit money (Amount: " UI64FMTD ") to guild bank (Guild ID %u)",
                         _player->GetName(), _player->GetSession()->GetAccountId(), money, GuildId);
     }
 

@@ -171,10 +171,11 @@ void WorldSession::HandleSearchLfgJoinOpcode(WorldPacket& recv_data)
 {
     DEBUG_LOG("CMSG_LFG_SEARCH_JOIN");
 
-    uint32 temp, entry;
-    recv_data >> temp;
+    
+    // The request is consumed but not yet answered -- see the commented SendLfgSearchResults below.
+    recv_data.read_skip<uint32>();
 
-    entry = (temp & 0x00FFFFFF);
+    // entry = (temp & 0x00FFFFFF);
     // LfgType type = LfgType((temp >> 24) & 0x000000FF);
 
     // SendLfgSearchResults(type, entry);

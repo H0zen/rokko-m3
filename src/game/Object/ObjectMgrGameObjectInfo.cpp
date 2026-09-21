@@ -29,7 +29,7 @@
  *        type-specific field validation (the file-local SQLGameObjectLoader
  *        struct + CheckGO* helpers travel with LoadGameobjectInfo, their sole
  *        user). Same `ObjectMgr` class; no behaviour change. CMake
- *        `file(GLOB Object/*.cpp)` picks this file up automatically;
+ *        `file(GLOB) over Object/` picks this file up automatically;
  *        ObjectMgr.h is unchanged.
  */
 

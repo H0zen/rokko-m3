@@ -201,8 +201,6 @@ void WorldSession::HandleWhoOpcode(WorldPacket& recv_data)
     bool allowTwoSideWhoList = sWorld.getConfig(CONFIG_BOOL_ALLOW_TWO_SIDE_WHO_LIST);
     AccountTypes gmLevelInWhoList = (AccountTypes)sWorld.getConfig(CONFIG_UINT32_GM_LEVEL_IN_WHO_LIST);
 
-    uint32 matchcount = 0;
-    uint32 displaycount = 0;
 
     WorldPacket data(SMSG_WHO, 50);                         // guess size
     data << uint32(clientcount);                            // clientcount place holder, listed count
@@ -875,7 +873,7 @@ void WorldSession::HandleAreaTriggerOpcode(WorldPacket& recv_data)
         }
 
         // need find areatrigger to inner dungeon for landing point
-        if (at->target_mapId != corpseMapId)
+        if (int32(at->target_mapId) != corpseMapId)
         {
             if (AreaTrigger const* corpseAt = sObjectMgr.GetMapEntranceTrigger(corpseMapId))
             {

@@ -505,7 +505,7 @@ void PlayerMenu::SendQuestGiverStatus(uint32 questStatus, ObjectGuid npcGUID)
 }
 
 // Sends the quest giver quest details to the player
-void PlayerMenu::SendQuestGiverQuestDetails(Quest const* pQuest, ObjectGuid guid, bool ActivateAccept) const
+void PlayerMenu::SendQuestGiverQuestDetails(Quest const* pQuest, ObjectGuid guid, bool /*ActivateAccept*/) const
 {
     // Retrieve the quest title, details, and objectives
     std::string Title      = pQuest->GetTitle();

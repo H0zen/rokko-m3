@@ -155,6 +155,12 @@ class ByteBuffer
         {
         }
 
+        /// Declared because the copy constructor above is user-provided, which makes the
+        /// implicit copy assignment deprecated. Member-wise, so it matches that constructor.
+        /// Note this class still has no move operations -- the user-provided copy constructor
+        /// suppresses them -- which is why every packet is copied rather than moved.
+        ByteBuffer& operator=(const ByteBuffer&) = default;
+
         /**
          * @brief Clear the buffer and reset positions
          *

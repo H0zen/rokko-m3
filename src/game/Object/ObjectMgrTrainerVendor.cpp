@@ -27,7 +27,7 @@
  * @file ObjectMgrTrainerVendor.cpp
  * @brief Cohesion split of ObjectMgr.cpp -- trainer spell list and vendor
  *        item list loading (direct tables + templates). Same `ObjectMgr`
- *        class; no behaviour change. CMake `file(GLOB Object/*.cpp)` picks
+ *        class; no behaviour change. CMake `file(GLOB) over Object/` picks
  *        this file up automatically; ObjectMgr.h is unchanged.
  */
 

@@ -289,7 +289,7 @@ struct spell_shock_overload : public SpellScript
 {
     spell_shock_overload() : SpellScript("spell_shock_overload") {}
 
-    bool EffectDummy(Unit* /*pCaster*/, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* /*pCaster*/, uint32 /*uiSpellId*/, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         Creature* pCreatureTarget = pTarget->ToCreature();
         //case SPELL_SHOCK_OVERLOAD:
@@ -313,7 +313,7 @@ struct spell_thad_lightning_visual : public SpellScript
 {
     spell_thad_lightning_visual() : SpellScript("spell_thad_lightning_visual") {}
 
-    bool EffectDummy(Unit* /*pCaster*/, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* /*pCaster*/, uint32 /*uiSpellId*/, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         //case SPELL_THADIUS_LIGHTNING_VISUAL:
         Creature* pCreatureTarget = pTarget->ToCreature();

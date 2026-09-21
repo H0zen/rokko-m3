@@ -1283,7 +1283,7 @@ void Spell::GetSpellRangeAndRadius(SpellEffectEntry const* spellEffect, float& r
 {
     if (uint32 radiusIndex = spellEffect->GetRadiusIndex())
     {
-        radius = GetSpellRadius(sSpellRadiusStore.LookupEntry(spellEffect->GetRadiusIndex()));
+        radius = GetSpellRadius(sSpellRadiusStore.LookupEntry(radiusIndex));
     }
     else
     {

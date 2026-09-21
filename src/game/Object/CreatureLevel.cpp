@@ -27,7 +27,7 @@
  * @file CreatureLevel.cpp
  * @brief Cohesion split of Creature.cpp -- creature level selection and elite-rank stat modifiers.
  *
- * Same Creature class; no behaviour change. CMake file(GLOB Object/*.cpp)
+ * Same Creature class; no behaviour change. CMake file(GLOB) over Object/
  * picks this file up automatically; Creature.h is unchanged.
  */
 
@@ -119,7 +119,7 @@ void Creature::SelectLevel(uint32 forcedLevel /*= USE_DEFAULT_DATABASE_LEVEL*/)
     SetModifierValue(UNIT_MOD_HEALTH, BASE_VALUE, float(health));
 
     // all power types
-    for (int i = POWER_MANA; i <= POWER_RUNIC_POWER; ++i)
+    for (int i = POWER_MANA; i <= int(POWER_RUNIC_POWER); ++i)
     {
         uint32 maxValue = 0;
 
@@ -242,7 +242,7 @@ void Creature::SelectLevel(const CreatureInfo* cinfo, float percentHealth /*= 10
     SetModifierValue(UNIT_MOD_HEALTH, BASE_VALUE, float(health));
 
     // all power types
-    for (int i = POWER_MANA; i <= POWER_RUNIC_POWER; ++i)
+    for (int i = POWER_MANA; i <= int(POWER_RUNIC_POWER); ++i)
     {
         uint32 maxValue = 0;
 

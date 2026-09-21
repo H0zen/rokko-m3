@@ -116,7 +116,7 @@ struct is_ruins_of_ahnqiraj : public InstanceScript
                 }
             }
 
-            void OnPlayerEnter(Player* pPlayer) override
+            void OnPlayerEnter(Player* /*pPlayer*/) override
             {
                 // Spawn andorov if necessary
                 if (m_auiEncounter[TYPE_KURINNAXX] == DONE)

@@ -104,7 +104,7 @@ namespace proto
         const size_t D_PORT_LEN    = 2;
         const size_t D_AUTH_LEN    = 73;
         const size_t D_PI_LEN      = 142;
-        const size_t D_TAG_LEN     = 20;
+        [[maybe_unused]] const size_t D_TAG_LEN     = 20;
 
         const uint8 CONTROL_VALUE = 0x2A;
 

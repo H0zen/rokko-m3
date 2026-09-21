@@ -42,7 +42,7 @@
  * @brief Cohesion split of Guild.cpp -- guild bank storage: tab/content
  * display, item store/withdraw/swap, money and rights tracking, and bank
  * event logging. Same Guild class; no behaviour change. CMake
- * file(GLOB Object/*.cpp) picks this file up automatically; Guild.h is unchanged.
+ * file(GLOB) over Object/ picks this file up automatically; Guild.h is unchanged.
  */
 
 // *************************************************

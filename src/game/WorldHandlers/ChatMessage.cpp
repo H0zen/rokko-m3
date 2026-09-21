@@ -27,7 +27,7 @@
  * @file ChatMessage.cpp
  * @brief Cohesion split of Chat.cpp -- system-message output helpers and chat-packet builder.
  *        Same ChatHandler class; no behaviour change. CMake
- *        file(GLOB WorldHandlers/*.cpp) picks this file up automatically;
+ *        file(GLOB) over WorldHandlers/ picks this file up automatically;
  *        Chat.h is unchanged.
  */
 
@@ -86,7 +86,6 @@ void ChatHandler::SendGlobalSysMessage(const char* str, AccountTypes minSec)
     // need copy to prevent corruption by strtok call in LineFromMessage original string
     char* buf = mangos_strdup(str);
     char* pos = buf;
-    ObjectGuid senderGuid = m_session ? m_session->GetPlayer()->GetObjectGuid() : ObjectGuid();
 
     while (char* line = LineFromMessage(pos))
     {
@@ -137,7 +136,7 @@ void ChatHandler::PSendSysMessage(int32 entry, ...)
  */
 void  ChatHandler::PSendSysMessageMultiline(int32 entry, ...)
 {
-    uint32 linecount = 0;
+    
 
     const char* format = GetMangosString(entry);
     va_list ap;
@@ -162,7 +161,7 @@ void  ChatHandler::PSendSysMessageMultiline(int32 entry, ...)
         {
             /* Send the player a system message containing the substring from pos to nextpos - pos */
             PSendSysMessage("%s", mangosString.substr(pos, nextpos - pos).c_str());
-            ++linecount;
+            
         }
         pos = nextpos + 2; // +2 because there are two @ as delimiter
     }

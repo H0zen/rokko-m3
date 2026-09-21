@@ -27,7 +27,7 @@
  * @file CreatureMovement.cpp
  * @brief Cohesion split of Creature.cpp -- creature movement-flag state (walk/swim/fly/hover/levitate/feather-fall/root/water-walk).
  *
- * Same Creature class; no behaviour change. CMake file(GLOB Object/*.cpp)
+ * Same Creature class; no behaviour change. CMake file(GLOB) over Object/
  * picks this file up automatically; Creature.h is unchanged.
  */
 

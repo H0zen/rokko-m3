@@ -1482,9 +1482,10 @@ enum OpcodesList
     SMSG_START_TIMER                                      = 0x59A5, // 4.3.4 15595
 };
 
-// Don't forget to change this value and add opcode name to OpcodeTable.cpp when you
-// add a new opcode!
-#define NUM_MSG_TYPES 0xFFFF
+// NUM_MSG_TYPES used to be defined here as well as in OpcodeTable.h, which includes
+// this file -- an identical redefinition, so it was legal and silent, but it put the
+// size of game's dispatch table in a proto header that never used it. It lives on the
+// game side now, next to the array it bounds. See WorldGateway::Deliver.
 
 #endif
 /// @}

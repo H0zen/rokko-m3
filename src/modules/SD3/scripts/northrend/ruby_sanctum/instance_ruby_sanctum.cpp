@@ -67,7 +67,7 @@ struct is_ruby_sanctum : public InstanceScript
                 return false;
             }
 
-            void OnPlayerEnter(Player* pPlayer) override
+            void OnPlayerEnter(Player* /*pPlayer*/) override
             {
                 // Return if Halion already dead, or Zarithrian alive
                 if (m_auiEncounter[TYPE_ZARITHRIAN] != DONE || m_auiEncounter[TYPE_HALION] == DONE)

@@ -1193,10 +1193,6 @@ uint32 Unit::DealDamage(Unit* pVictim, uint32 damage, CleanDamage const* cleanDa
             ((Creature*)this)->AI()->KilledUnit(pVictim);
         }
 
-        if (Creature* killer = ToCreature())
-        {
-        }
-
         // Call AI OwnerKilledUnit (for any current summoned minipet/guardian/protector)
         PetOwnerKilledUnit(pVictim);
 
@@ -2342,7 +2338,7 @@ void Unit::SetCurrentCastedSpell(Spell* pSpell)
  */
 void Unit::InterruptSpell(CurrentSpellTypes spellType, bool withDelayed, bool sendAutoRepeatCancelToClient)
 {
-    MANGOS_ASSERT(spellType < CURRENT_MAX_SPELL);
+    MANGOS_ASSERT(uint32(spellType) < CURRENT_MAX_SPELL);
 
     if (m_currentSpells[spellType] && (withDelayed || m_currentSpells[spellType]->getState() != SPELL_STATE_DELAYED))
     {
@@ -3677,7 +3673,7 @@ Unit* Unit::_GetTotem(TotemSlot slot) const
  */
 Totem* Unit::GetTotem(TotemSlot slot) const
 {
-    if (slot >= MAX_TOTEM_SLOT || !IsInWorld() || !m_TotemSlot[slot])
+    if (uint32(slot) >= MAX_TOTEM_SLOT || !IsInWorld() || !m_TotemSlot[slot])
     {
         return NULL;
     }
@@ -4592,7 +4588,7 @@ int32 Unit::CalculateSpellDamage(Unit const* target, SpellEntry const* spellProt
         }
 
         uint32 gtSpellScalingId = level - 1;
-        if (scalingEntry->Class == -1)
+        if (int32(scalingEntry->Class) == -1)
         {
             gtSpellScalingId += (MAX_CLASSES - 1) * GT_MAX_LEVEL;
         }

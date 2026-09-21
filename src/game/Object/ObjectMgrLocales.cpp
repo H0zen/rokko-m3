@@ -27,7 +27,7 @@
  * @file ObjectMgrLocales.cpp
  * @brief Cohesion split of ObjectMgr.cpp -- localized-string table loaders (creature / gossip-menu-item / point-of-interest / page-text / gossip-text / gameobject locales).
  *        Same `ObjectMgr` class; no behaviour change. CMake
- *        `file(GLOB Object/*.cpp)` picks this file up automatically;
+ *        `file(GLOB) over Object/` picks this file up automatically;
  *        ObjectMgr.h is unchanged.
  */
 

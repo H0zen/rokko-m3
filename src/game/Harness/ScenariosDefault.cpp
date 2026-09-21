@@ -51,7 +51,7 @@ namespace Harness
         const Pt P0     = { -3122.6f, -261.3f, 46.0f };   // node 1: the template square's near corner
         const Pt P0_N2  = { -3152.6f, -261.3f, 46.0f };   // node 2
         const Pt P0_FAR = { -3152.6f, -231.3f, 46.0f };   // node 3: the square's far (diagonal) corner
-        const Pt P0_N4  = { -3122.6f, -231.3f, 46.0f };   // node 4
+        [[maybe_unused]] const Pt P0_N4  = { -3122.6f, -231.3f, 46.0f };   // node 4
 
         /// The nodes a sample recorded, comma-joined, as ScenariosPatrol.cpp's JoinNodes does
         /// (copied here rather than shared: each family's copy stays a one-line function).

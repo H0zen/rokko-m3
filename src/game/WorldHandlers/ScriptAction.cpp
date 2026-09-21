@@ -28,7 +28,7 @@
  * @brief Cohesion split of ScriptMgr.cpp -- the ScriptAction runtime DB-script-command executor (HandleScriptStep et al.).
  *
  * Same ScriptMgr/ScriptAction classes; no behaviour change. CMake
- * file(GLOB WorldHandlers/*.cpp) picks this file up automatically;
+ * file(GLOB) over WorldHandlers/ picks this file up automatically;
  * ScriptMgr.h is unchanged.
  */
 
@@ -865,12 +865,11 @@ bool ScriptAction::HandleScriptStep()
                     }
                     else
                     {
-                        float respX, respY, respZ, respO, wander_distance;
+                        float respX, respY, respZ, wander_distance;
                         Creature* pRespawnOwner = (Creature*)pSource;
                         respX = pRespawnOwner->Spawn().X();
                         respY = pRespawnOwner->Spawn().Y();
                         respZ = pRespawnOwner->Spawn().Z();
-                        respO = pRespawnOwner->Spawn().Facing();
                         wander_distance = pRespawnOwner->GetRespawnRadius();
                         wander_distance = m_script->movement.wanderDistance ? m_script->movement.wanderDistance : wander_distance;
                         ((Creature*)pSource)->GetMotionMaster()->MoveRandomAroundPoint(respX, respY, respZ, wander_distance);
@@ -1324,7 +1323,6 @@ bool ScriptAction::HandleScriptStep()
         case SCRIPT_COMMAND_DESPAWN_GO:                     // 40
         {
 
-            uint32 goEntry;
             GameObject* pGo;
             if (!m_script->despawnGo.goGuid)
             {

@@ -78,8 +78,8 @@ struct is_naxxramas : public InstanceScript
                 m_uiTauntTimer(0),
                 m_uiHorsemenAchievTimer(0),
                 m_uiHorseMenKilled(0),
-                m_dialogueHelper(aNaxxDialogue),
-                m_uiLivingPoisonTimer(5000)
+                m_uiLivingPoisonTimer(5000),
+                m_dialogueHelper(aNaxxDialogue)
             {
                 Initialize();
             }
@@ -371,7 +371,7 @@ struct is_naxxramas : public InstanceScript
                 m_mGoEntryGuidStore[pGo->GetEntry()] = pGo->GetObjectGuid();
             }
 
-            void OnPlayerDeath(Player* pPlayer) override
+            void OnPlayerDeath(Player* /*pPlayer*/) override
             {
                 if (IsEncounterInProgress())
                 {
@@ -709,7 +709,7 @@ struct is_naxxramas : public InstanceScript
                 return 0;
             }
 
-            bool CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player const* pSource, Unit const* pTarget, uint32 uiMiscValue1 /* = 0*/) const override
+            bool CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player const* /*pSource*/, Unit const* /*pTarget*/, uint32 /*uiMiscValue1*/ /* = 0*/) const override
             {
                 switch (uiCriteriaId)
                 {
@@ -1117,9 +1117,9 @@ struct is_naxxramas : public InstanceScript
             GuidList m_alHeiganTrapGuids[MAX_HEIGAN_TRAP_AREAS];
             ObjectGuid m_creatureGUID;
 
-            float m_fChamberCenterX;
-            float m_fChamberCenterY;
-            float m_fChamberCenterZ;
+            [[maybe_unused]] float m_fChamberCenterX;
+            [[maybe_unused]] float m_fChamberCenterY;
+            [[maybe_unused]] float m_fChamberCenterZ;
 
             uint32 m_uiSapphSpawnTimer;
             uint32 m_uiTauntTimer;

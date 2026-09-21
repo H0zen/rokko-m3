@@ -62,7 +62,7 @@ static const float fDefenseSystemLoc[4] = { 1888.146f, 803.382f, 58.604f, 3.072f
 static const float fGuardExitLoc[3] = { 1806.955f, 803.851f, 44.36f };
 
 static const uint32 aRandomPortalNpcs[5] = { NPC_AZURE_INVADER, NPC_MAGE_HUNTER, NPC_AZURE_SPELLBREAKER, NPC_AZURE_BINDER, NPC_AZURE_MAGE_SLAYER };
-static const uint32 aRandomIntroNpcs[4] = { NPC_AZURE_BINDER_INTRO, NPC_AZURE_INVADER_INTRO, NPC_AZURE_SPELLBREAKER_INTRO, NPC_AZURE_MAGE_SLAYER_INTRO };
+[[maybe_unused]] static const uint32 aRandomIntroNpcs[4] = { NPC_AZURE_BINDER_INTRO, NPC_AZURE_INVADER_INTRO, NPC_AZURE_SPELLBREAKER_INTRO, NPC_AZURE_MAGE_SLAYER_INTRO };
 
 static const int32 aSealWeakYell[3] = { SAY_SEAL_75, SAY_SEAL_50, SAY_SEAL_5 };
 
@@ -237,7 +237,7 @@ struct is_violet_hold : public InstanceScript
                 // else, kill (and despawn?) certain trash mobs. Also boss affected, but not killed.
             }
 
-            void OnPlayerEnter(Player* pPlayer) override
+            void OnPlayerEnter(Player* /*pPlayer*/) override
             {
                 UpdateWorldState(m_auiEncounter[TYPE_MAIN] == IN_PROGRESS ? true : false);
 
@@ -608,7 +608,7 @@ struct is_violet_hold : public InstanceScript
                 }
             }
 
-            bool CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player const* pSource, Unit const* pTarget, uint32 uiMiscValue1 /* = 0*/) const override
+            bool CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player const* /*pSource*/, Unit const* /*pTarget*/, uint32 /*uiMiscValue1*/ /* = 0*/) const override
             {
                 switch (uiCriteriaId)
                 {

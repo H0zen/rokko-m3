@@ -759,7 +759,7 @@ void World::setConfig(eConfigUInt64Values index, char const* fieldname, uint64 d
     setConfig(index, sConfig.GetInt64Default(fieldname, defvalue));
     if (int64(getConfig(index)) < 0)
     {
-        sLog.outError("%s (%i) can't be negative. Using %u instead.", fieldname, int64(getConfig(index)), defvalue);
+        sLog.outError("%s (" SI64FMTD ") can't be negative. Using " UI64FMTD " instead.", fieldname, int64(getConfig(index)), defvalue);
         setConfig(index, defvalue);
     }
 }
@@ -844,7 +844,7 @@ void World::setConfigMin(eConfigUInt64Values index, char const* fieldname, uint6
     setConfig(index, fieldname, defvalue);
     if (getConfig(index) < minvalue)
     {
-        sLog.outError("%s (%u) must be >= %u. Using %u instead.", fieldname, getConfig(index), minvalue, minvalue);
+        sLog.outError("%s (" UI64FMTD ") must be >= " UI64FMTD ". Using " UI64FMTD " instead.", fieldname, getConfig(index), minvalue, minvalue);
         setConfig(index, minvalue);
     }
 }
@@ -854,7 +854,7 @@ void World::setConfigMin(eConfigInt64Values index, char const* fieldname, int64 
     setConfig(index, fieldname, defvalue);
     if (getConfig(index) < minvalue)
     {
-        sLog.outError("%s (%i) must be >= %i. Using %i instead.", fieldname, getConfig(index), minvalue, minvalue);
+        sLog.outError("%s (" SI64FMTD ") must be >= " SI64FMTD ". Using " SI64FMTD " instead.", fieldname, getConfig(index), minvalue, minvalue);
         setConfig(index, minvalue);
     }
 }
@@ -918,12 +918,12 @@ void World::setConfigMinMax(eConfigUInt64Values index, char const* fieldname, ui
     setConfig(index, fieldname, defvalue);
     if (getConfig(index) < minvalue)
     {
-        sLog.outError("%s (%u) must be in range %u...%u. Using %u instead.", fieldname, getConfig(index), minvalue, maxvalue, minvalue);
+        sLog.outError("%s (" UI64FMTD ") must be in range " UI64FMTD "..." UI64FMTD ". Using " UI64FMTD " instead.", fieldname, getConfig(index), minvalue, maxvalue, minvalue);
         setConfig(index, minvalue);
     }
     else if (getConfig(index) > maxvalue)
     {
-        sLog.outError("%s (%u) must be in range %u...%u. Using %u instead.", fieldname, getConfig(index), minvalue, maxvalue, maxvalue);
+        sLog.outError("%s (" UI64FMTD ") must be in range " UI64FMTD "..." UI64FMTD ". Using " UI64FMTD " instead.", fieldname, getConfig(index), minvalue, maxvalue, maxvalue);
         setConfig(index, maxvalue);
     }
 }
@@ -933,12 +933,12 @@ void World::setConfigMinMax(eConfigInt64Values index, char const* fieldname, int
     setConfig(index, fieldname, defvalue);
     if (getConfig(index) < minvalue)
     {
-        sLog.outError("%s (%i) must be in range %i...%i. Using %i instead.", fieldname, getConfig(index), minvalue, maxvalue, minvalue);
+        sLog.outError("%s (" SI64FMTD ") must be in range " SI64FMTD "..." SI64FMTD ". Using " SI64FMTD " instead.", fieldname, getConfig(index), minvalue, maxvalue, minvalue);
         setConfig(index, minvalue);
     }
     else if (getConfig(index) > maxvalue)
     {
-        sLog.outError("%s (%i) must be in range %i...%i. Using %i instead.", fieldname, getConfig(index), minvalue, maxvalue, maxvalue);
+        sLog.outError("%s (" SI64FMTD ") must be in range " SI64FMTD "..." SI64FMTD ". Using " SI64FMTD " instead.", fieldname, getConfig(index), minvalue, maxvalue, maxvalue);
         setConfig(index, maxvalue);
     }
 }

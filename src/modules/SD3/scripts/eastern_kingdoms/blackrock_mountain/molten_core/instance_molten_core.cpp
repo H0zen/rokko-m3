@@ -198,7 +198,7 @@ struct is_molten_core : public InstanceScript
                 }
             }
 
-            void OnPlayerEnter(Player* pPlayer) override
+            void OnPlayerEnter(Player* /*pPlayer*/) override
             {
                 // Summon Majordomo if can
                 DoSpawnMajordomoIfCan(true);

@@ -27,7 +27,7 @@
  * @file ChatMessageValidation.cpp
  * @brief Cohesion split of Chat.cpp -- chat shift-link validation (isValidChatMessage).
  *        Same ChatHandler class; no behaviour change. CMake
- *        file(GLOB WorldHandlers/*.cpp) picks this file up automatically;
+ *        file(GLOB) over WorldHandlers/ picks this file up automatically;
  *        Chat.h is unchanged.
  */
 

@@ -165,9 +165,9 @@ uint32 Unit::SpellDamageBonusDone(Unit* pVictim, SpellEntry const* spellProto, u
     {
         SpellEquippedItemsEntry const* spellEquip = (*i)->GetSpellProto()->GetSpellEquippedItems();
         if (((*i)->GetModifier()->m_miscvalue & GetSpellSchoolMask(spellProto)) &&
-            (!spellEquip || spellEquip->EquippedItemClass == -1 &&
+            (!spellEquip || (spellEquip->EquippedItemClass == -1 &&
             // -1 == any item class (not wand then)
-            spellEquip->EquippedItemInvTypes == 0))
+            spellEquip->EquippedItemInvTypes == 0)))
             // 0 == any inventory type (not wand then)
         {
             DoneTotalMod *= ((*i)->GetModifier()->m_amount + 100.0f) / 100.0f;
@@ -681,8 +681,8 @@ int32 Unit::SpellBaseDamageBonusDone(SpellSchoolMask schoolMask)
     {
         SpellEquippedItemsEntry const* spellEquip = (*i)->GetSpellProto()->GetSpellEquippedItems();
         if (((*i)->GetModifier()->m_miscvalue & schoolMask) != 0 &&
-            (!spellEquip || spellEquip->EquippedItemClass == -1 &&      // -1 == any item class (not wand then)
-            spellEquip->EquippedItemInvTypes == 0))            //  0 == any inventory type (not wand then)
+            (!spellEquip || (spellEquip->EquippedItemClass == -1 &&      // -1 == any item class (not wand then)
+            spellEquip->EquippedItemInvTypes == 0)))            //  0 == any inventory type (not wand then)
                 DoneAdvertisedBenefit += (*i)->GetModifier()->m_amount;
     }
 
@@ -1057,7 +1057,7 @@ uint32 Unit::SpellCriticalDamageBonus(SpellEntry const* spellProto, uint32 damag
  * @param pVictim The healed victim, if any.
  * @return The healing after critical bonuses.
  */
-uint32 Unit::SpellCriticalHealingBonus(SpellEntry const* spellProto, uint32 damage, Unit* pVictim)
+uint32 Unit::SpellCriticalHealingBonus(SpellEntry const* /*spellProto*/, uint32 damage, Unit* /*pVictim*/)
 {
     // Calculate critical bonus
     int32 crit_bonus = damage;
@@ -1419,7 +1419,7 @@ bool Unit::IsImmunedToDamage(SpellSchoolMask shoolMask)
  * @param castOnSelf Unused self-cast flag placeholder.
  * @return True if the spell is immune; otherwise, false.
  */
-bool Unit::IsImmuneToSpell(SpellEntry const* spellInfo, bool castOnSelf)
+bool Unit::IsImmuneToSpell(SpellEntry const* spellInfo, bool /*castOnSelf*/)
 {
     if (!spellInfo)
     {
@@ -1476,7 +1476,7 @@ bool Unit::IsImmuneToSpell(SpellEntry const* spellInfo, bool castOnSelf)
  * @param castOnSelf Unused self-cast flag placeholder.
  * @return True if the effect is immune; otherwise, false.
  */
-bool Unit::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const
+bool Unit::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool /*castOnSelf*/) const
 {
     // If m_immuneToEffect type contain this effect type, IMMUNE effect.
     SpellEffectEntry const* spellEffect = spellInfo->GetSpellEffect(index);
@@ -1628,7 +1628,7 @@ uint32 Unit::MeleeDamageBonusDone(Unit* pVictim, uint32 pdamage, WeaponAttackTyp
         for (AuraList::const_iterator i = mModAutoAttackDamageAuras.begin(); i != mModAutoAttackDamageAuras.end(); ++i)
         {
             if ((*i)->GetSpellProto()->GetEquippedItemClass() == -1 ||                  // general, weapon independent
-                pWeapon && pWeapon->IsFitToSpellRequirements((*i)->GetSpellProto()))    // OR used weapon fits aura requirements
+                (pWeapon && pWeapon->IsFitToSpellRequirements((*i)->GetSpellProto())))    // OR used weapon fits aura requirements
             {
                 DonePercent *= ((*i)->GetModifier()->m_amount + 100.0f) / 100.0f;
             }

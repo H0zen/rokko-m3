@@ -143,7 +143,7 @@ void WorldSession::SendUpdateTrade(bool trader_state /*= true*/)
 
     uint8 itemCount = 0;
     for (uint8 i = 0; i < TRADE_SLOT_COUNT; ++i)
-        if (Item* item = view_trade->GetItem(TradeSlots(i)))
+        if (view_trade->GetItem(TradeSlots(i)))
         {
             ++itemCount;
         }

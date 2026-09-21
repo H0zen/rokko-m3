@@ -455,7 +455,7 @@ void BattleGroundAB::_SendNodeUpdate(uint8 node)
  * @param node The node index being occupied.
  * @param team The team that now controls the node.
  */
-void BattleGroundAB::_NodeOccupied(uint8 node, Team team)
+void BattleGroundAB::_NodeOccupied(uint8 /*node*/, Team team)
 {
     uint8 capturedNodes = 0;
     for (uint8 i = 0; i < BG_AB_NODES_MAX; ++i)

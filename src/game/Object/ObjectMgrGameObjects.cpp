@@ -27,7 +27,7 @@
  * @file ObjectMgrGameObjects.cpp
  * @brief Cohesion split of ObjectMgr.cpp -- gameobject spawn loading, addon
  *        data, and grid placement. Same `ObjectMgr` class; no behaviour
- *        change. CMake `file(GLOB Object/*.cpp)` picks this file up
+ *        change. CMake `file(GLOB) over Object/` picks this file up
  *        automatically; ObjectMgr.h is unchanged.
  */
 
@@ -49,7 +49,7 @@
  */
 void ObjectMgr::LoadGameObjects()
 {
-    uint32 count = 0;
+    
 
     //                                                              0                    1                  2                   3
     QueryResult* result = WorldDatabase.Query("SELECT `gameobject`.`guid`, `gameobject`.`id`, `gameobject`.`map`, `gameobject`.`position_x`, "
@@ -218,7 +218,7 @@ void ObjectMgr::LoadGameObjects()
         //sTerrainMgr.LoadTerrain(data.mapid)->GetZoneAndAreaId(zoneId, areaId, data.posX, data.posY, data.posZ);
         //sLog.outErrorDb("UPDATE gameobject SET zone_id=%u, area_id=%u WHERE guid=%u;", zoneId, areaId, guid);
 
-        ++count;
+        
     }
     while (result->NextRow());
 

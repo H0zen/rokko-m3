@@ -56,6 +56,7 @@
 #include <string>
 #include <set>
 #include <memory>
+#include <exception>
 #include "Database/DatabaseEnv.h"
 #include "Log.h"
 #include "OpcodeTable.h"
@@ -454,9 +455,25 @@ bool WorldSession::Update(PacketFilter& updater)
 {
     ///- Retrieve packets from the receive queue and call the appropriate handlers
     /// not process packets if socket already closed
+
+    // A budget, because this loop used to run until the mailbox was empty. One session
+    // could therefore hold whichever thread was draining it -- a map worker, and through
+    // MapUpdater::wait() the world thread behind it -- for as long as a client kept
+    // sending. Whatever is left stays queued and is drained next tick, which is the
+    // ordinary case for a client catching up after a hitch. At 20 Hz and two drains a
+    // tick (world phase, then map phase) this is still far more throughput than any real
+    // 4.3.4 client asks for.
+    enum { kPacketsPerDrain = 64 };
+    uint32 budget = kPacketsPerDrain;
+
     WorldPacket* packet = NULL;
-    while (m_Socket && !m_Socket->IsClosed() && m_mailbox->Next(packet, updater))
+    while (budget-- && m_Socket && !m_Socket->IsClosed() && m_mailbox->Next(packet, updater))
     {
+        // Owned from the moment it leaves the mailbox. The `delete packet` that used to
+        // sit at the bottom of this body only ran when the body returned normally, so
+        // every exception below leaked the packet on its way past.
+        std::unique_ptr<WorldPacket> held(packet);
+
         /*#if 1
         sLog.outError( "MOEP: %s (0x%.4X)",
                         LookupOpcodeName(packet->GetOpcode()),
@@ -473,7 +490,7 @@ bool WorldSession::Update(PacketFilter& updater)
         // hand a queued client a second stream and hold a redirect slot for it.
         if (packet->GetOpcode() == CMSG_PLAYER_LOGIN && !m_inQueue && !HasSecondStream())
         {
-            BeginSecondStream(std::unique_ptr<WorldPacket>(packet));
+            BeginSecondStream(std::move(held));
             continue;
         }
 
@@ -582,8 +599,45 @@ bool WorldSession::Update(PacketFilter& updater)
                 KickPlayer();
             }
         }
+        // And everything else. This used to escape: ByteBufferException was the only
+        // thing caught here, and there is no handler anywhere between an opcode handler
+        // and the end of the world thread -- not in UpdateSessions, not in World::Update,
+        // not in Master::WorldLoop -- so a std::bad_alloc or a stray .at() was
+        // std::terminate, with no SaveAll and no committed transaction, costing every
+        // online player everything since the last periodic save.
+        //
+        // MapUpdater::workerLoop learned this for the map half of the same tick and loses
+        // one map's update. The session half can be narrower still: one session ends.
+        //
+        // The session ends rather than continuing because an escaping exception means a
+        // handler stopped halfway and left this player's state unknown; reconnecting
+        // reloads him from the database, which is the last state anyone can vouch for.
+        catch (std::exception& e)
+        {
+            sLog.outError("WorldSession::Update: opcode %s (0x%.4X) threw (%s) for account %u from %s; session dropped",
+                          LookupOpcodeName(packet->GetOpcode()), packet->GetOpcode(),
+                          e.what(), GetAccountId(), GetRemoteAddress().c_str());
+            ++m_badPackets;
+            KickPlayer();
+        }
+        catch (...)
+        {
+            sLog.outError("WorldSession::Update: opcode %s (0x%.4X) threw a non-standard exception for account %u from %s; session dropped",
+                          LookupOpcodeName(packet->GetOpcode()), packet->GetOpcode(),
+                          GetAccountId(), GetRemoteAddress().c_str());
+            ++m_badPackets;
+            KickPlayer();
+        }
+    }
 
-        delete packet;
+    // A client that ran the mailbox over is ended here, on the thread that is allowed to
+    // end sessions, rather than by the network thread that noticed it.
+    if (m_mailbox->Overflowed())
+    {
+        sLog.outError("WorldSession::Update: account %u from %s queued more than %u packets; session dropped",
+                      GetAccountId(), GetRemoteAddress().c_str(),
+                      uint32(SessionMailbox::kMaxQueuedPackets));
+        KickPlayer();
     }
 
     UpdateSecondStream();

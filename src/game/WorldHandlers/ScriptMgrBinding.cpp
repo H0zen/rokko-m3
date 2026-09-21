@@ -28,7 +28,7 @@
  * @brief Cohesion split of ScriptMgr.cpp -- script-name/binding registry and library-version query.
  *
  * Same ScriptMgr/ScriptAction classes; no behaviour change. CMake
- * file(GLOB WorldHandlers/*.cpp) picks this file up automatically;
+ * file(GLOB) over WorldHandlers/ picks this file up automatically;
  * ScriptMgr.h is unchanged.
  */
 

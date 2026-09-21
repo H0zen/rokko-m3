@@ -28,7 +28,7 @@
  * @brief Cohesion split of ScriptMgr.cpp -- database-script table loaders (LoadScripts/LoadDbScripts/strings + spell-start gating).
  *
  * Same ScriptMgr/ScriptAction classes; no behaviour change. CMake
- * file(GLOB WorldHandlers/*.cpp) picks this file up automatically;
+ * file(GLOB) over WorldHandlers/ picks this file up automatically;
  * ScriptMgr.h is unchanged.
  */
 
@@ -657,7 +657,7 @@ void ScriptMgr::LoadScripts(DBScriptType type)
                                     continue;
                                 }
 
-                                if (spellEffect->Effect == SPELL_EFFECT_SEND_TAXI && spellEffect->EffectMiscValue_0 == tmp.sendTaxiPath.taxiPathId)
+                                if (spellEffect->Effect == SPELL_EFFECT_SEND_TAXI && uint32(spellEffect->EffectMiscValue_0) == tmp.sendTaxiPath.taxiPathId)
                                 {
                                     taxiSpell = i;
                                     break;

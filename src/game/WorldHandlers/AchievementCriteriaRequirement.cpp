@@ -25,7 +25,7 @@
  * @file AchievementCriteriaRequirement.cpp
  * @brief Cohesion split of AchievementMgr.cpp -- AchievementCriteriaRequirement[Set] validation (IsValid + Meets criterion gating).
  *
- * Same classes; no behaviour change. CMake file(GLOB WorldHandlers/*.cpp)
+ * Same classes; no behaviour change. CMake file(GLOB) over WorldHandlers/
  * picks this file up automatically; AchievementMgr.h is unchanged.
  */
 

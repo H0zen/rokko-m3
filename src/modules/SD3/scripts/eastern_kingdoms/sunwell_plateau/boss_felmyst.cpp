@@ -180,11 +180,10 @@ struct boss_felmyst : public CreatureScript
             // Fly back to the home flight location
             if (m_creature->IsAlive())
             {
-                float fX, fY, fZ;
+                float fX, fY;
                 m_creature->SetLevitate(true);
                 fX = m_creature->Spawn().X();
                 fY = m_creature->Spawn().Y();
-                fZ = m_creature->Spawn().Z();
                 m_creature->GetMotionMaster()->MovePoint(PHASE_GROUND, fX, fY, 50.083f, false);
             }
 

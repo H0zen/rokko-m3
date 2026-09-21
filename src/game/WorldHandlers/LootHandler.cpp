@@ -238,7 +238,6 @@ void WorldSession::HandleLootMoneyOpcode(WorldPacket & /*recv_data*/)
     }
 
     Loot* pLoot = NULL;
-    Item* pItem = NULL;
     bool shareMoney = true;
 
     switch (guid.GetHigh())
@@ -512,7 +511,12 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
          * will check if the count is greater than 5, if it is, it will set the count to 5, then it
          * will destroy the item.
          */
-        if (pItem->loot.loot_type == ITEM_FLAG_PROSPECTABLE || pItem->loot.loot_type == ITEM_FLAG_MILLABLE)
+        // loot_type is a LootType, and these were compared against ItemPrototypeFlags
+        // (262144 and 536870912) -- values no LootType can hold, so both tests were always
+        // false and prospected or milled stacks were never consumed. The loot session's own
+        // type is what decides it: PlayerLoot.cpp fills this loot from LootTemplates_Prospecting
+        // or LootTemplates_Milling under exactly these two.
+        if (pItem->loot.loot_type == LOOT_PROSPECTING || pItem->loot.loot_type == LOOT_MILLING)
         {
             /* Clearing the loot vector of the item. */
             pItem->loot.clear();
@@ -529,7 +533,10 @@ void WorldSession::DoLootRelease(ObjectGuid lguid)
         else
         {
             /* Checking if the item is looted or not. If it is looted, it will destroy the item. */
-            if (pItem->loot.isLooted() || pItem->loot.loot_type != ITEM_FLAG_LOOTABLE)
+            // ITEM_FLAG_LOOTABLE is a prototype flag, not a LootType, so `loot_type != flag`
+            // could never be false and this destroyed the item on every release, looted out
+            // or not. The flag belongs to the item's prototype.
+            if (pItem->loot.isLooted() || !(pItem->GetProto()->Flags & ITEM_FLAG_LOOTABLE))
             {
                 /* Destroying the item in the player's inventory. */
                 player->DestroyItem(pItem->GetBagSlot(), pItem->GetSlot(), true);

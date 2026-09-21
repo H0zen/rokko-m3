@@ -113,7 +113,6 @@ void LoadDB2Stores(const std::string& dataPath)
 {
     std::string db2Path = dataPath + "dbc/";
 
-    LocaleNameStr const* defaultLocaleNameStr = NULL;
 
     StoreProblemList1 bad_db2_files;
 

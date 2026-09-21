@@ -1400,7 +1400,7 @@ void GuildBankEventLogEntry::WriteData(WorldPacket& data, ByteBuffer& buffer)
 
     bool itemMoved = EventType == GUILD_BANK_LOG_MOVE_ITEM || EventType == GUILD_BANK_LOG_MOVE_ITEM2;
 
-    bool hasStack = hasItem && ItemStackCount > 1 || itemMoved;
+    bool hasStack = (hasItem && ItemStackCount > 1) || itemMoved;
 
     data.WriteBit(isMoneyEvent());
     data.WriteGuidMask<4, 1>(logGuid);

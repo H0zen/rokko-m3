@@ -742,7 +742,7 @@ struct npc_cork_gizelton : public CreatureScript
                 pCreature->SetFactionTemporary(FACTION_ESCORT_H_PASSIVE, TEMPFACTION_RESTORE_RESPAWN);
             }
 
-            if (npc_cork_gizeltonAI* pCork = dynamic_cast<npc_cork_gizeltonAI*>(pCreature->AI()))
+            if (dynamic_cast<npc_cork_gizeltonAI*>(pCreature->AI()))
             {
                 pCreature->AI()->SendAIEvent(AI_EVENT_START_ESCORT, pPlayer, pCreature, pQuest->GetQuestId());
             }

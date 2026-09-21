@@ -82,7 +82,7 @@ static const AddsLocations aLurkerLoc[MAX_SUBMERGE_ADDS] =
     {NPC_COILFANG_GUARDIAN, 42.471f, -445.115f, -19.76f},
 };
 
-static const float afLurkerSpawnPos[4] = {40.4058f, -417.108f, -21.5911f, 3.03312f};
+[[maybe_unused]] static const float afLurkerSpawnPos[4] = {40.4058f, -417.108f, -21.5911f, 3.03312f};
 struct boss_the_lurker_below : public CreatureScript
 {
     boss_the_lurker_below() : CreatureScript("boss_the_lurker_below") {}

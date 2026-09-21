@@ -377,11 +377,10 @@ struct npc_dragonmaw_peon : public CreatureScript
             }
         }
 
-        bool SetPlayerTarget(ObjectGuid /*playerGuid*/)
-        {
-            // TODO upstream: a stub -- the player guid is never recorded and the function falls off its end without a return.
-            // Check if event already started
-        }
+        // SetPlayerTarget was declared bool here, recorded nothing, and fell off its end
+        // without returning -- undefined behaviour in any caller. It had none: nothing in
+        // the tree ever called it. Removed rather than given an arbitrary return value,
+        // since inventing one would only preserve a stub that never worked.
 
         void MovementInform(Motion::Kind uiType, uint32 uiPointId) override
         {
@@ -1263,7 +1262,7 @@ struct npc_lord_illidan_stormrage : public CreatureScript
 
             if (pSummoned->GetEntry() == NPC_TORLOTH_THE_MAGNIFICENT)
             {
-                if (CreatureAI* pTorlothAI = pSummoned->AI())
+                if (pSummoned->AI())
                 {
                     SendAIEvent(AI_EVENT_CUSTOM_A, p, pSummoned);
                 }

@@ -236,7 +236,7 @@ bool UpdateData::BuildPacket(WorldPacket* packet)
 
     buf.append(m_data);
 
-    size_t pSize = buf.wpos();                              // use real used data size
+    // pSize (buf.wpos()) was read only by the compression block commented out below.
 
     //if (pSize > 100)                                        // compress large packets
     //{

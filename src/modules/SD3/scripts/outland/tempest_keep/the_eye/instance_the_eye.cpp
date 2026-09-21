@@ -161,7 +161,7 @@ struct is_the_eye : public InstanceScript
         private:
             uint32 m_auiEncounter[MAX_ENCOUNTER];
 
-            uint32 m_uiKaelthasEventPhase;
+            [[maybe_unused]] uint32 m_uiKaelthasEventPhase;
     };
 
     InstanceData* GetInstanceData(Map* pMap) override

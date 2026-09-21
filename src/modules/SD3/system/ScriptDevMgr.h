@@ -283,7 +283,7 @@ struct ItemScript : public Script
 
     virtual bool OnQuestAccept(Player*, Item*, Quest const*) { return false; }
     virtual bool OnUse(Player*, Item*, SpellCastTargets const&) { return false; }
-    virtual bool OnEquip(Player*, Item*, bool on) { return false; }
+    virtual bool OnEquip(Player*, Item*, bool /*on*/) { return false; }
     virtual bool OnDelete(Player*, Item*) { return false; }
     virtual bool OnGossipHello(Player*, Item*) { return false; }
     virtual bool OnGossipSelect(Player*, Item*, uint32, uint32) { return false; }

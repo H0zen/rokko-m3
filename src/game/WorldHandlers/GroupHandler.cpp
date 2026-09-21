@@ -1644,7 +1644,7 @@ void WorldSession::HandleSetAllowLowLevelRaidOpcode(WorldPacket& recv_data)
     GetPlayer()->SetAllowLowLevelRaid(allow);
 }
 
-void WorldSession::HandleGroupRequestJoinUpdates(WorldPacket& recv_data)
+void WorldSession::HandleGroupRequestJoinUpdates(WorldPacket& /*recv_data*/)
 {
     Group* group = GetPlayer()->GetGroup();
     if (!group)

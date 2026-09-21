@@ -646,7 +646,7 @@ struct spell_sacred_cleansing : public SpellScript
 {
     spell_sacred_cleansing() : SpellScript("spell_sacred_cleansing") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* /*pCaster*/, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         if (uiSpellId == SPELL_SACRED_CLEANSING && uiEffIndex == EFFECT_INDEX_1)
         {
@@ -688,7 +688,7 @@ struct spell_administer_antidote : public SpellScript
 {
     spell_administer_antidote() : SpellScript("spell_administer_antidote") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* /*pCaster*/, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         if (uiSpellId == SPELL_ADMINISTER_ANTIDOTE && uiEffIndex == EFFECT_INDEX_0)
         {
@@ -780,7 +780,7 @@ struct spell_fel_siphon_dummy : public SpellScript
 {
     spell_fel_siphon_dummy() : SpellScript("spell_fel_siphon_dummy") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* /*pCaster*/, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         if (uiSpellId == SPELL_FEL_SIPHON_DUMMY && uiEffIndex == EFFECT_INDEX_0)
         {
@@ -849,7 +849,7 @@ struct spell_create_bark_walkers : public SpellScript
 {
     spell_create_bark_walkers() : SpellScript("spell_create_bark_walkers") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* pCaster, uint32 /*uiSpellId*/, SpellEffectIndex /*uiEffIndex*/, Object* /*pTarget*/, ObjectGuid /*originalCasterGuid*/) override
     {
         if (Item* pItem = ((Player*)pCaster)->StoreNewItemInInventorySlot(ITEM_BARK_OF_THE_WALKERS, 1))
         {
@@ -862,7 +862,7 @@ struct spell_tag_murloc_proc : public SpellScript
 {
     spell_tag_murloc_proc() : SpellScript("spell_tag_murloc_proc") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* /*pCaster*/, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         if (uiSpellId == SPELL_TAG_MURLOC_PROC && uiEffIndex == EFFECT_INDEX_0)
         {
@@ -929,7 +929,7 @@ struct spell_orb_of_murloc_control : public SpellScript
 {
     spell_orb_of_murloc_control() : SpellScript("spell_orb_of_murloc_control") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override //SPELL_ORB_OF_MURLOC_CONTROL
+    bool EffectDummy(Unit* pCaster, uint32 /*uiSpellId*/, SpellEffectIndex /*uiEffIndex*/, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override //SPELL_ORB_OF_MURLOC_CONTROL
     {
         Creature* pCreatureTarget = pTarget->ToCreature();
         if (!pCreatureTarget)
@@ -1161,7 +1161,7 @@ struct spell_expose_rathorthorn_root : public SpellScript
 {
     spell_expose_rathorthorn_root() : SpellScript("spell_expose_rathorthorn_root") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* /*pCaster*/, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         if (uiSpellId == SPELL_EXPOSE_RAZORTHORN_ROOT && uiEffIndex == EFFECT_INDEX_0)
         {
@@ -1188,7 +1188,7 @@ struct spell_throw_ice : public SpellScript
 {
     spell_throw_ice() : SpellScript("spell_throw_ice") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* /*pCaster*/, uint32 /*uiSpellId*/, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         if (uiEffIndex == EFFECT_INDEX_0)
         {

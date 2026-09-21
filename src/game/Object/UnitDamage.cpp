@@ -277,7 +277,6 @@ void Unit::CalculateDamageAbsorbAndResist(Unit* pCaster, SpellSchoolMask schoolM
 
         // Handle custom absorb auras
         // TODO: try find better way
-        SpellClassOptionsEntry const* classOptions = spellProto->GetSpellClassOptions();
 
         switch(spellProto->GetSpellFamilyName())
         {

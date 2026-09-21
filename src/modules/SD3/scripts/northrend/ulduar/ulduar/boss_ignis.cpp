@@ -368,10 +368,16 @@ struct spell_ulduar_water_effect : public SpellScript
 {
     spell_ulduar_water_effect() : SpellScript("spell_ulduar_water_effect") {}
 
-    bool EffectScriptEffect(Unit* /*pCaster*/, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Creature* pCreatureTarget, ObjectGuid /*originalCasterGuid*/)
+    bool EffectScriptEffect(Unit* /*pCaster*/, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Unit* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         if (uiSpellId == SPELL_WATER_EFFECT && uiEffIndex == EFFECT_INDEX_0)
         {
+            Creature* pCreatureTarget = pTarget ? pTarget->ToCreature() : NULL;
+            if (!pCreatureTarget)
+            {
+                return true;
+            }
+
             if (pCreatureTarget->GetEntry() == NPC_IRON_CONSTRUCT)
             {
                 // chill the iron construct if molten (effect handled in core)

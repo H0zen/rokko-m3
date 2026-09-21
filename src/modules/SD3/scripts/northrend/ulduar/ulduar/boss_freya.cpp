@@ -746,11 +746,12 @@ struct spell_ulduar_summon_allies : public SpellScript
 {
     spell_ulduar_summon_allies() : SpellScript("spell_ulduar_summon_allies") {}
 
-    bool EffectScriptEffect(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Creature* pCreatureTarget, ObjectGuid /*originalCasterGuid*/)
+    bool EffectScriptEffect(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Unit* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         if ((uiSpellId == SPELL_SUMMON_ALLIES_OF_NATURE || uiSpellId == SPELL_SUMMON_ALLIES_OF_NATURE_H) && uiEffIndex == EFFECT_INDEX_0)
         {
-            if (pCreatureTarget->GetEntry() == NPC_FREYA)
+            Creature* pCreatureTarget = pTarget ? pTarget->ToCreature() : NULL;
+            if (pCreatureTarget && pCreatureTarget->GetEntry() == NPC_FREYA)
             {
                 pCreatureTarget->AI()->SendAIEvent(AI_EVENT_CUSTOM_A, pCaster, pCreatureTarget);
             }

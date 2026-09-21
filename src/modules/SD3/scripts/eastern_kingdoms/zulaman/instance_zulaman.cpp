@@ -101,7 +101,7 @@ struct is_zulaman : public InstanceScript
                 return false;
             }
 
-            void OnPlayerEnter(Player* pPlayer) override
+            void OnPlayerEnter(Player* /*pPlayer*/) override
             {
                 if (GetData(TYPE_EVENT_RUN) == IN_PROGRESS)
                 {

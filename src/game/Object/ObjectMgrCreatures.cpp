@@ -27,7 +27,7 @@
  * @file ObjectMgrCreatures.cpp
  * @brief Cohesion split of ObjectMgr.cpp -- creature template, addon, model,
  *        equipment, and spawn loaders. Same `ObjectMgr` class; no behaviour
- *        change. CMake `file(GLOB Object/*.cpp)` picks this file up
+ *        change. CMake `file(GLOB) over Object/` picks this file up
  *        automatically; ObjectMgr.h is unchanged.
  *
  * Splits out 24 methods (~1,250 lines) so the parent file drops below ~11K
@@ -1088,7 +1088,7 @@ void ObjectMgr::LoadCreatureModelRace()
  */
 void ObjectMgr::LoadCreatures()
 {
-    uint32 count = 0;
+    
     //                                                0                       1   2    3
     QueryResult* result = WorldDatabase.Query("SELECT `creature`.`guid`, `creature`.`id`, `map`, `modelid`,"
                           //   4             5           6           7           8            9              10         11
@@ -1318,7 +1318,7 @@ void ObjectMgr::LoadCreatures()
             }
         }
 
-        ++count;
+        
     }
     while (result->NextRow());
 

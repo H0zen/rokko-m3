@@ -96,7 +96,7 @@ void BattleGroundEY::Update(uint32 diff)
                     // coords and range taken from DBC of areatrigger (4514)
                     if (flagCarrier->Where().DistanceTo(Geometry::Vector3(2044.0f, 1729.729f, 1190.03f)) <= 3.0f)
                     {
-                        EventPlayerCapturedFlag(flagCarrier, NODE_FEL_REAVER_RUINS);
+                        EventPlayerCapturedFlagAtNode(flagCarrier, NODE_FEL_REAVER_RUINS);
                     }
                 }
             }
@@ -268,7 +268,7 @@ bool BattleGroundEY::HandleEvent(uint32 eventId, GameObject* go)
     return false;
 }
 
-void BattleGroundEY::ProcessCaptureEvent(GameObject* go, uint32 towerId, Team team, uint32 newWorldState, uint32 message)
+void BattleGroundEY::ProcessCaptureEvent(GameObject* /*go*/, uint32 towerId, Team team, uint32 newWorldState, uint32 message)
 {
     if (team == ALLIANCE)
     {
@@ -341,25 +341,25 @@ bool BattleGroundEY::HandleAreaTrigger(Player* source, uint32 trigger)
         case AREATRIGGER_BLOOD_ELF_TOWER_POINT:
             if (m_towerOwner[NODE_BLOOD_ELF_TOWER] == source->GetTeam())
             {
-                EventPlayerCapturedFlag(source, NODE_BLOOD_ELF_TOWER);
+                EventPlayerCapturedFlagAtNode(source, NODE_BLOOD_ELF_TOWER);
             }
             break;
         case AREATRIGGER_FEL_REAVER_RUINS_POINT:
             if (m_towerOwner[NODE_FEL_REAVER_RUINS] == source->GetTeam())
             {
-                EventPlayerCapturedFlag(source, NODE_FEL_REAVER_RUINS);
+                EventPlayerCapturedFlagAtNode(source, NODE_FEL_REAVER_RUINS);
             }
             break;
         case AREATRIGGER_MAGE_TOWER_POINT:
             if (m_towerOwner[NODE_MAGE_TOWER] == source->GetTeam())
             {
-                EventPlayerCapturedFlag(source, NODE_MAGE_TOWER);
+                EventPlayerCapturedFlagAtNode(source, NODE_MAGE_TOWER);
             }
             break;
         case AREATRIGGER_DRAENEI_RUINS_POINT:
             if (m_towerOwner[NODE_DRAENEI_RUINS] == source->GetTeam())
             {
-                EventPlayerCapturedFlag(source, NODE_DRAENEI_RUINS);
+                EventPlayerCapturedFlagAtNode(source, NODE_DRAENEI_RUINS);
             }
             break;
         default:
@@ -528,7 +528,7 @@ void BattleGroundEY::EventPlayerClickedOnFlag(Player* source, GameObject* target
     }
 }
 
-void BattleGroundEY::EventPlayerCapturedFlag(Player* source, EYNodes node)
+void BattleGroundEY::EventPlayerCapturedFlagAtNode(Player* source, EYNodes node)
 {
     if (GetStatus() != STATUS_IN_PROGRESS || GetFlagCarrierGuid() != source->GetObjectGuid())
     {

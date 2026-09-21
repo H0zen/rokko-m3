@@ -219,7 +219,7 @@ struct npc_time_rift : public CreatureScript
             pSummoner->SummonCreature(uiCreatureEntry, fX, fY, fZ, m_creature->Where().Facing(), TEMPSPAWN_DEAD_DESPAWN, 0);
         }
 
-        void ReceiveAIEvent(AIEventType eventType, Creature *pSender, Unit *pInvoker, uint32 /*data*/) override
+        void ReceiveAIEvent(AIEventType eventType, Creature *pSender, Unit */*pInvoker*/, uint32 /*data*/) override
         {
             if (eventType == AI_EVENT_CUSTOM_A && pSender == m_creature)
             {

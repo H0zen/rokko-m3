@@ -28,7 +28,7 @@
  * @brief Cohesion split of Chat.cpp -- command argument & shift-link extraction helpers (numeric/literal/quoted/link
  *        args, GUID/location/player/race-mask link parsers).
  *        Same ChatHandler class; no behaviour change. CMake
- *        file(GLOB WorldHandlers/*.cpp) picks this file up automatically;
+ *        file(GLOB) over WorldHandlers/ picks this file up automatically;
  *        Chat.h is unchanged.
  */
 

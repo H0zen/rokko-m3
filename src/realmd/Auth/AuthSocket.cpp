@@ -96,7 +96,7 @@ namespace
      * So no width here is ever derived from a value. These are the protocol's.
      */
     const int SRP_EPHEMERAL_WIDTH = 32;                 // N, A, B
-    const int SRP_SESSION_KEY_WIDTH = 40;               // K
+    [[maybe_unused]] const int SRP_SESSION_KEY_WIDTH = 40;  // K -- one of the protocol widths above, kept with its siblings though nothing reads it yet
     const int SRP_GENERATOR_WIDTH = 1;                  // g
     const int SRP_RECONNECT_WIDTH = 16;
 

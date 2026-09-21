@@ -51,7 +51,7 @@ struct item_gossip_test : public ItemScript
 {
     item_gossip_test() : ItemScript("item_gossip_test") {}
 
-    bool OnUse(Player* pPlayer, Item* pItem, const SpellCastTargets& pTargets) override
+    bool OnUse(Player* pPlayer, Item* pItem, const SpellCastTargets& /*pTargets*/) override
     {
         // Logging
         sLog.outString("Item [item_gossip_test] %s was used by %s ! ", pItem->GetProto()->Name1, pPlayer->GetName());
@@ -92,13 +92,12 @@ struct item_gossip_test : public ItemScript
         return false; // return FALSE because item would be stuck (spell is not processed) !
     }
 
-    bool OnGossipSelect(Player* pPlayer, Item* pItem, uint32 uiSender, uint32 uiAction)
+    bool OnGossipSelect(Player* pPlayer, Item* pItem, uint32 /*uiSender*/, uint32 uiAction)
     {
         switch (uiAction)
         {
             case GOSSIP_ACTION_INFO_DEF + 1:
             {
-                uint32 playerGUID = pPlayer->GetGUIDLow();
 
                 sLog.outString("Item [item_gossip_test] %s was used by %s and choose action %u ", pItem->GetProto()->Name1, pPlayer->GetName(), uiAction);
 
@@ -110,7 +109,7 @@ struct item_gossip_test : public ItemScript
         return true;
     }
 
-    bool OnGossipSelectWithCode(Player* pPlayer, Item* pItem, uint32 uiSender, uint32 uiAction, const char* code)
+    bool OnGossipSelectWithCode(Player* pPlayer, Item* pItem, uint32 /*uiSender*/, uint32 uiAction, const char* code)
     {
         sLog.outString("Item [item_gossip_test] %s was used by %s and choose action %u with code %s ", pItem->GetProto()->Name1, pPlayer->GetName(), uiAction, code);
 

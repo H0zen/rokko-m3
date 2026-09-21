@@ -101,7 +101,7 @@ MailSender::MailSender(AuctionEntry* sender)
  *
  * Note : Actualy it seem no info from event is required. We need more research to correctly initialise m_senderId
  */
-MailSender::MailSender(CalendarEvent const* sender)
+MailSender::MailSender(CalendarEvent const* /*sender*/)
     : m_messageType(MAIL_CALENDAR), m_senderId(0), m_stationery(MAIL_STATIONERY_DEFAULT)
 {
 }
@@ -326,7 +326,7 @@ void MailDraft::SendMailTo(MailReceiver const& receiver, MailSender const& sende
 
     CharacterDatabase.BeginTransaction();
     CharacterDatabase.PExecute("INSERT INTO `mail` (`id`,`messageType`,`stationery`,`mailTemplateId`,`sender`,`receiver`,`subject`,`body`,`has_items`,`expire_time`,`deliver_time`,`money`,`cod`,`checked`) "
-                               "VALUES ('%u', '%u', '%u', '%u', '%u', '%u', '%s', '%s', '%u', '" UI64FMTD "','" UI64FMTD "', '%u', '%u', '%u')",
+                               "VALUES ('%u', '%u', '%u', '%u', '%u', '%u', '%s', '%s', '%u', '" UI64FMTD "','" UI64FMTD "', '" UI64FMTD "', '" UI64FMTD "', '%u')",
                                mailId, sender.GetMailMessageType(), sender.GetStationery(), GetMailTemplateId(), sender.GetSenderId(), receiver.GetPlayerGuid().GetCounter(), safe_subject.c_str(), safe_body.c_str(), (has_items ? 1 : 0), (uint64)expire_time, (uint64)deliver_time, m_money, m_COD, checked);
 
     for (MailItemMap::const_iterator mailItemIter = m_items.begin(); mailItemIter != m_items.end(); ++mailItemIter)

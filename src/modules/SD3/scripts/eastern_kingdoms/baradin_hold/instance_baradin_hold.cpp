@@ -69,12 +69,12 @@ struct is_baradin_hold : public InstanceScript
                 return false;
             }
 
-            void OnPlayerEnter(Player* pPlayer) override
+            void OnPlayerEnter(Player* /*pPlayer*/) override
             {
 
             }
 
-            void OnObjectCreate(GameObject* pGo) override
+            void OnObjectCreate(GameObject* /*pGo*/) override
             {
 
             }
@@ -91,17 +91,17 @@ struct is_baradin_hold : public InstanceScript
                 }
             }
 
-            void OnCreatureDeath(Creature* pCreature) override
+            void OnCreatureDeath(Creature* /*pCreature*/) override
             {
 
             }
 
-            void OnCreatureEvade(Creature* pCreature)
+            void OnCreatureEvade(Creature* /*pCreature*/)
             {
 
             }
 
-            void SetData(uint32 uiType, uint32 uiData) override
+            void SetData(uint32 /*uiType*/, uint32 /*uiData*/) override
             {
 
             }
@@ -116,7 +116,7 @@ struct is_baradin_hold : public InstanceScript
                 return 0;
             }
 
-            void Update(uint32 uiDiff) override
+            void Update(uint32 /*uiDiff*/) override
             {
                 // DialogueUpdate(uiDiff);
 
@@ -160,7 +160,7 @@ struct at_baradin_hold : public AreaTriggerScript
 {
     at_baradin_hold() : AreaTriggerScript("at_baradin_hold") {}
 
-    bool OnTrigger(Player* pPlayer, AreaTriggerEntry const* pAt) override
+    bool OnTrigger(Player* /*pPlayer*/, AreaTriggerEntry const* /*pAt*/) override
     {
         return false;
     }

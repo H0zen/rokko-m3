@@ -429,7 +429,7 @@ struct npc_arthas : public CreatureScript
             }
         }
 
-        void ReceiveAIEvent(AIEventType eventType, Creature* pSender, Unit* pInvoker, uint32 uiMiscValue) override
+        void ReceiveAIEvent(AIEventType eventType, Creature* pSender, Unit* pInvoker, uint32 /*uiMiscValue*/) override
         {
             // on Malganis encounter finished -> evade
             if (pSender->GetEntry() == NPC_MALGANIS && eventType == AI_EVENT_CUSTOM_EVENTAI_B)

@@ -289,7 +289,7 @@ void CalendarMgr::GetPlayerInvitesList(ObjectGuid const& guid, CalendarInvitesLi
 // some check done before so it may fail and raison is sent to client
 // return value is the CalendarEvent pointer on success
 CalendarEvent* CalendarMgr::AddEvent(ObjectGuid const& guid, std::string title, std::string description, uint32 type, uint32 repeatable,
-                                     uint32 maxInvites, int32 dungeonId, time_t eventTime, time_t unkTime, uint32 flags)
+                                     uint32 maxInvites, int32 dungeonId, time_t eventTime, time_t /*unkTime*/, uint32 flags)
 {
     Player* player = sObjectMgr.GetPlayer(guid);
     if (!player)

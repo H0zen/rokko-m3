@@ -635,13 +635,16 @@ class World
 
         /// Set a server configuration element (see #eConfigUInt64Values)
         void setConfig(eConfigUInt64Values index, uint64 value) { m_configUint64Values[index] = value; }
-        /// Get a server configuration element (see #eConfigUInt64Values)
-        uint32 getConfig(eConfigUInt64Values index) const { return m_configUint64Values[index]; }
+        /// Get a server configuration element (see #eConfigUInt64Values).
+        /// Returned uint32 until 2026-09-20, which truncated every 64-bit setting to its
+        /// low half on the way out -- the storage was wide, the accessor was not.
+        uint64 getConfig(eConfigUInt64Values index) const { return m_configUint64Values[index]; }
 
-        /// Set a server configuration element (see #eConfigUInt64Values)
+        /// Set a server configuration element (see #eConfigInt64Values)
         void setConfig(eConfigInt64Values index, int64 value) { m_configInt64Values[index] = value; }
-        /// Get a server configuration element (see #eConfigUInt64Values)
-        uint32 getConfig(eConfigInt64Values index) const { return m_configInt64Values[index]; }
+        /// Get a server configuration element (see #eConfigInt64Values).
+        /// Returned uint32, so a negative setting came back as a large positive one.
+        int64 getConfig(eConfigInt64Values index) const { return m_configInt64Values[index]; }
 
         /// Set a server configuration element (see #eConfigUInt32Values)
         void setConfig(eConfigUInt32Values index, uint32 value) { m_configUint32Values[index] = value; }

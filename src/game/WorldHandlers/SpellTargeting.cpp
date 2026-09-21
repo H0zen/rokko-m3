@@ -207,7 +207,6 @@ struct TargetDistanceOrderFarAway : public binary_function<const Unit, const Uni
 void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList& targetUnitMap)
 {
     SpellEffectEntry const* spellEffect = m_spellInfo->GetSpellEffect(effIndex);
-    SpellClassOptionsEntry const* classOpt = m_spellInfo->GetSpellClassOptions();
     if (!spellEffect)
     {
         return;

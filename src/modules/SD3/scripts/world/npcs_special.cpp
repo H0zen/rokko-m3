@@ -733,7 +733,7 @@ struct npc_doctor : public CreatureScript
 
                         m_lPatientGuids.push_back(Patient->GetObjectGuid());
 
-                        if (CreatureAI* pPatientAI = Patient->AI())
+                        if (Patient->AI())
                         {
                             SendAIEvent(AI_EVENT_CUSTOM_A, m_creature, Patient);
                             //pPatientAI->m_doctorGuid = m_creature->GetObjectGuid();
@@ -826,7 +826,7 @@ struct npc_injured_patient : public CreatureScript
                 {
                     if (Creature* pDoctor = m_creature->GetMap()->GetCreature(m_doctorGuid))
                     {
-                        if (CreatureAI* pDocAI = pDoctor->AI())
+                        if (pDoctor->AI())
                         {
                             SendAIEvent(AI_EVENT_CUSTOM_A, pPlayer, pDoctor);
                             //pDocAI->PatientSaved(m_creature, pPlayer, m_pCoord);
@@ -875,7 +875,7 @@ struct npc_injured_patient : public CreatureScript
             }
         }
 
-        void ReceiveAIEvent(AIEventType eventType, Creature* pSender, Unit* pInvoker, uint32 /*uiMiscValue*/) override
+        void ReceiveAIEvent(AIEventType eventType, Creature* pSender, Unit* /*pInvoker*/, uint32 /*uiMiscValue*/) override
         {
             if (eventType == AI_EVENT_CUSTOM_A && (pSender->GetEntry() == DOCTOR_ALLIANCE || pSender->GetEntry() == DOCTOR_HORDE))
             {
@@ -909,7 +909,7 @@ struct npc_injured_patient : public CreatureScript
 
                 if (Creature* pDoctor = m_creature->GetMap()->GetCreature(m_doctorGuid))
                 {
-                    if (CreatureAI* pDocAI = pDoctor->AI())
+                    if (pDoctor->AI())
                     {
                         SendAIEvent(AI_EVENT_CUSTOM_B, m_creature, pDoctor);
                         //pDocAI->PatientDied(m_pCoord);

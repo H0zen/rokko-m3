@@ -911,7 +911,7 @@ struct aura_spell_drake_subdued : public AuraScript
 {
     aura_spell_drake_subdued() : AuraScript("aura_spell_drake_subdued") {}
 
-    bool OnDummyApply(const Aura* pAura, bool bApply) override
+    bool OnDummyApply(const Aura* pAura, bool /*bApply*/) override
     {
         Creature* pCreature = (Creature*)pAura->GetTarget();
         if (!pCreature || pCreature->GetEntry() != NPC_NEXUS_DRAKE_HATCHLING)
@@ -929,7 +929,7 @@ struct spell_capture_trigger : public SpellScript
 {
     spell_capture_trigger() : SpellScript("spell_capture_trigger") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* pCaster, uint32 /*uiSpellId*/, SpellEffectIndex /*uiEffIndex*/, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         if (pCaster->GetTypeId() != TYPEID_PLAYER)
         {
@@ -972,7 +972,7 @@ struct spell_drake_turn_in : public SpellScript
 {
     spell_drake_turn_in() : SpellScript("spell_drake_turn_in") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* /*pCaster*/, uint32 /*uiSpellId*/, SpellEffectIndex /*uiEffIndex*/, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         Creature* pCreatureTarget = pTarget->ToCreature();
 
@@ -993,7 +993,7 @@ struct spell_raelorasz_fireball : public SpellScript
 {
     spell_raelorasz_fireball() : SpellScript("spell_raelorasz_fireball") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* /*pCaster*/, uint32 /*uiSpellId*/, SpellEffectIndex /*uiEffIndex*/, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         Creature* pCreatureTarget = pTarget->ToCreature();
         pCreatureTarget->CastSpell(pCreatureTarget, SPELL_COMPLETE_IMMOLATION, true);
@@ -1295,7 +1295,7 @@ struct npc_jenny : public CreatureScript
             }
         }
 
-        void AttackStart(Unit* pWho) override {}
+        void AttackStart(Unit* /*pWho*/) override {}
 
         void MoveInLineOfSight(Unit* pWho) override
         {

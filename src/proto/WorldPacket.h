@@ -71,6 +71,10 @@ class WorldPacket : public ByteBuffer
             // exactly where it is needed and nowhere the compiler would say so.
         }
 
+        /// See the note above: the user-provided copy constructor makes the implicit copy
+        /// assignment deprecated, so it is spelled out. Member-wise, identical to implicit.
+        WorldPacket& operator=(const WorldPacket&) = default;
+
         /**
          * @brief
          *

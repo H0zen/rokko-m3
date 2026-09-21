@@ -134,7 +134,7 @@ struct is_arcatraz : public InstanceScript
                 InitializeDialogueHelper(this);
             }
 
-            void OnPlayerEnter(Player* pPlayer) override
+            void OnPlayerEnter(Player* /*pPlayer*/) override
             {
                 // Check encounter states
                 if (GetData(TYPE_ENTRANCE) == DONE || GetData(TYPE_ENTRANCE) == IN_PROGRESS)

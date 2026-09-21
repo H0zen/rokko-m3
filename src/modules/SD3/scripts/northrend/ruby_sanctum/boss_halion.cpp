@@ -140,12 +140,12 @@ enum
     PHASE_BOTH_REALMS           = 3,
 };
 
-static const uint32 aShadowOrbs[4] = { NPC_SHADOW_ORB_1, NPC_SHADOW_ORB_2, NPC_SHADOW_ORB_3, NPC_SHADOW_ORB_4 };
-static const uint32 aMeteorStrikes[4] = { NPC_METEOR_STRIKE_1, NPC_METEOR_STRIKE_2, NPC_METEOR_STRIKE_3, NPC_METEOR_STRIKE_4 };
+[[maybe_unused]] static const uint32 aShadowOrbs[4] = { NPC_SHADOW_ORB_1, NPC_SHADOW_ORB_2, NPC_SHADOW_ORB_3, NPC_SHADOW_ORB_4 };
+[[maybe_unused]] static const uint32 aMeteorStrikes[4] = { NPC_METEOR_STRIKE_1, NPC_METEOR_STRIKE_2, NPC_METEOR_STRIKE_3, NPC_METEOR_STRIKE_4 };
 
-static const float aRotationFocusPosition[4] = {3113.711f, 533.5382f, 72.96f, 1.93f};
-static const float aOrbCarrierPosition1[3] = {3153.75f, 579.1875f, 70.47f};
-static const float aOrbCarrierPosition2[3] = {3153.75f, 487.1875f, 70.47f};
+[[maybe_unused]] static const float aRotationFocusPosition[4] = {3113.711f, 533.5382f, 72.96f, 1.93f};
+[[maybe_unused]] static const float aOrbCarrierPosition1[3] = {3153.75f, 579.1875f, 70.47f};
+[[maybe_unused]] static const float aOrbCarrierPosition2[3] = {3153.75f, 487.1875f, 70.47f};
 
 /*######
 ## boss_halion_real

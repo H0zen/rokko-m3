@@ -141,7 +141,7 @@ struct boss_ahune : public CreatureScript
             m_creature->ForcedDespawn();
         }
 
-        void DamageTaken(Unit* pDoneBy, uint32& uiDamage) override
+        void DamageTaken(Unit* /*pDoneBy*/, uint32& /*uiDamage*/) override
         {
             // it's not clear whether this should work like this or should be handled by the proc aura
             if (Creature* pCore = m_creature->GetMap()->GetCreature(m_frozenCoreGuid))
@@ -340,7 +340,7 @@ struct npc_frozen_core : public CreatureScript
             DoCastSpellIfCan(m_creature, SPELL_ICE_SPEAR_AURA, CAST_TRIGGERED | CAST_AURA_NOT_PRESENT);
         }
 
-        void DamageTaken(Unit* pDoneBy, uint32& uiDamage) override
+        void DamageTaken(Unit* /*pDoneBy*/, uint32& /*uiDamage*/) override
         {
             // it's not clear whether this should work like this or should be handled by the proc aura
             if (Creature* pAhune = m_creature->GetMap()->GetCreature(m_ahuheGuid))

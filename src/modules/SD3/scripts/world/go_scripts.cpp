@@ -243,7 +243,7 @@ struct go_tele_to_dalaran_crystal : public GameObjectScript
 {
     go_tele_to_dalaran_crystal() : GameObjectScript("go_tele_to_dalaran_crystal") {}
 
-    bool OnUse(Player* pPlayer, GameObject* pGo) override
+    bool OnUse(Player* pPlayer, GameObject* /*pGo*/) override
     {
         if (pPlayer->GetQuestRewardStatus(QUEST_TELE_CRYSTAL_FLAG))
         {
@@ -263,7 +263,7 @@ struct go_tele_to_violet_stand : public GameObjectScript
 {
     go_tele_to_violet_stand() : GameObjectScript("go_tele_to_violet_stand") {}
 
-    bool OnUse(Player* pPlayer, GameObject* pGo) override
+    bool OnUse(Player* pPlayer, GameObject* /*pGo*/) override
     {
         if (pPlayer->GetQuestRewardStatus(QUEST_LEARN_LEAVE_RETURN) || pPlayer->GetQuestStatus(QUEST_LEARN_LEAVE_RETURN) == QUEST_STATUS_INCOMPLETE)
         {

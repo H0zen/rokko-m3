@@ -86,7 +86,7 @@
  */
 void Player::HandleBaseModValue(BaseModGroup modGroup, BaseModType modType, float amount, bool apply)
 {
-    if (modGroup >= BASEMOD_END || modType >= MOD_END)
+    if (modGroup >= BASEMOD_END || uint32(modType) >= MOD_END)
     {
         sLog.outError("ERROR in HandleBaseModValue(): nonexistent BaseModGroup of wrong BaseModType!");
         return;
@@ -134,7 +134,10 @@ void Player::HandleBaseModValue(BaseModGroup modGroup, BaseModType modType, floa
  */
 float Player::GetBaseModValue(BaseModGroup modGroup, BaseModType modType) const
 {
-    if (modGroup >= BASEMOD_END || modType > MOD_END)
+    // `modType > MOD_END` let MOD_END itself through into m_auraBaseMod[modGroup][MOD_END],
+    // one past the end; HandleBaseModValue had the bound right. The cast keeps the guard
+    // from being folded away as tautological now that it is correct.
+    if (modGroup >= BASEMOD_END || uint32(modType) >= MOD_END)
     {
         sLog.outError("trial to access nonexistent BaseModGroup or wrong BaseModType!");
         return 0.0f;

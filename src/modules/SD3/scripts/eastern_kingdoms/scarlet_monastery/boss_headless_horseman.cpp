@@ -391,11 +391,17 @@ struct spell_request_body : public SpellScript
 {
     spell_request_body() : SpellScript("spell_request_body") {}
 
-    bool EffectScriptEffect(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Creature* pCreatureTarget, ObjectGuid /*originalCasterGuid*/)
+    // Declared with a Creature* target until 2026-09-20, which is not the signature
+    // SpellScript declares, so this hid the base virtual instead of overriding it and
+    // SD3::EffectScriptEffectUnit only ever reached the base's `return false`. The script
+    // had never run. Same fault in every EffectScriptEffect in SD3; all were corrected
+    // together, and `override` now keeps them honest.
+    bool EffectScriptEffect(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Unit* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         if (uiSpellId == SPELL_REQUEST_BODY && uiEffIndex == EFFECT_INDEX_0)
         {
-            if (pCreatureTarget->GetEntry() == NPC_HEADLESS_HORSEMAN)
+            Creature* pCreatureTarget = pTarget ? pTarget->ToCreature() : NULL;
+            if (pCreatureTarget && pCreatureTarget->GetEntry() == NPC_HEADLESS_HORSEMAN)
             {
                 pCreatureTarget->AI()->SendAIEvent(AI_EVENT_CUSTOM_A, pCaster, pCreatureTarget);
             }
@@ -513,11 +519,12 @@ struct spell_send_head : public SpellScript
 {
     spell_send_head() : SpellScript("spell_send_head") {}
 
-    bool EffectScriptEffect(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Creature* pCreatureTarget, ObjectGuid /*originalCasterGuid*/)
+    bool EffectScriptEffect(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Unit* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         if (uiSpellId == SPELL_SEND_HEAD && uiEffIndex == EFFECT_INDEX_0)
         {
-            if (pCreatureTarget->GetEntry() == NPC_HEAD_OF_HORSEMAN)
+            Creature* pCreatureTarget = pTarget ? pTarget->ToCreature() : NULL;
+            if (pCreatureTarget && pCreatureTarget->GetEntry() == NPC_HEAD_OF_HORSEMAN)
             {
                 pCreatureTarget->AI()->SendAIEvent(AI_EVENT_CUSTOM_A, pCaster, pCreatureTarget);
             }

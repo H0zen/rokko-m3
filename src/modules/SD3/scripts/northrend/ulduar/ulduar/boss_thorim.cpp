@@ -477,7 +477,7 @@ struct boss_thorim : public CreatureScript
         }
 
         // function to return the closest ground Bunny
-        Creature* GetClosestLowerBunny(Creature* pSource)
+        Creature* GetClosestLowerBunny(Creature* /*pSource*/)
         {
             if (m_pInstance)
             {

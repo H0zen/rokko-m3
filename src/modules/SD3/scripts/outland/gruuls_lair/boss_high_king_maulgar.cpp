@@ -150,7 +150,7 @@ struct boss_high_king_maulgar : public CreatureScript
             }
         }
 
-        void ReceiveAIEvent(AIEventType eventType, Creature *pSender, Unit *pInvoker, uint32 /*data*/) override
+        void ReceiveAIEvent(AIEventType eventType, Creature */*pSender*/, Unit */*pInvoker*/, uint32 /*data*/) override
         {
             if (eventType == AI_EVENT_CUSTOM_A)
             {

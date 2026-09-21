@@ -700,7 +700,7 @@ struct boss_yogg_saron : public CreatureScript
             m_creature->ForcedDespawn();
         }
 
-        void ReceiveAIEvent(AIEventType eventType, Creature* /*pSender*/, Unit* pInvoker, uint32 uiMiscValue) override
+        void ReceiveAIEvent(AIEventType eventType, Creature* /*pSender*/, Unit* pInvoker, uint32 /*uiMiscValue*/) override
         {
             // AI event received at 30% health
             if (eventType == AI_EVENT_START_EVENT && pInvoker->GetEntry() == NPC_YOGG_BRAIN && m_uiPhase == PHASE_VISIONS)
@@ -872,7 +872,7 @@ struct npc_voice_yogg_saron : public CreatureScript
         void AttackStart(Unit* /*pWho*/) override {}
         void MoveInLineOfSight(Unit* /*pWho*/) override {}
 
-        void ReceiveAIEvent(AIEventType eventType, Creature* /*pSender*/, Unit* pInvoker, uint32 uiMiscValue) override
+        void ReceiveAIEvent(AIEventType eventType, Creature* /*pSender*/, Unit* /*pInvoker*/, uint32 /*uiMiscValue*/) override
         {
             switch (eventType)
             {
@@ -1719,7 +1719,7 @@ struct npc_death_ray : public CreatureScript
         }
 
         void AttackStart(Unit* /*pWho*/) override {}
-        void MoveInLineOfSight(Unit* pWho) override {}
+        void MoveInLineOfSight(Unit* /*pWho*/) override {}
 
         void UpdateAI(const uint32 uiDiff) override
         {

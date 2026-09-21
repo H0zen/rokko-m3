@@ -27,7 +27,7 @@
  * @file ChatHelp.cpp
  * @brief Cohesion split of Chat.cpp -- command help display (ShowHelpForSubCommands / ShowHelpForCommand).
  *        Same ChatHandler class; no behaviour change. CMake
- *        file(GLOB WorldHandlers/*.cpp) picks this file up automatically;
+ *        file(GLOB) over WorldHandlers/ picks this file up automatically;
  *        Chat.h is unchanged.
  */
 

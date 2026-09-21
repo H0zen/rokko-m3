@@ -290,7 +290,7 @@ class BattleGroundEY : public BattleGround
     private:
         // process capture events
         void ProcessCaptureEvent(GameObject* go, uint32 towerId, Team team, uint32 newWorldState, uint32 message);
-        void EventPlayerCapturedFlag(Player* source, EYNodes node);     // NOTE: virtual BattleGround::EventPlayerCapturedFlag has different parameters list
+        void EventPlayerCapturedFlagAtNode(Player* source, EYNodes node);     // Deliberately NOT BattleGround::EventPlayerCapturedFlag: that virtual takes the player alone and EY needs the node. Same name hid it; renamed so the two cannot be confused.
         void UpdateResources();
 
         /* Scorekeeping */

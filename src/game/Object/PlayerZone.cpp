@@ -130,7 +130,7 @@ void Player::CheckAreaExploreAndOutdoor()
 
             SpellShapeshiftEntry const* shapeShift = spellInfo->GetSpellShapeshift();
 
-            if (!shapeShift || (shapeShift->ShapeshiftMask_0 || shapeShift->ShapeshiftExclude_0) && !IsNeedCastSpellAtFormApply(spellInfo, GetShapeshiftForm()))
+            if (!shapeShift || ((shapeShift->ShapeshiftMask_0 || shapeShift->ShapeshiftExclude_0) && !IsNeedCastSpellAtFormApply(spellInfo, GetShapeshiftForm())))
             {
                 continue;
             }

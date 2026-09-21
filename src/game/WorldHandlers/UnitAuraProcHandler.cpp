@@ -4465,7 +4465,7 @@ SpellAuraProcResult Unit::HandleProcTriggerSpellAuraProc(Unit* pVictim, uint32 d
         case 35095:
         {
             SpellPowerEntry const* spellPower = procSpell->GetSpellPower();
-            if (!spellPower || !procSpell || procSpell->PowerType!=POWER_MANA || spellPower->ManaCost==0 && spellPower->PowerCost==0 && spellPower->ManaCostPerLevel==0)
+            if (!spellPower || !procSpell || procSpell->PowerType!=POWER_MANA || (spellPower->ManaCost==0 && spellPower->PowerCost==0 && spellPower->ManaCostPerLevel==0))
             {
                 return SPELL_AURA_PROC_FAILED;
             }
@@ -5180,7 +5180,7 @@ SpellAuraProcResult Unit::HandleRemoveByDamageChanceProc(Unit* /*pVictim*/, uint
  *
  * @return SpellAuraProcResult The proc handling result.
  */
-SpellAuraProcResult Unit::HandleInvisibilityAuraProc(Unit* pVictim, uint32 damage, Aura* triggeredByAura, SpellEntry const* procSpell, uint32 procFlag, uint32 procEx, uint32 cooldown)
+SpellAuraProcResult Unit::HandleInvisibilityAuraProc(Unit* /*pVictim*/, uint32 /*damage*/, Aura* triggeredByAura, SpellEntry const* /*procSpell*/, uint32 /*procFlag*/, uint32 /*procEx*/, uint32 /*cooldown*/)
 {
     if (triggeredByAura->GetSpellProto()->HasAttribute(SPELL_ATTR_PASSIVE) || triggeredByAura->GetSpellProto()->HasAttribute(SPELL_ATTR_NEGATIVE))
     {

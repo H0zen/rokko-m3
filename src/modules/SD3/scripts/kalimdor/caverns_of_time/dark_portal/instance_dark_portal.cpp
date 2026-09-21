@@ -48,7 +48,7 @@ static const PortalData afPortalLocation[] =
 };
 
 // Dark Crystal summon location
-static const float fDarkPortalCrystalLoc[3] = { -2024.31f, 7127.75f, 22.65419f };
+[[maybe_unused]] static const float fDarkPortalCrystalLoc[3] = { -2024.31f, 7127.75f, 22.65419f };
 
 static const int32 uiMedivhWeakYell[3] = { SAY_MEDIVH_WEAK75, SAY_MEDIVH_WEAK50, SAY_MEDIVH_WEAK25 };
 
@@ -76,7 +76,7 @@ struct is_dark_portal : public InstanceScript
                 memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
             }
 
-            void OnPlayerEnter(Player* pPlayer) override
+            void OnPlayerEnter(Player* /*pPlayer*/) override
             {
                 UpdateWorldState(m_auiEncounter[TYPE_MEDIVH] == IN_PROGRESS ? true : false);
             }

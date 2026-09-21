@@ -2992,7 +2992,7 @@ ObjectMgr::LivingWorldStartupStats ObjectMgr::LoadActiveEntities(Map* _map)
 
         uint32 continents[] = {0, 1, 369, 530, 571};
 
-        for (int i = 0; i < countof(continents); ++i)
+        for (int i = 0; i < int(countof(continents)); ++i)
         {
             _map = sMapMgr.FindMap(continents[i]);
             if (!_map)

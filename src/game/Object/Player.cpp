@@ -2288,7 +2288,10 @@ void Player::SetGameMaster(bool on)
 
         if (Pet* pet = GetPet())
         {
-            if (m_ExtraFlags |= PLAYER_EXTRA_GM_ON)
+            // `|=` here, not `&`: it re-set the flag and tested the result, so the branch was taken
+            // unconditionally. Benign as it stands -- the flag is set a few lines above and the
+            // test would have been true anyway -- but it was not the question being asked.
+            if (m_ExtraFlags & PLAYER_EXTRA_GM_ON)
                 pet->setFaction(35);
             pet->GetHostileRefManager().setOnlineOfflineState(false);
         }
@@ -2770,7 +2773,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
     InitDataForForm(reapplyMods);
 
     // save new stats
-    for (int i = POWER_MANA; i < MAX_POWERS; ++i)
+    for (int i = POWER_MANA; i < int(MAX_POWERS); ++i)
     {
         SetMaxPower(Powers(i), GetCreateMaxPowers(Powers(i)));
     }
@@ -5540,7 +5543,7 @@ uint32 Player::GetBarberShopCost(uint8 newhairstyle, uint8 newhaircolor, uint8 n
     uint8 skintone = GetByteValue(PLAYER_BYTES, 0);
 
     if (hairstyle == newhairstyle && haircolor == newhaircolor && facialhair == newfacialhair &&
-            (skintone == newskintone || newskintone == -1))
+            (skintone == newskintone || newskintone == uint32(-1)))
         return 0;
 
     GtBarberShopCostBaseEntry const* bsc = sGtBarberShopCostBaseStore.LookupEntry(level - 1);
@@ -5567,7 +5570,7 @@ uint32 Player::GetBarberShopCost(uint8 newhairstyle, uint8 newhaircolor, uint8 n
         cost += bsc->Cost * 0.75f;                          // +3/4 of price
     }
 
-    if (skintone != newskintone && newskintone != -1)
+    if (skintone != newskintone && newskintone != uint32(-1))
     {
         cost += bsc->Cost * 0.5f;                           // +1/2 of price
     }
@@ -5813,7 +5816,7 @@ uint32 Player::CalculateTalentsPoints() const
     return uint32(talentPointsForLevel * sWorld.getConfig(CONFIG_FLOAT_RATE_TALENT));
 }
 
-bool Player::CanStartFlyInArea(uint32 mapid, uint32 zone, uint32 area) const
+bool Player::CanStartFlyInArea(uint32 mapid, uint32 zone, uint32 /*area*/) const
 {
     if (isGameMaster())
     {
@@ -6552,8 +6555,8 @@ bool Player::FitArmorSpecializationRules(SpellEntry const * spellProto) const
     {
         if (spellProto->ID == armorSpecToTab[i].spellId)
         {
-            if (!armorSpecToTab[i].tab && m_talentsPrimaryTree[m_activeSpec] == 0 ||
-                armorSpecToTab[i].tab && armorSpecToTab[i].tab != m_talentsPrimaryTree[m_activeSpec])
+            if ((!armorSpecToTab[i].tab && m_talentsPrimaryTree[m_activeSpec] == 0) ||
+                (armorSpecToTab[i].tab && armorSpecToTab[i].tab != m_talentsPrimaryTree[m_activeSpec]))
                 return false;
 
             break;
@@ -6604,7 +6607,7 @@ bool Player::FitArmorSpecializationRules(SpellEntry const * spellProto) const
                     return false;
                 }
 
-                if (item->GetProto()->Class != itemsEntry->EquippedItemClass)
+                if (int32(item->GetProto()->Class) != itemsEntry->EquippedItemClass)
                 {
                     return false;
                 }

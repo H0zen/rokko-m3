@@ -153,7 +153,7 @@ struct at_shadowforge_bridge : public AreaTriggerScript
 {
     at_shadowforge_bridge() : AreaTriggerScript("at_shadowforge_bridge") {}
 
-    bool OnTrigger(Player* pPlayer, AreaTriggerEntry const* pAt) override
+    bool OnTrigger(Player* pPlayer, AreaTriggerEntry const* /*pAt*/) override
     {
         if (instance_blackrock_depths* pInstance = (instance_blackrock_depths*)pPlayer->GetInstanceData())
         {
@@ -1828,7 +1828,7 @@ struct boss_plugger_spazzringAI : public ScriptedAI
         m_uiCurseOfTonguesTimer  = 17000;
     }
 
-    void JustDied(Unit* pKiller) override
+    void JustDied(Unit* /*pKiller*/) override
     {
         if (!m_pInstance)
         {
@@ -1836,7 +1836,7 @@ struct boss_plugger_spazzringAI : public ScriptedAI
         }
 
         // Activate Phalanx and handle patrons faction
-        if (Creature* pPhalanx = m_pInstance->GetSingleCreatureFromStorage(NPC_PHALANX))
+        if (m_pInstance->GetSingleCreatureFromStorage(NPC_PHALANX))
         {
             if (!m_pInstance)
             {

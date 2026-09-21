@@ -99,7 +99,7 @@ uint32 Player::GetGuildIdFromDB(ObjectGuid guid)
 
 ObjectGuid Player::GetGuildGuidFromDB(ObjectGuid guid)
 {
-    if (uint32 guildId = GetGuildIdFromDB(guid))
+    if (GetGuildIdFromDB(guid))
     {
         return ObjectGuid(HIGHGUID_GUILD, GetGuildIdFromDB(guid));
     }

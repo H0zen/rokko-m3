@@ -265,7 +265,7 @@ static const uint32 aMimironTeleporters[] = {GO_MIMIRON_TEL1, GO_MIMIRON_TEL2, G
 // spawn or move positions
 static const float afTankEvadePos[4] = {2792.07f, 2596.32f, 364.3136f, 3.5f};
 static const float afRobotSpawnPos[4] = {2744.431f, 2569.385f, 364.3968f, 3.141f};
-static const float afRocketSpawnPos[4] = {2746.262f, 2567.085f, 369.2921f, 3.14f};
+[[maybe_unused]] static const float afRocketSpawnPos[4] = {2746.262f, 2567.085f, 369.2921f, 3.14f};
 static const float afAerialSpawnPos[4] = {2744.365f, 2569.303f, 392.2355f, 3.15f};
 static const float afAerialMovePos[3] = {2743.32f, 2569.285f, 378.2812f};
 static const float afTankMovePos[3] = {2763.82f, 2568.87f, 364.3136f};

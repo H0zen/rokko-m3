@@ -28,7 +28,7 @@
  * @brief Cohesion split of ScriptMgr.cpp -- the On* scripting-hook dispatchers
  *   (gossip/quest/use/effect/aura forwarders to SD3) and AI/instance factories.
  *
- * Same ScriptMgr class; no behaviour change. CMake file(GLOB WorldHandlers/*.cpp)
+ * Same ScriptMgr class; no behaviour change. CMake file(GLOB) over WorldHandlers/
  * picks this file up automatically; ScriptMgr.h is unchanged.
  */
 

@@ -744,7 +744,6 @@ void ChatHandler::ShowCurrencyListHelper(Player* target, CurrencyTypesEntry cons
 
     uint32 count = target ? target->GetCurrencyCount(id) : 0;
 
-    uint32 talentCost = GetTalentSpellCost(id);
 
     // send spell in "id - [name] (Amount: x)" format
     std::ostringstream ss;

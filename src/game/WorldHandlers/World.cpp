@@ -203,7 +203,7 @@ World::~World()
     // it is assumed that no other thread is accessing this data when the destructor is called.  therefore, no locks are necessary
 
     ///- Empty the kicked session set
-    for (auto const session : m_sessions)
+    for (auto const& session : m_sessions)
     {
         delete session.second;
     }

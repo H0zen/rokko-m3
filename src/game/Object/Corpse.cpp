@@ -234,7 +234,6 @@ bool Corpse::LoadFromDB(uint32 lowguid, Field* fields)
     uint8 _class        = fields[13].GetUInt8();
     uint32 playerBytes  = fields[14].GetUInt32();
     uint32 playerBytes2 = fields[15].GetUInt32();
-    uint32 guildId      = fields[17].GetUInt32();
     uint32 playerFlags  = fields[18].GetUInt32();
 
     ObjectGuid guid = ObjectGuid(HIGHGUID_CORPSE, lowguid);

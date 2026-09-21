@@ -334,13 +334,23 @@ void WorldGateway::TracePacket(proto::SessionId session, const WorldPacket& pack
 void WorldGateway::Deliver(proto::SessionId session, WorldPacket&& packet)
 {
     // WorldSocket.cpp:864-868: opcodes outside the known table were rejected
-    // at the transport. proto cannot do that check -- NUM_MSG_TYPES is game
+    // at the transport. proto cannot do that check -- the dispatch table is game
     // knowledge it must not link -- so it happens here instead, on the one
     // path proto can no longer bypass.
-    if (uint16(packet.GetOpcode()) >= NUM_MSG_TYPES)
+    //
+    // It asks the table now, not just its size. The old bound was NUM_MSG_TYPES,
+    // which is 0xFFFF, so it refused exactly one uint16 out of 65536 and let every
+    // other invented opcode buy a heap packet, three mutexes and a thread hop before
+    // WorldSession::Update dropped it as unhandled. With an unbounded mailbox on the
+    // other end that was free amplification from a single client.
+    //
+    // Deliberately quiet: a flood must not become a second denial of service against
+    // the log file. What makes flooding visible and actionable is the mailbox cap,
+    // which ends the session rather than describing each packet of it.
+    if (!IsKnownOpcode(uint16(packet.GetOpcode())))
     {
-        sLog.outError("WorldGateway: received nonexistent opcode 0x%.4X",
-                      packet.GetOpcode());
+        DEBUG_LOG("WorldGateway: refused unknown opcode 0x%.4X at the gateway",
+                  packet.GetOpcode());
         return;
     }
 

@@ -791,10 +791,9 @@ bool ScriptedAI::EnterEvadeIfOutOfCombatArea(const uint32 uiDiff)
             break;
         case NPC_TALON_KING_IKISS:
         {
-            float fX, fY, fZ;
+            float fX, fY;
             fX = m_creature->Spawn().X();
             fY = m_creature->Spawn().Y();
-            fZ = m_creature->Spawn().Z();
             if (m_creature->Where().DistanceTo(Geometry::Vector2(fX, fY)) < 70.0f)
             {
                 return false;

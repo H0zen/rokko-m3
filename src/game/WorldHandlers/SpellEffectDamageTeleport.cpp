@@ -765,7 +765,7 @@ void Spell::EffectClearQuest(SpellEffectEntry const* effect)
     player->getQuestStatusMap()[quest_id].m_rewarded = false;
 }
 
-void Spell::EffectForceCast(SpellEffectEntry const* effect)
+void Spell::EffectForceCast(SpellEffectEntry const* /*effect*/)
 {
     if (!unitTarget)
     {

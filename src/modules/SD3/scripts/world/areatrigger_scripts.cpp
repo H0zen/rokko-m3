@@ -496,7 +496,7 @@ struct at_ancient_leaf : public AreaTriggerScript
 {
     at_ancient_leaf() : AreaTriggerScript("at_ancient_leaf") {}
 
-    bool OnTrigger(Player* pPlayer, AreaTriggerEntry const* pAt) override
+    bool OnTrigger(Player* pPlayer, AreaTriggerEntry const* /*pAt*/) override
     {
         if (pPlayer->isGameMaster() || !pPlayer->IsAlive())
         {

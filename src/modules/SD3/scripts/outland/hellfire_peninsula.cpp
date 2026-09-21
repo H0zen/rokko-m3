@@ -972,7 +972,7 @@ struct spell_just_release_darkness : public SpellScript
 {
     spell_just_release_darkness() : SpellScript("spell_just_release_darkness") {}
 
-    bool EffectDummy(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
+    bool EffectDummy(Unit* /*pCaster*/, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Object* pTarget, ObjectGuid /*originalCasterGuid*/) override
     {
         // always check spellid and effectindex
         if (uiSpellId == SPELL_JULES_RELEASE_DARKNESS && uiEffIndex == EFFECT_INDEX_0 && pTarget->GetEntry() == NPC_COLONEL_JULES)

@@ -27,7 +27,7 @@
  * @file ObjectMgrAreaTrigger.cpp
  * @brief Cohesion split of ObjectMgr.cpp -- area-trigger teleport destinations
  *        plus go-back / map-entrance trigger lookups. Same `ObjectMgr` class;
- *        no behaviour change. CMake `file(GLOB Object/*.cpp)` picks this file
+ *        no behaviour change. CMake `file(GLOB) over Object/` picks this file
  *        up automatically; ObjectMgr.h is unchanged.
  */
 

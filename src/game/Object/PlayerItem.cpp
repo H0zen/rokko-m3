@@ -29,7 +29,7 @@
  *        inventory/bag/bank/equip placement queries, buyback, splits,
  *        durability, enchant + reforge lifecycle, and item-side client
  *        packet senders. Same `Player` class; no behaviour change.
- *        CMake `file(GLOB Object/*.cpp)` picks this file up automatically;
+ *        CMake `file(GLOB) over Object/` picks this file up automatically;
  *        Player.h is unchanged.
  */
 

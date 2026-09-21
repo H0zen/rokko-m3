@@ -603,11 +603,11 @@ struct npc_simon_game_bunny : public CreatureScript
                 }
 
                 // Get closest apexis
-                if (GameObject* pGo = GetClosestGameObjectWithEntry(m_creature, GO_APEXIS_RELIC, 5.0f))
+                if (GetClosestGameObjectWithEntry(m_creature, GO_APEXIS_RELIC, 5.0f))
                 {
                     m_bIsLargeEvent = false;
                 }
-                else if (GameObject* pGo = GetClosestGameObjectWithEntry(m_creature, GO_APEXIS_MONUMENT, 17.0f))
+                else if (GetClosestGameObjectWithEntry(m_creature, GO_APEXIS_MONUMENT, 17.0f))
                 {
                     m_bIsLargeEvent = true;
                 }
@@ -879,12 +879,13 @@ struct spell_simon_game_move : public SpellScript
 {
     spell_simon_game_move() : SpellScript("spell_simon_game_move") {}
 
-    bool EffectScriptEffect(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Creature* pCreatureTarget, ObjectGuid originalCasterGuid)
+    bool EffectScriptEffect(Unit* pCaster, uint32 uiSpellId, SpellEffectIndex uiEffIndex, Unit* pTarget, ObjectGuid originalCasterGuid) override
     {
         if ((uiSpellId == SPELL_INTROSPECTION_BLUE || uiSpellId == SPELL_INTROSPECTION_GREEN || uiSpellId == SPELL_INTROSPECTION_RED ||
             uiSpellId == SPELL_INTROSPECTION_YELLOW) && uiEffIndex == EFFECT_INDEX_1)
         {
-            if (pCreatureTarget->GetEntry() == NPC_SIMON_GAME_BUNNY && pCaster->GetTypeId() == TYPEID_PLAYER && originalCasterGuid.IsGameObject())
+            Creature* pCreatureTarget = pTarget ? pTarget->ToCreature() : NULL;
+            if (pCreatureTarget && pCreatureTarget->GetEntry() == NPC_SIMON_GAME_BUNNY && pCaster->GetTypeId() == TYPEID_PLAYER && originalCasterGuid.IsGameObject())
             {
                 pCreatureTarget->AI()->SendAIEvent(AI_EVENT_CUSTOM_C, pCaster, pCreatureTarget, uiSpellId);
             }

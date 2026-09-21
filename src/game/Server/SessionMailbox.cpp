@@ -41,9 +41,20 @@ bool SessionMailbox::Enqueue(std::unique_ptr<WorldPacket> packet)
     if (m_closed)
         return false;
 
+    if (m_queued >= kMaxQueuedPackets)
+    {
+        // Latch and refuse. The packet dies with the unique_ptr on return; the session
+        // notices the latch on its own thread and disconnects the client, because a
+        // client this far ahead of the server is either broken or hostile and in both
+        // cases the conversation is already lost.
+        m_overflowed = true;
+        return false;
+    }
+
     WorldPacket* accepted = packet.get();
     m_packets.add(accepted);
     (void)packet.release();
+    ++m_queued;
     return true;
 }
 
@@ -52,7 +63,12 @@ bool SessionMailbox::Next(WorldPacket*& packet)
     std::lock_guard<std::mutex> guard(m_stateLock);
     if (m_closed)
         return false;
-    return m_packets.next(packet);
+    if (!m_packets.next(packet))
+    {
+        return false;
+    }
+    --m_queued;
+    return true;
 }
 
 void SessionMailbox::Close()
@@ -67,10 +83,19 @@ void SessionMailbox::Close()
     WorldPacket* packet = nullptr;
     while (m_packets.next(packet))
         delete packet;
+
+    std::lock_guard<std::mutex> guard(m_stateLock);
+    m_queued = 0;
 }
 
 bool SessionMailbox::IsClosed() const
 {
     std::lock_guard<std::mutex> guard(m_stateLock);
     return m_closed;
+}
+
+bool SessionMailbox::Overflowed() const
+{
+    std::lock_guard<std::mutex> guard(m_stateLock);
+    return m_overflowed;
 }

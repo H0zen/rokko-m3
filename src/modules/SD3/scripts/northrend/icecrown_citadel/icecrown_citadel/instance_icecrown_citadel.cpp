@@ -93,11 +93,11 @@ struct is_icecrown_citadel : public InstanceScript
             instance_icecrown_citadel(Map* pMap) : ScriptedInstance(pMap), DialogueHelper(aCitadelDialogue),
                 m_uiTeam(0),
                 m_uiPutricideValveTimer(0),
+                m_uiAreaTriggerId(0),
                 m_bHasMarrowgarIntroYelled(false),
                 m_bHasDeathwhisperIntroYelled(false),
                 m_bHasRimefangLanded(false),
-                m_bHasSpinestalkerLanded(false),
-                m_uiAreaTriggerId(0)
+                m_bHasSpinestalkerLanded(false)
             {
                 m_bIsLeftSideSummon = roll_chance_i(50);
                 Initialize();
@@ -525,7 +525,7 @@ struct is_icecrown_citadel : public InstanceScript
                 OUT_LOAD_INST_DATA_COMPLETE;
             }
 
-            bool CheckAchievementCriteriaMeet(uint32 uiCriteriaId, Player const* pSource, Unit const* pTarget = nullptr, uint32 uiMiscvalue1 = 0) const override
+            bool CheckAchievementCriteriaMeet(uint32 /*uiCriteriaId*/, Player const* /*pSource*/, Unit const* /*pTarget*/ = nullptr, uint32 /*uiMiscvalue1*/ = 0) const override
             {
                 // @ToDo:
                 return false;

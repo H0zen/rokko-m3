@@ -79,8 +79,8 @@ struct npc_tapoke_slim_jahn : public CreatureScript
 
     struct npc_tapoke_slim_jahnAI : public npc_escortAI, private DialogueHelper
     {
-        npc_tapoke_slim_jahnAI(Creature* pCreature) : m_bFriendSummoned(false), m_bEventComplete(false),
-            friendGUID(ObjectGuid()), npc_escortAI(pCreature), DialogueHelper(aDiplomatDialogue)
+        npc_tapoke_slim_jahnAI(Creature* pCreature) : npc_escortAI(pCreature), DialogueHelper(aDiplomatDialogue),
+            friendGUID(ObjectGuid()), m_bFriendSummoned(false), m_bEventComplete(false)
         {
         }
 

@@ -27,7 +27,7 @@
  * @file PlayerItemStorage.cpp
  * @brief Cohesion split of PlayerItem.cpp -- store/equip/move/destroy/split/swap, buyback, and item error senders.
  *        Same `Player` class; no behaviour change. CMake
- *        `file(GLOB Object/*.cpp)` picks this file up automatically;
+ *        `file(GLOB) over Object/` picks this file up automatically;
  *        Player.h is unchanged.
  */
 

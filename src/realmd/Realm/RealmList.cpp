@@ -136,7 +136,7 @@ void RealmList::UpdateRealm(
     RealmAddress const& address,
     RealmAddress const& localAddr,
     RealmAddress const& localSubmask,
-    uint32 port,
+    uint32 /*port*/,
     uint8 icon,
     RealmFlags realmflags,
     uint8 timezone,

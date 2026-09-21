@@ -171,7 +171,7 @@ struct boss_noth : public CreatureScript
             }
         }
 
-        void SpellHit(Unit* pCaster, const SpellEntry* pSpell) override
+        void SpellHit(Unit* /*pCaster*/, const SpellEntry* pSpell) override
         {
             if (SpellEffectEntry const* pSpellEffect = pSpell->GetSpellEffect(EFFECT_INDEX_0))
             {

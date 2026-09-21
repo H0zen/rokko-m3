@@ -268,7 +268,11 @@ void Player::Regenerate(Powers power, uint32 diff)
 
                 if (cd)
                 {
-                    SetRuneCooldown(rune, (cd < cd_diff) ? 0 : cd - cd_diff);
+                    // runeToRegen, not rune: the block above picks which rune of the pair is
+                    // actually coming off cooldown -- the second one when it is closer to ready --
+                    // and took `cd` from it. Writing back to `rune` credited the wrong rune of the
+                    // pair with the other one's remaining cooldown.
+                    SetRuneCooldown(runeToRegen, (cd < cd_diff) ? 0 : cd - cd_diff);
                 }
             }
             break;

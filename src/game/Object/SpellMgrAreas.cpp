@@ -28,7 +28,7 @@
  * @brief Cohesion split of SpellMgr.cpp -- spell-area requirement and skill-line / skill-race-
  *        class map loaders.
  *        Same `SpellMgr` class; no behaviour change. CMake
- *        `file(GLOB Object/*.cpp)` picks this file up automatically;
+ *        `file(GLOB) over Object/` picks this file up automatically;
  *        SpellMgr.h is unchanged.
  */
 

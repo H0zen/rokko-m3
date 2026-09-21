@@ -245,7 +245,7 @@ struct boss_skadi : public CreatureScript
             }
         }
 
-        void ReceiveAIEvent(AIEventType eventType, Creature* sender, Unit* invoker, uint32 /**/) override
+        void ReceiveAIEvent(AIEventType eventType, Creature* sender, Unit* /*invoker*/, uint32 /**/) override
         {
             if (eventType != AI_EVENT_CUSTOM_A && sender != m_creature)
             {

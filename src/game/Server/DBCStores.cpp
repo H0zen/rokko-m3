@@ -312,6 +312,10 @@ int ReadDBCLocale(const std::string sDataPath)
         sFilename  = sDBCpath + "component.wow-" + fullLocaleNameList[uLocaleIndex].name + ".txt";
         if (FILE* file = fopen(sFilename.c_str(), "rb"))
         {
+            // The handle was never closed: this probe opened one file per locale and returned
+            // straight out of the if, leaking every one of them.
+            fclose(file);
+
             if (uLocaleIndex==0)
             {
                 uLocaleIndex=1;  // Map enus and engb to 0
@@ -749,7 +753,7 @@ void LoadDBCStores(const std::string& dataPath)
                 case SPELL_AURA_PERIODIC_MANA_LEECH:
                 case SPELL_AURA_PERIODIC_ENERGIZE:
                 case SPELL_AURA_POWER_BURN_MANA:
-                    MANGOS_ASSERT(spellEffect->EffectMiscValue_0 >= 0 && spellEffect->EffectMiscValue_0 < MAX_POWERS);
+                    MANGOS_ASSERT(spellEffect->EffectMiscValue_0 >= 0 && spellEffect->EffectMiscValue_0 < int32(MAX_POWERS));
                     break;
             }
 

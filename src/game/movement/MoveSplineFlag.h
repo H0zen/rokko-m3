@@ -115,6 +115,14 @@ namespace Movement
              * @param f The MoveSplineFlag to copy.
              */
             MoveSplineFlag(const MoveSplineFlag& f) { raw() = f.raw(); }
+            /**
+             * @brief Copy assignment, mirroring the copy constructor exactly.
+             *
+             * Spelled out because a user-provided copy constructor makes the implicit copy
+             * assignment deprecated. It assigns the raw word rather than the bit-fields, so
+             * the two stay bit-identical.
+             */
+            MoveSplineFlag& operator=(const MoveSplineFlag& f) { raw() = f.raw(); return *this; }
 
             // Constant interface
 

@@ -27,7 +27,7 @@
  * @file PlayerItemQuery.cpp
  * @brief Cohesion split of PlayerItem.cpp -- inventory/equip slot lookup + item-count accessors.
  *        Same `Player` class; no behaviour change. CMake
- *        `file(GLOB Object/*.cpp)` picks this file up automatically;
+ *        `file(GLOB) over Object/` picks this file up automatically;
  *        Player.h is unchanged.
  */
 

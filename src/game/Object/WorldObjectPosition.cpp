@@ -54,7 +54,7 @@
 
 /**
  * @file WorldObjectPosition.cpp
- * @brief Cohesion split of Object.cpp -- WorldObject lifecycle and geometry: relocation, zone/area lookup, distance/range/angle math, line-of-sight and position validation. Same WorldObject class; no behaviour change. CMake file(GLOB Object/*.cpp) picks this file up automatically; Object.h is unchanged.
+ * @brief Cohesion split of Object.cpp -- WorldObject lifecycle and geometry: relocation, zone/area lookup, distance/range/angle math, line-of-sight and position validation. Same WorldObject class; no behaviour change. CMake file(GLOB) over Object/ picks this file up automatically; Object.h is unchanged.
  */
 
 /**

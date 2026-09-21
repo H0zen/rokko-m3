@@ -74,7 +74,7 @@ struct is_mount_hyjal : public InstanceScript
                 return false;
             }
 
-            void OnPlayerEnter(Player* pPlayer) override
+            void OnPlayerEnter(Player* /*pPlayer*/) override
             {
                 if (GetData(TYPE_AZGALOR) == DONE)
                 {

@@ -279,10 +279,9 @@ struct boss_hydross_the_unstable : public CreatureScript
                 // Change to clean
                 if (m_uiPosCheckTimer < uiDiff)
                 {
-                    float fPosX, fPosY, fPosZ;
+                    float fPosX, fPosY;
                     fPosX = m_creature->CombatAnchor().x;
                     fPosY = m_creature->CombatAnchor().y;
-                    fPosZ = m_creature->CombatAnchor().z;
 
                     if (m_creature->Where().WithinDist(Geometry::Vector2(fPosX, fPosY), SWITCH_RADIUS))
                     {
@@ -330,10 +329,9 @@ struct boss_hydross_the_unstable : public CreatureScript
                 // Change to corrupt
                 if (m_uiPosCheckTimer < uiDiff)
                 {
-                    float fPosX, fPosY, fPosZ;
+                    float fPosX, fPosY;
                     fPosX = m_creature->CombatAnchor().x;
                     fPosY = m_creature->CombatAnchor().y;
-                    fPosZ = m_creature->CombatAnchor().z;
 
                     if (!m_creature->Where().WithinDist(Geometry::Vector2(fPosX, fPosY), SWITCH_RADIUS))
                     {

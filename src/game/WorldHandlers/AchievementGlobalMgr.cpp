@@ -25,7 +25,7 @@
  * @file AchievementGlobalMgr.cpp
  * @brief Cohesion split of AchievementMgr.cpp -- the AchievementGlobalMgr registry/loaders (criteria/reference/requirement/reward/completed loaders + accessors).
  *
- * Same classes; no behaviour change. CMake file(GLOB WorldHandlers/*.cpp)
+ * Same classes; no behaviour change. CMake file(GLOB) over WorldHandlers/
  * picks this file up automatically; AchievementMgr.h is unchanged.
  */
 

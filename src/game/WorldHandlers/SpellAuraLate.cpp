@@ -120,7 +120,7 @@ void Aura::HandleAuraSetVehicleId(bool apply, bool Real)
     GetTarget()->SetVehicleId(apply ? GetMiscValue() : 0, 0);
 }
 
-void Aura::HandleAuraMastery(bool apply, bool Real)
+void Aura::HandleAuraMastery(bool /*apply*/, bool /*Real*/)
 {
     Unit* target = GetTarget();
     if (target->GetTypeId() != TYPEID_PLAYER)
@@ -131,7 +131,7 @@ void Aura::HandleAuraMastery(bool apply, bool Real)
     ((Player*)target)->UpdateMasteryAuras();
 }
 
-void Aura::HandleAuraModBlockCritChance(bool apply, bool Real)
+void Aura::HandleAuraModBlockCritChance(bool apply, bool /*Real*/)
 {
     if (GetTarget()->GetTypeId() == TYPEID_PLAYER)
     {

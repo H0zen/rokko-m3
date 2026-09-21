@@ -106,6 +106,22 @@ inline const char* LookupOpcodeName(uint16 id)
     }
     return opcodeTable[id].name;
 }
+
+/**
+ * Whether this server has a handler entry for @p id at all.
+ *
+ * The bound alone is not a filter. NUM_MSG_TYPES is 0xFFFF, so `id >= NUM_MSG_TYPES`
+ * is true for exactly one uint16 value: it keeps the array access in range and rejects
+ * one opcode in 65536. Everything else the client cares to invent used to be allocated
+ * on the heap, pushed through three mutexes and a thread hop, and only then dropped as
+ * STATUS_UNHANDLED in WorldSession::Update. The real opcode space is far smaller --
+ * 1384 constants in Opcodes.h, the largest 0x7DB4 -- so the table itself is the filter,
+ * and asking it at the gateway drops the same packets for the same reason, earlier.
+ */
+inline bool IsKnownOpcode(uint16 id)
+{
+    return id < NUM_MSG_TYPES && opcodeTable[id].status != STATUS_UNHANDLED;
+}
 #endif
 
 /**

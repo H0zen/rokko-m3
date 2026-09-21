@@ -587,7 +587,7 @@ struct npc_artorius_the_doombringer : public CreatureScript
 
     struct npc_artorius_the_doombringerAI : public ScriptedAI
     {
-        npc_artorius_the_doombringerAI(Creature* pCreature) : ScriptedAI(pCreature), m_uiDespawn_Timer(0), m_bTransform(false)
+        npc_artorius_the_doombringerAI(Creature* pCreature) : ScriptedAI(pCreature), m_bTransform(false), m_uiDespawn_Timer(0)
         {
             Reset();
         }

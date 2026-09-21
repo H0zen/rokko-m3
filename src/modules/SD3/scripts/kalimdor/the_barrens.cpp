@@ -1415,7 +1415,7 @@ struct warlord_kromzar : public CreatureScript
 
         void Reset() {}
 
-        void WaypointReached(uint32 uiPointId)
+        void WaypointReached(uint32 /*uiPointId*/)
         {
 
         }
@@ -1433,7 +1433,7 @@ struct warlord_kromzar : public CreatureScript
             Start(false, nullptr, nullptr, false, true);
         }
 
-        void UpdateEscortAI(const uint32 uiDiff) override
+        void UpdateEscortAI(const uint32 /*uiDiff*/) override
         {
             if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             {

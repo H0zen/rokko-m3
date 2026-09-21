@@ -560,7 +560,7 @@ struct npc_klinfran_the_crazed : public CreatureScript
 
     struct npc_klinfran_the_crazedAI : public ScriptedAI
     {
-        npc_klinfran_the_crazedAI(Creature* pCreature) : ScriptedAI(pCreature), m_uiDespawn_Timer(0), m_bTransform(false)
+        npc_klinfran_the_crazedAI(Creature* pCreature) : ScriptedAI(pCreature), m_bTransform(false), m_uiDespawn_Timer(0)
         {
             Reset();
         }

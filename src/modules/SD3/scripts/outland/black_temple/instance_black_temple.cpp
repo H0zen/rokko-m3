@@ -76,7 +76,7 @@ struct is_black_temple : public InstanceScript
                 return false;
             }
 
-            void OnPlayerEnter(Player* pPlayer) override
+            void OnPlayerEnter(Player* /*pPlayer*/) override
             {
                 DoSpawnAkamaIfCan();
             }

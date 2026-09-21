@@ -2639,7 +2639,7 @@ SpellCastResult Spell::CheckItems()
                 // Mana Potion, Rage Potion, Thistle Tea(Rogue), ...
                 if (spellEffect->Effect == SPELL_EFFECT_ENERGIZE)
                 {
-                    if (spellEffect->EffectMiscValue_0 < 0 || spellEffect->EffectMiscValue_0 >= MAX_POWERS)
+                    if (spellEffect->EffectMiscValue_0 < 0 || spellEffect->EffectMiscValue_0 >= int32(MAX_POWERS))
                     {
                         failReason = SPELL_FAILED_ALREADY_AT_FULL_POWER;
                         continue;
