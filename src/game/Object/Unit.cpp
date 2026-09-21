@@ -29,6 +29,7 @@
 #include <list>
 #include "Utilities/MathDefines.h"
 #include "Unit.h"
+#include "Move/ClientRules.h"
 #include "Log.h"
 #include "OpcodeTable.h"
 #include "WorldPacket.h"
@@ -6568,8 +6569,11 @@ void Unit::KnockBackWithAngle(float angle, float horizontalSpeed, float vertical
     {
         float vsin = sin(angle);
         float vcos = cos(angle);
-        float moveTimeHalf = verticalSpeed / Movement::gravity;
-        float max_height = -Movement::computeFallElevation(moveTimeHalf, false, -verticalSpeed);
+        // Half the flight: up to the apex. The client draws the arc itself from its own
+        // gravity (19.291105 yd/s^2, read out of Wow.exe 15595), so the server measures the
+        // apex with the same number or the two draw different parabolas.
+        const float moveTimeHalf = verticalSpeed / Move::Client::GRAVITY;
+        const float max_height = Move::Client::ApexHeight(verticalSpeed);
 
         float dis = 2 * moveTimeHalf * horizontalSpeed;
         float ox, oy, oz;

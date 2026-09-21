@@ -163,6 +163,20 @@ namespace Move
             return length;
         }
 
+        /// The client's own gravity, in yards per second squared, as it appears in the fall
+        /// arithmetic of Wow.exe 15595. A server that uses a different one draws a parabola
+        /// the client will not draw: it computes the arc itself from this number and the
+        /// vertical acceleration in the packet.
+        const float GRAVITY = 19.291105f;
+
+        /// The apex of a ballistic arc launched straight up at `verticalSpeed`. What a
+        /// knockback has to tell the client, since the height is not on the wire -- the
+        /// acceleration and the duration are, and the client derives the rest.
+        inline float ApexHeight(float verticalSpeed)
+        {
+            return (verticalSpeed * verticalSpeed) / (2.0f * GRAVITY);
+        }
+
         /// Granularity of a packed path point on the wire. ByteBuffer::appendPackXYZ
         /// stores each axis as `(int)(offset / 0.25f)` -- truncated, not rounded -- so
         /// everything inside one quarter-yard bucket arrives as the same coordinate.
