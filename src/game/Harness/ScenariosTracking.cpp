@@ -29,6 +29,7 @@
 #include "CreatureAI.h"
 #include "MotionMaster.h"
 #include "BehaviourModel.h"   // Motion::RelayCounts by value: MotionMaster.h only forward-declares it
+#include "TrackingMoves.h"    // Motion::CHASE_LEAD_MS: noOrbit takes its bearings from the chase's own aim centre
 #include "movement/MoveSpline.h"
 #include "World.h"        // the TargetPosRecalculateRange the follow's drift edge is built on
 #include "Utilities/MathDefines.h"
@@ -194,6 +195,30 @@ namespace Harness
                      standing, recalc, recalcRange, floorTerm, cadence, tick);
             terms = buf;
             return standing + recalc + floorTerm + cadence + tick;
+        }
+
+        /// Where a chase tracking `target` is aiming right now: the target's own position, led by
+        /// Motion::CHASE_LEAD_MS of its velocity whenever the shell would trust that velocity.
+        /// This mirrors ChaseBehaviour::AimCentre off the same constant, and the trust rule off
+        /// the same four spline facts NativeBehaviour hands the kernel (TargetKinematics.cpp: a
+        /// running, LINEAR, non-cyclic, non-airborne spline with a speed). It exists so a
+        /// scenario measuring where the chase AIMS takes its bearings from the point the kernel
+        /// actually used -- see noOrbit below, which read the target's live position until the
+        /// lead became the aim and that stopped being the same thing.
+        Pt AimCentreHere(Creature* target)
+        {
+            Pt c = { target->Where().X(), target->Where().Y(), target->Where().Z() };
+            if (target->movespline->Finalized()) { return c; }
+            if (target->movespline->isSmooth() || target->movespline->isCyclic() || target->movespline->Airborne()) { return c; }
+            const float speed = target->movespline->Velocity();
+            if (speed <= 0.0f) { return c; }
+            const Movement::Vector3 to = target->movespline->CurrentDestination();
+            const float dx = to.x - c.x, dy = to.y - c.y, dz = to.z - c.z;
+            const float n = std::sqrt((dx * dx) + (dy * dy) + (dz * dz));
+            if (n < 0.01f) { return c; }
+            const float ahead = speed * (float(Motion::CHASE_LEAD_MS) / 1000.0f) / n;
+            c.x += dx * ahead; c.y += dy * ahead; c.z += dz * ahead;
+            return c;
         }
 
         /// A point on the circle of `radius` around `centre`, at octant `idx` of eight.
@@ -477,13 +502,26 @@ namespace Harness
 
                         // noOrbit: orbiting is a chase that walks AROUND its target to reach a spot
                         // on the far side, so the spot is what is read -- every freshly laid leg's
-                        // goal, against the line from the target to where the chaser already stands.
-                        // A head-on chase (TrackingBehaviour::Bearing for angle 0 is
-                        // AngleFromTo(centre, mover): approach from where the mover already is) puts
-                        // it at ~0 deg; a chase that derived its spot from the target's FACING
-                        // instead would send it round the far side, which is the bug. The winding and
-                        // the ground below are reported beside it but cannot be the gate -- see the
-                        // verdict's comment.
+                        // goal, against the line from the chase's own AIM CENTRE to where the
+                        // chaser already stands. A head-on chase (TrackingBehaviour::Bearing for
+                        // angle 0 is AngleFromTo(centre, mover): approach from where the mover
+                        // already is) puts it at ~0 deg; a chase that derived its spot from the
+                        // target's FACING instead would send it round the far side, which is the
+                        // bug this catches. The winding and the ground below are reported beside it
+                        // but cannot be the gate -- see the verdict's comment.
+                        //
+                        // THE VERTEX IS THE AIM CENTRE, NOT THE TARGET, and it used to be able to
+                        // be both. The chase now leads a trusted velocity by Motion::CHASE_LEAD_MS
+                        // (ChaseBehaviour::AimCentre), so on this 7 yd ring the centre sits 3.5 yd
+                        // around it from the kobold at run speed -- a quarter turn. Taking the
+                        // bearings from the kobold's live position instead scored that lead as a
+                        // 168 deg walk-around and read BUG, which is the measurement drifting from
+                        // what it means and not the chase orbiting: over the same phase the chaser
+                        // covered 56.9 yd against 52.3 with the aim un-led, its gap peaked LOWER
+                        // (10.09 against 11.17) and the purpose-built 12 yd ring, order 71, reports
+                        // zero legs laid outside it. AimCentreHere mirrors the shell's own inputs
+                        // (NativeBehaviour's TargetMotionInput, TargetKinematics' trust rule) so
+                        // the two stay one constant apart rather than one literal apart.
                         if (st->phase == 5)
                         {
                             const uint32 total = rc ? rc->Total() : 0;
@@ -498,8 +536,9 @@ namespace Harness
                             if (fresh && !w->movespline->Finalized())
                             {
                                 const Movement::Vector3 goal = w->movespline->FinalDestination();
-                                const float toGoal = Bearing(k->Where().X(), k->Where().Y(), goal.x, goal.y);
-                                const float toChaser = Bearing(k->Where().X(), k->Where().Y(), w->Where().X(), w->Where().Y());
+                                const Pt centre = AimCentreHere(k);
+                                const float toGoal = Bearing(centre.x, centre.y, goal.x, goal.y);
+                                const float toChaser = Bearing(centre.x, centre.y, w->Where().X(), w->Where().Y());
                                 const float off = AngleDiff(toGoal, toChaser);
                                 st->sideWorst = std::max(st->sideWorst, off);
                                 ++st->sideChecks;

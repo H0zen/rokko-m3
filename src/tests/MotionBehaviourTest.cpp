@@ -1728,9 +1728,9 @@ namespace
     }
 
     /// A chase of unit 42 at no offset, head-on, its drift re-checked every second.
-    ChaseBehaviour::ChaseParams Chasing(uint64 target = 42)
+    ChaseBehaviour::Params Chasing(uint64 target = 42)
     {
-        ChaseBehaviour::ChaseParams p;
+        ChaseBehaviour::Params p;
         p.target = target;
         p.offset = 0.0f;
         p.angle = 0.0f;
@@ -2047,34 +2047,26 @@ TEST(MotionBehaviour_ChaseEngagesOnEveryIdleTick)
     CHECK_EQ(b.Relays()->Total(), 1u);
 }
 
-TEST(MotionBehaviour_ChaseLeadIsAnExperiment)
+TEST(MotionBehaviour_ChaseAlwaysLeadsATrustedVelocityAndNeverAnUntrustedOne)
 {
+    // The lead is the aim, not an option: there is no parameter to set here and no config
+    // behind it any more (CHASE_LEAD_MS, TrackingMoves.cpp). It applies on a trusted velocity
+    // and only on a trusted one -- a smooth, cyclic, ballistic or falling target still gets
+    // retail's live-position aim, because a velocity nobody trusts cannot be extrapolated.
     Sight running = Tracked();
     running.target.velocity = Vector3(7.0f, 0.0f, 0.0f);
-    running.target.velocityTrusted = true;
     {
         FakeServices svc;
-        ChaseBehaviour b(Chasing());                        // the lead is off by default
-        b.Activate(running, svc);
-        b.Tick(running, svc, 100);
-        CHECK(Close(svc.spotCenter, Vector3(10.0f, 0.0f, 0.0f)));   // retail's aim: the live position
-    }
-    {
-        FakeServices svc;
-        ChaseBehaviour::ChaseParams p = Chasing();
-        p.lead = true;
-        p.leadMs = 500;
-        ChaseBehaviour b(p);
-        b.Activate(running, svc);
-        b.Tick(running, svc, 100);
+        ChaseBehaviour b(Chasing());
+        Sight trusted = running;
+        trusted.target.velocityTrusted = true;
+        b.Activate(trusted, svc);
+        b.Tick(trusted, svc, 100);
         CHECK(Close(svc.spotCenter, Vector3(13.5f, 0.0f, 0.0f)));   // 7 yd/s for half a second
     }
     {
         FakeServices svc;
-        ChaseBehaviour::ChaseParams p = Chasing();
-        p.lead = true;
-        p.leadMs = 500;
-        ChaseBehaviour b(p);
+        ChaseBehaviour b(Chasing());
         Sight untrusted = running;
         untrusted.target.velocityTrusted = false;
         b.Activate(untrusted, svc);
@@ -2227,7 +2219,7 @@ TEST(MotionBehaviour_FollowWalksWithItsLeaderAndAPetForcesTheDestination)
 TEST(MotionBehaviour_ChaseAtAnAngleAimsOffItsVictimsFacingAndBakesNoFacing)
 {
     FakeServices svc;
-    ChaseBehaviour::ChaseParams p = Chasing();
+    ChaseBehaviour::Params p = Chasing();
     p.angle = 0.5f;                                 // a flanking chase: a tank's add, a pet on a side
     ChaseBehaviour b(p);
     Sight s = Tracked();

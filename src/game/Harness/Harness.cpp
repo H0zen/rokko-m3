@@ -60,6 +60,7 @@ namespace Harness
     void RegisterDefaultScenarios(Runner& r);
     void RegisterTrackingScenarios(Runner& r);
     void RegisterControlScenarios(Runner& r);
+    void RegisterChaseMovingScenarios(Runner& r);
     void RegisterTaxiScenarios(Runner& r);
 
     namespace
@@ -87,7 +88,11 @@ namespace Harness
         // that waits under a root (P5-B family 3 Task 5). The control family
         // (RegisterControlScenarios) is orders 54-58: the flee's first bolt and its rest,
         // the stagger's envelope and gait, a corpse as a fright, a refreshed aura restarting
-        // the flee, and the stagger in the air (P5-B family 4 Task 5).
+        // the flee, and the stagger in the air (P5-B family 4 Task 5). The chase-moving family
+        // (RegisterChaseMovingScenarios) is orders 68-71: the chase against a target that
+        // really runs -- a steady run, a dead stop, a mid-leg 180, a 12 yd ring -- which is the
+        // net order 48 does not have, since it moves its target by teleport steps and walks it
+        // through the window its budget is read on. They are what decided the predictive aim.
         RegisterJumpScenarios(*this);
         RegisterPointScenarios(*this);
         RegisterHomeScenarios(*this);
@@ -101,6 +106,7 @@ namespace Harness
         RegisterDefaultScenarios(*this);
         RegisterTrackingScenarios(*this);
         RegisterControlScenarios(*this);
+        RegisterChaseMovingScenarios(*this);
         // The taxi-contract family (RegisterTaxiScenarios) is orders 908-911, at the tail of
         // the player block: the death that clears a flight, the resume decided by the landing
         // time, the stops retail sends at the two control changes, and the 4.2.0 pet rule.

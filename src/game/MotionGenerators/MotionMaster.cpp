@@ -968,13 +968,11 @@ void MotionMaster::MoveChase(Unit* target, float dist, float angle)
         return;
     }
     DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s chase to %s", m_owner->GetGuidStr().c_str(), target->GetGuidStr().c_str());
-    Motion::ChaseBehaviour::ChaseParams p;
+    Motion::ChaseBehaviour::Params p;
     p.target = target->GetObjectGuid().GetRawValue();   // resolved per tick; never a stored pointer (design v2 §3.2)
     p.offset = dist;
     p.angle = angle;
     p.routineMs = 1000;   // retail's observed ~1 Hz drift re-check, in place of the generator's 100 ms poll
-    p.lead = sWorld.getConfig(CONFIG_BOOL_MOVEMENT_CHASE_LEAD);   // the experiment (Movement.ChaseLead), off by default
-    p.leadMs = 500;
     Request(R(Motion::Kind::Chase), std::unique_ptr<Motion::Behaviour>(new Motion::ChaseBehaviour(p)));
 }
 

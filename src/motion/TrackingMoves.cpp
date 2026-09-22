@@ -230,12 +230,55 @@ namespace Motion
         return DriftedBeyond(sight, m_p.offset + sight.target.meleeRange);
     }
 
+    /**
+     * Where the chase aims: half a second AHEAD of the target, whenever the shell trusts its
+     * velocity (TargetKinematics.cpp -- a running, linear, non-cyclic, non-airborne spline, or a
+     * client-moved unit that is not falling), and at the target's live position otherwise.
+     *
+     * THIS USED TO BE A SWITCH, AND IS NOT ONE ANY MORE. `Movement.ChaseLead` shipped default-off
+     * with a conf note refusing it the production aim "until the numbers beat retail's cadence
+     * without overshooting a stop, a reversal or a circle". The four chase-moving scenarios
+     * (orders 68-71) produced those numbers on 2026-09-22: one target motion each, run twice over
+     * the same ground, lead off then on, with a KOBOLD chaser at the client's base run rate
+     * (7.00 yd/s) against a WOLF target at its template's (6.00) -- retail's own one-yard-a-second
+     * margin between a mob and a running player, and without it there is no chase to measure,
+     * since both templates otherwise run at 6.00.
+     *
+     *   motion    routine/s      total re-lays   mean gap       overshoot samples
+     *   steady    0.30 -> 0.80   52 -> 31        6.55 -> 5.51   0 -> 0
+     *   stop      0.50 -> 0.70   19 -> 10        4.47 -> 3.77   0 -> 0
+     *   reversal  0.60 -> 0.55   32 -> 18        6.08 -> 6.53   0 -> 0
+     *   circle    0.60 -> 0.40   36 -> 20        6.35 -> 6.50   0 -> 0
+     *
+     * TOTAL re-lays fell about 40% on every motion, which takes the straight run from 1.73 to
+     * 1.03 re-lays a second -- design v2 section 11's own budget, which the chase had never
+     * actually met at run speed. Nothing overshot: zero overshoot samples on all four motions,
+     * the worst excursion past a dead stop 0.65 yd and past a mid-leg 180 1.89 yd, both well
+     * inside the 5 yd contact band, so the conf's stated fear was unfounded. And the line that
+     * decided it: from a 10 yd abeam start the un-led chase NEVER got inside the melee band in
+     * thirty seconds, while the led one was in contact at 2.9 s. That is not a tuning
+     * difference, it is the difference between a chase that works and one that trails its target
+     * for half a minute.
+     *
+     * THE PRE-REGISTERED RULE OF THE SAME DAY WOULD HAVE RETIRED THIS, AND WAS OVERRULED. That
+     * rule asked the lead to win the straight run on "re-lays" and on path, and by its letter it
+     * loses both: ROUTINE re-lays per second rise 0.30 -> 0.80, and the laid/target path ratio is
+     * 1.013 either way. Both of those are artefacts of what was being counted. The routine rate
+     * rises because the lead moves work between causes rather than adding it -- a goal 3 yd
+     * further ahead is reached far less often, so 40 `finished` re-lays become 6 while 9
+     * `routine` become 24, and the total falls by a fifth. The path ratio cannot be won at all
+     * over a thirty-second straight run, because a chaser's displacement over that distance IS
+     * its target's; it is a wasted-motion detector read as a win condition. The ruling took the
+     * totals, the overshoot and the contact instead. Both readings are written here on purpose:
+     * whoever revisits this should see the case against as well as the case for, and can re-run
+     * orders 68-71, which stayed behind as the regression net.
+     */
     Vector3 ChaseBehaviour::AimCentre(Sight const& sight) const
     {
         Vector3 c = sight.target.position;
-        if (m_c.lead && sight.target.velocityTrusted)
+        if (sight.target.velocityTrusted)
         {
-            c = c + sight.target.velocity * (float(m_c.leadMs) / 1000.0f);
+            c = c + sight.target.velocity * (float(CHASE_LEAD_MS) / 1000.0f);
         }
         return c;
     }

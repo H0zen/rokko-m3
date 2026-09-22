@@ -94,16 +94,22 @@ namespace Motion
             RelayCounts m_relays;             ///< every derive, by cause: the GM dump's numbers
     };
 
-    /// A creature closing on its victim (design §4.1): retail's band and cadence; the lead an experiment.
+    /// How far ahead of a trusted target velocity the chase aims, in milliseconds of it. Half a
+    /// second: the value the experiment carried, kept because it is the value that was measured.
+    /// ChaseBehaviour::AimCentre has every number behind it. Public because the aim centre is no
+    /// longer the target's own position, so anything measuring where the chase AIMS -- the
+    /// harness's chase-relay-budget, above all -- has to take its bearings from the same point
+    /// the kernel did, off one shared constant rather than a copied literal.
+    const uint32 CHASE_LEAD_MS = 500;
+
+    /// A creature closing on its victim (design §4.1): retail's band, retail's cadence, and a
+    /// predictive aim that is no longer optional -- the chase leads a trusted velocity by
+    /// CHASE_LEAD_MS, always. There is no switch: ChaseBehaviour::AimCentre carries the
+    /// measurement that settled it and the reason the flag went with it.
     class ChaseBehaviour : public TrackingBehaviour
     {
         public:
-            struct ChaseParams : Params
-            {
-                bool   lead = false;        ///< the experiment: aim ahead by leadMs of trusted velocity
-                uint32 leadMs = 500;        ///< how far ahead, in ms of that velocity
-            };
-            explicit ChaseBehaviour(ChaseParams const& p) : TrackingBehaviour(p), m_c(p) {}
+            explicit ChaseBehaviour(Params const& p) : TrackingBehaviour(p) {}
             Motion::Kind Kind() const override { return Motion::Kind::Chase; }
         protected:
             bool  UsesCombatMovement() const override { return true; }
@@ -117,8 +123,6 @@ namespace Motion
             void  OnActivate(Sight const& sight, Step& s) override;
             void  OnIdle(Sight const& sight, Step& s) override;
             void  OnSuspendOrFinish(std::vector<Effect>& effects) override;
-        private:
-            ChaseParams m_c;                ///< the chase's own fields, beside the shared Params
     };
 
     /// A follower trailing its leader (design §4.2): a bounded horizon, the leader's facing at rest.

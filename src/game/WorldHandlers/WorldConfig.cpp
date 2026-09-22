@@ -679,8 +679,6 @@ void World::LoadConfigSettings(bool reload)
 
     setConfig(CONFIG_BOOL_MOVEMENT_DECISION_RING, "Movement.DecisionRing", false);
 
-    setConfig(CONFIG_BOOL_MOVEMENT_CHASE_LEAD, "Movement.ChaseLead", false);
-
     setConfig(CONFIG_BOOL_MOVEMENT_WIRE_PARITY, "Movement.WireParity", false);
     WireParity::Enable(getConfig(CONFIG_BOOL_MOVEMENT_WIRE_PARITY));
     if (WireParity::Enabled())
