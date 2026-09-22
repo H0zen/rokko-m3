@@ -329,6 +329,18 @@ namespace Harness
             if (!sWaypointMgr.AddExternalNode(621, kHookPath, 2, -3152.6f, -261.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR hook node 2 not added"); }
             if (!sWaypointMgr.AddExternalNode(621, kHookPath, 3, -3152.6f, -231.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR hook node 3 not added"); }
             if (!sWaypointMgr.AddExternalNode(621, kHookPath, 4, -3122.6f, -231.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR hook node 4 not added"); }
+            // patrol-zero-length-legs (S67). A ONE-node path, the shape of creature_movement
+            // id 127332: its single node is the square's near corner, and the walker is
+            // teleported onto it, so the leg the patrol prepares for it covers exactly
+            // nothing -- no router involved, no snapping to depend on.
+            if (!sWaypointMgr.AddExternalNode(6271, kStandstillPath, 1, -3122.6f, -261.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR standstill node 1 not added"); }
+            // And a small four-node lap whose nodes 3 and 4 are the same point, as
+            // creature_movement ids 318624 and 236808 have theirs. Six-yard sides so a lap
+            // takes about eleven seconds at a critter's walk; node 4 waits 3 s.
+            if (!sWaypointMgr.AddExternalNode(6271, kCoincidentPath, 1, -3122.6f, -261.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR coincident node 1 not added"); }
+            if (!sWaypointMgr.AddExternalNode(6271, kCoincidentPath, 2, -3128.6f, -261.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR coincident node 2 not added"); }
+            if (!sWaypointMgr.AddExternalNode(6271, kCoincidentPath, 3, -3128.6f, -255.3f, 46.0f, 100.0f, 0)) { sLog.outString("MVTEST %s", "ERR coincident node 3 not added"); }
+            if (!sWaypointMgr.AddExternalNode(6271, kCoincidentPath, 4, -3128.6f, -255.3f, 46.0f, 100.0f, 3000)) { sLog.outString("MVTEST %s", "ERR coincident node 4 not added"); }
             pathAdded = true;
         }
         sLog.outString("MVTEST start: %u scenario(s) on map %u", uint32(m_queue.size()), kMapId);

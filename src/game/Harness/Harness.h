@@ -71,6 +71,23 @@ namespace Harness
     /// MOVE_START hook (SetNextWaypoint from inside the inform).
     static const int32 kHookPath = 254;
 
+    /// patrol-zero-length-legs' two degenerate paths, both of them shapes the world
+    /// database really holds. They are registered against entry 6271 rather than the
+    /// chicken, whose slots below 0xFF are full: AddExternalNode keys by
+    /// (entry << 8) + pathId, so the mouse's 252 and 253 are free.
+    ///
+    /// ONE node, at the point the walker is standing on: creature_movement id 127332
+    /// (entry 3296, an Orgrimmar Grunt) is exactly this, a single row, and it emitted
+    /// 2 427 zero-length SMSG_MONSTER_MOVEs in one unbroken run in the user's capture.
+    static const int32 kStandstillPath = 252;
+
+    /// Four nodes of which the last two are the SAME point -- creature_movement ids
+    /// 318624 (entry 51346) and 236808 (entry 42548), whose points 2 and 3 coincide, and
+    /// kMousePath's own 3 and 4. The coincident node waits 3 s here so that the leg laid
+    /// for it stays the newest spline across a whole sampling window; the world rows wait
+    /// 0, which changes when the next leg replaces it, not whether the leg is laid.
+    static const int32 kCoincidentPath = 253;
+
     /// A scenario still running after this much virtual time is abandoned, so
     /// MVTEST DONE always comes (long-follow needs about four).
     static const uint32 kScenarioMaxMs = 300000;

@@ -28,6 +28,7 @@
 #include "Creature.h"
 #include "MotionMaster.h"
 #include "WaypointManager.h"
+#include "movement/MoveSpline.h"
 #include "Log.h"
 
 #include <cstdio>
@@ -373,6 +374,183 @@ namespace Harness
 
             ObjectGuid m_walker;   ///< the walker this run spawned; the despawn hook acts on it alone
         };
+
+        /// S67: a leg to the ground the unit is already standing on.
+        ///
+        /// The user's capture (server-release/mvcapture.log) carries 9 364 of them: a spline
+        /// 1 ms long and 0.000 yd across, one SMSG_MONSTER_MOVE to every observer for a step
+        /// of nothing. They are not the fear's collapsing draw that #114 fixed -- 9 223 of the
+        /// 9 348 exactly-zero ones carry no final facing at all, and they cluster on units
+        /// whose DATABASE PATH is degenerate:
+        ///
+        ///   creature_movement 127332 (entry 3296)  ONE node, at its own spawn point: 2 427
+        ///                                          zero legs in an unbroken run, and nothing
+        ///                                          else on the wire from that guid, ever.
+        ///   creature_movement 318624 (entry 51346) points 2 and 3 the same coordinate: one
+        ///   creature_movement 236808 (entry 42548) zero leg per lap, between the two real
+        ///                                          ones and the one home again.
+        ///
+        /// The patrol is doing nothing wrong -- it walks the nodes it was given, and a node it
+        /// is already standing on is still a node, with its script, its emote and its wait.
+        /// What is wrong is putting a packet on the wire to say the unit is where it is. Over
+        /// the retail movement corpus (peer/retail-fear-movement-2026-09-20.md) retail ends a
+        /// move with a type-1 stop and otherwise sends NOTHING when there is nowhere to go; it
+        /// has no leg shorter than 2.62 yd anywhere in it.
+        ///
+        /// Both fixtures are the database shapes above, and both categories also check that
+        /// the patrol still WALKS: a fix that silences the wire by parking the walker would
+        /// pass the leg count and fail the node count.
+        class PatrolZeroLengthLegs : public Scenario
+        {
+        public:
+            PatrolZeroLengthLegs() : Scenario("patrol-zero-length-legs", 67) {}
+
+            void Prepare() override
+            {
+                /// A leg covering less than this moved the unit nowhere. Not a minimum leg
+                /// length: the legs in question are 0.000 yd, and the shortest thing the
+                /// kernel lays on purpose (a patrol node a yard off, the chase's last step)
+                /// is two orders of magnitude above it.
+                const float kNowhere = 0.05f;
+                const uint32 kStart = 300;
+                const uint32 kSamples = 300;          // 30 s at the 100 ms cadence: about 2.5 laps
+                const uint32 kVerdictAt = kStart + kSamples * 100 + 700;
+
+                /// One walker's leg tally. A launched spline takes a fresh id, so a new id at
+                /// a sample is a leg laid since the last one; its length is the wire's own
+                /// number, Duration() x Velocity().
+                struct Walk
+                {
+                    ObjectGuid guid;
+                    uint32 lastId;
+                    bool   haveId;
+                    uint32 legs;        ///< legs laid in the window
+                    uint32 nowhere;     ///< of those, ones that covered nothing
+                    uint32 logged;
+                    float  shortest;
+                    int32  shortestMs;
+                    std::vector<uint32> nodes;   ///< the node ids reached, in order, deduplicated
+                };
+
+                Creature* stand = Spawn(MOUSE_ENTRY, P0.x, P0.y, P0.z, 0.0f);
+                Creature* loop = Spawn(MOUSE_ENTRY, P0.x, P0.y, P0.z, 0.0f);
+                if (!stand || !loop)
+                {
+                    Verdict("standstillPath=INVALID(spawn failed) | coincidentNode=INVALID(spawn failed)");
+                    return;
+                }
+                auto ws = std::make_shared<Walk>();
+                auto wl = std::make_shared<Walk>();
+                for (auto const& w : { ws, wl })
+                {
+                    w->lastId = 0;
+                    w->haveId = false;
+                    w->legs = w->nowhere = w->logged = 0;
+                    w->shortest = 1.0e9f;
+                    w->shortestMs = 0;
+                }
+                ws->guid = stand->GetObjectGuid();
+                wl->guid = loop->GetObjectGuid();
+
+                At(kStart, [this, ws, wl]()
+                {
+                    Creature* s = Get(ws->guid); Creature* l = Get(wl->guid); if (!s || !l) { return; }
+                    // Exactly on the one node, so the leg the patrol prepares for it is a
+                    // leg to the unit's own feet however the router answers.
+                    s->NearTeleportTo(P0.x, P0.y, P0.z, 0.0f);
+                    s->GetMotionMaster()->MoveWaypoint(kStandstillPath, PATH_FROM_EXTERNAL);
+                    // The lap walker starts at node 1 too, but its coincident pair is nodes
+                    // 3 and 4, which it reaches by walking.
+                    l->GetMotionMaster()->MoveWaypoint(kCoincidentPath, PATH_FROM_EXTERNAL);
+                    Log("standstill walker on its single node at %.1f %.1f, mt=%s; lap walker on the coincident square, mt=%s",
+                        P0.x, P0.y, TypeName(s), TypeName(l));
+                });
+
+                for (uint32 i = 1; i <= kSamples; ++i)
+                {
+                    At(kStart + i * 100, [this, ws, wl, i, kNowhere]()
+                    {
+                        Sample(ws, "standstill", i * 100, kNowhere);
+                        Sample(wl, "lap", i * 100, kNowhere);
+                    });
+                }
+
+                At(kVerdictAt, [this, ws, wl, kNowhere, kSamples]()
+                {
+                    char one[340], lap[340];
+                    // The standstill path: one node under the walker's feet. Every leg it lays
+                    // is a leg to nowhere, so the honest reading is the leg count itself.
+                    if (ws->nowhere)
+                    {
+                        snprintf(one, sizeof(one),
+                                 "BUG(%u legs in %u s on a ONE-node path the walker is standing on, %u of them covering nothing; the shortest %.4f yd in %d ms -- retail sends no leg at all when there is nowhere to go)",
+                                 ws->legs, kSamples / 10, ws->nowhere, ws->shortest, ws->shortestMs);
+                    }
+                    else if (ws->legs)
+                    {
+                        snprintf(one, sizeof(one),
+                                 "INVALID(%u legs on the one-node path but none of them degenerate: the walker was not standing on its node)", ws->legs);
+                    }
+                    else
+                    {
+                        snprintf(one, sizeof(one),
+                                 "OK(no leg laid in %u s on a ONE-node path the walker is standing on; it reached node %s and stayed)",
+                                 kSamples / 10, ws->nodes.empty() ? "(none)" : JoinNodes(ws->nodes).c_str());
+                    }
+                    // The lap: the walker must still get round, so the node count is half the
+                    // claim. Four node changes is one full lap of the four-node path.
+                    const uint32 hops = uint32(wl->nodes.size());
+                    if (hops < 4)
+                    {
+                        snprintf(lap, sizeof(lap),
+                                 "BROKEN(the lap walker only reached %u node(s) in %u s: %s)",
+                                 hops, kSamples / 10, JoinNodes(wl->nodes).c_str());
+                    }
+                    else if (wl->nowhere)
+                    {
+                        snprintf(lap, sizeof(lap),
+                                 "BUG(%u of %u legs covered nothing over %u node arrivals; the shortest %.4f yd in %d ms -- nodes 3 and 4 are the same point, and the second one costs a packet)",
+                                 wl->nowhere, wl->legs, hops, wl->shortest, wl->shortestMs);
+                    }
+                    else
+                    {
+                        snprintf(lap, sizeof(lap),
+                                 "OK(none of %u legs covered nothing over %u node arrivals: %s)",
+                                 wl->legs, hops, JoinNodes(wl->nodes).c_str());
+                    }
+                    Verdict(std::string("standstillPath=") + one + " | coincidentNode=" + lap);
+                });
+            }
+
+        private:
+            /// One 100 ms sample of one walker: a fresh spline id is a leg, and the node it
+            /// last reached is recorded when it changes.
+            template <class W>
+            void Sample(W const& w, char const* who, uint32 t, float nowhere)
+            {
+                Creature* c = Get(w->guid);
+                if (!c) { return; }
+                const uint32 node = Node(c);
+                if (node && (w->nodes.empty() || w->nodes.back() != node)) { w->nodes.push_back(node); }
+                Movement::MoveSpline const& s = *c->movespline;
+                if (!s.Initialized()) { return; }
+                const uint32 id = s.GetId();
+                if (w->haveId && id == w->lastId) { return; }
+                w->haveId = true;
+                w->lastId = id;
+                const int32 ms = s.Duration();
+                if (ms <= 0 || s.Cut()) { return; }          // a stop is not a leg
+                const float len = float(ms) * s.Velocity() / 1000.0f;
+                ++w->legs;
+                if (len >= nowhere) { return; }
+                ++w->nowhere;
+                if (len < w->shortest) { w->shortest = len; w->shortestMs = ms; }
+                if (++w->logged <= 8)
+                {
+                    Log("+%5ums %s leg to nowhere %u: %.4f yd in %d ms at node %u", t, who, w->nowhere, len, ms, node);
+                }
+            }
+        };
     }
 
     void RegisterPatrolScenarios(Runner& r)
@@ -381,5 +559,6 @@ namespace Harness
         r.Register(new PatrolLifted());
         r.Register(new StunMidPatrol());
         r.Register(new DespawnAtNode());
+        r.Register(new PatrolZeroLengthLegs());
     }
 }

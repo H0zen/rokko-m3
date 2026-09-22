@@ -110,6 +110,10 @@ class MotionDriver
         bool m_blocked = false;      ///< The last Move could not be laid.
         bool m_speedChanged = false; ///< A speed change invalidated the running leg.
         bool m_wasTraveling = false; ///< Previous tick had a live leg (arrival edge).
+        /// The last Move asked for ground the unit was already standing on, so no leg was
+        /// laid and no packet sent. The arrival it would have produced is owed to the
+        /// behaviour and reported by the next BeginTick, exactly once.
+        bool m_arrivedInPlace = false;
 };
 
 #endif // MANGOS_MOTIONDRIVER_H
