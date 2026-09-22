@@ -471,6 +471,55 @@ void WorldSession::HandleMovementOpcodes(WorldPacket& recv_data)
     recv_data >> movementInfo;
     /*----------------*/
 
+    // ---- TRANSPORT PROBE (temporary). Every road to the boarding code has been read and
+    // none of it is wrong, so the question left is the one nobody has measured: does the
+    // client EVER tell us it is standing on a deck? One line a minute, with where the man
+    // actually is, so a silent minute can be told from a minute spent nowhere near a ship.
+    {
+        static uint32 s_packets = 0;
+        static uint32 s_withDeck = 0;
+        static uint32 s_dueAt = 0;
+
+        ++s_packets;
+        if (movementInfo.GetStatusInfo().hasTransportData)
+        {
+            ++s_withDeck;
+        }
+
+        const uint32 nowMs = GameTime::GetGameTimeMS();
+        if (s_dueAt == 0)
+        {
+            s_dueAt = nowMs + 60000;
+        }
+        else if (int32(nowMs - s_dueAt) >= 0 && _player)
+        {
+            s_dueAt = nowMs + 60000;
+
+            Transport* nearest = NULL;
+            float best = 0.0f;
+            for (MapManager::TransportSet::const_iterator iter = sMapMgr.m_Transports.begin();
+                 iter != sMapMgr.m_Transports.end(); ++iter)
+            {
+                const float dx = (*iter)->Where().X() - _player->Where().X();
+                const float dy = (*iter)->Where().Y() - _player->Where().Y();
+                const float dz = (*iter)->Where().Z() - _player->Where().Z();
+                const float d = sqrtf(dx * dx + dy * dy + dz * dz);
+                if (!nearest || d < best)
+                {
+                    nearest = *iter;
+                    best = d;
+                }
+            }
+
+            sLog.outString("Transport probe: %u move packets, %u carried deck data; "
+                           "%s is on map %u, nearest vessel '%s' at %.1f yd",
+                           s_packets, s_withDeck, _player->GetName(), _player->GetMapId(),
+                           nearest ? nearest->GetName() : "none", nearest ? best : -1.0f);
+            s_packets = 0;
+            s_withDeck = 0;
+        }
+    }
+
     // Design v2 §7 (F1), the authority rung: the client moves the unit it selected and
     // only that one; anything else is dropped and counted before it is validated.
     if (!Movers().MovesAs(movementInfo.GetGuid().GetRawValue()))
