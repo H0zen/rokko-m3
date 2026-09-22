@@ -252,6 +252,19 @@ namespace
         TransportMap* hull = on ? on->AsTransport() : NULL;
         return hull ? hull->Vessel() : NULL;
     }
+
+    /// True when this object IS a moving vessel, rather than something standing on one.
+    ///
+    /// She is the origin of her own frame. The client animates her along her path from
+    /// (0, 0, 0) using the period it was given, so the stationary position it is sent must
+    /// be that origin and not where she happens to be in the world. Send the world pose and
+    /// the client draws the hull in one place and tests for passengers in another -- a ship
+    /// you can stand on and are never carried by, which slides out from under you.
+    bool IsVessel(Object const* obj)
+    {
+        return obj->isType(TYPEMASK_GAMEOBJECT)
+               && static_cast<GameObject const*>(obj)->GetGoType() == GAMEOBJECT_TYPE_MO_TRANSPORT;
+    }
 }
 
 void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
@@ -263,6 +276,10 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
     // accept. It gets the vessel's guid and those same coordinates as an offset, which is
     // the only thing it can compose a position from.
     Transport* const vessel = DeckVesselOf(this);
+
+    // Aboard one, or being one: either way the coordinates that go out are local and the
+    // world pose is not ours to send.
+    const bool localFrame = vessel != NULL || IsVessel(this);
 
     data->WriteBit(false);
     data->WriteBit(false);
@@ -575,9 +592,9 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
     if (updateFlags & UPDATEFLAG_HAS_POSITION)
     {
         *data << float(Geometry::Placement::NormalizeOrientation(((WorldObject*)this)->Where().Facing()));
-        *data << float(vessel ? 0.0f : ((WorldObject*)this)->Where().X());
-        *data << float(vessel ? 0.0f : ((WorldObject*)this)->Where().Y());
-        *data << float(vessel ? 0.0f : ((WorldObject*)this)->Where().Z());
+        *data << float(localFrame ? 0.0f : ((WorldObject*)this)->Where().X());
+        *data << float(localFrame ? 0.0f : ((WorldObject*)this)->Where().Y());
+        *data << float(localFrame ? 0.0f : ((WorldObject*)this)->Where().Z());
     }
 
     if (updateFlags & UPDATEFLAG_HAS_ATTACKING_TARGET)
