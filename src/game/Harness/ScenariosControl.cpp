@@ -1345,6 +1345,193 @@ namespace Harness
         }
     };
 
+    /// S66 (the live capture of 2026-09-20, `server-release/mvcapture.log`): a feared unit that
+    /// has reached the edge of the quiet band lays a CASCADE of legs too short to be legs at
+    /// all, and every one of them is an SMSG_MONSTER_MOVE to every observer.
+    ///
+    /// Two episodes of creature 3123/251013 in that capture, decoded off the wire (the layout
+    /// is confirmed against the 15595 binary, peer/monster-move-wire-decompile-2026-09-21.md):
+    ///
+    ///     1.868 yd/144 ms  1.386/107  0.472/37  0.108/9  0.058/5  0.085/7   then 15.582/1197
+    ///     3.451 yd/266 ms  3.324/256  1.693/131 [9.345/718] 1.681/130  0.364/28  0.178/14  0.013/2
+    ///
+    /// Each leg starts exactly where the last one ended and moves the unit RADIALLY AWAY from
+    /// the fright by its own length, converging on a fixed radius -- the signature of
+    /// FearBehaviour::PickFleePoint's close branch, whose draw is
+    /// `Frand(0.4, 1.3) * (minQuiet - distFromCaster)` and therefore collapses geometrically to
+    /// nothing as the unit approaches minQuiet. Retail never does this: the 27 flee legs
+    /// measured across 11 MOD_FEAR episodes (peer/retail-fear-movement-2026-09-20.md §3) run
+    /// 2.62-38.03 yd and 313-5245 ms, with NOTHING below 2.62 yd.
+    ///
+    /// The fixture is the user's own case: a creature that is chasing when the fear lands, and
+    /// that is handed back to the chase when it lifts. Thirty seconds is long enough for the
+    /// wolf to bolt out of the close band and settle against it, which is where the cascade
+    /// lives; six seconds of fear (S54's window) never gets there.
+    ///
+    /// Legs are counted by the spline's OWN id, not by sampling a running goal: a 5 ms leg is
+    /// finalized long before the next 100 ms sample and a goal-watcher cannot see it at all.
+    /// That is why S63's cadence counter reports eight legs over a window that puts dozens on
+    /// the wire, and why this scenario had to be written instead of extending it.
+    class FearMicroLegs : public Scenario
+    {
+    public:
+        FearMicroLegs() : Scenario("fear-micro-legs", 66) {}
+
+        void Prepare() override
+        {
+            /// Retail's shortest measured flee leg is 2.62 yd (§3 above). A leg under this is
+            /// not a bolt; it is a packet.
+            const float kMinBolt = 2.5f;
+            const uint32 kFearAt = 700;
+            const uint32 kSamples = 300;            // 30 s of fear at the 100 ms cadence
+            const uint32 kReleaseAt = kFearAt + kSamples * 100 + 100;
+            const uint32 kAfterSamples = 30;        // 3 s of whatever follows the fear
+
+            struct St
+            {
+                uint32 lastId;         ///< the spline id at the previous sample
+                bool   haveId;
+                uint32 legs;           ///< flee legs laid while the fear held
+                uint32 shortLegs;      ///< of those, under kMinBolt
+                uint32 burst;          ///< the run of short legs under way
+                uint32 worstBurst;     ///< the longest such run
+                float  shortest;       ///< the shortest leg seen, in yards
+                int32  shortestMs;     ///< and its duration
+                float  shortestAt;     ///< how far the unit stood from the fright when it was laid
+                uint32 logged;         ///< short legs printed (the first dozen)
+                bool   released;
+                uint32 afterLegs;      ///< legs laid after the release
+                float  firstAfter;     ///< the first one's length
+                int32  firstAfterMs;
+                Motion::Kind afterKind;
+            };
+
+            Creature* w = Spawn(WOLF, SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+            Creature* k = Spawn(KOBOLD, SE.x + 6.0f, SE.y, Ground(SE.x + 6.0f, SE.y, SE.z), 3.1f);
+            if (!w || !k) { Verdict("fearLegLengths=INVALID(spawn failed) | chaseAfterFear=INVALID(spawn failed)"); return; }
+            Silence(w);
+            Silence(k);
+            const ObjectGuid g = w->GetObjectGuid(), gk = k->GetObjectGuid();
+            auto st = std::make_shared<St>();
+            st->lastId = 0;
+            st->haveId = st->released = false;
+            st->legs = st->shortLegs = st->burst = st->worstBurst = st->logged = st->afterLegs = 0;
+            st->shortest = 1.0e9f;
+            st->shortestMs = 0;
+            st->shortestAt = 0.0f;
+            st->firstAfter = 0.0f;
+            st->firstAfterMs = 0;
+            st->afterKind = Motion::Kind::Idle;
+
+            At(300, [this, g, gk]()
+            {
+                Creature* w = Get(g); Creature* k = Get(gk); if (!w || !k) { return; }
+                // Ranged, as the tracking family does it: the victim the chase needs, without
+                // handing the melee bit out before the wolf is in reach.
+                w->Attack(k, false);
+                w->AddThreat(k, 1000.0f);
+                w->GetMotionMaster()->MoveChase(k);
+                Log("chasing the kobold from %.1f yd, mt=%s", Dist2(w->Where().X(), w->Where().Y(), k->Where().X(), k->Where().Y()), TypeName(w));
+            });
+            At(kFearAt, [this, g, gk]()
+            {
+                Creature* w = Get(g); if (!w) { return; }
+                w->SetFeared(true, gk, FEAR, 0, 0);
+                Log("feared by the kobold it was chasing: mt=%s, run %.4f yd/s", TypeName(w), w->GetSpeed(MOVE_RUN));
+            });
+            // The leg detector. A launched spline takes a fresh id, so a new id at a sample is
+            // a leg that was laid since the last one -- whether or not it is still running. Its
+            // LENGTH is the wire's own: Duration() x Velocity(), the two numbers the
+            // SMSG_MONSTER_MOVE carries. A stop is not a leg (zero duration, born cut).
+            for (uint32 i = 1; i <= kSamples + kAfterSamples + 2; ++i)
+            {
+                At(kFearAt + i * 100, [this, g, gk, st, i, kMinBolt]()
+                {
+                    Creature* w = Get(g); Creature* k = Get(gk); if (!w || !k) { return; }
+                    const uint32 t = i * 100;
+                    Movement::MoveSpline const& s = *w->movespline;
+                    if (!s.Initialized()) { return; }
+                    const uint32 id = s.GetId();
+                    if (st->haveId && id == st->lastId) { return; }
+                    st->haveId = true;
+                    st->lastId = id;
+                    const int32 ms = s.Duration();
+                    if (ms <= 0 || s.Cut()) { return; }              // a stop, not a bolt
+                    const float len = float(ms) * s.Velocity() / 1000.0f;
+                    if (!st->released)
+                    {
+                        if (!w->Blocked(Motion::ReasonFeared)) { return; }   // only the flee's own legs
+                        ++st->legs;
+                        if (len < kMinBolt)
+                        {
+                            ++st->shortLegs;
+                            ++st->burst;
+                            if (st->burst > st->worstBurst) { st->worstBurst = st->burst; }
+                            const float from = Dist2(w->Where().X(), w->Where().Y(), k->Where().X(), k->Where().Y());
+                            if (len < st->shortest) { st->shortest = len; st->shortestMs = ms; st->shortestAt = from; }
+                            if (++st->logged <= 12)
+                            {
+                                Log("+%5ums MICRO LEG %u: %.3f yd in %d ms, laid %.1f yd from the fright", t, st->shortLegs, len, ms, from);
+                            }
+                        }
+                        else
+                        {
+                            st->burst = 0;
+                        }
+                        return;
+                    }
+                    if (!st->afterLegs)
+                    {
+                        st->firstAfter = len;
+                        st->firstAfterMs = ms;
+                        st->afterKind = Type(w);
+                        Log("+%5ums the first leg after the fear: %.1f yd in %d ms, mt=%s", t, len, ms, TypeName(w));
+                    }
+                    ++st->afterLegs;
+                });
+            }
+            At(kReleaseAt, [this, g, gk, st]()
+            {
+                Creature* w = Get(g); if (!w) { return; }
+                w->SetFeared(false, gk, FEAR, 0, 0);
+                st->released = true;
+                Log("the fear released after %u flee legs (%u of them under the retail floor), mt=%s", st->legs, st->shortLegs, TypeName(w));
+            });
+            At(kReleaseAt + kAfterSamples * 100 + 200, [this, st, kMinBolt]()
+            {
+                char legs[360], after[300];
+                if (st->legs < 8)
+                {
+                    snprintf(legs, sizeof(legs), "INVALID(only %u flee legs in 30 s: the fear never ran)", st->legs);
+                }
+                else if (st->shortLegs)
+                {
+                    snprintf(legs, sizeof(legs),
+                             "BUG(%u of %u flee legs under %.1f yd, the longest run %u back to back; the shortest %.3f yd in %d ms, laid %.1f yd from the fright -- retail's shortest of 27 measured is 2.62 yd)",
+                             st->shortLegs, st->legs, kMinBolt, st->worstBurst, st->shortest, st->shortestMs, st->shortestAt);
+                }
+                else
+                {
+                    snprintf(legs, sizeof(legs), "OK(none of %u flee legs under %.1f yd; retail's 27 measured run 2.62-38.03 yd)", st->legs, kMinBolt);
+                }
+                if (!st->afterLegs)
+                {
+                    snprintf(after, sizeof(after), "INVALID(no leg in the 3 s after the release)");
+                }
+                else
+                {
+                    // Retail hands a fear back to the chase as ONE long face-target leg
+                    // (peer/retail-fear-movement-2026-09-20.md Case A: type=3, 31.11 yd at
+                    // 6.64 yd/s). What must not happen is the handback stuttering.
+                    const bool ok = st->afterKind == Motion::Kind::Chase && st->firstAfter >= 5.0f;
+                    snprintf(after, sizeof(after), "%s(mt=%s, %.1f yd in %d ms, %u leg(s) in the 3 s after the release)",
+                             ok ? "OK" : "BUG", Motion::KindName(st->afterKind), st->firstAfter, st->firstAfterMs, st->afterLegs);
+                }
+                Verdict(std::string("fearLegLengths=") + legs + " | chaseAfterFear=" + after);
+            });
+        }
+    };
+
 
     namespace
     {
@@ -4795,6 +4982,9 @@ namespace Harness
         r.Register(new FearCadenceAndSpeed());
         r.Register(new LowHealthFleeSpeed());
         r.Register(new FearSpeedFollowsTheClaim());
+        // The flee's leg LENGTHS (order 66, 2026-09-22): the micro-leg cascade the live
+        // capture of 2026-09-20 put on the wire, which no goal-watching sampler can see.
+        r.Register(new FearMicroLegs());
         r.Register(new PlayerFear());
         r.Register(new PlayerConfuse());
         r.Register(new PlayerFeign());

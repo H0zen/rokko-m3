@@ -45,6 +45,14 @@ namespace Motion
     {
         float  minQuiet = 28.0f;          ///< closer than this to the fright: bolt away from it
         float  maxQuiet = 43.0f;          ///< farther than this: drift back toward it
+        float  minBolt = 2.5f;            ///< the shortest distance a pick may draw, in yards: below it a bolt is
+                                          ///< not a bolt, it is a packet. The close branch scales by the remaining
+                                          ///< gap to minQuiet, so without this floor a unit settling against the
+                                          ///< quiet radius draws a geometrically collapsing cascade of legs --
+                                          ///< measured on the wire on 2026-09-20 down to 0.013 yd in 2 ms.
+                                          ///< Retail's own 27 measured flee legs
+                                          ///< (peer/retail-fear-movement-2026-09-20.md §3) run 2.62-38.03 yd:
+                                          ///< nothing below 2.62, so this sits at the bottom of its band.
         float  legLimit = 60.0f;          ///< the routed leg's length cap in yards: a bolt, not a journey.
                                           ///< The longest pick this geometry draws is 1.3 * minQuiet = 36.4 yd,
                                           ///< so a route may bend to about 1.6 times its straight line before
