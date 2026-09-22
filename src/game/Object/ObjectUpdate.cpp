@@ -291,6 +291,54 @@ namespace
 
 void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
 {
+    ObjectGuid Guid = GetObjectGuid();
+
+    // ABOARD, THERE IS NO WORLD POSITION TO SEND. Our coordinates are the vessel's map's,
+    // and the client has never heard of that map -- no WDT, no terrain, no id it would
+    // accept. It gets the vessel's guid and those same coordinates as an offset, which is
+    // the only thing it can compose a position from.
+    Transport* const vessel = DeckVesselOf(this);
+
+    data->WriteBit(false);
+    data->WriteBit(false);
+    data->WriteBit(updateFlags & UPDATEFLAG_ROTATION);
+    data->WriteBit(updateFlags & UPDATEFLAG_ANIM_KITS);               // AnimKits
+    data->WriteBit(updateFlags & UPDATEFLAG_HAS_ATTACKING_TARGET);
+    data->WriteBit(updateFlags & UPDATEFLAG_SELF);
+    data->WriteBit(updateFlags & UPDATEFLAG_VEHICLE);
+    data->WriteBit(updateFlags & UPDATEFLAG_LIVING);
+    data->WriteBits(0, 24);                                     // Byte Counter
+    data->WriteBit(false);
+    data->WriteBit(updateFlags & UPDATEFLAG_POSITION);                // flags & UPDATEFLAG_HAS_POSITION Game Object Position
+    data->WriteBit(updateFlags & UPDATEFLAG_HAS_POSITION);            // Stationary Position
+    data->WriteBit(updateFlags & UPDATEFLAG_TRANSPORT_ARR);
+    data->WriteBit(false);
+    data->WriteBit(updateFlags & UPDATEFLAG_TRANSPORT);
+
+    bool hasTransport = false,
+        isSplineEnabled = false,
+        hasPitch = false,
+        hasFallData = false,
+        hasFallDirection = false,
+        hasElevation = false,
+        hasOrientation = !isType(TYPEMASK_ITEM),
+        hasTimeStamp = true,
+        hasTransportTime2 = false,
+        hasVehicleId = false;
+
+    if (isType(TYPEMASK_UNIT))
+    {
+        Unit const* unit = (Unit const*)this;
+
+        if (vessel)
+        {
+            // Written into the copy the wire is built from, not stored: a crew member is
+            // not "registered" as a passenger anywhere, it is simply on her map.
+            MovementInfo& aboard = const_cast<Unit*>(unit)->m_movementInfo;
+            aboard.SetTransportData(vessel->GetObjectGuid(), unit->Where().X(),
+                                    unit->Where().Y(), unit->Where().Z(),
+                                    unit->Where().Facing(), 0, -1);
+        }
 
         hasTransport = !unit->m_movementInfo.GetTransportGuid().IsEmpty();
         isSplineEnabled = unit->IsSplineEnabled();
