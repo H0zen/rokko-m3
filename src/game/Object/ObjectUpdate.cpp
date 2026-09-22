@@ -52,6 +52,7 @@
 #include "CreatureLinkingMgr.h"
 #include "Chat.h"
 #include "GameTime.h"
+#include <set>
 
 /**
  * @file ObjectUpdate.cpp
@@ -302,6 +303,29 @@ namespace
 
 void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
 {
+    // TEMPORARY. Every theory about what the client receives for a vessel has been wrong
+    // twice, and nobody has ever looked at the block itself. Once per vessel: the update
+    // flags, and every field that goes out with its index and value, so the record can be
+    // read against what the client is known to want.
+    if (isType(TYPEMASK_GAMEOBJECT)
+        && static_cast<GameObject const*>(this)->GetGoType() == GAMEOBJECT_TYPE_MO_TRANSPORT)
+    {
+        static std::set<uint32> told;
+        const uint32 entry = GetEntry();
+        if (told.find(entry) == told.end())
+        {
+            told.insert(entry);
+            sLog.outError("VESSEL %u '%s': updateFlags=0x%04X guid=%s",
+                          entry, static_cast<GameObject const*>(this)->GetName(),
+                          updateFlags, GetObjectGuid().GetString().c_str());
+            for (uint16 i = 0; i < m_valuesCount; ++i)
+            {
+                sLog.outError("VESSEL %u   field[%2u] = 0x%08X (%u)",
+                              entry, i, m_uint32Values[i], m_uint32Values[i]);
+            }
+        }
+    }
+
     ObjectGuid Guid = GetObjectGuid();
 
     // ABOARD, THERE IS NO WORLD POSITION TO SEND. Our coordinates are the vessel's map's,
