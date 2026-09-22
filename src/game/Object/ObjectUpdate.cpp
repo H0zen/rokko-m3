@@ -253,6 +253,39 @@ namespace
         return hull ? hull->Vessel() : NULL;
     }
 
+    /// The high word of a game object's dynamic field.
+    ///
+    /// For everything without a route it is the 0xFFFF sentinel, which is what "no
+    /// progress" has always meant. For a vessel it is HOW FAR ALONG HERS SHE IS: her phase
+    /// as a fraction of her period, in sixteen bits. The client animates her from this and
+    /// the period in GAMEOBJECT_LEVEL, and it is the only thing it has to place her with.
+    ///
+    /// Left at the sentinel, the client has a hull it can draw and no route to walk it
+    /// along, so it never treats her as something that can carry anyone: the deck moves and
+    /// the man standing on it does not.
+    uint16 PathProgressWord(Object const* obj)
+    {
+        if (!obj->isType(TYPEMASK_GAMEOBJECT))
+        {
+            return 0xFFFFu;
+        }
+
+        GameObject const* go = static_cast<GameObject const*>(obj);
+        if (go->GetGoType() != GAMEOBJECT_TYPE_MO_TRANSPORT)
+        {
+            return 0xFFFFu;
+        }
+
+        const uint32 period = go->GetUInt32Value(GAMEOBJECT_LEVEL);
+        if (period == 0)
+        {
+            return 0xFFFFu;
+        }
+
+        const uint32 phase = static_cast<Transport const*>(go)->GetPathProgress() % period;
+        return uint16(float(phase) / float(period) * 65535.0f + 0.5f);
+    }
+
     /// True when this object IS a moving vessel, rather than something standing on one.
     ///
     /// She is the origin of her own frame. The client animates her along her path from
@@ -654,9 +687,13 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer* data, UpdateMask* u
 
     if (updatetype == UPDATETYPE_CREATE_OBJECT || updatetype == UPDATETYPE_CREATE_OBJECT2)
     {
-        if (isType(TYPEMASK_GAMEOBJECT) && !((GameObject*)this)->IsTransport())
+        if (isType(TYPEMASK_GAMEOBJECT))
         {
-            if (((GameObject*)this)->ActivateToQuest(target) || target->isGameMaster())
+            // A vessel is not a quest object and never asks that question. She does need
+            // the field itself though, and excluding transports from the bit was excluding
+            // her from the one number the client animates her with.
+            if (!((GameObject*)this)->IsTransport()
+                && (((GameObject*)this)->ActivateToQuest(target) || target->isGameMaster()))
             {
                 IsActivateToQuest = true;
             }
@@ -674,9 +711,10 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer* data, UpdateMask* u
     }
     else                                                    // case UPDATETYPE_VALUES
     {
-        if (isType(TYPEMASK_GAMEOBJECT) && !((GameObject*)this)->IsTransport())
+        if (isType(TYPEMASK_GAMEOBJECT))
         {
-            if (((GameObject*)this)->ActivateToQuest(target) || target->isGameMaster())
+            if (!((GameObject*)this)->IsTransport()
+                && (((GameObject*)this)->ActivateToQuest(target) || target->isGameMaster()))
             {
                 IsActivateToQuest = true;
             }
@@ -839,7 +877,7 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer* data, UpdateMask* u
                             case GAMEOBJECT_TYPE_QUESTGIVER:
                                 // GO also seen with GO_DYNFLAG_LO_SPARKLE explicit, relation/reason unclear (192861)
                                 *data << uint16(GO_DYNFLAG_LO_ACTIVATE);
-                                *data << uint16(-1);
+                                *data << uint16(-1);   // a quest giver has no route
                                 break;
                             case GAMEOBJECT_TYPE_CHEST:
                             case GAMEOBJECT_TYPE_GENERIC:
@@ -851,7 +889,7 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer* data, UpdateMask* u
                             default:
                                 // unknown, not happen.
                                 *data << uint16(0);
-                                *data << uint16(-1);
+                                *data << uint16(PathProgressWord(this));
                                 break;
                         }
                     }
@@ -859,7 +897,7 @@ void Object::BuildValuesUpdate(uint8 updatetype, ByteBuffer* data, UpdateMask* u
                     {
                         // disable quest object
                         *data << uint16(0);
-                        *data << uint16(-1);
+                        *data << uint16(PathProgressWord(this));
                     }
                 }
                 else if (index == GAMEOBJECT_BYTES_1)
