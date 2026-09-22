@@ -271,6 +271,22 @@ Redirect.Stream1Crypt        = 1
 #        Default: 0 (off)
 #                 1 (on)
 #
+#    Movement.SmoothGroundPaths
+#        A routed ground leg the pathfinder bent -- three or more points, a real navmesh route,
+#        not a swimmer's or a flyer's straight shortcut -- goes out as a Catmull-Rom curve
+#        (spline flag bits 11 and 22) instead of a chain of straight segments, so the unit
+#        rounds its corners instead of pivoting on the spot at each one. Two-point legs, which
+#        are most of them, are unchanged: a curve through two points is that line in three
+#        times the bytes. The taxi is unchanged (already smooth) and a patrol's welded geometry
+#        is unchanged. It costs bytes -- a curve carries full float points where a straight
+#        chain carries packed 11/11/10-bit offsets, +16 bytes on a four-point leg.
+#        NOT an experiment: retail's own creature ground legs are linear, so a server owner who
+#        wants retail's exact look turns this off and leaves it off. It is kept on by default
+#        because a rounded corner reads better than a hard angle, which is the claim the live
+#        A/B tests and the only thing that would flip the default.
+#        Default: 1 (on, rounded corners)
+#                 0 (off, retail's hard angles)
+#
 #    Movement.FollowHorizonMs
 #        The follow's extrapolation horizon: how far ahead of a trusted velocity the follower's
 #        heel point is laid, in milliseconds of that velocity. One re-lay cadence (400) is what
@@ -393,6 +409,7 @@ TargetPosRecalculateRange         = 1.5
 mmap.enabled                      = 1
 mmap.ignoreMapIds                 = ""
 Movement.DecisionRing             = 0
+Movement.SmoothGroundPaths        = 1
 Movement.FollowHorizonMs          = 400
 Movement.ConfuseRadius            = 2
 Movement.TaxiSpeed                = 30

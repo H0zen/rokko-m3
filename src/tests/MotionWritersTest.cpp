@@ -31,6 +31,8 @@
 #include "PacketMatrix.h"
 #include "Writers.h"
 #include "MonsterMoveStop.h"
+#include "MonsterMovePath.h"
+#include "spline.h"
 #include "wire/MonsterMoveCodec.h"
 #include "wire/KnockBackCodec.h"
 #include "wire/MovementCodec.h"
@@ -385,4 +387,201 @@ TEST(MotionWriters_the_point_carrying_stop_on_a_deck_carries_the_vessel_and_no_s
     CHECK_EQ(back.transport, 0x0000000000000102ULL);
     CHECK_EQ(back.seat, int8(-1));
     CHECK(Wire::Judge(SMSG_MONSTER_MOVE_TRANSPORT, p, false).exact);
+}
+
+// ---- the path body: what a smooth ground leg costs, and how far its curve strays -----------
+//
+// The smooth-ground-splines spec of 2026-09-22. A routed ground leg with a corner in it now
+// goes out as a Catmull-Rom curve (spline flag bits 11 + 22) instead of a chain of straight
+// segments, so these pin the two numbers that change: the bytes, and the distance the curve
+// puts between the unit and the polyline the pathfinder drew.
+
+namespace
+{
+    /// A leg's path exactly as MoveSplineInit::Launch builds it: `count` control points of
+    /// which the first is the mover's own position, wrapped by SplineBase::InitCatmullRom in
+    /// its two guards. `smooth` picks the interpolation mode -- and NOTHING else changes,
+    /// because initializers[ModeLinear] is InitCatmullRom too (spline.cpp:66).
+    void BuildLeg(Movement::Spline<int32>& out, Movement::Vector3 const* controls, uint32 count,
+                  bool smooth, float facing = 0.0f)
+    {
+        out.init_spline(controls, count,
+                        smooth ? Movement::SplineBase::ModeCatmullrom : Movement::SplineBase::ModeLinear,
+                        facing);
+    }
+
+    /// The path body the writer would put on the wire for this leg.
+    size_t BodySize(Movement::Spline<int32> const& spline, bool smooth)
+    {
+        ByteBuffer b;
+        if (smooth) { Movement::WriteCatmullRomPath(spline, b); }
+        else        { Movement::WriteLinearPath(spline, b); }
+        return b.size();
+    }
+
+    /// The distance from `p` to the segment ab, in the horizontal plane (a footprint is
+    /// horizontal; the z of a mesh route is the ground's and says nothing about clipping).
+    float DistToSegment2D(Movement::Vector3 const& p, Movement::Vector3 const& a, Movement::Vector3 const& b)
+    {
+        const float vx = b.x - a.x, vy = b.y - a.y;
+        const float wx = p.x - a.x, wy = p.y - a.y;
+        const float len2 = vx * vx + vy * vy;
+        float t = len2 > 0.0f ? (wx * vx + wy * vy) / len2 : 0.0f;
+        if (t < 0.0f) { t = 0.0f; }
+        if (t > 1.0f) { t = 1.0f; }
+        const float dx = wx - t * vx, dy = wy - t * vy;
+        return std::sqrt(dx * dx + dy * dy);
+    }
+
+    /// The farthest the curve ever gets from the polyline through the same control points:
+    /// the whole of the corner-cutting question in one number. Sampled densely (200 steps a
+    /// segment), so it is the real maximum and not a sampling artefact.
+    float MaxStrayFromPolyline(Movement::Vector3 const* controls, uint32 count, float facing = 0.0f)
+    {
+        Movement::Spline<int32> curve;
+        BuildLeg(curve, controls, count, true, facing);
+
+        float worst = 0.0f;
+        for (Movement::SplineBase::index_type i = curve.first(); i < curve.last(); ++i)
+        {
+            for (int step = 0; step <= 200; ++step)
+            {
+                Movement::Vector3 on;
+                curve.evaluate_percent(i, float(step) / 200.0f, on);
+                float nearest = 1e9f;
+                for (uint32 k = 1; k < count; ++k)
+                {
+                    const float d = DistToSegment2D(on, controls[k - 1], controls[k]);
+                    if (d < nearest) { nearest = d; }
+                }
+                if (nearest > worst) { worst = nearest; }
+            }
+        }
+        return worst;
+    }
+
+    Movement::Vector3 V(float x, float y, float z = 0.0f) { return Movement::Vector3(x, y, z); }
+}
+
+TEST(MotionWriters_a_smooth_four_point_leg_costs_sixteen_bytes_more_than_a_linear_one)
+{
+    // A four-point routed leg -- the mover's own position and three points the router drew.
+    // Linear: the count, the destination as a float3, and the two points between as packed
+    // 11/11/10-bit offsets. Smooth: the count and three full float3 points.
+    const Movement::Vector3 route[4] = { V(0, 0), V(20, 0), V(20, 20), V(40, 20) };
+
+    Movement::Spline<int32> linear;
+    Movement::Spline<int32> smooth;
+    BuildLeg(linear, route, 4, false);
+    BuildLeg(smooth, route, 4, true);
+
+    // The point array is the SAME array in both modes: one leading guard, the four controls,
+    // one trailing guard. SetSmooth adds no point and drops none.
+    CHECK_EQ(uint32(linear.getPointCount()), uint32(smooth.getPointCount()));
+    CHECK_EQ(uint32(linear.getPointCount()), uint32(6));
+    CHECK_EQ(linear.getPoint(5).x, route[3].x);      // the trailing guard duplicates the last control
+    CHECK_EQ(linear.getPoint(5).y, route[3].y);
+
+    const size_t linearBytes = BodySize(linear, false);
+    const size_t smoothBytes = BodySize(smooth, true);
+    CHECK_EQ(linearBytes, size_t(4 + 12 + 4 + 4));   // count + destination + two packed offsets
+    CHECK_EQ(smoothBytes, size_t(4 + 12 * 3));       // count + three float3 points
+    CHECK_EQ(smoothBytes - linearBytes, size_t(16));
+
+    // Both forms carry the same three points: the writer's count is pointCount - 3 either way.
+    ByteBuffer lin, cat;
+    Movement::WriteLinearPath(linear, lin);
+    Movement::WriteCatmullRomPath(smooth, cat);
+    uint32 linCount = 0, catCount = 0;
+    lin >> linCount;
+    cat >> catCount;
+    CHECK_EQ(linCount, uint32(3));
+    CHECK_EQ(catCount, uint32(3));
+}
+
+TEST(MotionWriters_a_smooth_two_point_leg_costs_nothing_and_buys_nothing)
+{
+    // The spec's reason for keeping two-point legs linear was "a line with more bytes". The
+    // bytes are in fact IDENTICAL -- one point either way, and the linear form spends its one
+    // point on the full-float destination -- so the reason is the other half: a Catmull-Rom
+    // through two points IS the straight line, and switching the mode buys nothing at all.
+    const Movement::Vector3 route[2] = { V(0, 0), V(30, 0) };
+
+    Movement::Spline<int32> linear;
+    Movement::Spline<int32> smooth;
+    BuildLeg(linear, route, 2, false);
+    BuildLeg(smooth, route, 2, true);
+    CHECK_EQ(BodySize(linear, false), size_t(16));
+    CHECK_EQ(BodySize(smooth, true), size_t(16));
+
+    // And the curve is the line: nowhere does it leave it by a millimetre.
+    CHECK(MaxStrayFromPolyline(route, 2) < 0.001f);
+}
+
+TEST(MotionWriters_a_smooth_leg_lands_exactly_on_its_last_point)
+{
+    // Arrival drift, answered on the server's own evaluator -- which is what MoveSpline reads
+    // to decide the leg ended, and so what `status.arrived` is measured against. The last
+    // segment's four control points are (c[n-3], c[n-2], c[n-1], guard = c[n-1]), and a
+    // Catmull-Rom at t=1 returns its THIRD point: the last real one, to the float.
+    const Movement::Vector3 route[4] = { V(0, 0), V(20, 0), V(20, 20), V(40, 20) };
+    Movement::Spline<int32> smooth;
+    BuildLeg(smooth, route, 4, true);
+
+    Movement::Vector3 end;
+    smooth.evaluate_percent(Movement::SplineBase::index_type(smooth.last() - 1), 1.0f, end);
+    CHECK_EQ(end.x, route[3].x);
+    CHECK_EQ(end.y, route[3].y);
+    CHECK_EQ(end.z, route[3].z);
+
+    // And it starts exactly on the mover's own position, so the leg's first frame does not
+    // teleport it: the first segment's t=0 is its second control point, which Launch has
+    // already overwritten with where the unit really stands.
+    Movement::Vector3 begin;
+    smooth.evaluate_percent(smooth.first(), 0.0f, begin);
+    CHECK_EQ(begin.x, route[0].x);
+    CHECK_EQ(begin.y, route[0].y);
+}
+
+TEST(MotionWriters_the_curve_strays_from_the_polyline_in_proportion_to_the_leg)
+{
+    // Corner cutting, measured. A Catmull-Rom INTERPOLATES every control point, so it can
+    // never cut a corner off: what it does is swing wide of the segments either side of one.
+    // For a right-angle corner of equal legs L the worst stray is 2L/27 -- 7.4% of a leg --
+    // and it scales linearly with L. That is the whole risk, and it is a length, not a shape.
+    //
+    // The pathfinder smooths at SMOOTH_PATH_STEP_SIZE = 4 yd (PathFinder.h:48), so its own
+    // corners are short-legged and the stray is centimetres. The NEGATIVE CHECK is the same
+    // corner widened: at 60 yd a leg the curve leaves the polyline by four and a half yards,
+    // which would put a unit through a wall the polyline cleared.
+    struct Case { float leg; float expect; };
+    const Case cases[] = { { 4.0f, 4.0f * 2.0f / 27.0f },
+                           { 12.0f, 12.0f * 2.0f / 27.0f },
+                           { 60.0f, 60.0f * 2.0f / 27.0f } };
+
+    for (size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); ++i)
+    {
+        const float L = cases[i].leg;
+        const Movement::Vector3 corner[3] = { V(0, 0), V(L, 0), V(L, L) };
+        const float stray = MaxStrayFromPolyline(corner, 3);
+        CHECK(std::fabs(stray - cases[i].expect) < 0.02f * L);
+    }
+
+    // The ceiling the harness's smooth-ground-corner scenario asserts against, stated here so
+    // the two cannot drift. Writing a segment in Hermite form and subtracting the straight line
+    // between its ends leaves P(t) - L(t) = h10(t)(m_in - d) + h11(t)(m_out - d), and |h10| and
+    // |h11| both peak at 4/27 -- so for points a step s apart the stray can never exceed 8s/27.
+    // The pathfinder smooths at SMOOTH_PATH_STEP_SIZE = 4 yd (PathFinder.h:48), which caps it at
+    // 1.19 yd; the scenario's kStrayCeiling is 1.25, that with float headroom. The number is a
+    // statement about the ROUTER'S STEP and not a tolerance fitted to an answer.
+    const Movement::Vector3 meshCorner[3] = { V(0, 0), V(4, 0), V(4, 4) };
+    CHECK(MaxStrayFromPolyline(meshCorner, 3) < 8.0f * 4.0f / 27.0f);
+    CHECK(MaxStrayFromPolyline(meshCorner, 3) > 0.20f);    // and it is a real curve, not a no-op
+
+    // The widened corner blows straight past that ceiling, because the ceiling is in the step:
+    // 60 yd legs stray four and a half yards from the polyline. That is the clip, and it is why
+    // the flag rides on the pathfinder's own points and nothing is allowed to widen them.
+    const Movement::Vector3 wide[3] = { V(0, 0), V(60, 0), V(60, 60) };
+    CHECK(MaxStrayFromPolyline(wide, 3) > 4.0f);
+    CHECK(MaxStrayFromPolyline(wide, 3) < 8.0f * 60.0f / 27.0f);
 }

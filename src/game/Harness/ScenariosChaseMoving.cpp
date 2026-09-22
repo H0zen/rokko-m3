@@ -180,15 +180,17 @@ namespace Harness
             c->GetMotionMaster()->Initialize();
         }
 
-        /// The shell's own trust test (TargetKinematics.cpp:40-53), asked of the actor rather
-        /// than of the kernel: a running, linear, non-cyclic, non-airborne spline with a speed.
-        /// This is the gate the chase's lead hangs off, so the share of the phase it holds for a
+        /// The gate the chase's lead hangs off, so the share of the phase it holds for a
         /// scripted point path is worth reading even though nothing here can change it.
+        ///
+        /// This used to be a hand copy of TargetKinematics' rule and it went stale the moment
+        /// the kernel learned to trust a curve's own heading: with smooth ground paths on, every
+        /// one of these targets runs a Catmull-Rom leg, and the copy reported the lead engaged
+        /// on 0% of the samples while the kernel was in fact leading on all of them. It asks the
+        /// kernel now (Scenario.h).
         bool WouldTrust(Creature* t)
         {
-            if (t->movespline->Finalized()) { return false; }
-            if (t->movespline->isSmooth() || t->movespline->isCyclic() || t->movespline->Airborne()) { return false; }
-            return t->movespline->Velocity() > 0.0f;
+            return TargetMotionOf(*t).trusted;
         }
 
         /// Which motion a scenario runs.

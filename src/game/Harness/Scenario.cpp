@@ -37,6 +37,7 @@
 #include "PlayerRegistry.h"
 #include "WorldSession.h"
 #include "Auth/BigNumber.h"
+#include "movement/MoveSpline.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -63,6 +64,36 @@ namespace Harness
             if (d > spread) { spread = d; }
         }
         return spread;
+    }
+
+    Motion::TargetMotion TargetMotionOf(Creature const& target)
+    {
+        Motion::TargetMotionInput in;
+        if (target.movespline->Finalized() || !target.movespline->Initialized())
+        {
+            return Motion::ClassifyTargetMotion(in);   // nothing running: it stands
+        }
+
+        // NativeBehaviour::SeeTarget's spline half, field for field. No frame conversion:
+        // FromWorld is the identity in the world frame and a harness actor is never boarded.
+        const Movement::Location live = target.movespline->ComputePosition();
+        in.splineRunning = true;
+        in.splineLinear = !target.movespline->isSmooth();
+        in.splineCyclic = target.movespline->isCyclic();
+        in.splineAirborne = target.movespline->Airborne();
+        in.splineFrom = Motion::Vector3(live.x, live.y, live.z);
+        in.splineTo = target.movespline->CurrentDestination();
+        in.speed = target.movespline->Velocity();
+        if (!in.splineLinear && !in.splineCyclic && !in.splineAirborne)
+        {
+            const Movement::Vector3 heading = target.movespline->ComputeDirection();
+            if (heading.x != 0.0f || heading.y != 0.0f || heading.z != 0.0f)
+            {
+                in.splineHeading = heading;
+                in.splineHeadingValid = true;
+            }
+        }
+        return Motion::ClassifyTargetMotion(in);
     }
 
     void Scenario::Reset()

@@ -26,6 +26,7 @@
 #include "MotionDriver.h"
 #include "ObjectLookup.h"
 #include "Unit.h"
+#include "World.h"
 #include "movement/MoveSpline.h"
 #include "movement/MoveSplineInit.h"
 
@@ -59,6 +60,40 @@ namespace
             covered += (points[i] - points[i - 1]).length();
         }
         return covered;
+    }
+
+    /**
+     * @brief Should this ROUTED leg go out as a Catmull-Rom curve instead of a chain of
+     *        straight segments? (design v2 §11, the smooth-ground-splines spec.)
+     *
+     * Three conditions, and the leg is linear if any fails.
+     *
+     * A corner to round: three or more routed points. Two points are a straight line, and a
+     * Catmull-Rom through two points is that same line carried in three times the bytes.
+     *
+     * The ground: `Routed()` is the only place in the stack that knows. The driver has no
+     * notion of the medium at this point -- MOVE_FLY is a per-leg animation flag applied
+     * further down and swimming is never named here at all -- but the router does: every
+     * shortcut PathFinder builds for a swimmer (BuildSwimShortcut), for a flyer or a unit
+     * under water (BuildPolyPath's shortcut branches), for a map with no mmaps and for a
+     * forced destination carries PATHFIND_NOT_USING_PATH, and Routed() is false for each.
+     * That matters because BuildShortcut SUBDIVIDES into 5-yard segments, so a shortcut can
+     * easily hold ten points and would otherwise qualify on count alone. MOVE_FLY is refused
+     * as well, for the flyer that does get a real mesh route.
+     *
+     * The switch: a server owner may want retail's exact linear look, which is a permanent
+     * preference and not an experiment's dial.
+     *
+     * NOT touched here: bit 20 (SmoothGroundPath) -- the client clears it itself when a
+     * player-side setting is off, so smoothness may only come from bits 11 and 22, which is
+     * exactly what SetSmooth sets (and it clears bit 20 on the way).
+     */
+    bool SmoothRoutedGroundLeg(Motion::MoveIntent const& intent, Motion::IPathQuery const& query)
+    {
+        return query.Points().size() >= 3 &&
+               query.Routed() &&
+               !intent.Has(Motion::MOVE_FLY) &&
+               sWorld.getConfig(CONFIG_BOOL_MOVEMENT_SMOOTH_GROUND_PATHS);
     }
 }
 
@@ -243,6 +278,14 @@ bool MotionDriver::LayLeg(Unit& owner, Motion::MoveIntent const& intent)
         init.MovebyPath(query->Points());
         covered = GroundCovered(query->Points());
         m_partialLeg = query->Partial();
+
+        // The router bent this leg around something, so ride the bend instead of pivoting
+        // on the spot at every one of its points. The geometry the client is given is the
+        // pathfinder's own, unchanged; only the interpolation between the points changes.
+        if (SmoothRoutedGroundLeg(intent, *query))
+        {
+            init.SetSmooth();
+        }
     }
 
     // Nowhere to go. The goal is the ground the unit is standing on, so the leg would be a

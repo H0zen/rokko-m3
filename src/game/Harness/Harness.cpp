@@ -61,6 +61,7 @@ namespace Harness
     void RegisterTrackingScenarios(Runner& r);
     void RegisterControlScenarios(Runner& r);
     void RegisterChaseMovingScenarios(Runner& r);
+    void RegisterSmoothScenarios(Runner& r);
     void RegisterTaxiScenarios(Runner& r);
 
     namespace
@@ -107,6 +108,10 @@ namespace Harness
         RegisterTrackingScenarios(*this);
         RegisterControlScenarios(*this);
         RegisterChaseMovingScenarios(*this);
+        // The smooth-ground-splines family (RegisterSmoothScenarios) is order 72: the routed
+        // corner, how far its Catmull-Rom curve strays from the polyline the pathfinder drew,
+        // and that the leg still lands on its point and does not swallow the next one.
+        RegisterSmoothScenarios(*this);
         // The taxi-contract family (RegisterTaxiScenarios) is orders 908-911, at the tail of
         // the player block: the death that clears a flight, the resume decided by the landing
         // time, the stops retail sends at the two control changes, and the 4.2.0 pet rule.

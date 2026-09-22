@@ -31,6 +31,7 @@
 #include "ObjectGuid.h"
 #include "MotionMaster.h"
 #include "Arbiter.h"
+#include "TargetKinematics.h"
 
 #include <string>
 #include <vector>
@@ -50,6 +51,22 @@ namespace Harness
 
     /// The distance from the first sample to the farthest one: how far the unit got.
     float Spread(std::vector<Pt> const& samples);
+
+    /// THE KERNEL'S OWN ANSWER to "may a native lead on this target's velocity right now, and
+    /// along what?", asked of a harness actor: it builds the same TargetMotionInput
+    /// NativeBehaviour::SeeTarget hands the kernel and runs the real
+    /// Motion::ClassifyTargetMotion over it.
+    ///
+    /// It exists because two scenario files had each hand-copied that trust rule -- the
+    /// chase-moving family's WouldTrust and the tracking family's AimCentreHere -- and a
+    /// scenario measuring where a chase AIMS has to take its bearings from the point the chase
+    /// actually used. Both copies read "a smooth spline is never trusted", which stopped being
+    /// the rule when the kernel learned to take a curve's heading from its own derivative; the
+    /// first scored a correct lead as a 178 deg walk-around and the second reported the lead
+    /// disengaged when it was engaged. One rule, in one place, so there cannot be a third.
+    ///
+    /// The world frame is assumed, which is the only frame a harness actor stands in.
+    Motion::TargetMotion TargetMotionOf(Creature const& target);
 
     /// One event the recording AI saw: a MovementInform (the kind and the id the native gave),
     /// an external path's WaypointPathInform, the home reached, or the death; where the creature
