@@ -7223,6 +7223,32 @@ void Unit::ResetControlState(bool attackCharmer /*= true*/)
         return;
     }
 
+    // UNCONDITIONAL, AND THE POSSESSED CAN BE A PLAYER. The reaching path has a name: spell
+    // 605, Mind Control -- SPELL_AURA_MOD_POSSESS on TARGET_CHAIN_DAMAGE (SpellEffect.dbc,
+    // 4.3.4a), so its target is an enemy unit and in PvP that is a Player. Its expiry runs
+    // Aura::HandleModPossess(apply=false), which calls `caster->ResetControlState()`
+    // (SpellAuraControl.cpp:126), and GetCharm() then answers with that player. The 4.3.4
+    // client data has 48 MOD_POSSESS effects and four of them take that target.
+    //
+    // WHAT ACTUALLY HAPPENS, and why this is documented rather than changed: the cast itself
+    // reads nothing, and exactly one line below follows the pointer as a Creature --
+    // `possessedCreature->IsPet()` in the pet branch, which reads Creature::m_subtype. Through
+    // a Player* that is a wrong-type read, but it cannot fault (sizeof(Creature) 9296 <=
+    // sizeof(Player) 12816, measured on this build, so the member's offset is inside the
+    // Player allocation) and it cannot change the outcome: the branch is
+    // `IsPet() && GetObjectGuid() == GetPetGuid()`, and a possessed player's guid is a
+    // HIGHGUID_PLAYER one while GetPetGuid() is a pet's, so whatever garbage m_subtype reads
+    // as, the conjunction is false and the `else` (RemovePetActionBar) is the same branch a
+    // correct cast would take. The tail below is already type-correct -- the possessed player
+    // is caught by the TYPEID_PLAYER test at the bottom before `else if (possessedCreature)`
+    // is ever reached.
+    //
+    // The narrow fix is `possessed->GetTypeId() == TYPEID_UNIT ? static_cast<Creature*>(...)
+    // : NULL` plus a null test on the pet branch, which is behaviour-identical by the argument
+    // above and would make the `else if (possessedCreature)` below a real guard instead of a
+    // tautology. It is left for a change that can carry its own scenario -- a player
+    // possessing a player, which the harness has never built -- rather than riding along
+    // untested in a housekeeping pass.
     Creature* possessedCreature = static_cast<Creature *>(possessed);
 
     possessed->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);

@@ -102,6 +102,31 @@ namespace Harness
         RegisterControlScenarios(*this);
     }
 
+    /// The registry, and DELIBERATELY NOTHING ELSE -- not `End`'s five-step player teardown,
+    /// not the settle, not `ResetGrids`.
+    ///
+    /// This runs too late to do any of it. `sHarness` is a function-local static
+    /// (MaNGOS::Singleton), so this destructor runs at static destruction, after `main`
+    /// returns -- and `Master::ShutdownWorld()` has by then already run `sMapMgr.UnloadAll()`
+    /// (Master.cpp:391), which unloads every map and then DELETES it
+    /// (MapManager.cpp:453-462), before `Master::Run` ever returns to `main`. So `m_map` is a
+    /// freed pointer here, every actor that stood on it is gone with it, and the whole
+    /// teardown -- `GetCreature`, `Map::Remove`, `AddToActive` -- would be a use-after-free
+    /// on a map that no longer exists. Adding it here would not close a leak; it would turn
+    /// a harmless one into a crash on the way out.
+    ///
+    /// AND THERE IS NOTHING LEFT TO CLOSE. A process killed mid-scenario leaks the scenario's
+    /// Player, its WorldSession and (907) its Pet: the grid unloader only visits
+    /// GridTypeMapContainer -- GameObject, Creature-except-pets, DynamicObject, Corpse
+    /// (GridDefines.h:72) -- so a Player or a Pet, which live in the WorldTypeMapContainer
+    /// beside it, is unlinked with its grid rather than deleted. Every one of those
+    /// allocations dies with the address space a moment later, and the three things the
+    /// teardown's order exists to protect -- the next scenario's reuse of the reserved guid,
+    /// the mover-authority totals, and ~Unit's "still had a mover session" -- all belong to a
+    /// process that goes on running. None of them has a next tick here.
+    ///
+    /// Whoever wants a mid-run kill to tear down cleanly must hook it BEFORE the maps go, in
+    /// `Master::ShutdownWorld` ahead of the UnloadAll, and not in this destructor.
     Runner::~Runner()
     {
         for (size_t i = 0; i < m_registry.size(); ++i)

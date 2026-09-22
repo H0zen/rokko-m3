@@ -1412,6 +1412,7 @@ namespace Harness
                 bool   selfWhileFeared;   ///< still his own mover on one of those first samples
                 bool   allSelfAfter;      ///< his own mover on every one of the second
                 bool   taxi;              ///< IsTaxiFlying() on any sample
+                uint32 taxiSamples;       ///< how many times it was read at all: zero is not "false"
                 uint32 endedAt;           ///< when the claim went for the last time
                 bool   pulled;            ///< the scenario's own RemoveAurasDueToSpell has run
                 uint32 flickers;          ///< times the claim went unpublished BEFORE the pull and came back
@@ -1431,7 +1432,7 @@ namespace Harness
             st->x0 = st->y0 = st->far2 = 0.0f;
             st->selfBefore = st->auraLanded = st->selfWhileFeared = st->taxi = false;
             st->allSelfAfter = true;
-            st->fearedSamples = st->afterSamples = st->endedAt = 0;
+            st->fearedSamples = st->afterSamples = st->taxiSamples = st->endedAt = 0;
             st->pulled = false;
             st->flickers = st->discarded = st->backAfterPull = 0;
             Log("the player %s stands at (%.1f, %.1f), the kobold 6 yd east", g.GetString().c_str(), p->Where().X(), p->Where().Y());
@@ -1448,6 +1449,7 @@ namespace Harness
                 // and a scenario that skipped this would pass on a server that never granted.
                 st->selfBefore = OwnMover(p);
                 if (p->IsTaxiFlying()) { st->taxi = true; }
+                ++st->taxiSamples;
                 k->CastSpell(p, FEAR, true);
                 Log("the kobold casts %u on the player at (%.1f, %.1f): his own mover before it=%d", FEAR, st->x0, st->y0, st->selfBefore ? 1 : 0);
             });
@@ -1481,10 +1483,13 @@ namespace Harness
                     const uint32 t = i * 100;
                     const float d = Dist2(st->x0, st->y0, p->Where().X(), p->Where().Y());
                     if (d > st->far2) { st->far2 = d; }
-                    // Sampled, not assumed: the handback at UnitSpeed.cpp:361 is refused under a
-                    // flight, so a taxi anywhere in the run would be an alternative explanation
-                    // for every other reading here.
+                    // Sampled, not assumed, and COUNTED: the handback at UnitSpeed.cpp:361 is
+                    // refused under a flight, so a taxi anywhere in the run would be an
+                    // alternative explanation for every other reading here -- and a run that
+                    // never read the flag at all has not established that it was false, which
+                    // is why the verdict below asks how many of these there were.
                     if (p->IsTaxiFlying()) { st->taxi = true; }
+                    ++st->taxiSamples;
                     const bool self = OwnMover(p);
                     const bool claimHeld = p->Blocked(Motion::ReasonFeared);
                     if (claimHeld && !st->pulled)
@@ -1540,7 +1545,7 @@ namespace Harness
             }
             At(kFearCastAt + 6100, [this, st]()
             {
-                char taken[200], flees[96], returned[288], taxi[80];
+                char taken[200], flees[96], returned[288], taxi[112];
                 if (!st->fearedSamples)
                 {
                     snprintf(taken, sizeof(taken), "INVALID(the fear never held: aura=%d)", st->auraLanded ? 1 : 0);
@@ -1599,7 +1604,13 @@ namespace Harness
                                  st->afterSamples, st->endedAt, flicker);
                     }
                 }
-                snprintf(taxi, sizeof(taxi), "%s(IsTaxiFlying() %s throughout)", st->taxi ? "BUG" : "OK", st->taxi ? "held" : "false");
+                // Sampled, so it is allowed to say it was never sampled. A run whose player went
+                // unresolvable reads nothing here rather than the false comfort of "false
+                // throughout", which is what an unconditional OK would have printed over zero
+                // readings. player-confuse has said it this way since it was written; this
+                // scenario is the older of the two and carried the unconditional form until now.
+                if (!st->taxiSamples) { snprintf(taxi, sizeof(taxi), "INVALID(IsTaxiFlying() was never read)"); }
+                else { snprintf(taxi, sizeof(taxi), "%s(IsTaxiFlying() %s over %u samples)", st->taxi ? "BUG" : "OK", st->taxi ? "held" : "false throughout", st->taxiSamples); }
                 std::string text = std::string("controlTaken=") + taken + " | playerFlees=" + flees + " | controlReturned=" + returned + " | notHeldByTaxi=" + taxi;
                 Verdict(text);
             });
