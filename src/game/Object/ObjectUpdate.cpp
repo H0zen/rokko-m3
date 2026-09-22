@@ -287,97 +287,10 @@ namespace
         return uint16(float(phase) / float(period) * 65535.0f + 0.5f);
     }
 
-    /// True when this object IS a moving vessel, rather than something standing on one.
-    ///
-    /// She is the origin of her own frame. The client animates her along her path from
-    /// (0, 0, 0) using the period it was given, so the stationary position it is sent must
-    /// be that origin and not where she happens to be in the world. Send the world pose and
-    /// the client draws the hull in one place and tests for passengers in another -- a ship
-    /// you can stand on and are never carried by, which slides out from under you.
-    bool IsVessel(Object const* obj)
-    {
-        return obj->isType(TYPEMASK_GAMEOBJECT)
-               && static_cast<GameObject const*>(obj)->GetGoType() == GAMEOBJECT_TYPE_MO_TRANSPORT;
-    }
 }
 
 void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
 {
-    // TEMPORARY. Every theory about what the client receives for a vessel has been wrong
-    // twice, and nobody has ever looked at the block itself. Once per vessel: the update
-    // flags, and every field that goes out with its index and value, so the record can be
-    // read against what the client is known to want.
-    if (isType(TYPEMASK_GAMEOBJECT)
-        && static_cast<GameObject const*>(this)->GetGoType() == GAMEOBJECT_TYPE_MO_TRANSPORT)
-    {
-        static std::set<uint32> told;
-        const uint32 entry = GetEntry();
-        if (told.find(entry) == told.end())
-        {
-            told.insert(entry);
-            sLog.outError("VESSEL %u '%s': updateFlags=0x%04X guid=%s",
-                          entry, static_cast<GameObject const*>(this)->GetName(),
-                          updateFlags, GetObjectGuid().GetString().c_str());
-            for (uint16 i = 0; i < m_valuesCount; ++i)
-            {
-                sLog.outError("VESSEL %u   field[%2u] = 0x%08X (%u)",
-                              entry, i, m_uint32Values[i], m_uint32Values[i]);
-            }
-        }
-    }
-
-    ObjectGuid Guid = GetObjectGuid();
-
-    // ABOARD, THERE IS NO WORLD POSITION TO SEND. Our coordinates are the vessel's map's,
-    // and the client has never heard of that map -- no WDT, no terrain, no id it would
-    // accept. It gets the vessel's guid and those same coordinates as an offset, which is
-    // the only thing it can compose a position from.
-    Transport* const vessel = DeckVesselOf(this);
-
-    // Aboard one, or being one: either way the coordinates that go out are local and the
-    // world pose is not ours to send.
-    const bool localFrame = vessel != NULL || IsVessel(this);
-
-    data->WriteBit(false);
-    data->WriteBit(false);
-    data->WriteBit(updateFlags & UPDATEFLAG_ROTATION);
-    data->WriteBit(updateFlags & UPDATEFLAG_ANIM_KITS);               // AnimKits
-    data->WriteBit(updateFlags & UPDATEFLAG_HAS_ATTACKING_TARGET);
-    data->WriteBit(updateFlags & UPDATEFLAG_SELF);
-    data->WriteBit(updateFlags & UPDATEFLAG_VEHICLE);
-    data->WriteBit(updateFlags & UPDATEFLAG_LIVING);
-    data->WriteBits(0, 24);                                     // Byte Counter
-    data->WriteBit(false);
-    data->WriteBit(updateFlags & UPDATEFLAG_POSITION);                // flags & UPDATEFLAG_HAS_POSITION Game Object Position
-    data->WriteBit(updateFlags & UPDATEFLAG_HAS_POSITION);            // Stationary Position
-    data->WriteBit(updateFlags & UPDATEFLAG_TRANSPORT_ARR);
-    data->WriteBit(false);
-    data->WriteBit(updateFlags & UPDATEFLAG_TRANSPORT);
-
-    bool hasTransport = false,
-        isSplineEnabled = false,
-        hasPitch = false,
-        hasFallData = false,
-        hasFallDirection = false,
-        hasElevation = false,
-        hasOrientation = !isType(TYPEMASK_ITEM),
-        hasTimeStamp = true,
-        hasTransportTime2 = false,
-        hasVehicleId = false;
-
-    if (isType(TYPEMASK_UNIT))
-    {
-        Unit const* unit = (Unit const*)this;
-
-        if (vessel)
-        {
-            // Written into the copy the wire is built from, not stored: a crew member is
-            // not "registered" as a passenger anywhere, it is simply on her map.
-            MovementInfo& aboard = const_cast<Unit*>(unit)->m_movementInfo;
-            aboard.SetTransportData(vessel->GetObjectGuid(), unit->Where().X(),
-                                    unit->Where().Y(), unit->Where().Z(),
-                                    unit->Where().Facing(), 0, -1);
-        }
 
         hasTransport = !unit->m_movementInfo.GetTransportGuid().IsEmpty();
         isSplineEnabled = unit->IsSplineEnabled();
@@ -649,9 +562,9 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
     if (updateFlags & UPDATEFLAG_HAS_POSITION)
     {
         *data << float(Geometry::Placement::NormalizeOrientation(((WorldObject*)this)->Where().Facing()));
-        *data << float(localFrame ? 0.0f : ((WorldObject*)this)->Where().X());
-        *data << float(localFrame ? 0.0f : ((WorldObject*)this)->Where().Y());
-        *data << float(localFrame ? 0.0f : ((WorldObject*)this)->Where().Z());
+        *data << float(vessel ? 0.0f : ((WorldObject*)this)->Where().X());
+        *data << float(vessel ? 0.0f : ((WorldObject*)this)->Where().Y());
+        *data << float(vessel ? 0.0f : ((WorldObject*)this)->Where().Z());
     }
 
     if (updateFlags & UPDATEFLAG_HAS_ATTACKING_TARGET)
@@ -667,14 +580,26 @@ void Object::BuildMovementUpdate(ByteBuffer* data, uint16 updateFlags) const
 
     if (updateFlags & UPDATEFLAG_TRANSPORT)
     {
-        // THE PHASE, not the clock. The client does not take the modulo itself: it wants
-        // how far along the route she is, and that is ours to compute. Hand it a raw wall
-        // clock and the hull stops animating altogether -- a dead ship, with everyone
-        // standing on her frozen too.
+        // THE CLOCK, NOT THE PHASE -- AND THE SAME CLOCK THE HULL IS STEERED BY.
+        //
+        // The client reduces this itself, against the period in GAMEOBJECT_LEVEL, and then
+        // keeps animating the hull from its own copy of that clock. So the number here is
+        // not "how far along" -- it is the reference the client shares with us. A retail
+        // sniff carries 0x89736828 in this slot: a wall clock of some two billion
+        // milliseconds, not a phase, which for this zeppelin could never exceed 255895.
+        //
+        // We were sending the phase, already reduced. The client reduced it again -- a
+        // no-op -- and then advanced it with its own clock, so its hull sat a constant
+        // offset around the route from ours. It sails, smoothly and forever, at the wrong
+        // place. Nobody can stand on a deck that is not under him: the raycast never hits
+        // the hull, the client never attaches, and it never tells us it is aboard.
+        //
+        // Truncation must match too. Transport::Update reduces uint32(absolute ms), so
+        // uint32 of the same clock is what makes the client's modulo land on our node.
         if (isType(TYPEMASK_GAMEOBJECT)
             && ((GameObject*)this)->GetGoType() == GAMEOBJECT_TYPE_MO_TRANSPORT)
         {
-            *data << uint32(((Transport*)this)->GetPathProgress());
+            *data << uint32(GameTime::GetAbsoluteTimeMS());
         }
         else
         {

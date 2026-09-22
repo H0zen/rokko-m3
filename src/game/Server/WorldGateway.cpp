@@ -351,33 +351,6 @@ void WorldGateway::Deliver(proto::SessionId session, WorldPacket&& packet)
     // which ends the session rather than describing each packet of it.
     if (!IsKnownOpcode(uint16(packet.GetOpcode())))
     {
-        // TEMPORARY, and loud on purpose: a refusal here is a packet the client thought
-        // worth sending and we do not know the name of. Size and first bytes, so an opcode
-        // can be identified by its shape -- a movement packet is unmistakable. Five per
-        // opcode, so a flood still cannot drown the log.
-        {
-            static std::map<uint16, uint32> s_seen;
-            static std::mutex s_lock;
-            const uint16 op = uint16(packet.GetOpcode());
-            uint32 count = 0;
-            {
-                std::lock_guard<std::mutex> g(s_lock);
-                count = ++s_seen[op];
-            }
-            if (count <= 5)
-            {
-                std::string head;
-                char byte[4];
-                for (size_t i = 0; i < packet.size() && i < 16; ++i)
-                {
-                    std::snprintf(byte, sizeof(byte), "%02X ", packet.contents()[i]);
-                    head += byte;
-                }
-                sLog.outError("Gateway: UNKNOWN opcode 0x%.4X, %u bytes payload, first: %s",
-                              op, uint32(packet.size()), head.c_str());
-            }
-        }
-
         DEBUG_LOG("WorldGateway: refused unknown opcode 0x%.4X at the gateway",
                   packet.GetOpcode());
         return;
