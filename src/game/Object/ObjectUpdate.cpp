@@ -1028,6 +1028,24 @@ void Object::_SetCreateBits(UpdateMask* updateMask, Player* target) const
         valuesCount = PLAYER_END_NOT_SELF;
     }
 
+    // A VESSEL IS CREATED WHOLE, zeros included.
+    //
+    // Every other object is created sparsely: a field that is zero is left out of the mask
+    // and the client reads its absence as zero. Retail does not do that for a type-15
+    // create -- it sends every slot, zero or not, which is the full 0x000FFFFF mask. The
+    // client builds a transport out of the whole record; handed a sparse one it builds no
+    // transport at all, and then it draws the hull and never treats it as something that
+    // can carry anyone. That is a ship you can stand on while it sails out from under you.
+    if (isType(TYPEMASK_GAMEOBJECT)
+        && static_cast<GameObject const*>(this)->GetGoType() == GAMEOBJECT_TYPE_MO_TRANSPORT)
+    {
+        for (uint16 index = 0; index < valuesCount; ++index)
+        {
+            updateMask->SetBit(index);
+        }
+        return;
+    }
+
     for (uint16 index = 0; index < valuesCount; ++index)
         if (GetUInt32Value(index) != 0)
         {
