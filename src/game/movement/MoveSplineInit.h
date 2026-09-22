@@ -62,8 +62,17 @@ namespace Movement
 
             /**
              * @brief Stops any creature movement.
+             *
+             * A no-op when no spline is running, which is what every existing caller expects.
              */
             void Stop();
+
+            /**
+             * @brief The same stop, sent even with no spline running: the point-carrying form
+             *        retail puts in front of every taxi control change (design 2026-09-22 §3).
+             *        Callers that only want a running spline cancelled want Stop().
+             */
+            void StopHere();
 
             /* Adds movement by parabolic trajectory
              * @param amplitude  - the maximum height of parabola, value could be negative and positive

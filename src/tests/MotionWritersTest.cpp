@@ -30,6 +30,8 @@
 #include "Change.h"
 #include "PacketMatrix.h"
 #include "Writers.h"
+#include "MonsterMoveStop.h"
+#include "wire/MonsterMoveCodec.h"
 #include "wire/KnockBackCodec.h"
 #include "wire/MovementCodec.h"
 #include "wire/MovementFamilies.h"
@@ -335,4 +337,52 @@ TEST(MotionWriters_refuse_cells_the_matrix_leaves_empty)
     CHECK(!BuildObserver(out, 0x46, 0, FlagChange(ChangeType::Swim, true), Wire::MovementStatus()));
     Change none;
     CHECK(!BuildMover(out, 0x46, 0, none));
+}
+
+// ---- the point-carrying stop (design 2026-09-22 §3) -----------------------------------------
+
+TEST(MotionWriters_the_point_carrying_stop_ends_at_the_type)
+{
+    // MoveSplineInit::StopHere's body, byte for byte. The layout the client read pinned:
+    // packed guid | u8 0 | float xyz | u32 splineId | u8 type = Stop, and NOTHING after --
+    // a classic type-1 spline reads no flags word, no duration and no facing.
+    // peer/retail-taxi-flights-2026-09-22.md §3.2: the one waypoint equals the position in
+    // 1,017 of 1,017 of the corpus's one-point packets, so there is only one point to write.
+    WorldPacket p(SMSG_MONSTER_MOVE, 32);
+    Movement::WriteMonsterMoveStop(p, 0x0000000000010046ULL, false, 0, 0, 1.0f, 2.0f, 3.0f, 6);
+    CHECK_STR(Hex(p), "05" "4601" "00" "0000803F" "00000040" "00004040" "06000000" "01");
+    CHECK_EQ(p.size(), size_t(21));
+
+    // And it is the shape the decoder -- built from the client's own read -- expects: whole,
+    // exact, a Stop, at the point the writer was given.
+    Wire::MonsterMove back;
+    p.rpos(0);
+    REQUIRE(Wire::DecodeMonsterMove(p, SMSG_MONSTER_MOVE, back).ok());
+    CHECK(back.type == Wire::MonsterMoveType::Stop);
+    CHECK_EQ(back.mover, 0x0000000000010046ULL);
+    CHECK_EQ(back.id, uint32(6));
+    CHECK_EQ(back.exitVoluntary, uint8(0));
+    CHECK_EQ(back.start.x, 1.0f);
+    CHECK_EQ(back.start.y, 2.0f);
+    CHECK_EQ(back.start.z, 3.0f);
+    CHECK(Wire::Judge(SMSG_MONSTER_MOVE, p, false).exact);
+}
+
+TEST(MotionWriters_the_point_carrying_stop_on_a_deck_carries_the_vessel_and_no_seat)
+{
+    // The transport form inserts the vessel and the seat between the mover and the exit byte.
+    // A DECK has no seat: -1, which is what both reference cores send for a MO_TRANSPORT and
+    // what MoveSplineInit passes for a unit standing on a ship.
+    WorldPacket p(SMSG_MONSTER_MOVE_TRANSPORT, 32);
+    Movement::WriteMonsterMoveStop(p, 0x0000000000010046ULL, true, 0x0000000000000102ULL, -1,
+                                   1.0f, 2.0f, 3.0f, 6);
+    CHECK_STR(Hex(p), "05" "4601" "03" "0201" "FF" "00" "0000803F" "00000040" "00004040" "06000000" "01");
+    Wire::MonsterMove back;
+    p.rpos(0);
+    REQUIRE(Wire::DecodeMonsterMove(p, SMSG_MONSTER_MOVE_TRANSPORT, back).ok());
+    CHECK(back.type == Wire::MonsterMoveType::Stop);
+    CHECK(back.onTransport);
+    CHECK_EQ(back.transport, 0x0000000000000102ULL);
+    CHECK_EQ(back.seat, int8(-1));
+    CHECK(Wire::Judge(SMSG_MONSTER_MOVE_TRANSPORT, p, false).exact);
 }

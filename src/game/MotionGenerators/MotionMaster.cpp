@@ -46,6 +46,7 @@
 #include "CreatureLinkingMgr.h"
 #include "Pet.h"
 #include "Player.h"
+#include "TaxiRoute.h"
 #include "World.h"
 #include "DBCStores.h"
 #include "ObjectMgr.h"
@@ -1140,33 +1141,25 @@ void MotionMaster::MoveTaxiFlight(std::vector<uint32> const& route, uint32 start
     p.startNode = startNode;
     // The hops welded into one node array (design §5): the seam node once -- the incoming hop's
     // last row, kept and marked -- and the outgoing hop's node 0 dropped, as the hop chaining's
-    // pathNode = 1 skipped it.
-    for (size_t hop = 1; hop < route.size(); ++hop)
+    // pathNode = 1 skipped it. The weld itself is TaxiRoute::Weld's, shared with the resume so
+    // that the landing time is measured over exactly the polyline this spline is built from.
+    std::vector<TaxiRouteNode> welded;
+    if (!TaxiRoute::Weld(route, welded))
     {
-        uint32 path = 0;
-        uint32 cost = 0;
-        sObjectMgr.GetTaxiPath(route[hop - 1], route[hop], path, cost);
-        if (!path || path >= sTaxiPathNodesByPath.size() || sTaxiPathNodesByPath[path].size() < (hop == 1 ? 1u : 2u))
-        {
-            sLog.outError("%s attempt taxi over a missing or degenerate path from node %u to node %u", m_owner->GetGuidStr().c_str(), route[hop - 1], route[hop]);
-            static_cast<Player*>(m_owner)->m_taxi.ClearTaxiDestinations();
-            return;
-        }
-        TaxiPathNodeList const& rows = sTaxiPathNodesByPath[path];
-        for (size_t i = (hop == 1 ? 0 : 1); i < rows.size(); ++i)
-        {
-            TaxiPathNodeEntry const& row = rows[i];
-            Motion::TaxiBehaviour::Node node;
-            node.mapId = row.ContinentID;
-            node.pos = Motion::Vector3(row.Loc_0, row.Loc_1, row.Loc_2);
-            node.arrivalEvent = row.ArrivalEventID;
-            node.departureEvent = row.DepartureEventID;
-            p.nodes.push_back(node);
-        }
-        if (hop + 1 < route.size())
-        {
-            p.nodes.back().seam = true;
-        }
+        sLog.outError("%s attempt taxi over a missing or degenerate path along a route of %u nodes", m_owner->GetGuidStr().c_str(), uint32(route.size()));
+        static_cast<Player*>(m_owner)->m_taxi.ClearTaxiDestinations();
+        return;
+    }
+    p.nodes.reserve(welded.size());
+    for (size_t i = 0; i < welded.size(); ++i)
+    {
+        Motion::TaxiBehaviour::Node node;
+        node.mapId = welded[i].mapId;
+        node.pos = Motion::Vector3(welded[i].x, welded[i].y, welded[i].z);
+        node.arrivalEvent = welded[i].arrivalEvent;
+        node.departureEvent = welded[i].departureEvent;
+        node.seam = welded[i].seam;
+        p.nodes.push_back(node);
     }
     if (p.nodes.empty() || startNode >= p.nodes.size())
     {
@@ -1184,8 +1177,21 @@ void MotionMaster::MoveTaxiFlight(std::vector<uint32> const& route, uint32 start
             p.landing = Motion::Vector3(destination->Pos_0, destination->Pos_1, destination->Pos_2);
         }
     }
-    DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s taxi from node %u to node %u (%u path nodes, from %u)",
-                     m_owner->GetGuidStr().c_str(), route.front(), route.back(), uint32(p.nodes.size()), startNode);
+    // THE LANDING TIME, stamped once and only once (design 2026-09-22 §2): the whole remaining
+    // route's flyable length over the very speed this spline is laid at. It is the takeoff that
+    // stamps it -- a resume finds one already set and keeps it, because the contract was bought
+    // at the click and a passenger who spent ten minutes in a battleground does not get those
+    // ten minutes added to his flight. PlayerTaxi::ClearTaxiDestinations drops the stamp with
+    // the route, so the next takeoff always finds zero.
+    Player* passenger = static_cast<Player*>(m_owner);
+    if (!passenger->m_taxi.GetLandingTime())
+    {
+        const float remaining = TaxiResume::Length(welded, startNode);
+        passenger->m_taxi.SetLandingTime(uint32(sWorld.GetGameTime()) + uint32(remaining / p.speed + 0.5f));
+    }
+    DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s taxi from node %u to node %u (%u path nodes, from %u, landing at %u)",
+                     m_owner->GetGuidStr().c_str(), route.front(), route.back(), uint32(p.nodes.size()), startNode,
+                     passenger->m_taxi.GetLandingTime());
     Request(R(Motion::Kind::Taxi), std::unique_ptr<Motion::Behaviour>(new Motion::TaxiBehaviour(p)));
 }
 

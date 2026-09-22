@@ -31,6 +31,7 @@
 #include "BehaviourModel.h"
 #include "TaxiMove.h"
 #include "../game/Object/TaxiDestinationsString.h"    // header-only: the suite links no game library
+#include "../game/Object/TaxiRoute.h"                 // same: TaxiResume is inline and TaxiRoute::Weld is never called here
 
 #include <vector>
 
@@ -634,4 +635,182 @@ TEST(TaxiPersistence_RoundTripKeepsTheFactionAndTheRoute)
     REQUIRE(back.size() == size_t(2));
     CHECK_EQ(back[1], 11u);
     CHECK(!TaxiDestinationsString::Parse("12 x 3", faction, back));
+}
+
+// ---- the landing-time resume (design 2026-09-22 §2) -----------------------------------------
+
+namespace
+{
+    /// A node at (x, 0, 100) on `map`.
+    TaxiRouteNode R(uint32 map, float x)
+    {
+        TaxiRouteNode n;
+        n.mapId = map;
+        n.x = x;
+        n.y = 0.0f;
+        n.z = 100.0f;
+        return n;
+    }
+
+    /// Five nodes on map 1 at x = 0, 100, 200, 300, 400: 400 yd of route, 40 s at 10 yd/s.
+    std::vector<TaxiRouteNode> Straight()
+    {
+        std::vector<TaxiRouteNode> nodes;
+        for (uint32 i = 0; i < 5; ++i)
+        {
+            nodes.push_back(R(1, float(i) * 100.0f));
+        }
+        return nodes;
+    }
+
+    /// 100 yd on map 1, a seam, 100 yd on map 2: 200 flyable yards over two legs.
+    std::vector<TaxiRouteNode> AcrossASeam()
+    {
+        std::vector<TaxiRouteNode> nodes;
+        nodes.push_back(R(1, 0.0f));
+        nodes.push_back(R(1, 100.0f));
+        nodes.push_back(R(2, 1000.0f));
+        nodes.push_back(R(2, 1100.0f));
+        return nodes;
+    }
+}
+
+TEST(TaxiResume_ASeamCostsNoDistanceAndNoTime)
+{
+    // The seam is a teleport, not a flight: 200 yd, not the 900 the raw coordinates would give.
+    // The spline is laid one leg per map and crosses by teleport, so the length the landing
+    // time is computed from has to agree with it.
+    CHECK_EQ(TaxiResume::Length(AcrossASeam(), 0), 200.0f);
+    CHECK_EQ(TaxiResume::Length(AcrossASeam(), 1), 100.0f);   // from the seam: the second map alone
+    CHECK_EQ(TaxiResume::Length(Straight(), 0), 400.0f);
+    CHECK_EQ(TaxiResume::Length(Straight(), 2), 200.0f);
+}
+
+TEST(TaxiResume_NoStampReadsAsLanded)
+{
+    // The old taxi_path string carries no stamp, and neither does a path that came back through
+    // a battleground's stored two nodes. Zero is the safe direction: the passenger is put down
+    // at the destination he paid for rather than flown from a moment nobody knows.
+    const TaxiResume::Resume r = TaxiResume::Decide(Straight(), 10.0f, 5000, 0, 1);
+    CHECK(r.verdict == TaxiResume::Verdict::Landed);
+    CHECK_EQ(r.x, 400.0f);
+    CHECK_EQ(r.mapId, 1u);
+    CHECK_EQ(r.node, size_t(4));
+}
+
+TEST(TaxiResume_PastTheLandingIsTheDestination)
+{
+    // A fifteen-minute battleground on a forty-second flight. At the landing second exactly,
+    // and after it: down at the destination.
+    CHECK(TaxiResume::Decide(Straight(), 10.0f, 5000, 5000, 1).verdict == TaxiResume::Verdict::Landed);
+    const TaxiResume::Resume r = TaxiResume::Decide(Straight(), 10.0f, 9000, 5000, 1);
+    CHECK(r.verdict == TaxiResume::Verdict::Landed);
+    CHECK_EQ(r.x, 400.0f);
+    CHECK_EQ(r.flown, 400.0f);
+    // Even from another map: the contract is to the destination, and the caller teleports.
+    const TaxiResume::Resume elsewhere = TaxiResume::Decide(Straight(), 10.0f, 9000, 5000, 571);
+    CHECK(elsewhere.verdict == TaxiResume::Verdict::Landed);
+    CHECK_EQ(elsewhere.mapId, 1u);
+}
+
+TEST(TaxiResume_BeforeTheLandingIsThePointTheRouteHasReached)
+{
+    // 400 yd at 10 yd/s: a landing at t = 5000 means a takeoff at 4960. A twenty-second dungeon
+    // pop puts him 25 s in, 250 yd along -- half-way down the third leg, flying on to node 3.
+    const TaxiResume::Resume r = TaxiResume::Decide(Straight(), 10.0f, 4985, 5000, 1);
+    CHECK(r.verdict == TaxiResume::Verdict::Airborne);
+    CHECK(!r.clamped);
+    CHECK_EQ(r.flown, 250.0f);
+    CHECK_EQ(r.total, 400.0f);
+    CHECK_EQ(r.node, size_t(3));
+    CHECK_EQ(r.x, 250.0f);
+    CHECK_EQ(r.mapId, 1u);
+
+    // One second before the landing: 10 yd left, on the last leg, aiming at the last node.
+    const TaxiResume::Resume late = TaxiResume::Decide(Straight(), 10.0f, 4999, 5000, 1);
+    CHECK(late.verdict == TaxiResume::Verdict::Airborne);
+    CHECK_EQ(late.node, size_t(4));
+    CHECK_EQ(late.x, 390.0f);
+
+    // A stamp further out than the route is long (a speed changed under a saved flight) reads
+    // as the start rather than as a negative distance.
+    const TaxiResume::Resume early = TaxiResume::Decide(Straight(), 10.0f, 1000, 5000, 1);
+    CHECK(early.verdict == TaxiResume::Verdict::Airborne);
+    CHECK_EQ(early.flown, 0.0f);
+    CHECK_EQ(early.node, size_t(1));
+    CHECK_EQ(early.x, 0.0f);
+}
+
+TEST(TaxiResume_AnElapsedPointOnALaterMapIsHeldAtTheSeam)
+{
+    // 200 yd over two maps, 20 s at 10 yd/s. At 15 s the clock says he is 150 yd along --
+    // half-way down map 2's leg -- but he is standing on map 1. He is held at map 1's last node
+    // and the kernel's own crossing carries him over from there.
+    const TaxiResume::Resume r = TaxiResume::Decide(AcrossASeam(), 10.0f, 1015, 1020, 1);
+    CHECK(r.verdict == TaxiResume::Verdict::Airborne);
+    CHECK(r.clamped);
+    CHECK_EQ(r.node, size_t(1));
+    CHECK_EQ(r.mapId, 1u);
+    CHECK_EQ(r.x, 100.0f);
+
+    // Standing on map 2 already -- a logout taken right after the crossing, whose saved route
+    // still begins on the old map -- and the clock is behind him: he rejoins at map 2's first
+    // node instead of being sent back across the seam.
+    const TaxiResume::Resume ahead = TaxiResume::Decide(AcrossASeam(), 10.0f, 1015, 1035, 2);
+    CHECK(ahead.verdict == TaxiResume::Verdict::Airborne);
+    CHECK(ahead.clamped);
+    CHECK_EQ(ahead.node, size_t(2));
+    CHECK_EQ(ahead.mapId, 2u);
+
+    // And a route with nothing at all on his map cannot be resumed.
+    CHECK(TaxiResume::Decide(AcrossASeam(), 10.0f, 1015, 1020, 571).verdict == TaxiResume::Verdict::NoRoute);
+}
+
+TEST(TaxiResume_ARouteTooShortOrASpeedOfZeroIsNoRoute)
+{
+    std::vector<TaxiRouteNode> one;
+    one.push_back(R(1, 0.0f));
+    CHECK(TaxiResume::Decide(one, 10.0f, 0, 100, 1).verdict == TaxiResume::Verdict::NoRoute);
+    CHECK(TaxiResume::Decide(std::vector<TaxiRouteNode>(), 10.0f, 0, 100, 1).verdict == TaxiResume::Verdict::NoRoute);
+    CHECK(TaxiResume::Decide(Straight(), 0.0f, 0, 100, 1).verdict == TaxiResume::Verdict::NoRoute);
+}
+
+TEST(TaxiPersistence_TheLandingStampRidesInTheStringAndTheOldFormStillLoads)
+{
+    std::vector<uint32> route;
+    route.push_back(5);
+    route.push_back(6);
+    const std::string text = TaxiDestinationsString::Format(1234, route, 1758547200u);
+    CHECK_STR(text.c_str(), "1234 5 6 L1758547200 ");
+
+    uint32 faction = 0;
+    uint32 landing = 0;
+    std::vector<uint32> back;
+    CHECK(TaxiDestinationsString::Parse(text, faction, back, &landing));
+    CHECK_EQ(faction, 1234u);
+    CHECK_EQ(landing, 1758547200u);
+    REQUIRE(back.size() == size_t(2));
+    CHECK_EQ(back[0], 5u);
+    CHECK_EQ(back[1], 6u);
+
+    // THE OLD FORM. No stamp, so it parses exactly as it always did and the landing reads zero,
+    // which the resume takes as "landed". A build that stamps nothing writes the old bytes.
+    CHECK_STR(TaxiDestinationsString::Format(1234, route).c_str(), "1234 5 6 ");
+    landing = 99;
+    CHECK(TaxiDestinationsString::Parse("1234 5 6 ", faction, back, &landing));
+    CHECK_EQ(landing, 0u);
+    REQUIRE(back.size() == size_t(2));   // and no stamp became a third node
+    CHECK_EQ(faction, 1234u);
+
+    // The stamp never takes the faction's slot nor becomes a node, wherever it is found, and a
+    // caller that does not want it may pass NULL.
+    CHECK(TaxiDestinationsString::Parse("L777 1234 5 6 ", faction, back, &landing));
+    CHECK_EQ(landing, 777u);
+    CHECK_EQ(faction, 1234u);
+    REQUIRE(back.size() == size_t(2));
+    CHECK(TaxiDestinationsString::Parse("1234 5 6 L777 ", faction, back));
+    REQUIRE(back.size() == size_t(2));
+    // A malformed stamp is refused, not silently read as zero.
+    CHECK(!TaxiDestinationsString::Parse("1234 5 6 Lx ", faction, back, &landing));
+    CHECK(!TaxiDestinationsString::Parse("1234 5 6 L ", faction, back, &landing));
 }

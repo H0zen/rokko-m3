@@ -44,7 +44,7 @@ class Player; // forward declaration
 class PlayerTaxi
 {
     public:
-        PlayerTaxi() : m_flightMasterFactionId(0) { memset(m_taximask, 0, sizeof(m_taximask)); }
+        PlayerTaxi() : m_flightMasterFactionId(0), m_landingTime(0) { memset(m_taximask, 0, sizeof(m_taximask)); }
         ~PlayerTaxi() { }
 
         // Nodes
@@ -87,7 +87,17 @@ class PlayerTaxi
         void ClearTaxiDestinations()
         {
             m_TaxiDestinations.clear();
+            m_landingTime = 0;   // the stamp belongs to the route; there is no route left
         }
+
+        /// The server-time second at which the WHOLE route's flight ends, stamped once at the
+        /// takeoff from the same polyline the spline is built from (design 2026-09-22 §2, the
+        /// user's "a flight is a paid contract to the destination"). Zero means no stamp: a
+        /// route saved before this existed, or one carried through a battleground whose stored
+        /// path has no room for it. Zero reads as LANDED at every resume, which is the safe
+        /// direction -- the passenger gets the destination he paid for.
+        uint32 GetLandingTime() const { return m_landingTime; }
+        void SetLandingTime(uint32 when) { m_landingTime = when; }
 
         void AddTaxiDestination(uint32 dest)
         {
@@ -135,6 +145,7 @@ class PlayerTaxi
         TaxiMask m_taximask;
         std::deque<uint32> m_TaxiDestinations;
         uint32 m_flightMasterFactionId;
+        uint32 m_landingTime;
 };
 
 std::ostringstream& operator<< (std::ostringstream& ss, PlayerTaxi const& taxi);

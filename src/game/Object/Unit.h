@@ -2112,7 +2112,11 @@ class Unit : public WorldObject
          * @param spellId id of the spell used to summon the mount, if 0 is passed in this is treated
          * as a GM command or the Taxi service mounting the Player.
          */
-        void Mount(uint32 mount, uint32 spellId = 0);
+        /// `canFly` is the mount aura's resolved MountCapabilityEntry answer (design
+        /// 2026-09-22 §4): true only when the capability the zone and the riding skill actually
+        /// resolved to can fly. It decides the pet, and nothing else. Defaulted false so the
+        /// taxi, the GM command and every creature mount are untouched.
+        void Mount(uint32 mount, uint32 spellId = 0, bool canFly = false);
         /**
          * Unmounts this Unit by sending the SMSG_DISMOUNT to the client if it was a dismount
          * not issued by a GM / the Taxi service. Also changes the UNIT_FIELD_MOUNTDISPLAYID

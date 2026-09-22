@@ -60,6 +60,7 @@ namespace Harness
     void RegisterDefaultScenarios(Runner& r);
     void RegisterTrackingScenarios(Runner& r);
     void RegisterControlScenarios(Runner& r);
+    void RegisterTaxiScenarios(Runner& r);
 
     namespace
     {
@@ -100,6 +101,10 @@ namespace Harness
         RegisterDefaultScenarios(*this);
         RegisterTrackingScenarios(*this);
         RegisterControlScenarios(*this);
+        // The taxi-contract family (RegisterTaxiScenarios) is orders 908-911, at the tail of
+        // the player block: the death that clears a flight, the resume decided by the landing
+        // time, the stops retail sends at the two control changes, and the 4.2.0 pet rule.
+        RegisterTaxiScenarios(*this);
     }
 
     /// The registry, and DELIBERATELY NOTHING ELSE -- not `End`'s five-step player teardown,

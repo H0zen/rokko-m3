@@ -27,6 +27,7 @@
 #include "MoveSplineSpeed.h"
 #include "MoveSpline.h"
 #include "packet_builder.h"
+#include "MonsterMoveStop.h"
 #include "Unit.h"
 #include "Transports.h"
 #include "Vehicle.h"
@@ -211,13 +212,35 @@ namespace Movement
      */
     void MoveSplineInit::Stop()
     {
-        MoveSpline& move_spline = *unit.movespline;
-
-        // No need to stop if we are not moving
-        if (move_spline.Finalized())
+        // No need to stop if we are not moving. UNCHANGED for every existing caller: a stop
+        // that suddenly emitted for every finalized spline would spam. StopHere() below is the
+        // same writer without this guard, for the two places retail sends a stop precisely
+        // BECAUSE there is nothing to cancel.
+        if (unit.movespline->Finalized())
         {
             return;
         }
+
+        StopHere();
+    }
+
+    /**
+     * @brief The same stop, sent even when no spline is running: the point-carrying form.
+     *
+     * `peer/retail-taxi-flights-2026-09-22.md` §2, §3.3 and §7. At a taxi's takeoff the player
+     * had been standing still under his own control for 4.4 s and NO server spline had ever
+     * been sent for him; at the landing the flight's spline had expired 183 ms earlier. Retail
+     * sends a stop at both, twice each, and always immediately BEFORE the control change --
+     * `(stop, revoke)` at the takeoff and `(stop, grant)` at the landing, the same idiom
+     * mirrored. Corpus-wide it sends this form with no live spline 3,603 times. Backlog §4.7
+     * asked for exactly this and design §6.4 recorded its absence as a known gap.
+     *
+     * It is not needed to END anything -- there is nothing to end. It pins the mover's position
+     * at the transition, which is the moment the client is about to gain or lose the wheel.
+     */
+    void MoveSplineInit::StopHere()
+    {
+        MoveSpline& move_spline = *unit.movespline;
 
         // A VEHICLE seat is a real transform the server owns, so a rider's pose has to be
         // fetched from it. A DECK is not: the unit's map is the vessel and its position is
@@ -261,31 +284,20 @@ namespace Movement
         unit.m_movementInfo.RemoveMovementFlag(MOVEFLAG_FORWARD);
         move_spline.Initialize(args);
 
-        WorldPacket data(SMSG_MONSTER_MOVE, 64);
-        data << unit.GetPackGUID();
+        // NO SEAT for a deck. A seat is a vehicle's, and a vehicle is a unit: it has a seat
+        // map, a transform per seat and a passenger bound to one. A ship has none of that --
+        // she is a map, and what is on her is simply on her. -1 is how the client is told
+        // there is no seat, and it is what both reference cores send for a MO_TRANSPORT.
+        const bool onTransport = transportInfo || !vesselGuid.IsEmpty();
+        const uint64 vessel = transportInfo ? transportInfo->GetTransportGuid().GetRawValue() : vesselGuid.GetRawValue();
+        const int8 seat = transportInfo ? int8(transportInfo->GetTransportSeat()) : int8(-1);
 
-        if (transportInfo)
-        {
-            data.SetOpcode(SMSG_MONSTER_MOVE_TRANSPORT);
-            data << transportInfo->GetTransportGuid().WriteAsPacked();
-            data << int8(transportInfo->GetTransportSeat());
-        }
-        else if (!vesselGuid.IsEmpty())
-        {
-            // NO SEAT. A seat is a vehicle's, and a vehicle is a unit: it has a seat map,
-            // a transform per seat and a passenger bound to one. A ship has none of that --
-            // she is a map, and what is on her is simply on her. -1 is how the client is
-            // told there is no seat, and it is what both reference cores send for a
-            // MO_TRANSPORT.
-            data.SetOpcode(SMSG_MONSTER_MOVE_TRANSPORT);
-            data << vesselGuid.WriteAsPacked();
-            data << int8(-1);
-        }
-
-        data << uint8(0);
-        data << real_position.x << real_position.y << real_position.z;
-        data << move_spline.GetId();
-        data << uint8(MonsterMoveStop);
+        WorldPacket data(onTransport ? SMSG_MONSTER_MOVE_TRANSPORT : SMSG_MONSTER_MOVE, 64);
+        // One writer, shared with the suite (MonsterMoveStop.h): these are the bytes
+        // MotionWrites_the_point_carrying_stop_ends_at_the_type pins.
+        static_assert(kMonsterMoveStopType == MonsterMoveStop, "the stop writer's type byte drifted from MoveSpline.h");
+        WriteMonsterMoveStop(data, unit.GetObjectGuid().GetRawValue(), onTransport, vessel, seat,
+                             real_position.x, real_position.y, real_position.z, move_spline.GetId());
         unit.SendMessageToSet(&data, true);
     }
 

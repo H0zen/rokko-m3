@@ -4011,8 +4011,10 @@ float Unit::GetPPMProcChance(uint32 WeaponSpeed, float PPM) const
  *
  * @param mount The mount display identifier.
  * @param spellId The mounting spell identifier.
+ * @param canFly True when the mount aura's resolved MountCapabilityEntry can fly HERE; the pet
+ *               branch below is the only thing that reads it (design 2026-09-22 §4).
  */
-void Unit::Mount(uint32 mount, uint32 spellId)
+void Unit::Mount(uint32 mount, uint32 spellId, bool canFly)
 {
     if (!mount)
     {
@@ -4033,18 +4035,41 @@ void Unit::Mount(uint32 mount, uint32 spellId)
             ((Player*)this)->UnsummonPetTemporaryIfAny();
         }
         // Called by mount aura
-        else if (SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellId))
+        else if (sSpellStore.LookupEntry(spellId))
         {
-            // Flying case (Unsummon any pet)
-            if (IsSpellHaveAura(spellInfo, SPELL_AURA_MOD_FLIGHT_SPEED_MOUNTED))
+            // THE 4.2.0 RULE (design 2026-09-22 §4; Wowpedia 2011-06-06, Petopia 4.2, PTR-tested
+            // for hunter, warlock and death knight): a permanent pet STAYS OUT AND FOLLOWS on a
+            // ground mount, and despawns only on lift-off with a flying one, returning on
+            // dismount.
+            //
+            // The test used to be `IsSpellHaveAura(spellInfo, SPELL_AURA_MOD_FLIGHT_SPEED_MOUNTED)`
+            // on the MOUNT SPELL. That is dead on 4.3.4 and had been since 4.0: the mount spell
+            // carries nothing but SPELL_AURA_MOUNTED (verified over SpellEffect.dbc -- 55164,
+            // 30174, 32235 each have exactly one effect), because the speed moved to the
+            // capability's SpeedModSpell, which is where aura 207 lives now (86459/86460/86461).
+            // So the flying arm never fired, every mount fell into the arm below, and its
+            // condition unsummoned any controlled non-temporary pet -- i.e. the GROUND half was
+            // the broken one, the opposite of what it looked like.
+            //
+            // The answer now comes from the capability the aura resolved, which is already gated
+            // on the zone, the map, the riding skill and the licence aura: a flying mount used
+            // where flight is forbidden resolves to a GROUND capability (mount type 248 on map 1
+            // without spell 90267 returns capability 227, Flags 0x1d) and the pet rightly stays.
+            // The predicate is `Flags & 0x2`, the same bit Unit::GetMountCapability itself treats
+            // as the flying half of the land pair; testing the capability's SpeedModSpell for
+            // aura 207 instead would agree on all 38 MountCapability rows.
+            if (canFly)
             {
                 ((Player*)this)->UnsummonPetTemporaryIfAny();
             }
-            // Normal case (Unsummon only permanent pet)
             else if (Pet* pet = GetPet())
             {
-                if (pet->isControlled() && (!(pet->isTemporarySummoned() || ((Player*)this)->InArena())
-                    || sWorld.getConfig(CONFIG_BOOL_PET_UNSUMMON_AT_MOUNT)))
+                // Ground. A permanent pet is kept, with its actions disabled while its owner is
+                // mounted -- which is what the client shows, a greyed-out pet bar, and what
+                // Unit::Unmount restores from the CharmInfo. A TEMPORARY summon keeps exactly
+                // the gate it had: PetUnsummonAtMount, and the arena with it.
+                if (pet->isControlled() && (pet->isTemporarySummoned() || ((Player*)this)->InArena())
+                    && sWorld.getConfig(CONFIG_BOOL_PET_UNSUMMON_AT_MOUNT))
                 {
                     ((Player*)this)->UnsummonPetTemporaryIfAny();
                 }

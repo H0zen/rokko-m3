@@ -96,10 +96,20 @@ void Aura::HandleAuraMounted(bool apply, bool Real)
 
     if (apply)
     {
+        // The capability this mount resolves to HERE -- the zone, the map, the riding skill and
+        // any licence aura are all already folded into it by Unit::GetMountCapability -- and the
+        // one thing the pet decision turns on: can what he is actually riding fly (design
+        // 2026-09-22 §4). `Flags & 0x2` is the flying half of the land pair the lookup itself
+        // tests; the capability's SpeedModSpell carrying SPELL_AURA_MOD_FLIGHT_SPEED_MOUNTED
+        // agrees on all 38 MountCapability rows, so either would do. Resolved once, before the
+        // mount, and used by both Mount calls below.
+        MountCapabilityEntry const* mountCapability = target->GetMountCapability(uint32(GetMiscBValue()));
+        const bool canFly = mountCapability && (mountCapability->Flags & 0x2) != 0;
+
         // Running Wild
         if (GetId() == 87840)
         {
-            target->Mount(target->getGender() == GENDER_MALE ? 29422 : 29423, GetId());
+            target->Mount(target->getGender() == GENDER_MALE ? 29422 : 29423, GetId(), canFly);
         }
 
         CreatureInfo const* ci = ObjectMgr::GetCreatureTemplate(m_modifier.m_miscvalue);
@@ -126,8 +136,8 @@ void Aura::HandleAuraMounted(bool apply, bool Real)
             }
         }
 
-        target->Mount(display_id, GetId());
-        if (MountCapabilityEntry const* mountCapability = target->GetMountCapability(uint32(GetMiscBValue())))
+        target->Mount(display_id, GetId(), canFly);
+        if (mountCapability)
         {
             target->CastSpell(target, mountCapability->SpeedModSpell, true);
         }
