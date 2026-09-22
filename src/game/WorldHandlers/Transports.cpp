@@ -265,6 +265,21 @@ bool Transport::Create(uint32 guidlow, uint32 mapid, float x, float y, float z, 
     SetUInt16Value(GAMEOBJECT_DYNAMIC, 0, 0);
     SetUInt16Value(GAMEOBJECT_DYNAMIC, 1, dynamicHighValue);
 
+    // A VESSEL NEEDS A ROTATION, AND NOBODY WAS GIVING HER ONE.
+    //
+    // GameObject::Create sets both of these for every ordinary spawn; this is a separate
+    // constructor and it set neither, so a ship went out with the quaternion (0, 0, 0, 0).
+    // That is not a rotation -- it is the zero quaternion, and the transform a client
+    // builds from it is degenerate. Retail sends the identity here: a sniff of a live
+    // Cataclysm zeppelin carries 1.0f in GAMEOBJECT_PARENTROTATION+3 where we carried
+    // nothing.
+    //
+    // The model still draws, because drawing only needs the display id and the route. What
+    // dies is everything that needs her ORIENTATION -- which is what deciding whether a man
+    // is standing on her deck needs. The hull sails through him and he is never picked up.
+    SetWorldRotation(0.0f, 0.0f, 0.0f, 1.0f);
+    SetTransportPathRotation(QuaternionData(0.0f, 0.0f, 0.0f, 1.0f));
+
     SetName(goinfo->name);
 
     // THE VESSEL IS A MAP. Blizzard gave her a Map.dbc row and no terrain for it; the baker
