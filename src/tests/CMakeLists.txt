@@ -35,7 +35,6 @@ set(SRC_GRP_TESTS
     PendingChangesTest.cpp
     TimeBaseTest.cpp
     MotionWritersTest.cpp
-    ${CMAKE_SOURCE_DIR}/src/game/movement/spline.cpp
     MotionStateTest.cpp
     HarnessTest.cpp
     WorldClockTest.cpp
@@ -55,6 +54,8 @@ set(SRC_GRP_TESTS
     GlobalWmoEvictionTest.cpp
     ConnectToTest.cpp
     DatabaseConcurrencyTest.cpp
+    NullDatabaseTest.cpp
+    GameLinkTest.cpp
     AuthCryptTest.cpp
     ClientParserTest.cpp
     TerrainModelTest.cpp
@@ -63,10 +64,6 @@ set(SRC_GRP_TESTS
     NavBinningTest.cpp
     DynamicCollisionTest.cpp
     PlacementTest.cpp
-    ${CMAKE_SOURCE_DIR}/src/game/WorldHandlers/DynamicCollision.cpp
-    ${CMAKE_SOURCE_DIR}/src/game/WorldHandlers/GameObjectModel.cpp
-    ${CMAKE_SOURCE_DIR}/src/game/Server/SessionMailbox.cpp
-    ${CMAKE_SOURCE_DIR}/src/game/Harness/Timeline.cpp
     ByteBufferStressTest.cpp
     CodecStressTest.cpp
     PacketCodecTest.cpp
@@ -103,10 +100,6 @@ add_executable(mangos_tests ${SRC_GRP_TESTS})
 
 target_include_directories(mangos_tests
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/src/game/WorldHandlers
-        ${CMAKE_SOURCE_DIR}/src/game/Server
-        ${CMAKE_SOURCE_DIR}/src/game/MotionGenerators
-        ${CMAKE_SOURCE_DIR}/src/game/Harness
         ${CMAKE_SOURCE_DIR}/src/game/movement
         ${CMAKE_SOURCE_DIR}/src/realmd
         ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src)
@@ -115,6 +108,7 @@ target_compile_definitions(mangos_tests PRIVATE MANGOS_TEST_DATA_DIR="${CMAKE_CU
 
 target_link_libraries(mangos_tests
     PRIVATE
+        game
         motion
         proto
         shared_db
@@ -123,6 +117,14 @@ target_link_libraries(mangos_tests
         extractor_data
         Threads::Threads
 )
+
+# Decoupling D1 (server #80): the test binary links the game library. Every decoupling PR's
+# tests stand on this; a tidy-up that drops the link takes them all out with it. Read the real
+# link set, not the text of this file.
+get_target_property(MANGOS_TESTS_LINKS mangos_tests LINK_LIBRARIES)
+if(NOT "game" IN_LIST MANGOS_TESTS_LINKS)
+    message(FATAL_ERROR "mangos_tests no longer links the game library (decoupling D1, server #80)")
+endif()
 
 if(WITH_CRYPTO_TESTS)
     target_compile_definitions(mangos_tests PRIVATE MANGOS_CRYPTO_TESTS=1)
