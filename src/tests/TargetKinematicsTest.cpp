@@ -90,16 +90,103 @@ TEST(TargetKinematics_AscendingSplineKeepsItsVertical)
     CHECK(Near(m.velocity.length(), 13.0f));
 }
 
-TEST(TargetKinematics_SmoothSplineMovesButIsNotTrusted)
+TEST(TargetKinematics_SmoothSplineIsTrustedAlongItsOwnHeading)
 {
     // A Catmull-Rom leg curves between its points, so the chord to the current destination is
-    // not the direction of travel: the target moves, but nothing may lead on it.
+    // NOT the direction of travel -- and that used to be the end of it: the target moved and
+    // nothing could lead on it. It is not the end of it, because the curve knows which way it
+    // is going. Here the chord runs due east while the curve is actually heading north-east;
+    // the velocity must follow the heading and not the chord, at the spline's own speed.
+    TargetMotionInput in = Spline(Vector3(0.0f, 0.0f, 0.0f), Vector3(10.0f, 0.0f, 0.0f), 7.0f);
+    in.splineLinear = false;
+    in.splineHeading = Vector3(3.0f, 3.0f, 0.0f);   // of no particular length: only its direction is read
+    in.splineHeadingValid = true;
+    const TargetMotion m = ClassifyTargetMotion(in);
+    CHECK(m.moving);
+    CHECK(m.trusted);
+    CHECK(Near(m.velocity.length(), 7.0f));
+    CHECK(Near(m.velocity.x, 7.0f / std::sqrt(2.0f)));
+    CHECK(Near(m.velocity.y, 7.0f / std::sqrt(2.0f)));
+    CHECK(Near(m.velocity.z, 0.0f));
+}
+
+TEST(TargetKinematics_SmoothSplineKeepsItsVertical)
+{
+    // The heading is taken in 3D like the chord is: a curve climbing a ramp carries its climb.
+    TargetMotionInput in = Spline(Vector3(0.0f, 0.0f, 0.0f), Vector3(10.0f, 0.0f, 0.0f), 13.0f);
+    in.splineLinear = false;
+    in.splineHeading = Vector3(3.0f, 4.0f, 12.0f);
+    in.splineHeadingValid = true;
+    const TargetMotion m = ClassifyTargetMotion(in);
+    CHECK(m.trusted);
+    CHECK(Near(m.velocity.x, 3.0f));
+    CHECK(Near(m.velocity.y, 4.0f));
+    CHECK(Near(m.velocity.z, 12.0f));
+}
+
+TEST(TargetKinematics_SmoothSplineWithNoHeadingIsStillRefused)
+{
+    // The shell could not produce a derivative (a degenerate segment). There is no chord to
+    // fall back on for a curve, so the target moves untrusted -- the old behaviour, kept for
+    // exactly the case that earned it.
     TargetMotionInput in = Spline(Vector3(0.0f, 0.0f, 0.0f), Vector3(10.0f, 0.0f, 0.0f), 7.0f);
     in.splineLinear = false;
     const TargetMotion m = ClassifyTargetMotion(in);
     CHECK(m.moving);
     CHECK(!m.trusted);
     CHECK_EQ(m.velocity.length(), 0.0f);
+
+    // And a heading of no length is no heading.
+    in.splineHeadingValid = true;
+    in.splineHeading = Vector3(0.0f, 0.0f, 0.0f);
+    const TargetMotion z = ClassifyTargetMotion(in);
+    CHECK(z.moving);
+    CHECK(!z.trusted);
+}
+
+TEST(TargetKinematics_SmoothAirborneSplineIsStillRefused)
+{
+    // A jump or a knockback arc is smooth AND ballistic. The heading is real at this instant
+    // and still worthless over a horizon, because the path ahead is a parabola and not a line:
+    // the ballistic refusal outranks the heading and always did.
+    TargetMotionInput in = Spline(Vector3(0.0f, 0.0f, 0.0f), Vector3(10.0f, 0.0f, 0.0f), 7.0f);
+    in.splineLinear = false;
+    in.splineAirborne = true;
+    in.splineHeading = Vector3(1.0f, 0.0f, 0.0f);
+    in.splineHeadingValid = true;
+    const TargetMotion m = ClassifyTargetMotion(in);
+    CHECK(m.moving);
+    CHECK(!m.trusted);
+    CHECK_EQ(m.velocity.length(), 0.0f);
+}
+
+TEST(TargetKinematics_SmoothCyclicSplineIsStillRefused)
+{
+    // A cycle wraps to its first point, so extrapolating along today's heading walks a
+    // follower off the end of a lap. Refused whatever the heading says.
+    TargetMotionInput in = Spline(Vector3(0.0f, 0.0f, 0.0f), Vector3(10.0f, 0.0f, 0.0f), 7.0f);
+    in.splineLinear = false;
+    in.splineCyclic = true;
+    in.splineHeading = Vector3(1.0f, 0.0f, 0.0f);
+    in.splineHeadingValid = true;
+    const TargetMotion m = ClassifyTargetMotion(in);
+    CHECK(m.moving);
+    CHECK(!m.trusted);
+    CHECK_EQ(m.velocity.length(), 0.0f);
+}
+
+TEST(TargetKinematics_ALinearSplineNeverReadsAHeading)
+{
+    // The linear form is classified from its chord and nothing else, so a heading left over
+    // in the input cannot reach it. This is what keeps every pre-existing leg's velocity
+    // bit-for-bit what it was before the curve was let through.
+    TargetMotionInput in = Spline(Vector3(0.0f, 0.0f, 0.0f), Vector3(10.0f, 0.0f, 0.0f), 7.0f);
+    in.splineHeading = Vector3(0.0f, -1.0f, 0.0f);   // due south, and ignored
+    in.splineHeadingValid = true;
+    const TargetMotion m = ClassifyTargetMotion(in);
+    CHECK(m.trusted);
+    CHECK(Near(m.velocity.x, 7.0f));
+    CHECK(Near(m.velocity.y, 0.0f));
 }
 
 TEST(TargetKinematics_CyclicSplineMovesButIsNotTrusted)

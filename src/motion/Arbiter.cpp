@@ -894,6 +894,18 @@ namespace Motion
         return false;
     }
 
+    bool Arbiter::HasAuraClaim(Kind kind) const
+    {
+        for (size_t i = 0; i < m_claims.size(); ++i)
+        {
+            if (m_claims[i].kind == kind && ClaimSpell(m_claims[i].claim) != 0)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     std::vector<Held> Arbiter::Contents() const
     {
         std::vector<Held> out;

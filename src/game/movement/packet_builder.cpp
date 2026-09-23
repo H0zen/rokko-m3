@@ -48,6 +48,7 @@
 
 #include "packet_builder.h"
 #include "MoveSpline.h"
+#include "MonsterMovePath.h"
 #include "Util.h"
 #include "WorldPacket.h"
 #include "../Object/Creature.h"
@@ -61,16 +62,6 @@ namespace Movement
      * Contains all movement-related classes and functions for
      * spline-based movement and packet construction.
      */
-    /**
-     * @brief Overloads the << operator to write a Vector3 to a ByteBuffer.
-     * @param b The ByteBuffer to write to.
-     * @param v The Vector3 to write.
-     */
-    inline void operator << (ByteBuffer& b, const Vector3& v)
-    {
-        b << v.x << v.y << v.z;
-    }
-
     /**
      * @brief Overloads the >> operator to read a Vector3 from a ByteBuffer.
      * @param b The ByteBuffer to read from.
@@ -132,55 +123,8 @@ namespace Movement
         }
     }
 
-    /**
-     * @brief Writes a linear path to a ByteBuffer.
-     * @param spline The spline containing the path points.
-     * @param data The ByteBuffer to write the data to.
-     */
-    void WriteLinearPath(const Spline<int32>& spline, ByteBuffer& data)
-    {
-        uint32 last_idx = spline.getPointCount() - 3;
-        const Vector3* real_path = &spline.getPoint(1);
-
-        data << last_idx;
-        data << real_path[last_idx];   // destination
-        if (last_idx > 1)
-        {
-            Vector3 middle = (real_path[0] + real_path[last_idx]) / 2.f;
-            Vector3 offset;
-            // first and last points already appended
-            for (uint32 i = 1; i < last_idx; ++i)
-            {
-                offset = middle - real_path[i];
-                data.appendPackXYZ(offset.x, offset.y, offset.z);
-            }
-        }
-    }
-
-    /**
-     * @brief Writes a Catmull-Rom path to a ByteBuffer.
-     * @param spline The spline containing the path points.
-     * @param data The ByteBuffer to write the data to.
-     */
-    void WriteCatmullRomPath(const Spline<int32>& spline, ByteBuffer& data)
-    {
-        uint32 count = spline.getPointCount() - 3;
-        data << count;
-        data.append<Vector3>(&spline.getPoint(2), count);
-    }
-
-    /**
-     * @brief Writes a cyclic Catmull-Rom path to a ByteBuffer.
-     * @param spline The spline containing the path points.
-     * @param data The ByteBuffer to write the data to.
-     */
-    void WriteCatmullRomCyclicPath(const Spline<int32>& spline, ByteBuffer& data)
-    {
-        uint32 count = spline.getPointCount() - 3;
-        data << uint32(count + 1);
-        data << spline.getPoint(1); // fake point, client will erase it from the spline after first cycle done
-        data.append<Vector3>(&spline.getPoint(1), count);
-    }
+    // The three path bodies live in MonsterMovePath.h, so the suite can pin their bytes
+    // without a Unit, a Creature or a map behind them (MotionWriters_*_path_body_*).
 
     /**
      * @brief Writes a monster move packet.

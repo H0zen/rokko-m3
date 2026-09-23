@@ -151,6 +151,11 @@ void WorldSession::GrantMover(Unit* unit, uint32 now)
         m_movers.SetBase(unit->GetObjectGuid().GetRawValue());
     }
     m_movers.Add(unit->GetObjectGuid().GetRawValue());
+    // The authority is what the client root reads (Unit::IsClientMover), and it has just
+    // changed: Unit::TakePossessOf raises the Possessed inhibition before it grants, so a body
+    // stunned before the take was projected as the server-driven unit it then still was and
+    // would come out of the take unrooted without this.
+    unit->GetMotionMaster()->RefreshClientRoot();
 }
 
 void WorldSession::RevokeMover(Unit* unit, uint32 now)
@@ -163,6 +168,10 @@ void WorldSession::RevokeMover(Unit* unit, uint32 now)
         unit->SetMoverSession(NULL);
         unit->MotionState().SetMode(Motion::Mode::ServerDriven, now);
     }
+    // The mirror of the grant's: a body released while still stunned reverts to server-driven,
+    // and a stunned server-driven unit is stopped, not rooted. Unconditional, because a revoke
+    // that the guard above refused changed nothing for the projection to see.
+    unit->GetMotionMaster()->RefreshClientRoot();
 }
 
 void WorldSession::RevokeAllMovers(uint32 now)

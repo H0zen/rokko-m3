@@ -107,6 +107,29 @@ namespace Motion
             angle = svc.Frand(0, 2 * M_PI_F);
         }
 
+        // A bolt is a bolt. The close branch above scales its draw by the REMAINING gap to the
+        // quiet radius, so as the unit settles against that radius the draw collapses
+        // geometrically to nothing -- and the unit goes on picking, and every pick is a leg, and
+        // every leg is an SMSG_MONSTER_MOVE to every observer. The live capture of 2026-09-20
+        // caught it twice on creature 3123/251013: 1.868 yd / 144 ms, then 1.386/107, 0.472/37,
+        // 0.108/9, 0.058/5, and once 0.013 yd in 2 ms -- a leg two hundredths of a yard long,
+        // sent to everyone who could see it. The other two branches scale by the band's fixed
+        // width and cannot do this (their smallest draws are 6.0 and 9.0 yd), but the floor is
+        // applied to all three so the property belongs to the draw and not to one arm of it.
+        //
+        // The value is retail's own smallest: across the 27 flee legs measured in 11 MOD_FEAR
+        // episodes (peer/retail-fear-movement-2026-09-20.md §3) the legs run 2.62-38.03 yd and
+        // 313-5245 ms, with NOTHING below 2.62 yd. Retail's answer to "nowhere left to run" is a
+        // rest -- it sends nothing at all at one (§2) -- never a leg too short to see.
+        //
+        // This terminates: a floored bolt gains at least minBolt * cos(closeJitter) = 2.31 yd of
+        // radius, so a unit against the quiet radius crosses it and the NEXT draw is the band's
+        // 9-18 yd. It cannot loop, and it cannot make a leg retail would not make.
+        if (dist < g.minBolt)
+        {
+            dist = g.minBolt;
+        }
+
         Vector3 const& from = sight.position;
         // Unqualified cos/sin with <cmath>, exactly as the generator wrote them: the same overload
         // resolution keeps the record's flee points byte-identical.
@@ -170,7 +193,16 @@ namespace Motion
 
         m_point = point;
         m_havePoint = true;
-        m_rest = int32(svc.Urand(m_p.geometry.restMin, m_p.geometry.restMax));
+        // Two modes, not one band (the cadence note of 2026-09-21). Retail rests after about
+        // every OTHER leg and chains the rest straight on; we rested after every one. The coin
+        // is drawn through the port like every other draw -- never rand() -- so the harness's
+        // seeded record stays reproducible, and it is drawn FIRST and unconditionally, so a
+        // bolt's place in the stream does not depend on the branch it takes. A LOW roll rests:
+        // that keeps the rested branch the one a Services stub answering its minimum exercises.
+        const uint32 restedPercent = m_p.geometry.chainPercent < 100 ? 100 - m_p.geometry.chainPercent : 0;
+        m_rest = svc.Urand(1, 100) <= restedPercent
+                     ? int32(svc.Urand(m_p.geometry.restMin, m_p.geometry.restMax))
+                     : 0;   // chained: the next bolt is laid as this one ends
 
         Step s = Step::Of(MoveIntent::Move(m_point, MOVE_REQUIRE_PATH).WithinLength(m_p.geometry.legLimit));
         s.effects.push_back(Effect::Latch(LatchLeg, 0));   // the generator added the bit before its Move

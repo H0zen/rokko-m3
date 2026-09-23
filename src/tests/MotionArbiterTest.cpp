@@ -48,6 +48,14 @@ namespace
         return r;
     }
 
+    /// The shell's Motion::ControlClaim shape (MotionMaster.h), spelled out because this file is
+    /// kernel-only: spell << 40 | effect << 32 | caster counter. Motion::ClaimSpell reads the
+    /// spell back out of it, and a zero there is what marks a claim nobody's aura took.
+    uint64 ControlClaimShape(uint32 spellId, uint8 effIndex, uint32 casterCounter)
+    {
+        return (uint64(spellId) << 40) | (uint64(effIndex) << 32) | uint64(casterCounter);
+    }
+
     MoveRequest Claim(Kind kind, uint64 claim, uint32 id = 0)
     {
         MoveRequest r;
@@ -1097,6 +1105,57 @@ TEST(MotionArbiter_Claims_ClearLeavesClaims_ClearAllFinishesThemInPrecedenceOrde
     CHECK_EQ(static_cast<int>(order[0]), 22);
     CHECK_EQ(static_cast<int>(order[1]), 13);
     CHECK_EQ(static_cast<int>(order[2]), 11);
+}
+
+/// HasAuraClaim tells a fear AURA from the AI's own low-health flee, which takes a Fear claim
+/// with the same kind and the same reason but no spell in its identity (Motion::ClaimSpell = 0,
+/// the shape Creature::DoFleeToGetAssistance and a script's fear both pass). Unit::UpdateSpeed
+/// gates retail's x1.25 on this, so a claim that answers the wrong way is a mob running at the
+/// wrong speed. It follows the claims: it goes when the last aura claim goes, whichever way it
+/// goes -- a release, a full clear or the death -- which is the whole reason the answer lives
+/// on the claim and not on a flag somebody has to remember to unset.
+TEST(MotionArbiter_Claims_AnAuraClaimIsToldFromTheAIsOwnFlee)
+{
+    const uint64 auraFear = ControlClaimShape(5782, 0, 7);   // the warlock's Fear from caster 7
+    const uint64 aiFlee   = ControlClaimShape(0, 0, 9);      // DoFleeToGetAssistance: the victim, no spell
+    CHECK_EQ(ClaimSpell(auraFear), 5782u);
+    CHECK_EQ(ClaimSpell(aiFlee), 0u);
+
+    Arbiter m;
+    m.InstallDefault(Kind::Idle);
+    CHECK(!m.HasAuraClaim(Kind::Fear));
+    m.Request(Claim(Kind::Fear, aiFlee));
+    CHECK(m.HasClaim(Kind::Fear));
+    CHECK(!m.HasAuraClaim(Kind::Fear));                      // the reason is held; the aura is not
+    m.Request(Claim(Kind::Fear, auraFear));                  // an aura lands on top of the AI's flee
+    CHECK(m.HasAuraClaim(Kind::Fear));
+    CHECK(!m.HasAuraClaim(Kind::Confused));                  // the kind is honoured
+    CHECK(m.Release(auraFear));                              // the aura goes, the AI's flee survives
+    CHECK(m.HasClaim(Kind::Fear));
+    CHECK(!m.HasAuraClaim(Kind::Fear));                      // and the quarter goes with the aura
+    m.Request(Claim(Kind::Fear, auraFear));
+    CHECK(m.HasAuraClaim(Kind::Fear));
+    m.Clear(true);                                           // a full reset takes the claims with it
+    CHECK(!m.HasAuraClaim(Kind::Fear));
+    m.DrainEvents();
+
+    // The other ordering, which is the one that tells "any HELD aura claim" from "the SELECTED
+    // claim": the aura first, then a NEWER AI flee, which wins the selection because the newest
+    // claim of a kind outranks the older. An implementation that read only the selection would
+    // answer false here and pass every assertion above.
+    Arbiter n;
+    n.InstallDefault(Kind::Idle);
+    n.Request(Claim(Kind::Fear, auraFear));
+    n.Request(Claim(Kind::Fear, aiFlee));
+    REQUIRE(n.Selected().has_value());
+    CHECK_EQ(static_cast<int>(n.Selected()->claim), static_cast<int>(aiFlee));   // the AI's flee drives
+    CHECK(n.HasAuraClaim(Kind::Fear));                       // and the aura is still HELD beneath it
+    CHECK(n.Release(aiFlee));                                // the flee ends, the aura drives again
+    CHECK(n.HasAuraClaim(Kind::Fear));
+    CHECK(n.Release(auraFear));                              // only the aura's own release ends it
+    CHECK(!n.HasAuraClaim(Kind::Fear));
+    CHECK(!n.HasClaim(Kind::Fear));
+    n.DrainEvents();
 }
 
 TEST(MotionArbiter_Claims_ClearUnderAClaimKeepsItSelected_ReleaseResumesTheDefault)

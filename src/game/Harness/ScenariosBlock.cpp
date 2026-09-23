@@ -78,8 +78,8 @@ namespace Harness
                 const ObjectGuid ga = a->GetObjectGuid(), gb = b->GetObjectGuid();
                 auto sa = std::make_shared<std::vector<RootSample> >();
                 auto sb = std::make_shared<std::vector<RootSample> >();
-                At(500,  [this, ga]() { if (Creature* a = Get(ga)) { a->CastSpell(a, ROOT, true); Log("a: self Web"); } });
-                At(500,  [this, gb]() { if (Creature* b = Get(gb)) { b->CastSpell(b, ROOT, true); Log("b: Web"); } });
+                At(500,  [this, ga]() { if (Creature* a = Get(ga)) { SelfCast(a, ROOT); Log("a: self Web"); } });
+                At(500,  [this, gb]() { if (Creature* b = Get(gb)) { SelfCast(b, ROOT); Log("b: Web"); } });
                 At(2500, [this, ga]()
                 {
                     if (Creature* a = Get(ga))
@@ -88,7 +88,7 @@ namespace Harness
                         Log("a: a script root over the Web");
                     }
                 });
-                At(2500, [this, gb]() { if (Creature* b = Get(gb)) { b->CastSpell(b, STUN, true); Log("b: Bash over the Web"); } });
+                At(2500, [this, gb]() { if (Creature* b = Get(gb)) { SelfCast(b, STUN); Log("b: Bash over the Web"); } });
                 At(7500, [this, ga]()
                 {
                     if (Creature* a = Get(ga))
@@ -174,7 +174,7 @@ namespace Harness
                 auto after = std::make_shared<std::vector<Pt> >();
                 auto fearGone = std::make_shared<bool>(true);
                 At(500,  [this, g, gk]() { if (Creature* a = Get(g)) { a->SetFeared(true, gk, 5782, 0, 0); Log("feared, mt=%s", TypeName(a)); } });
-                At(2000, [this, g]()     { if (Creature* a = Get(g)) { a->CastSpell(a, ROOT, true); Log("Web mid-flee, mt=%s", TypeName(a)); } });
+                At(2000, [this, g]()     { if (Creature* a = Get(g)) { SelfCast(a, ROOT); Log("Web mid-flee, mt=%s", TypeName(a)); } });
                 At(4500, [this, g, gk]() { if (Creature* a = Get(g)) { a->SetFeared(false, gk, 5782, 0, 0); Log("fear ended under the root, mt=%s rooted=%d", TypeName(a), a->IsRooted() ? 1 : 0); } });
                 for (uint32 i = 1; i <= 4; ++i)    // 5.0 s .. 6.5 s: rooted (Web, cast at 2.0 s, runs about 5 s)
                 {
@@ -234,7 +234,7 @@ namespace Harness
                 auto fleeMoved = std::make_shared<bool>(false);
                 At(500,  [this, g, gk]() { if (Creature* a = Get(g)) { a->SetFeared(true, gk, 5782, 0, 0); Log("feared, mt=%s", TypeName(a)); } });
                 At(2000, [this, g, gk]() { if (Creature* a = Get(g)) { a->SetConfused(true, gk, 118, 0); Log("confused over the fear, mt=%s", TypeName(a)); } });
-                At(3000, [this, g]()     { if (Creature* a = Get(g)) { a->CastSpell(a, STUN, true); Log("Bash over both, mt=%s", TypeName(a)); } });
+                At(3000, [this, g]()     { if (Creature* a = Get(g)) { SelfCast(a, STUN); Log("Bash over both, mt=%s", TypeName(a)); } });
                 for (uint32 i = 1; i <= 4; ++i)   // 3.5 s .. 5.0 s: inside the stun
                 {
                     At(3000 + i * 500, [this, g, stunned, stunKind, i]()
@@ -299,7 +299,7 @@ namespace Harness
                 auto facing = std::make_shared<std::vector<float> >();
                 auto distractKind = std::make_shared<bool>(true);
                 At(500,  [this, g]() { if (Creature* a = Get(g)) { a->GetMotionMaster()->MoveDistract(10000); a->SetFacingTo(1.5f); Log("distracted 10 s facing 1.5, mt=%s", TypeName(a)); } });
-                At(1500, [this, g]() { if (Creature* a = Get(g)) { a->CastSpell(a, STUN, true); Log("Bash on the distracted wolf, mt=%s", TypeName(a)); } });
+                At(1500, [this, g]() { if (Creature* a = Get(g)) { SelfCast(a, STUN); Log("Bash on the distracted wolf, mt=%s", TypeName(a)); } });
                 for (uint32 i = 1; i <= 6; ++i)   // 2.0 s .. 4.5 s
                 {
                     At(1500 + i * 500, [this, g, pts, facing, distractKind, i]()

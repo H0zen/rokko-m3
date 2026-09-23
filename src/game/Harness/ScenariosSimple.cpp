@@ -119,7 +119,7 @@ namespace Harness
                 At(1500, [this, g]()
                 {
                     Creature* w = Get(g); if (!w) { return; }
-                    w->CastSpell(w, ROOT, true);
+                    SelfCast(w, ROOT);
                     Log("Web on the moving wolf at %.1f %.1f, rooted=%d mt=%s", w->Where().X(), w->Where().Y(), w->IsRooted() ? 1 : 0, TypeName(w));
                 });
                 At(2000, [this, g, accepted, called, jump, rootLanded]()
@@ -229,7 +229,7 @@ namespace Harness
                 At(1000, [this, g]()
                 {
                     Creature* w = Get(g); if (!w) { return; }
-                    w->CastSpell(w, STUN, true);
+                    SelfCast(w, STUN);
                     Log("Bash on the standing wolf: stun=%d rooted=%d mt=%s", w->Blocked(Motion::ReasonStunned) ? 1 : 0, w->IsRooted() ? 1 : 0, TypeName(w));
                 });
                 At(1500, [this, g, accepted, called, jump, stunAtJump]()
@@ -448,7 +448,7 @@ namespace Harness
                 At(1000, [this, g]()
                 {
                     Creature* w = Get(g); if (!w) { return; }
-                    w->CastSpell(w, ROOT, true);
+                    SelfCast(w, ROOT);
                     Log("Web mid-charge at %.1f %.1f, rooted=%d mt=%s", w->Where().X(), w->Where().Y(), w->IsRooted() ? 1 : 0, TypeName(w));
                 });
                 for (uint32 t = 1500; t <= 4000; t += 250)
@@ -822,7 +822,7 @@ namespace Harness
                 At(500, [this, g]()
                 {
                     Creature* w = Get(g); if (!w) { return; }
-                    w->CastSpell(w, ROOT, true);
+                    SelfCast(w, ROOT);
                     Log("Web on the standing wolf: rooted=%d mt=%s", w->IsRooted() ? 1 : 0, TypeName(w));
                 });
                 At(1000, [this, g, called, rootLanded]()

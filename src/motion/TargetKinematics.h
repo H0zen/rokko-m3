@@ -34,11 +34,18 @@ namespace Motion
     struct TargetMotionInput
     {
         bool  splineRunning = false;   ///< a server spline is in progress
-        bool  splineLinear = false;    ///< not Catmull-Rom (isSmooth() false)
+        bool  splineLinear = false;    ///< the PATH FORM: a straight run between its points (isSmooth() false)
         bool  splineCyclic = false;    ///< isCyclic()
         bool  splineAirborne = false;  ///< Airborne(): a jump, a fall, a knockback
         Vector3 splineFrom;            ///< the live spline position (frame coordinates)
         Vector3 splineTo;              ///< the spline's current destination (frame coordinates, 3D)
+        /// The spline's OWN direction of travel at this instant -- its derivative, brought into
+        /// the frame, of whatever length. A curve's chord to its current destination cuts
+        /// across it and is not a heading, so a Catmull-Rom is classified from this instead;
+        /// the linear form needs none, because there the chord IS the direction and the two
+        /// agree exactly. Filled only when `splineLinear` is false.
+        Vector3 splineHeading;
+        bool  splineHeadingValid = false;  ///< `splineHeading` was computed and is usable
         bool  playerMoved = false;     ///< a client-moved unit: the flags below apply
         bool  forward = false, backward = false, strafeLeft = false, strafeRight = false;
         bool  falling = false;         ///< MOVEFLAG_FALLING | FALLING_FAR
@@ -54,9 +61,12 @@ namespace Motion
         bool    moving = false;        ///< the target is in motion (trusted or not)
     };
 
-    /// Design §3: a linear, non-cyclic, non-airborne spline is trusted (the 3D chord to its
-    /// current destination at its speed, so a climbing or diving target's vertical is part of
-    /// its velocity); a smooth, cyclic or ballistic spline moves but is untrusted; a
+    /// Design §3: a non-cyclic, non-ballistic spline is trusted, at its own speed along its own
+    /// direction of travel in 3D -- so a climbing or diving target's vertical is part of its
+    /// velocity. The linear form takes that direction from the chord to its current destination,
+    /// which is exactly it; a Catmull-Rom takes it from `splineHeading`, the curve's derivative,
+    /// because there the chord cuts across the curve. A cyclic spline wraps and a ballistic one
+    /// is a parabola, so neither may be extrapolated over a horizon and both move untrusted. A
     /// client-moved unit combines its forward/backward and strafe flags, normalised, at its speed,
     /// untrusted while falling; anything else stands.
     TargetMotion ClassifyTargetMotion(TargetMotionInput const& in);

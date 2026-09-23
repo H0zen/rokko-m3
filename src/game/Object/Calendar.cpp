@@ -38,7 +38,19 @@
 
 CalendarEvent::~CalendarEvent()
 {
-    RemoveAllInvite();
+    // FREE, do not remove. A removal writes to the character database and sends packets, and
+    // this destructor's last caller is the CalendarMgr singleton being torn down at process
+    // exit: the atexit destructor erases m_EventStore, which destroys every event still in it.
+    // By then the database's delay thread has been joined and destroyed, so the DELETE inside
+    // RemoveInviteByItr locks a dead mutex and the process faults -- after "Bye!" has already
+    // printed, which is why it looked like a clean shutdown with a crash dump beside it. It was
+    // in every crash folder this campaign produced.
+    //
+    // Nothing is lost by freeing instead: every gameplay path empties m_Invitee through
+    // RemoveAllInvite(remover) before the event is erased (CalendarMgr::RemoveEvent does the
+    // event's own DELETE and then that call), so on those paths this loop already had nothing
+    // to do.
+    FreeAllInvites();
 }
 
 // Add an invite to internal invite map return true if success
@@ -176,11 +188,14 @@ bool CalendarEvent::RemoveInviteById(uint64 inviteId, Player* remover)
 }
 
 // remove all invite without sending ingame mail
-void CalendarEvent::RemoveAllInvite()
+void CalendarEvent::FreeAllInvites()
 {
-    CalendarInviteMap::iterator itr = m_Invitee.begin();
-    while (itr != m_Invitee.end())
-        RemoveInviteByItr(itr++);
+    for (CalendarInviteMap::iterator itr = m_Invitee.begin(); itr != m_Invitee.end(); ++itr)
+    {
+        delete itr->second;
+    }
+
+    m_Invitee.clear();
 }
 
 // remove all invite sending ingame mail

@@ -140,6 +140,9 @@ void Player::SetBattleGroundEntryPoint()
         m_bgData.mountSpell  = 0;
         m_bgData.taxiPath[0] = m_taxi.GetTaxiSource();
         m_bgData.taxiPath[1] = m_taxi.GetTaxiDestination();
+        // Carried with the two nodes: the port clears the taxi outright, so this is the only
+        // place the contract's landing time survives the instance (design 2026-09-22 §2).
+        m_bgData.taxiLanding = m_taxi.GetLandingTime();
 
         // On taxi we don't need check for dungeon
         m_bgData.joinPos = WorldLocation(GetMapId(), Where().X(), Where().Y(), Where().Z(), Where().Facing());

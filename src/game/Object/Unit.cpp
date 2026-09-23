@@ -305,6 +305,14 @@ Motion::Kinematics Unit::InitialKinematics() const
     return k;
 }
 
+bool Unit::IsClientMover() const
+{
+    // The header carries the argument. Two readers only, and both of them ask the same
+    // question the kernel's mode does: Aura::HandleAuraModStun's wipe and
+    // MotionMaster::ProjectClientRoot's root.
+    return GetTypeId() == TYPEID_PLAYER || m_moverSession != NULL;
+}
+
 void Unit::AssertMotionOwner() const
 {
     if (!IsInWorld() || MapPhase::Owns(GetMap()))
@@ -4003,8 +4011,10 @@ float Unit::GetPPMProcChance(uint32 WeaponSpeed, float PPM) const
  *
  * @param mount The mount display identifier.
  * @param spellId The mounting spell identifier.
+ * @param canFly True when the mount aura's resolved MountCapabilityEntry can fly HERE; the pet
+ *               branch below is the only thing that reads it (design 2026-09-22 §4).
  */
-void Unit::Mount(uint32 mount, uint32 spellId)
+void Unit::Mount(uint32 mount, uint32 spellId, bool canFly)
 {
     if (!mount)
     {
@@ -4025,18 +4035,50 @@ void Unit::Mount(uint32 mount, uint32 spellId)
             ((Player*)this)->UnsummonPetTemporaryIfAny();
         }
         // Called by mount aura
-        else if (SpellEntry const* spellInfo = sSpellStore.LookupEntry(spellId))
+        else if (sSpellStore.LookupEntry(spellId))
         {
-            // Flying case (Unsummon any pet)
-            if (IsSpellHaveAura(spellInfo, SPELL_AURA_MOD_FLIGHT_SPEED_MOUNTED))
+            // THE 4.2.0 RULE (design 2026-09-22 §4; Wowpedia 2011-06-06, Petopia 4.2, PTR-tested
+            // for hunter, warlock and death knight): a permanent pet STAYS OUT AND FOLLOWS on a
+            // ground mount, and despawns only on lift-off with a flying one, returning on
+            // dismount.
+            //
+            // The test used to be `IsSpellHaveAura(spellInfo, SPELL_AURA_MOD_FLIGHT_SPEED_MOUNTED)`
+            // on the MOUNT SPELL. That is dead on 4.3.4 and had been since 4.0: the mount spell
+            // carries nothing but SPELL_AURA_MOUNTED (verified over SpellEffect.dbc -- 55164,
+            // 30174, 32235 each have exactly one effect), because the speed moved to the
+            // capability's SpeedModSpell, which is where aura 207 lives now (86459/86460/86461).
+            // So the flying arm never fired, every mount fell into the arm below, and its
+            // condition unsummoned any controlled non-temporary pet -- i.e. the GROUND half was
+            // the broken one, the opposite of what it looked like.
+            //
+            // The answer now comes from the capability the aura resolved, which is already gated
+            // on the zone, the map, the riding skill and the licence aura: a flying mount used
+            // where flight is forbidden resolves to a GROUND capability (mount type 248 on map 1
+            // without spell 90267 returns capability 227, Flags 0x1d) and the pet rightly stays.
+            // The predicate is `Flags & 0x2`, the same bit Unit::GetMountCapability itself treats
+            // as the flying half of the land pair; testing the capability's SpeedModSpell for
+            // aura 207 instead would agree on all 38 MountCapability rows.
+            //
+            // AND THE FLYING ARM DOES NOT DESPAWN ANYTHING HERE (live test 2026-09-22, C4/T7):
+            // retail's trigger is LIFT-OFF, not mounting, and #116 hung it on the aura's apply,
+            // so the pet vanished the instant a flying mount was summoned. The despawn moved to
+            // WorldSession::HandleMoverRelocation, where the first movement word carrying
+            // MOVEFLAG_FLYING under a mount is what fires it. `canFly` is still resolved and
+            // handed down because it is the one thing that says whether this mount can ever
+            // lift off at all, and it is what the harness reads to prove the rule; the pet
+            // itself is now kept on BOTH kinds of mount, exactly as a ground one always should
+            // have kept it.
+            DEBUG_LOG("Unit::Mount: %s mounted with spell %u, capability canFly=%u -- the pet stays until lift-off",
+                      GetGuidStr().c_str(), spellId, canFly ? 1 : 0);
+
+            if (Pet* pet = GetPet())
             {
-                ((Player*)this)->UnsummonPetTemporaryIfAny();
-            }
-            // Normal case (Unsummon only permanent pet)
-            else if (Pet* pet = GetPet())
-            {
-                if (pet->isControlled() && (!(pet->isTemporarySummoned() || ((Player*)this)->InArena())
-                    || sWorld.getConfig(CONFIG_BOOL_PET_UNSUMMON_AT_MOUNT)))
+                // A permanent pet is kept, with its actions disabled while its owner is
+                // mounted -- which is what the client shows, a greyed-out pet bar, and what
+                // Unit::Unmount restores from the CharmInfo. A TEMPORARY summon keeps exactly
+                // the gate it had: PetUnsummonAtMount, and the arena with it.
+                if (pet->isControlled() && (pet->isTemporarySummoned() || ((Player*)this)->InArena())
+                    && sWorld.getConfig(CONFIG_BOOL_PET_UNSUMMON_AT_MOUNT))
                 {
                     ((Player*)this)->UnsummonPetTemporaryIfAny();
                 }
@@ -7127,7 +7169,12 @@ bool Unit::TakePossessOf(Unit* possessed)
 
     possessed->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
     possessed->SetCharmerGuid(GetObjectGuid());
-    // After the charmer: the block's client-root projection reads it (a stunned body is rooted for its player mover).
+    // The block's client-root projection runs inside this Inhibit, and it reads the AUTHORITY
+    // (Unit::IsClientMover), which SetClientControl below has not handed over yet: a body
+    // stunned before the take is projected here as the server-driven unit it still is, and it is
+    // WorldSession::GrantMover's own RefreshClientRoot that roots it a few lines down. Before
+    // 2026-09-21 the projection read the charmer set on the line above instead, which is why the
+    // charmer used to have to come first.
     possessed->GetMotionMaster()->Inhibit(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, GetObjectGuid().GetCounter()));
     possessed->setFaction(getFaction());
 
@@ -7138,6 +7185,14 @@ bool Unit::TakePossessOf(Unit* possessed)
     {
         possessedCreature = static_cast<Creature *>(possessed);
     }
+
+    // A BODY THAT WAS SITTING CANNOT BE STEERED (live test 2026-09-22, B1 bonus): mind-control
+    // an AFK creature and the possessor gets the camera and the mover but no right-click turn,
+    // because the client refuses to turn a unit whose stand state is not STAND and nothing on
+    // this path ever stood it up. The take is the moment to do it -- before the control grant
+    // below, so the body is already standing when the client is handed it, the same way
+    // SpellAuraControl.cpp:509 stands a unit up as its stun takes hold.
+    possessed->SetStandState(UNIT_STAND_STATE_STAND);
 
     if (player)
     {
@@ -7210,11 +7265,41 @@ void Unit::ResetControlState(bool attackCharmer /*= true*/)
         return;
     }
 
+    // UNCONDITIONAL, AND THE POSSESSED CAN BE A PLAYER. The reaching path has a name: spell
+    // 605, Mind Control -- SPELL_AURA_MOD_POSSESS on TARGET_CHAIN_DAMAGE (SpellEffect.dbc,
+    // 4.3.4a), so its target is an enemy unit and in PvP that is a Player. Its expiry runs
+    // Aura::HandleModPossess(apply=false), which calls `caster->ResetControlState()`
+    // (SpellAuraControl.cpp:126), and GetCharm() then answers with that player. The 4.3.4
+    // client data has 48 MOD_POSSESS effects and four of them take that target.
+    //
+    // WHAT ACTUALLY HAPPENS, and why this is documented rather than changed: the cast itself
+    // reads nothing, and exactly one line below follows the pointer as a Creature --
+    // `possessedCreature->IsPet()` in the pet branch, which reads Creature::m_subtype. Through
+    // a Player* that is a wrong-type read, but it cannot fault (sizeof(Creature) 9296 <=
+    // sizeof(Player) 12816, measured on this build, so the member's offset is inside the
+    // Player allocation) and it cannot change the outcome: the branch is
+    // `IsPet() && GetObjectGuid() == GetPetGuid()`, and a possessed player's guid is a
+    // HIGHGUID_PLAYER one while GetPetGuid() is a pet's, so whatever garbage m_subtype reads
+    // as, the conjunction is false and the `else` (RemovePetActionBar) is the same branch a
+    // correct cast would take. The tail below is already type-correct -- the possessed player
+    // is caught by the TYPEID_PLAYER test at the bottom before `else if (possessedCreature)`
+    // is ever reached.
+    //
+    // The narrow fix is `possessed->GetTypeId() == TYPEID_UNIT ? static_cast<Creature*>(...)
+    // : NULL` plus a null test on the pet branch, which is behaviour-identical by the argument
+    // above and would make the `else if (possessedCreature)` below a real guard instead of a
+    // tautology. It is left for a change that can carry its own scenario -- a player
+    // possessing a player, which the harness has never built -- rather than riding along
+    // untested in a housekeeping pass.
     Creature* possessedCreature = static_cast<Creature *>(possessed);
 
     possessed->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PLAYER_CONTROLLED);
     possessed->SetCharmerGuid(ObjectGuid());
-    // After the charmer is gone: the projection then roots the body as a creature, not as a player's mover.
+    // The projection runs inside this Uninhibit too, and the authority it reads is still the
+    // possessor's session: SetClientControl below has not revoked yet, so a body still stunned
+    // stays client-rooted through here and it is WorldSession::RevokeMover's own
+    // RefreshClientRoot that takes the root off. Before 2026-09-21 the projection read the
+    // charmer cleared on the line above, and unrooted the body here instead.
     possessed->GetMotionMaster()->Uninhibit(Motion::Inhibition::Possessed, Motion::InhibitSource(Motion::SourceDomain::Possession, GetObjectGuid().GetCounter()));
     SetCharmGuid(ObjectGuid());
 

@@ -68,6 +68,8 @@
 #include "Vehicle.h"
 #include "Geometry/Vector3.h"
 #include "LootMgr.h"
+#include "movement/typedefs.h"
+#include "movement/JumpArc.h"
 #include <random>
 
 /**
@@ -1498,5 +1500,16 @@ void Spell::EffectPlayerPull(SpellEffectEntry const* effect)
     ClampToAllowedZ(*unitTarget, x, y, z);
 
     float speed = m_spellInfo->Speed ? m_spellInfo->Speed : 27.0f;
-    unitTarget->GetMotionMaster()->MoveJump(x, y, z, speed, 2.5f);
+
+    // The same chord-bow correction as Spell::EffectJump, without its height pair:
+    // SPELL_EFFECT_PLAYER_PULL's EffectMiscValue is a horizontal speed, not a height, so this
+    // one has no floor and no ceiling of its own and takes the plain gravity arc g*T^2/8. The
+    // fixed 2.5 f it used to pass had the same defect as the leap's -- a pull down a slope was
+    // rendered as a straight descent.
+    const float deltaZ = z - unitTarget->Where().Z();
+    const float length = unitTarget->Where().DistanceTo(Geometry::Vector3(x, y, z));
+    const float amplitude = Movement::JumpArc::AmplitudeForLeg(0.5f, 1000.0f, length, speed,
+                                                               deltaZ, float(Movement::gravity));
+
+    unitTarget->GetMotionMaster()->MoveJump(x, y, z, speed, amplitude);
 }

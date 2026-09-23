@@ -217,6 +217,25 @@ void NativeBehaviour::SeeTarget(Unit& owner, Unit& target, Motion::TargetView& v
         in.splineFrom = view.position;
         const Geometry::Vector3 dest = target.movespline->CurrentDestination();
         in.splineTo = local ? dest : frame.FromWorld(owner, dest);
+        // A Catmull-Rom bends away from the chord that runs to its current destination, so
+        // that chord is not a heading and the curve's own derivative is. Computed only for
+        // the curved form: the linear one's chord IS its direction, exactly, and asking the
+        // spline again for every tracked target every tick would buy nothing. Not for a
+        // cycle or a parabola either, which ClassifyTargetMotion refuses whatever we hand it.
+        if (!in.splineLinear && !in.splineCyclic && !in.splineAirborne)
+        {
+            const Geometry::Vector3 heading = target.movespline->ComputeDirection();
+            if (heading.x != 0.0f || heading.y != 0.0f || heading.z != 0.0f)
+            {
+                // A DIRECTION is not a point, and FromWorld moves points. It is carried in as
+                // the difference of two points a yard apart along it, both through the same
+                // conversion the destination above uses -- which is what a rotating frame (a
+                // deck) would need and what the world frame answers as the identity.
+                const Geometry::Vector3 ahead = livePoint + heading;
+                in.splineHeading = (local ? ahead : frame.FromWorld(owner, ahead)) - view.position;
+                in.splineHeadingValid = true;
+            }
+        }
         // The SPLINE's own speed, not the unit's for its mode: a charge runs at 24 yd/s and a
         // taxi at the path's, both overrides the movement flags know nothing about.
         in.speed = target.movespline->Velocity();

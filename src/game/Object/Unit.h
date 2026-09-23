@@ -1721,6 +1721,16 @@ class Unit : public WorldObject
         bool Blocked(UnitState) const = delete;
         /// Feigning death, as of the last movement commit: the old UNIT_STAT_DIED (a feign alone; a real death is IsAlive()'s).
         bool IsFeigningDeath() const { return i_motionMaster.Published().feign; }
+        /**
+         * Feared by an AURA, as of the last movement commit: a Fear claim whose identity names
+         * a spell. Blocked(Motion::ReasonFeared) answers a wider question -- the AI's own
+         * low-health flee (Creature::DoFleeToGetAssistance) raises that reason too, with no
+         * spell behind it -- so anything that must apply to a fear EFFECT and not to a mob
+         * running away on its own asks this instead. Today that is the fear's x1.25 run speed.
+         * @return true if a fear aura's claim was held at the last movement commit
+         * \see Blocked
+         */
+        bool IsFearedByAura() const { return i_motionMaster.Published().auraFear; }
         /// Rooted, stunned or feigning death: the old UNIT_STAT_CAN_NOT_MOVE.
         bool CannotMove() const { return Blocked(Motion::kCannotMoveReasons) || IsFeigningDeath(); }
         /// Stunned, feared, confused or feigning death: the old UNIT_STAT_CAN_NOT_REACT.
@@ -2102,7 +2112,11 @@ class Unit : public WorldObject
          * @param spellId id of the spell used to summon the mount, if 0 is passed in this is treated
          * as a GM command or the Taxi service mounting the Player.
          */
-        void Mount(uint32 mount, uint32 spellId = 0);
+        /// `canFly` is the mount aura's resolved MountCapabilityEntry answer (design
+        /// 2026-09-22 §4): true only when the capability the zone and the riding skill actually
+        /// resolved to can fly. It decides the pet, and nothing else. Defaulted false so the
+        /// taxi, the GM command and every creature mount are untouched.
+        void Mount(uint32 mount, uint32 spellId = 0, bool canFly = false);
         /**
          * Unmounts this Unit by sending the SMSG_DISMOUNT to the client if it was a dismount
          * not issued by a GM / the Taxi service. Also changes the UNIT_FIELD_MOUNTDISPLAYID
@@ -4014,6 +4028,17 @@ class Unit : public WorldObject
         /// grant, a possessor's for a possessed creature, NULL for a server-driven unit.
         WorldSession* MoverSession() const { return m_moverSession; }
         void SetMoverSession(WorldSession* session) { m_moverSession = session; }
+        /// Does a CLIENT drive this unit's movement? A player always does -- his client owns his
+        /// word and resends it, whether or not a grant is live (a taxi flight and a battleground
+        /// countdown both revoke his mover). Any other unit does only while a session actually
+        /// moves it: WorldSession::GrantMover / RevokeMover, which is what MotionState() calls the
+        /// authority.
+        ///
+        /// This is deliberately NOT "is my charmer a player". SPELL_AURA_MOD_CHARM (Mind Control,
+        /// Enslave Demon) gives a creature a player charmer and a PET BAR -- Aura::HandleModCharm
+        /// never calls SetClientControl -- so such a creature has no client at all. Treating it as
+        /// one wiped its authoritative movement word with nothing to restore it.
+        bool IsClientMover() const;
         /// Sends what the kernel emitted: the mover form to the mover session, the
         /// spline form to everyone in range, the observer form to everyone but the
         /// mover session's player, built from this unit's stored status. Nothing is

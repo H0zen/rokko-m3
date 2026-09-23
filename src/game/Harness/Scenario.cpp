@@ -31,7 +31,13 @@
 #include "ObjectMgr.h"
 #include "Map.h"
 #include "GridMap.h"
+#include "DBCStores.h"
 #include "Log.h"
+#include "Player.h"
+#include "PlayerRegistry.h"
+#include "WorldSession.h"
+#include "Auth/BigNumber.h"
+#include "movement/MoveSpline.h"
 
 #include <cstdarg>
 #include <cstdio>
@@ -60,11 +66,42 @@ namespace Harness
         return spread;
     }
 
+    Motion::TargetMotion TargetMotionOf(Creature const& target)
+    {
+        Motion::TargetMotionInput in;
+        if (target.movespline->Finalized() || !target.movespline->Initialized())
+        {
+            return Motion::ClassifyTargetMotion(in);   // nothing running: it stands
+        }
+
+        // NativeBehaviour::SeeTarget's spline half, field for field. No frame conversion:
+        // FromWorld is the identity in the world frame and a harness actor is never boarded.
+        const Movement::Location live = target.movespline->ComputePosition();
+        in.splineRunning = true;
+        in.splineLinear = !target.movespline->isSmooth();
+        in.splineCyclic = target.movespline->isCyclic();
+        in.splineAirborne = target.movespline->Airborne();
+        in.splineFrom = Motion::Vector3(live.x, live.y, live.z);
+        in.splineTo = target.movespline->CurrentDestination();
+        in.speed = target.movespline->Velocity();
+        if (!in.splineLinear && !in.splineCyclic && !in.splineAirborne)
+        {
+            const Movement::Vector3 heading = target.movespline->ComputeDirection();
+            if (heading.x != 0.0f || heading.y != 0.0f || heading.z != 0.0f)
+            {
+                in.splineHeading = heading;
+                in.splineHeadingValid = true;
+            }
+        }
+        return Motion::ClassifyTargetMotion(in);
+    }
+
     void Scenario::Reset()
     {
         m_timeline = Timeline();
         m_finished = false;
         m_spawned.clear();
+        m_players.clear();
         m_found.clear();
         m_informs.clear();
     }
@@ -126,6 +163,133 @@ namespace Harness
         c->SetAI(new HarnessAI(c, c->AI(), this));
         m_spawned.push_back(c->GetObjectGuid());
         return c;
+    }
+
+    Player* Scenario::SpawnPlayer(float x, float y, float z, float o)
+    {
+        // The determinism guarantee says so itself rather than waiting to be asked. The runner
+        // reads UsesPlayer() to decide both where a scenario sorts in the queue and whether to
+        // reset the map's grids behind it; a scenario that spawns a player without overriding
+        // the flag would run mid-queue with no reset after it, and every scenario following it
+        // would read grids it did not establish -- a silent baseline drift nobody could
+        // attribute. Refused before the session exists, so there is nothing to unwind.
+        if (!UsesPlayer())
+        {
+            // Scenario::Log already prefixes the scenario's own name, so the line names it.
+            Log("ERR spawn player refused: this scenario calls SpawnPlayer but does not override UsesPlayer() to true; without it the runner neither sorts it last nor resets the map behind it");
+            return NULL;
+        }
+        Map* map = GetMap();
+        if (!map)
+        {
+            Log("ERR spawn player: no map");
+            return NULL;
+        }
+        // The reserved block is what Runner::Start proved free of real characters; a guid past
+        // its end was never checked, so it is not ours to hand out.
+        if (m_players.size() >= kHarnessPlayerGuidCount)
+        {
+            Log("ERR spawn player: the harness guid block holds only %u", kHarnessPlayerGuidCount);
+            return NULL;
+        }
+        const uint32 guidlow = kHarnessPlayerGuidFirst + uint32(m_players.size());
+
+        // The body is a human warrior. That choice is load-bearing, so it is checked rather than
+        // trusted: Create fires REPLACE INTO character_phase_data for any race/class whose
+        // playercreateinfo row carries a phase map (Player.cpp:909-912), and this player has no
+        // character row to own such a write. The human warrior's phaseMap is 0 on the database
+        // this was written against, but playercreateinfo is a table a server owner may edit, so
+        // the "the harness never writes to the character database" constraint enforces itself
+        // here instead of resting on what one database happens to hold. Refused before the
+        // session exists, so there is nothing to unwind.
+        const uint8 race = RACE_HUMAN;
+        const uint8 class_ = CLASS_WARRIOR;
+        PlayerInfo const* pInfo = sObjectMgr.GetPlayerInfo(race, class_);
+        if (!pInfo)
+        {
+            Log("ERR spawn player %u: no playercreateinfo for race %u class %u", guidlow, race, class_);
+            return NULL;
+        }
+        if (pInfo->phaseMap != 0)
+        {
+            Log("ERR spawn player %u refused: race %u class %u has playercreateinfo.phaseMap %u, and Create would write character_phase_data for a character that does not exist",
+                guidlow, race, class_, pInfo->phaseMap);
+            return NULL;
+        }
+
+        // A null socket and a null mailbox are safe, but NOT because the session is left alone:
+        // Map::Update calls pSession->Update(updater) for every in-world player on the map
+        // (Map.cpp:913-924), so this session is updated from the tick its player is added. What
+        // makes that harmless is the filter and the null socket, not the absence of the call.
+        // MapSessionFilter::ProcessLogout() is false (WorldSession.h:284-287), so the logout
+        // block at WorldSession.cpp:599-611 -- which logs out exactly a session whose socket is
+        // gone -- is skipped; and with m_Socket null the packet loop (WorldSession.cpp:458) and
+        // UpdateSecondStream (WorldSession.cpp:1545-1548) each return before doing anything.
+        // The consequence for whoever builds on this: because that loop is gated on m_Socket, a
+        // harness session can never dispatch a mailbox packet. Pushing a WorldPacket into
+        // m_mailbox will NOT work -- drive the server through its own methods instead.
+        WorldSession* session = new WorldSession(kHarnessAccountId, "harness", nullptr, nullptr,
+                                                 SEC_PLAYER, EXPANSION_CATA, 0, LOCALE_enUS, BigNumber());
+
+        Player* player = new Player(session);
+        session->SetPlayer(player);                      // as login does (CharacterHandler.cpp:771)
+        player->GetMotionMaster()->Initialize();         // as login does, before the player ever moves
+
+        // The phase-map refusal above is what makes this call safe to make against any database:
+        // with phaseMap 0 the REPLACE INTO character_phase_data at Player.cpp:909-912 cannot
+        // fire, and nothing else in Create touches the character database.
+        if (!player->Create(guidlow, "HarnessMover", race, class_, GENDER_MALE, 0, 0, 0, 0, 0, 0))
+        {
+            session->SetPlayer(NULL);
+            delete player;
+            delete session;
+            Log("ERR spawn player %u: create failed", guidlow);
+            return NULL;
+        }
+
+        player->SetSaveTimer(0xFFFFFFFF);                // never let Player::Update save a character
+                                                         // that does not exist
+
+        // Create put him on his race's start map at his race's start point; put him where the
+        // scenario asked for, on the harness map, before Map::Add reads the placement.
+        // SetMap alone carries the map identity here -- it writes the map and instance ids and
+        // re-bases the placement frame (WorldObjectSummon.cpp:66-74), which is all the
+        // SetLocationMapId the design named would have done, and that one is protected anyway.
+        player->SetMap(map);
+        player->Place().MoveTo(x, y, z, o);
+
+        // An assertion, not a recovery. Map::Add(Player*) returns true unconditionally
+        // (Map.cpp:687-719), and by the point it could return anything else the player has
+        // already been linked into m_mapRefManager and added to his cell -- so the obvious
+        // recovery, deleting him, would leave a freed player in the map's reference list and
+        // in the grid, and be a worse bug than the failure it handled. There is no correct
+        // unwind to write against a branch that cannot be taken; whoever gives Map::Add a real
+        // failure path owes this call site a real unwind with it. MANGOS_ASSERT is fatal in
+        // Release too and evaluates its condition exactly once (Errors.h:45-70), so the add
+        // still happens.
+        const bool added = map->Add(player);
+        MANGOS_ASSERT(added);
+
+        // Map::Add does NOT do this, and ObjectLookup resolves a player guid only through the
+        // registry (ObjectLookup.cpp:37-49), so without it nothing -- a pet's owner least of all --
+        // can find him.
+        sPlayerRegistry.Add(player);
+
+        // The initial self grant. RevokeMover flips a unit to ServerDriven only when its mover
+        // session is this one (WorldSession.cpp:161-164), so a fear's revoke against an ungranted
+        // player is a silent no-op and the scenario would pass while proving nothing.
+        player->SetClientControl(player, 1);
+
+        // Both halves, recorded together and now: from here on the scenario owns this player
+        // and this session, and the runner's teardown works from this record rather than
+        // rediscovering either of them (Scenario.h OwnedPlayer, Ownership.h). Recorded after
+        // every refusal above, so a record only ever describes a player who exists.
+        OwnedPlayer owned;
+        owned.guid = player->GetObjectGuid();
+        owned.player = player;
+        owned.session = session;
+        m_players.push_back(owned);
+        return player;
     }
 
     Creature* Scenario::Find(uint32 lowGuid, uint32 entry)
@@ -201,6 +365,28 @@ namespace Harness
     Motion::RelayCounts const* Scenario::Relays(Creature* c) const
     {
         return c ? c->GetMotionMaster()->SelectedRelays() : NULL;
+    }
+
+    void Scenario::SelfCast(Unit* caster, uint32 spellId)
+    {
+        if (!caster)
+        {
+            return;
+        }
+        // The DBC row, not the server's idea of the spell: GetDmgClass reads the
+        // SpellCategories row's DefenseType and answers NONE when there is no row at all,
+        // which is the same answer Unit::SpellHitResult switches on.
+        SpellEntry const* info = sSpellStore.LookupEntry(spellId);
+        if (info && info->GetDmgClass() != SPELL_DAMAGE_CLASS_NONE)
+        {
+            char text[352];
+            snprintf(text, sizeof(text),
+                     "MVTEST WARN %s: self-cast of %u draws a hit roll against its own caster -- damage class %u, not NONE, so Unit::SpellHitResult goes to %s and the aura can be missed, dodged, parried or resisted; the harness's seed is fixed, so a bad roll fails every run",
+                     m_name, spellId, info->GetDmgClass(),
+                     info->GetDmgClass() == SPELL_DAMAGE_CLASS_MAGIC ? "MagicSpellHitResult" : "MeleeSpellHitResult");
+            Out(text);
+        }
+        caster->CastSpell(caster, spellId, true);
     }
 
     void Scenario::Log(char const* fmt, ...) const

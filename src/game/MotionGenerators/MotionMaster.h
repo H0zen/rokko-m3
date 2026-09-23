@@ -127,6 +127,10 @@ class MotionMaster
         /// at the commit's end (Published).
         void Inhibit(Motion::Inhibition what, uint64 source);
         void Uninhibit(Motion::Inhibition what, uint64 source);
+        /// The mover authority changed (a grant or a revoke): recompute the client root, which
+        /// depends on it. Safe to call when nothing changes -- the projection is edge-triggered on
+        /// m_clientRooted.
+        void RefreshClientRoot();
         /// Whether any source holds this reason: the one answer to "is this unit rooted".
         bool Inhibited(Motion::Inhibition what) const { return m_arbiter.Inhibited(what); }
         /// What the selected behaviour may do right now, and why not.
@@ -140,8 +144,17 @@ class MotionMaster
         /// HoldsControl, Mobility).
         struct PublishedState
         {
-            uint8 reasons = 0;     ///< Motion::Reason bits: Rooted, Stunned, Possessed, Feared, Confused, Distracted, OnTaxi; never Dead (a real death is IsAlive()'s)
-            bool  feign   = false; ///< a Dead source other than the death's own (Sources(Dead) minus kDeathSource): a feign
+            uint8 reasons  = 0;    ///< Motion::Reason bits: Rooted, Stunned, Possessed, Feared, Confused, Distracted, OnTaxi; never Dead (a real death is IsAlive()'s)
+            bool  feign    = false; ///< a Dead source other than the death's own (Sources(Dead) minus kDeathSource): a feign
+            /// A Fear claim taken by an AURA is held: its identity names a spell
+            /// (Arbiter::HasAuraClaim). ReasonFeared alone cannot say this -- the AI's own
+            /// low-health flee (Creature::DoFleeToGetAssistance) raises the very same reason --
+            /// and the two differ where retail's evidence only covers the aura: the fear's
+            /// x1.25 run speed (Unit::UpdateSpeed). Published beside the reason rather than
+            /// kept as a flag on the Unit precisely because it goes when the claim goes: the
+            /// timed low-health flee expires on its own and never calls Unit::SetFeared(false),
+            /// so any flag the shell set at apply would linger past the flee.
+            bool  auraFear = false;
         };
         /// The block as of the last commit: the published state (see PublishedState).
         PublishedState const& Published() const { return m_published; }

@@ -71,9 +71,35 @@ namespace Harness
     /// MOVE_START hook (SetNextWaypoint from inside the inform).
     static const int32 kHookPath = 254;
 
+    /// patrol-zero-length-legs' two degenerate paths, both of them shapes the world
+    /// database really holds. They are registered against entry 6271 rather than the
+    /// chicken, whose slots below 0xFF are full: AddExternalNode keys by
+    /// (entry << 8) + pathId, so the mouse's 252 and 253 are free.
+    ///
+    /// ONE node, at the point the walker is standing on: creature_movement id 127332
+    /// (entry 3296, an Orgrimmar Grunt) is exactly this, a single row, and it emitted
+    /// 2 427 zero-length SMSG_MONSTER_MOVEs in one unbroken run in the user's capture.
+    static const int32 kStandstillPath = 252;
+
+    /// Four nodes of which the last two are the SAME point -- creature_movement ids
+    /// 318624 (entry 51346) and 236808 (entry 42548), whose points 2 and 3 coincide, and
+    /// kMousePath's own 3 and 4. The coincident node waits 3 s here so that the leg laid
+    /// for it stays the newest spline across a whole sampling window; the world rows wait
+    /// 0, which changes when the next leg replaces it, not whether the leg is laid.
+    static const int32 kCoincidentPath = 253;
+
     /// A scenario still running after this much virtual time is abandoned, so
     /// MVTEST DONE always comes (long-follow needs about four).
     static const uint32 kScenarioMaxMs = 300000;
+
+    /// The harness's own player guids. NOT GeneratePlayerLowGuid(): that advances a real counter,
+    /// so two runs would differ and the record would stop being byte-identical.
+    /// They live here rather than in Harness.cpp's anonymous namespace because the runner owns
+    /// the refusal that reserves the block and Scenario::SpawnPlayer hands the guids out.
+    static const uint32 kHarnessPlayerGuidFirst = 0x00F00000;
+    static const uint32 kHarnessPlayerGuidCount = 8;
+    /// One account id for every harness session. It is never written anywhere.
+    static const uint32 kHarnessAccountId = 0x00F00000;
 
     /**
      * The GM harness runner (design v2 §12): the registry of scenarios in the old
@@ -112,6 +138,12 @@ namespace Harness
     private:
         void Begin(Scenario* s);
         void End(Scenario* s);
+        /// The harness map's grids put back to a known state, and the ONE place that decision
+        /// is written: Start makes it before the first scenario and End again behind a player
+        /// scenario, and the two have to agree to the word -- the same three branches and the
+        /// same three log lines -- or a reader comparing one run's log with another is
+        /// comparing two different rules. It was two copies once; this is what that cost.
+        void ResetGrids();
 
         std::vector<Scenario*> m_registry;
         std::vector<Scenario*> m_queue;

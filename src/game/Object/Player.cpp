@@ -1340,6 +1340,37 @@ void Player::SetDeathState(DeathState s)
 
     if (s == JUST_DIED && cur)
     {
+        // A DEAD PASSENGER MUST NOT READ AS TAXI-FLYING, and the unwind belongs HERE, in front
+        // of everything else the death does.
+        //
+        // The flight is already unwound somewhere on this path: Unit::SetDeathState, which this
+        // function calls below, ends the kernel's Taxi entry in i_motionMaster.Die(), and that
+        // entry's Abort effect reaches Player::TaxiAbort (NativeBehaviour::PerformTaxi). But it
+        // reaches it LAST -- after this whole block, and after Unit::SetDeathState's own
+        // RemoveAllAurasOnDeath, RemoveGuardians, RemoveMiniPet, UnsummonAllTotems and
+        // StopMoving. Two things follow from that, and both are wrong:
+        //
+        //   - everything below runs on a player who still answers IsTaxiFlying(), still carries
+        //     UNIT_FLAG_DISABLE_MOVE | UNIT_FLAG_TAXI_FLIGHT and still wears the taxi mount;
+        //   - TaxiAbort's ResummonPetTemporaryUnSummonedIfAny() therefore lands BEHIND
+        //     RemovePet(PET_SAVE_REAGENTS) a few lines down, on a body whose m_deathState is
+        //     still ALIVE (Unit::SetDeathState assigns it only at its very end), so
+        //     Player::IsPetNeedBeTemporaryUnsummoned() answers false and the passenger's pet is
+        //     loaded back out of the database -- onto his corpse, with nothing left to remove it.
+        //
+        // So the flight is EXPIRED here rather than aborted here: expiring it finishes the Taxi
+        // entry, whose one Abort effect does the whole unwind (TaxiAbort, control grant
+        // included) in the right place and leaves i_motionMaster.Die() nothing to find. Calling
+        // TaxiAbort() directly instead would unwind the shell twice -- the entry would still be
+        // standing for Die() to finish -- and the second resummon would land behind RemovePet
+        // exactly as it does today, which is the bug. This is the same expiry the flight
+        // master's reboarding (TaxiHandler::SendDoFlight) and the battleground's port
+        // (BattleGroundHandler) already use to put a flight down.
+        while (GetMotionMaster()->IsOnTaxi())
+        {
+            GetMotionMaster()->MovementExpired(false);
+        }
+
         // drunken state is cleared on death
         SetDrunkValue(0);
         // lost combo points at any target (targeted combo points clear in Unit::SetDeathState)
@@ -2038,6 +2069,11 @@ void Player::ProcessDelayedOperations()
         {
             m_taxi.AddTaxiDestination(m_bgData.taxiPath[0]);
             m_taxi.AddTaxiDestination(m_bgData.taxiPath[1]);
+            // Before ClearTaxiPath, which drops it with the nodes: ContinueTaxiFlight asks the
+            // stamp whether the contract is still running (design 2026-09-22 §2). Zero -- a
+            // logout taken inside the instance, whose stored path has no room for it -- reads
+            // as landed and puts him down at the destination he paid for.
+            m_taxi.SetLandingTime(m_bgData.taxiLanding);
             m_bgData.ClearTaxiPath();
 
             ContinueTaxiFlight();

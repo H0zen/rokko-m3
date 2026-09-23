@@ -29,6 +29,7 @@
 #include "CreatureAI.h"
 #include "MotionMaster.h"
 #include "BehaviourModel.h"   // Motion::RelayCounts by value: MotionMaster.h only forward-declares it
+#include "TrackingMoves.h"    // Motion::CHASE_LEAD_MS: noOrbit takes its bearings from the chase's own aim centre
 #include "movement/MoveSpline.h"
 #include "World.h"        // the TargetPosRecalculateRange the follow's drift edge is built on
 #include "Utilities/MathDefines.h"
@@ -196,6 +197,41 @@ namespace Harness
             return standing + recalc + floorTerm + cadence + tick;
         }
 
+        /// Where a chase tracking `target` is aiming right now: the target's own position, led by
+        /// Motion::CHASE_LEAD_MS of its velocity whenever the shell would trust that velocity.
+        /// This mirrors ChaseBehaviour::AimCentre off the same constant, and takes the velocity
+        /// from the kernel itself (TargetMotionOf, Scenario.h) rather than from a hand copy of
+        /// its trust rule. The copy that used to stand here spelled that rule out -- "a running,
+        /// LINEAR, non-cyclic, non-airborne spline with a speed" -- and went stale when the
+        /// kernel learned to take a curve's heading from its own derivative: under smooth ground
+        /// paths this kobold circles on a Catmull-Rom leg, the copy said the lead was off, and
+        /// the bearings taken from an un-led vertex scored a correct chase as a 178 deg
+        /// walk-around. It exists so a scenario measuring where the chase AIMS takes its
+        /// bearings from the point the kernel actually used -- see noOrbit below, which read the
+        /// target's live position until the lead became the aim and that stopped being the same
+        /// thing.
+        Pt AimCentreHere(Creature* target)
+        {
+            // The base is the target's LIVE position, which is what the kernel aims from
+            // (NativeBehaviour::LiveLocation feeds Sight::target.position and
+            // ChaseBehaviour::AimCentre leads off that). The PLACEMENT is only relocated once
+            // per POSITION_UPDATE_DELAY, so on this 7 yd ring it lags the kobold by up to 2.4 yd
+            // of arc -- a fifth of the circle -- and a vertex that stale swings the bearing to
+            // the chaser through any angle it likes.
+            const Movement::Location live = target->movespline->Finalized()
+                                                ? Movement::Location(target->Where().X(), target->Where().Y(),
+                                                                     target->Where().Z(), target->Where().Facing())
+                                                : target->movespline->ComputePosition();
+            Pt c = { live.x, live.y, live.z };
+            const Motion::TargetMotion m = TargetMotionOf(*target);
+            if (!m.trusted) { return c; }
+            const float ahead = float(Motion::CHASE_LEAD_MS) / 1000.0f;
+            c.x += m.velocity.x * ahead;
+            c.y += m.velocity.y * ahead;
+            c.z += m.velocity.z * ahead;
+            return c;
+        }
+
         /// A point on the circle of `radius` around `centre`, at octant `idx` of eight.
         Pt Octant(Pt const& centre, uint32 idx, float radius)
         {
@@ -254,6 +290,8 @@ namespace Harness
                     uint32 ringHanded = 0;     ///< how many of the ring's points have been handed out
                     float  sideWorst = 0.0f;   ///< the worst angle between "the spot it laid" and "the side it stands on"
                     uint32 sideChecks = 0;
+                    uint32 sideOnTop = 0;      ///< legs laid ON the aim centre, where "which side" has no answer
+                    float  sideOnTopWorst = 0.0f;   ///< the nearest such spot's distance from the centre
                     uint32 lastTotal = 0;
                     bool   haveTotal = false;
                     float  winding = 0.0f;
@@ -422,9 +460,15 @@ namespace Harness
                     {
                         const float ceiling = kRadius + st->melee;
                         const bool ok = st->sideWorst <= M_PI_F / 2.0f && st->circleGap <= ceiling;
-                        snprintf(text, sizeof(text), "noOrbit=%s(%u legs laid over %u s of the %.0f yd ring, the worst %.0f deg off the side the chaser already stood on; it covered %.1f yd of ground and the gap peaked at %.2f yd against the %.2f the ring and the melee range allow; the pair's bearing wound %.2f rad, which is not gated because it is the PAIR's relative revolution and this ring scripts the target to revolve)",
+                        char onTop[128] = "";
+                        if (st->sideOnTop)
+                        {
+                            snprintf(onTop, sizeof(onTop), "; %u of them landed ON the aim centre (the nearest %.2f yd inside the pair's own reach), where no side exists to be off",
+                                     st->sideOnTop, st->sideOnTopWorst);
+                        }
+                        snprintf(text, sizeof(text), "noOrbit=%s(%u legs laid over %u s of the %.0f yd ring, the worst %.0f deg off the side the chaser already stood on%s; it covered %.1f yd of ground and the gap peaked at %.2f yd against the %.2f the ring and the melee range allow; the pair's bearing wound %.2f rad, which is not gated because it is the PAIR's relative revolution and this ring scripts the target to revolve)",
                                  ok ? "OK" : "BUG", st->sideChecks, uint32(circle.size()), kRadius,
-                                 st->sideWorst * 180.0f / M_PI_F, st->circleGround, st->circleGap, ceiling, st->winding);
+                                 st->sideWorst * 180.0f / M_PI_F, onTop, st->circleGround, st->circleGap, ceiling, st->winding);
                         noOrbit = text;
                     }
                     std::string tail = st->haveEnd ? (" (re-lays: " + Causes(st->end) + ")") : " (re-lays: the chase was not selected at the end)";
@@ -477,13 +521,26 @@ namespace Harness
 
                         // noOrbit: orbiting is a chase that walks AROUND its target to reach a spot
                         // on the far side, so the spot is what is read -- every freshly laid leg's
-                        // goal, against the line from the target to where the chaser already stands.
-                        // A head-on chase (TrackingBehaviour::Bearing for angle 0 is
-                        // AngleFromTo(centre, mover): approach from where the mover already is) puts
-                        // it at ~0 deg; a chase that derived its spot from the target's FACING
-                        // instead would send it round the far side, which is the bug. The winding and
-                        // the ground below are reported beside it but cannot be the gate -- see the
-                        // verdict's comment.
+                        // goal, against the line from the chase's own AIM CENTRE to where the
+                        // chaser already stands. A head-on chase (TrackingBehaviour::Bearing for
+                        // angle 0 is AngleFromTo(centre, mover): approach from where the mover
+                        // already is) puts it at ~0 deg; a chase that derived its spot from the
+                        // target's FACING instead would send it round the far side, which is the
+                        // bug this catches. The winding and the ground below are reported beside it
+                        // but cannot be the gate -- see the verdict's comment.
+                        //
+                        // THE VERTEX IS THE AIM CENTRE, NOT THE TARGET, and it used to be able to
+                        // be both. The chase now leads a trusted velocity by Motion::CHASE_LEAD_MS
+                        // (ChaseBehaviour::AimCentre), so on this 7 yd ring the centre sits 3.5 yd
+                        // around it from the kobold at run speed -- a quarter turn. Taking the
+                        // bearings from the kobold's live position instead scored that lead as a
+                        // 168 deg walk-around and read BUG, which is the measurement drifting from
+                        // what it means and not the chase orbiting: over the same phase the chaser
+                        // covered 56.9 yd against 52.3 with the aim un-led, its gap peaked LOWER
+                        // (10.09 against 11.17) and the purpose-built 12 yd ring, order 71, reports
+                        // zero legs laid outside it. AimCentreHere mirrors the shell's own inputs
+                        // (NativeBehaviour's TargetMotionInput, TargetKinematics' trust rule) so
+                        // the two stay one constant apart rather than one literal apart.
                         if (st->phase == 5)
                         {
                             const uint32 total = rc ? rc->Total() : 0;
@@ -498,12 +555,52 @@ namespace Harness
                             if (fresh && !w->movespline->Finalized())
                             {
                                 const Movement::Vector3 goal = w->movespline->FinalDestination();
-                                const float toGoal = Bearing(k->Where().X(), k->Where().Y(), goal.x, goal.y);
-                                const float toChaser = Bearing(k->Where().X(), k->Where().Y(), w->Where().X(), w->Where().Y());
+                                const Pt centre = AimCentreHere(k);
+                                const float toGoal = Bearing(centre.x, centre.y, goal.x, goal.y);
+                                const float toChaser = Bearing(centre.x, centre.y, w->Where().X(), w->Where().Y());
                                 const float off = AngleDiff(toGoal, toChaser);
-                                st->sideWorst = std::max(st->sideWorst, off);
+
+                                // A SPOT ON THE AIM CENTRE IS ON NO SIDE OF IT. This measure asks
+                                // "did the chase go round to the far side to reach its spot?", and
+                                // it answers with the bearing from the centre to that spot -- which
+                                // stops existing as the spot approaches the centre. Inside the
+                                // pair's combined reach the two bodies are touching, so a spot
+                                // there IS the centre: a couple of inches of drift then flips the
+                                // bearing through 180 deg and the gate fires on arithmetic.
+                                //
+                                // Measured, on the 7 yd ring with the lead engaged: one leg landed
+                                // 0.98 yd from the centre -- inside the 1.76 yd the wolf and the
+                                // kobold are wide between them -- and scored 178 deg while the
+                                // chase was in fact running straight at where the kobold was about
+                                // to be. Every corroborating number said so: the chaser covered
+                                // 56.7 yd against the un-smoothed 56.9, its gap peaked at 10.14
+                                // against 10.09, and the purpose-built 12 yd ring at order 71 laid
+                                // nothing outside its band. So such a sample is COUNTED AND NAMED
+                                // in the verdict rather than scored -- what is not gated is what
+                                // cannot be measured, and the verdict says how many there were.
+                                const float spotRadius = Dist2(centre.x, centre.y, goal.x, goal.y);
+                                const float onTop = ReachSum(w, k);
+                                if (spotRadius <= onTop)
+                                {
+                                    ++st->sideOnTop;
+                                    st->sideOnTopWorst = std::max(st->sideOnTopWorst, onTop - spotRadius);
+                                }
+                                else
+                                {
+                                    st->sideWorst = std::max(st->sideWorst, off);
+                                }
                                 ++st->sideChecks;
-                                Log("+%5ums the chase laid a fresh leg while the target circled: the spot is %.0f deg off the side it already stands on", t, off * 180.0f / M_PI_F);
+                                // The RADIUS is printed beside the angle because the angle is
+                                // meaningless without it: `toChaser` is the bearing from the aim
+                                // centre to the chaser, and when the chaser is standing on that
+                                // centre there is no such bearing -- a hand's breadth of drift
+                                // then swings it through any angle at all. A reader who sees a
+                                // large angle at a small radius is looking at arithmetic, not at
+                                // a chase walking round its target.
+                                const float radius = Dist2(centre.x, centre.y, w->Where().X(), w->Where().Y());
+                                Log("+%5ums the chase laid a fresh leg while the target circled: the spot is %.0f deg off the side it already stands on (aim centre %.1f %.1f, %.2f yd from the chaser at %.1f %.1f; spot %.1f %.1f)",
+                                    t, off * 180.0f / M_PI_F, centre.x, centre.y, radius,
+                                    w->Where().X(), w->Where().Y(), goal.x, goal.y);
                             }
                             const float b = Bearing(k->Where().X(), k->Where().Y(), w->Where().X(), w->Where().Y());
                             if (st->haveBearing)
@@ -1212,7 +1309,7 @@ namespace Harness
                                 {
                                     s.out = true;
                                     s.homeAt = t;
-                                    c->CastSpell(c, ROOT, true);
+                                    SelfCast(c, ROOT);
                                     c->GetMotionMaster()->MoveTargetedHome();
                                     Log("+%5ums %s arrived %.1f yd out: Web cast and MoveTargetedHome in the same step (rooted=%d, mt=%s)",
                                         t, pairs[p].name, Dist2(c->Where().X(), c->Where().Y(), c->Spawn().X(), c->Spawn().Y()),

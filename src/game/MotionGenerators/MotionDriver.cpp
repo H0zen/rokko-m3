@@ -26,6 +26,7 @@
 #include "MotionDriver.h"
 #include "ObjectLookup.h"
 #include "Unit.h"
+#include "World.h"
 #include "movement/MoveSpline.h"
 #include "movement/MoveSplineInit.h"
 
@@ -41,6 +42,59 @@ namespace
     /// Below this the unit already faces where it was asked to; re-orienting would
     /// only cost a packet.
     constexpr float FACING_EPSILON = 0.01f;
+
+    /// A leg whose whole geometry covers less ground than this moves the unit nowhere:
+    /// it is the unit's own position, to the centimetre. NOT a minimum leg length -- a
+    /// length floor was rejected in #114 because it would swallow real short legs (a
+    /// patrol node a yard away, the chase's last step into contact) and starve the
+    /// `arrived` they wait on. This is the degenerate case only, and arrival is still
+    /// reported: a unit standing on its goal HAS arrived.
+    constexpr float NOWHERE_DISTANCE = 0.01f;
+
+    /// The ground a point array covers, start to end, through every point.
+    float GroundCovered(Motion::PointsArray const& points)
+    {
+        float covered = 0.0f;
+        for (size_t i = 1; i < points.size(); ++i)
+        {
+            covered += (points[i] - points[i - 1]).length();
+        }
+        return covered;
+    }
+
+    /**
+     * @brief Should this ROUTED leg go out as a Catmull-Rom curve instead of a chain of
+     *        straight segments? (design v2 §11, the smooth-ground-splines spec.)
+     *
+     * Three conditions, and the leg is linear if any fails.
+     *
+     * A corner to round: three or more routed points. Two points are a straight line, and a
+     * Catmull-Rom through two points is that same line carried in three times the bytes.
+     *
+     * The ground: `Routed()` is the only place in the stack that knows. The driver has no
+     * notion of the medium at this point -- MOVE_FLY is a per-leg animation flag applied
+     * further down and swimming is never named here at all -- but the router does: every
+     * shortcut PathFinder builds for a swimmer (BuildSwimShortcut), for a flyer or a unit
+     * under water (BuildPolyPath's shortcut branches), for a map with no mmaps and for a
+     * forced destination carries PATHFIND_NOT_USING_PATH, and Routed() is false for each.
+     * That matters because BuildShortcut SUBDIVIDES into 5-yard segments, so a shortcut can
+     * easily hold ten points and would otherwise qualify on count alone. MOVE_FLY is refused
+     * as well, for the flyer that does get a real mesh route.
+     *
+     * The switch: a server owner may want retail's exact linear look, which is a permanent
+     * preference and not an experiment's dial.
+     *
+     * NOT touched here: bit 20 (SmoothGroundPath) -- the client clears it itself when a
+     * player-side setting is off, so smoothness may only come from bits 11 and 22, which is
+     * exactly what SetSmooth sets (and it clears bit 20 on the way).
+     */
+    bool SmoothRoutedGroundLeg(Motion::MoveIntent const& intent, Motion::IPathQuery const& query)
+    {
+        return query.Points().size() >= 3 &&
+               query.Routed() &&
+               !intent.Has(Motion::MOVE_FLY) &&
+               sWorld.getConfig(CONFIG_BOOL_MOVEMENT_SMOOTH_GROUND_PATHS);
+    }
 }
 
 void MotionDriver::ResetLeg()
@@ -52,6 +106,7 @@ void MotionDriver::ResetLeg()
     m_blocked = false;
     m_speedChanged = false;
     m_wasTraveling = false;
+    m_arrivedInPlace = false;
 }
 
 Motion::IPathQuery* MotionDriver::Query(Unit const& owner)
@@ -100,6 +155,16 @@ Motion::MoveStatus MotionDriver::BeginTick(Unit& owner)
             status.arrived = true;
         }
     }
+
+    // The goal was underfoot and no leg was laid for it (LayLeg). The behaviour still gets
+    // its arrival -- standing on the goal is the one case where "arrived" needs no travel --
+    // it just does not cost an SMSG_MONSTER_MOVE to every observer to say so.
+    if (m_arrivedInPlace)
+    {
+        status.arrived = true;
+        m_arrivedInPlace = false;
+    }
+
     status.pathIndex = owner.movespline->Initialized() ? owner.movespline->currentPathIdx() : 0;
 
     if (m_haveLeg)
@@ -170,15 +235,22 @@ bool MotionDriver::LayLeg(Unit& owner, Motion::MoveIntent const& intent)
     Movement::MoveSplineInit init(owner);
     m_partialLeg = false;
 
+    // How much ground the leg would actually cover. Measured per branch because only the
+    // routed one knows its geometry before Launch; -1 means "not measured", which no
+    // branch currently leaves but which reads as "do not judge it".
+    float covered = -1.0f;
+
     if (intent.path && intent.path->size() >= 2)
     {
         // The behaviour dictated the exact geometry (the smoothed patrol).
         init.MovebyPath(*intent.path);
+        covered = GroundCovered(*intent.path);
     }
     else if (intent.Has(Motion::MOVE_STRAIGHT))
     {
         // No routing at all: jumps, effects, forced moves.
         init.MoveTo(intent.goal.x, intent.goal.y, intent.goal.z, false);
+        covered = (intent.goal - Motion::FrameFor(owner).MoverPosition(owner)).length();
     }
     else
     {
@@ -204,7 +276,41 @@ bool MotionDriver::LayLeg(Unit& owner, Motion::MoveIntent const& intent)
         }
 
         init.MovebyPath(query->Points());
+        covered = GroundCovered(query->Points());
         m_partialLeg = query->Partial();
+
+        // The router bent this leg around something, so ride the bend instead of pivoting
+        // on the spot at every one of its points. The geometry the client is given is the
+        // pathfinder's own, unchanged; only the interpolation between the points changes.
+        if (SmoothRoutedGroundLeg(intent, *query))
+        {
+            init.SetSmooth();
+        }
+    }
+
+    // Nowhere to go. The goal is the ground the unit is standing on, so the leg would be a
+    // 1 ms spline to the unit's own feet -- 9 364 of them in the user's capture, one
+    // SMSG_MONSTER_MOVE each to every observer, for a step of nothing. Retail never sends
+    // one: over the movement corpus (peer/retail-fear-movement-2026-09-20.md) it ends a
+    // move with a type-1 stop and otherwise puts nothing on the wire when there is nowhere
+    // to go. So neither do we -- and the behaviour is told it arrived, which is simply true.
+    //
+    // Only with no final facing to deliver: a zero-length leg that carries one is how a unit
+    // turns on the spot, and that packet says something. Only with nothing running: a live
+    // leg's real start is the spline's computed position, not the placement this measured
+    // against, and cutting one short is never this function's business.
+    if (covered >= 0.0f && covered <= NOWHERE_DISTANCE &&
+        intent.facing.mode == Motion::Facing::Mode::None &&
+        owner.movespline->Finalized() && !owner.PendingSplineCommit())
+    {
+        m_legGoal = intent.goal;
+        m_legFacing = Motion::Facing::Mode::None;
+        m_haveLeg = true;
+        m_blocked = false;          // not blocked: the unit is AT the goal, it is not kept from it
+        m_speedChanged = false;
+        m_wasTraveling = false;
+        m_arrivedInPlace = true;
+        return false;
     }
 
     switch (intent.facing.mode)
@@ -266,6 +372,9 @@ bool MotionDriver::LayLeg(Unit& owner, Motion::MoveIntent const& intent)
     m_blocked = false;
     m_speedChanged = false;
     m_wasTraveling = !owner.movespline->Finalized();
+    // A leg is running again, so whatever an earlier round of this same tick decided it had
+    // arrived at in place is stale: the spline's own end will report this one.
+    m_arrivedInPlace = false;
 
     return true;
 }

@@ -266,6 +266,12 @@ namespace Motion
             std::vector<Held> Claims() const;
             /// Whether any Control claim of this kind is held.
             bool HasClaim(Kind kind) const;
+            /// Whether any Control claim of this kind was taken by an AURA: its identity's spell
+            /// field is non-zero (Motion::ClaimSpell). The AI's own low-health flee and a
+            /// script's fear pass 0 there, so this separates "a fear aura holds this unit" from
+            /// "this unit is running away on its own". Allocation-free, unlike Claims(), because
+            /// the shell asks it once per commit.
+            bool HasAuraClaim(Kind kind) const;
             /// Every held entry, ascending layer order (Default, Combat, then the commands,
             /// the claims in precedence order on the Control layer).
             std::vector<Held> Contents() const;

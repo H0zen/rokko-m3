@@ -35,6 +35,7 @@ set(SRC_GRP_TESTS
     PendingChangesTest.cpp
     TimeBaseTest.cpp
     MotionWritersTest.cpp
+    ${CMAKE_SOURCE_DIR}/src/game/movement/spline.cpp
     MotionStateTest.cpp
     HarnessTest.cpp
     WorldClockTest.cpp
@@ -45,6 +46,7 @@ set(SRC_GRP_TESTS
     MotionBehaviourTest.cpp
     MotionTaxiTest.cpp
     TargetKinematicsTest.cpp
+    JumpArcTest.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/TimeSync.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/Walker.cpp
     ${CMAKE_SOURCE_DIR}/src/tools/loadtest/src/Control.cpp

@@ -949,12 +949,19 @@ struct BGData
 
     uint32 mountSpell;                                      ///< Mount used before join to bg, saved
     uint32 taxiPath[2];                                     ///< Current taxi active path start/end nodes, saved
+    /// The interrupted flight's landing time (design 2026-09-22 §2), carried across the
+    /// battleground or dungeon so the return can ask whether the contract is still running.
+    /// IN MEMORY ONLY, unlike the two nodes beside it: `character_battleground_data` has no
+    /// column for it and adding one would need a migration and a revision_data.h.in bump. A
+    /// logout taken INSIDE the instance therefore comes back with no stamp, which reads as
+    /// landed -- the same safe direction the old taxi_path string takes.
+    uint32 taxiLanding;
 
     WorldLocation joinPos;                                  ///< From where player entered BG, saved
 
     bool m_needSave;                                        ///< true, if saved to DB fields modified after prev. save (marked as "saved" above)
 
-    void ClearTaxiPath()     { taxiPath[0] = taxiPath[1] = 0; }
+    void ClearTaxiPath()     { taxiPath[0] = taxiPath[1] = 0; taxiLanding = 0; }
     bool HasTaxiPath() const { return taxiPath[0] && taxiPath[1]; }
 };
 
@@ -1206,10 +1213,12 @@ class Player : public Unit
         /// The landing, scheduled by the flight's finish and performed by Update() once the
         /// teleport-deferral window has closed; `snap` when the destination node carries a position.
         void ScheduleTaxiLanding(bool snap, float x, float y, float z, float o);
-        /// Retail's landing order (the notes A.10-A.12): the control back, the stop, the teleport
-        /// onto the TaxiNodes position with the fall reference reset, the flags and the mount display
-        /// cleared, the pet back; then the hostile references online, the hostile-area spell, the
-        /// route cleared. Taken and cleared before its first step: runs once or never.
+        /// Retail's landing order: the stop, the control back, the teleport onto the TaxiNodes
+        /// position with the fall reference reset, the flags and the mount display cleared, the pet
+        /// back; then the hostile references online, the hostile-area spell, the route cleared. STOP
+        /// BEFORE GRANT, correcting the notes' A.11 from the capture itself
+        /// (peer/retail-taxi-flights-2026-09-22.md §7). Taken and cleared before its first step:
+        /// runs once or never.
         void PerformTaxiLanding();
         /// Every non-landing end of a flight (death, a summon, a battleground, a cut leg, a replaced
         /// flight): the flags and the mount display cleared, the pet back, the hostile references

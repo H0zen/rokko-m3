@@ -28,6 +28,7 @@
 #include <vector>
 #include "PlayerTaxi.h"
 #include "TaxiDestinationsString.h"
+#include "TaxiRoute.h"
 #include "Player.h"
 #include "Language.h"
 #include "Database/DatabaseEnv.h"
@@ -44,6 +45,7 @@
 #include "AchievementMgr.h"
 #include "DBCStores.h"
 #include "MapManager.h"
+#include "movement/MoveSplineInit.h"
 
 #include <cmath>
 #include <limits>
@@ -196,11 +198,14 @@ bool PlayerTaxi::LoadTaxiDestinationsFromString(const std::string& values, Team 
     // below always failed and a login mid-flight never resumed (P5-B family 5, design §6.7).
     std::vector<uint32> nodes;
     uint32 faction = 0;
-    if (!TaxiDestinationsString::Parse(values, faction, nodes))
+    uint32 landing = 0;
+    if (!TaxiDestinationsString::Parse(values, faction, nodes, &landing))
     {
         return false;
     }
     m_flightMasterFactionId = faction;
+    // Zero for the old form, which carries no stamp: the resume reads that as landed.
+    m_landingTime = landing;
     for (size_t i = 0; i < nodes.size(); ++i)
     {
         AddTaxiDestination(nodes[i]);
@@ -246,7 +251,7 @@ std::string PlayerTaxi::SaveTaxiDestinationsToString()
 
     MANGOS_ASSERT(m_TaxiDestinations.size() >= 2);
 
-    return TaxiDestinationsString::Format(m_flightMasterFactionId, GetTaxiDestinations());
+    return TaxiDestinationsString::Format(m_flightMasterFactionId, GetTaxiDestinations(), m_landingTime);
 }
 
 uint32 PlayerTaxi::GetCurrentTaxiPath() const
@@ -531,11 +536,77 @@ bool Player::ActivateTaxiPathTo(uint32 taxi_path_id, uint32 spellid /*= 0*/)
 }
 
 /**
- * @brief Resumes an interrupted taxi flight from the nearest path node.
+ * @brief The hops welded into one node array: the ONE weld, read both by the spline
+ *        (MotionMaster::MoveTaxiFlight) and by the landing-time resume below.
+ *
+ * It lived inside MoveTaxiFlight until the resume needed to measure the same polyline the
+ * spline is built from. Duplicating it there would have been exactly the "re-derive it
+ * separately" the design forbids, so it moved out; MoveTaxiFlight now calls this and copies
+ * the result into the kernel's own node type.
+ */
+bool TaxiRoute::Weld(std::vector<uint32> const& route, std::vector<TaxiRouteNode>& out)
+{
+    out.clear();
+    if (route.size() < 2)
+    {
+        return false;
+    }
+    for (size_t hop = 1; hop < route.size(); ++hop)
+    {
+        uint32 path = 0;
+        uint32 cost = 0;
+        sObjectMgr.GetTaxiPath(route[hop - 1], route[hop], path, cost);
+        // A path with no rows, or a later hop with a single row, cannot be flown: the outgoing
+        // hop's node 0 is dropped (the hop chaining's pathNode = 1 skipped it), so a one-row
+        // later hop would contribute nothing at all.
+        if (!path || path >= sTaxiPathNodesByPath.size() || sTaxiPathNodesByPath[path].size() < (hop == 1 ? 1u : 2u))
+        {
+            out.clear();
+            return false;
+        }
+        TaxiPathNodeList const& rows = sTaxiPathNodesByPath[path];
+        for (size_t i = (hop == 1 ? 0 : 1); i < rows.size(); ++i)
+        {
+            TaxiPathNodeEntry const& row = rows[i];
+            TaxiRouteNode node;
+            node.mapId = row.ContinentID;
+            node.x = row.Loc_0;
+            node.y = row.Loc_1;
+            node.z = row.Loc_2;
+            node.arrivalEvent = row.ArrivalEventID;
+            node.departureEvent = row.DepartureEventID;
+            out.push_back(node);
+        }
+        if (hop + 1 < route.size())
+        {
+            out.back().seam = true;   // the incoming hop's last row is the hub, kept once
+        }
+    }
+    return !out.empty();
+}
+
+/**
+ * @brief Resumes an interrupted taxi flight -- or ends it -- by the landing time it was
+ *        stamped with at the takeoff.
+ *
+ * ONE check, and all three callers come through here: the login (CharacterHandler), the
+ * battleground return and the dungeon return (both Player::ProcessDelayedOperations, via
+ * TeleportToBGEntryPoint). The user's model, design 2026-09-22 §2: a flight is a paid contract
+ * to the destination. The gold went at the click, so
+ *
+ *     now <  landing  ->  still in the air: back on the mount at the point the route has
+ *                         reached by now, and on from there;
+ *     now >= landing  ->  the flight is over: he is put down at the destination he paid for,
+ *                         on whatever map it is, and the taxi state is cleared.
+ *
+ * A twenty-second dungeon pop on a five-minute route resumes mid-air; a fifteen-minute
+ * battleground on a one-minute flight lands. The cores' "dropped at the next waypoint" is
+ * rejected, and so is the position-based search this used to do: it put a passenger back on
+ * the leg he left however long ago he left it.
  */
 void Player::ContinueTaxiFlight()
 {
-    uint32 sourceNode = m_taxi.GetTaxiSource();
+    const uint32 sourceNode = m_taxi.GetTaxiSource();
     if (!sourceNode)
     {
         return;
@@ -543,74 +614,75 @@ void Player::ContinueTaxiFlight()
 
     DEBUG_LOG("WORLD: Restart character %u taxi flight", GetGUIDLow());
 
-    uint32 mountDisplayId = sObjectMgr.GetTaxiMountDisplayId(sourceNode, GetTeam(), true);
-    uint32 path = m_taxi.GetCurrentTaxiPath();
-    if (!path || path >= sTaxiPathNodesByPath.size() || sTaxiPathNodesByPath[path].empty())
+    std::vector<TaxiRouteNode> nodes;
+    if (!TaxiRoute::Weld(m_taxi.GetTaxiDestinations(), nodes))
     {
         sLog.outError("Character %u resumes a taxi flight over a missing path from node %u; the route is dropped", GetGUIDLow(), sourceNode);
         m_taxi.ClearTaxiDestinations();
         return;
     }
 
-    // The closest segment among the rows on THIS map. A saved route may begin on another map (a
-    // logout right after a crossing: the deque's front is still the hop's old-map source), and a
-    // foreign row must neither seed the distances nor be compared against, or the search falls
-    // back to row 0 and the old map's leg is laid here. A player standing exactly on a node (the
-    // sum equals the segment) falls back to the range's first row, whose zero-length first
-    // segment the spline skips.
-    TaxiPathNodeList const& nodeList = sTaxiPathNodesByPath[path];
-    uint32 rangeBegin = 0;
-    uint32 rangeEnd = 0;
-    for (uint32 i = 0; i < nodeList.size(); ++i)
+    const float speed = sWorld.getConfig(CONFIG_FLOAT_MOVEMENT_TAXI_SPEED);
+    const TaxiResume::Resume resume = TaxiResume::Decide(nodes, speed,
+                                                         int64(sWorld.GetGameTime()),
+                                                         int64(m_taxi.GetLandingTime()),
+                                                         GetMapId());
+
+    if (resume.verdict == TaxiResume::Verdict::NoRoute)
     {
-        if (nodeList[i].ContinentID == GetMapId())
-        {
-            rangeBegin = i;
-            rangeEnd = i + 1;
-            while (rangeEnd < nodeList.size() && nodeList[rangeEnd].ContinentID == GetMapId())
-            {
-                ++rangeEnd;
-            }
-            break;
-        }
-    }
-    if (rangeEnd == 0)
-    {
-        sLog.outError("Character %u resumes a taxi flight over path %u with no node on map %u; the route is dropped", GetGUIDLow(), path, GetMapId());
+        sLog.outError("Character %u resumes a taxi flight over path nodes none of which is on map %u; the route is dropped", GetGUIDLow(), GetMapId());
         m_taxi.ClearTaxiDestinations();
         return;
     }
 
-    auto distanceSquaredTo = [this](TaxiPathNodeEntry const& n)
+    if (resume.verdict == TaxiResume::Verdict::Landed)
     {
-        return (n.Loc_0 - Where().X()) * (n.Loc_0 - Where().X()) +
-               (n.Loc_1 - Where().Y()) * (n.Loc_1 - Where().Y()) +
-               (n.Loc_2 - Where().Z()) * (n.Loc_2 - Where().Z());
-    };
-
-    uint32 startNode = rangeBegin;
-    float distNext = distanceSquaredTo(nodeList[rangeBegin]);
-    for (uint32 i = rangeBegin + 1; i < rangeEnd; ++i)
-    {
-        TaxiPathNodeEntry const& node = nodeList[i];
-        TaxiPathNodeEntry const& prevNode = nodeList[i - 1];
-
-        const float distPrev = distNext;
-        distNext = distanceSquaredTo(node);
-
-        const float distNodes =
-            (node.Loc_0 - prevNode.Loc_0) * (node.Loc_0 - prevNode.Loc_0) +
-            (node.Loc_1 - prevNode.Loc_1) * (node.Loc_1 - prevNode.Loc_1) +
-            (node.Loc_2 - prevNode.Loc_2) * (node.Loc_2 - prevNode.Loc_2);
-
-        if (distNext + distPrev < distNodes)
+        // The contract is honoured and the flight is not re-flown. The destination's TaxiNodes
+        // position is the one the landing itself uses (the sniffed SMSG_MOVE_TELEPORT sits
+        // 2.19 yd below the last path node); a node without one falls back to that row.
+        float x = resume.x;
+        float y = resume.y;
+        float z = resume.z;
+        uint32 mapId = resume.mapId;
+        if (TaxiNodesEntry const* destination = sTaxiNodesStore.LookupEntry(m_taxi.GetTaxiDestinations().back()))
         {
-            startNode = i;
-            break;
+            if (destination->Pos_0 != 0.0f || destination->Pos_1 != 0.0f || destination->Pos_2 != 0.0f)
+            {
+                mapId = destination->ContinentID;
+                x = destination->Pos_0;
+                y = destination->Pos_1;
+                z = destination->Pos_2;
+            }
         }
+        DEBUG_LOG("WORLD: Character %u's flight ended while he was away (%.0f of %.0f yd flown); he is put down at node %u",
+                  GetGUIDLow(), resume.flown, resume.total, m_taxi.GetTaxiDestinations().back());
+        // Cleared BEFORE the teleport: a far teleport on a player who still reads as flying
+        // would take the flight's own branches, and there is no flight left to take them.
+        m_taxi.ClearTaxiDestinations();
+        TeleportTo(mapId, x, y, z, Where().Facing());
+        return;
     }
 
-    GetSession()->SendDoFlight(mountDisplayId, m_taxi.GetTaxiDestinations(), startNode);
+    const uint32 mountDisplayId = sObjectMgr.GetTaxiMountDisplayId(sourceNode, GetTeam(), true);
+
+    // WHAT WAS BUILT, and it is the design's own named fallback (§2): he goes back on the mount
+    // HERE, where he stands, and flies to the node the clock chose -- not to the one nearest
+    // him, which is what this function used to pick and which put a passenger back on the leg he
+    // left however long ago he left it.
+    //
+    // He is NOT snapped onto the elapsed point itself, and that is deliberate rather than
+    // unfinished. A same-map TeleportTo does not move a player here: Player::SendTeleportPacket
+    // names the destination to the client and then puts the server's own position back where it
+    // was (Player.cpp:1679), because the move belongs to CMSG_MOVE_TELEPORT_ACK. The spline laid
+    // two lines below would therefore start from the OLD position anyway, and the client would
+    // be told to stand at one place and then flown from another. Choosing the node by time
+    // already skips every leg the contract says he has flown; the remaining error is at most the
+    // part of one leg he is short of, and the landing time he arrives on is unchanged either way.
+    DEBUG_LOG("WORLD: Character %u resumes his flight at welded node %u of %u (%.0f of %.0f yd flown%s; the clock put him at %.0f, %.0f, %.0f)",
+              GetGUIDLow(), uint32(resume.node), uint32(nodes.size()), resume.flown, resume.total,
+              resume.clamped ? ", held at his map's last node" : "", resume.x, resume.y, resume.z);
+
+    GetSession()->SendDoFlight(mountDisplayId, m_taxi.GetTaxiDestinations(), uint32(resume.node));
 }
 
 // ---- the taxi's six operations (P5-B family 5) ----------------------------------------------
@@ -629,6 +701,12 @@ void Player::TaxiTakeoff(uint32 mountDisplayId)
     // is not set on a taxi (0x10000C on the wire), so Unit::Mount is not used; what it did
     // beside the flag is done here.
     StopMoving();
+    // The stop retail actually sends here, and StopMoving does not: the passenger has been
+    // standing still under his own control, so no spline exists to cancel and Stop() returns
+    // early. Retail sends a point-carrying stop anyway, immediately before the revoke -- the
+    // `(stop, revoke)` pair of peer/retail-taxi-flights-2026-09-22.md §2 -- pinning where he is
+    // at the instant the wheel is taken from him. Backlog §4.7, design 2026-09-22 §3.
+    Movement::MoveSplineInit(*this).StopHere();
     SetClientControl(this, 0);
     GetHostileRefManager().setOnlineOfflineState(false);
     UnsummonPetTemporaryIfAny();
@@ -680,7 +758,7 @@ void Player::ScheduleTaxiLanding(bool snap, float x, float y, float z, float o)
 }
 
 /**
- * @brief The landing, in retail's order: control on, the stop, the teleport onto the TaxiNodes
+ * @brief The landing, in retail's order: the stop, control on, the teleport onto the TaxiNodes
  *        position, the flags and the mount display cleared, the pet back; then the server's own
  *        bookkeeping (the hostile references, the hostile-area spell, the route).
  */
@@ -696,10 +774,17 @@ void Player::PerformTaxiLanding()
     const bool snap = m_taxiLandingSnap;
     const WorldLocation where = m_taxiLanding;
 
-    // The sniffed flight (the notes A.10-A.12): AllowMove = 1 first, a stop spline at the last
-    // path node, SMSG_MOVE_TELEPORT onto the node's TaxiNodes position (2.19 yd below the path,
-    // a 1 ms fall, no damage: the near teleport resets the fall reference), the flags cleared and
-    // the mount display zeroed in one update, the pet resummoned.
+    // The sniffed flight: a stop spline at the last path node, AllowMove = 1, SMSG_MOVE_TELEPORT
+    // onto the node's TaxiNodes position (2.19 yd below the path, a 1 ms fall, no damage: the
+    // near teleport resets the fall reference), the flags cleared and the mount display zeroed
+    // in one update, the pet resummoned.
+    //
+    // STOP BEFORE GRANT, correcting the notes' A.11: the capture file has packets 205463 (stop),
+    // 205464 (grant), 205465 (stop), 205466 (grant), so the landing is the exact mirror of the
+    // takeoff's `(stop, revoke)` -- peer/retail-taxi-flights-2026-09-22.md §7. The flight's
+    // spline expired ~180 ms ago, so StopMoving below sends nothing whatever it is passed;
+    // StopHere is the form that goes out with nothing to cancel (§3.3).
+    Movement::MoveSplineInit(*this).StopHere();
     SetClientControl(this, 1);
     StopMoving(true);
     // A teleport deferred earlier in this update (an aura's) wins over the snap: the near

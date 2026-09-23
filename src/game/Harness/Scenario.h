@@ -27,15 +27,20 @@
 #define MANGOS_HARNESS_SCENARIO_H
 
 #include "Timeline.h"
+#include "Ownership.h"
 #include "ObjectGuid.h"
 #include "MotionMaster.h"
 #include "Arbiter.h"
+#include "TargetKinematics.h"
 
 #include <string>
 #include <vector>
 
 class Creature;
 class Map;
+class Player;
+class Unit;
+class WorldSession;
 
 namespace Harness
 {
@@ -46,6 +51,22 @@ namespace Harness
 
     /// The distance from the first sample to the farthest one: how far the unit got.
     float Spread(std::vector<Pt> const& samples);
+
+    /// THE KERNEL'S OWN ANSWER to "may a native lead on this target's velocity right now, and
+    /// along what?", asked of a harness actor: it builds the same TargetMotionInput
+    /// NativeBehaviour::SeeTarget hands the kernel and runs the real
+    /// Motion::ClassifyTargetMotion over it.
+    ///
+    /// It exists because two scenario files had each hand-copied that trust rule -- the
+    /// chase-moving family's WouldTrust and the tracking family's AimCentreHere -- and a
+    /// scenario measuring where a chase AIMS has to take its bearings from the point the chase
+    /// actually used. Both copies read "a smooth spline is never trusted", which stopped being
+    /// the rule when the kernel learned to take a curve's heading from its own derivative; the
+    /// first scored a correct lead as a 178 deg walk-around and the second reported the lead
+    /// disengaged when it was engaged. One rule, in one place, so there cannot be a third.
+    ///
+    /// The world frame is assumed, which is the only frame a harness actor stands in.
+    Motion::TargetMotion TargetMotionOf(Creature const& target);
 
     /// One event the recording AI saw: a MovementInform (the kind and the id the native gave),
     /// an external path's WaypointPathInform, the home reached, or the death; where the creature
@@ -76,6 +97,21 @@ namespace Harness
         bool       wasListed;
     };
 
+    /// One player SpawnPlayer built, and the scenario's handle on BOTH halves of him: the
+    /// Player, the WorldSession allocated under him, and the guid he was created on. These
+    /// two allocations are the scenario's own -- nothing else in the server made them and
+    /// nothing else will free them -- so the teardown works from this record instead of
+    /// looking the player up again in the global registry, which indexes logged-in players
+    /// and is nobody's ownership table (Ownership.h). The guid is kept beside the pointer
+    /// because it stays readable after the object does not: it is what the teardown asks the
+    /// registry about and what its error lines name.
+    struct OwnedPlayer
+    {
+        ObjectGuid    guid;
+        Player*       player;
+        WorldSession* session;
+    };
+
     /**
      * One headless scenario (design v2 §12): it spawns its actors, drives the
      * MotionMaster facade from a step timeline, samples positions and behaviour
@@ -102,6 +138,19 @@ namespace Harness
         void Abandon(char const* reason = "BROKEN(no verdict: the timeline ran dry)") { Verdict(reason); }
         /// Every guid Spawn handed out: the runner despawns them at the end.
         std::vector<ObjectGuid> const& Spawned() const { return m_spawned; }
+        /// Every player SpawnPlayer built, owned. Kept apart from Spawned() -- which holds
+        /// guids, because a creature is the map's to own and the runner only asks it to
+        /// unsummon one -- because a player leaves by a different door and through allocations
+        /// that are the scenario's: the runner revokes his movers, unregisters him, removes
+        /// him from the map and deletes the session underneath him.
+        std::vector<OwnedPlayer> const& SpawnedPlayers() const { return m_players; }
+        /// True for a scenario that puts a player on the map (SpawnPlayer). A player
+        /// promotes the grids around it to full state and changes Map::Update's own
+        /// visitation order for as long as he is in world, so the runner requires every
+        /// scenario answering true here to run after every scenario that does not, and
+        /// resets the map's grids behind it once it ends. Default false; a scenario that
+        /// calls SpawnPlayer overrides it to true.
+        virtual bool UsesPlayer() const { return false; }
         /// Every creature Find resolved and activated: the runner hands each back
         /// whole at the end (a Find'd creature is the world's own; it is never
         /// despawned).
@@ -122,6 +171,13 @@ namespace Harness
         /// the recording AI installed; NULL (and a logged ERR) when the template is
         /// missing or the create fails.
         Creature* Spawn(uint32 entry, float x, float y, float z, float o);
+        /// A Player with no client behind him, on the harness map: a real Player object on a
+        /// real WorldSession whose socket and mailbox are null, holding a guid out of the
+        /// harness's own reserved block and never written to the database. He exists so the
+        /// player-only halves of the kernel - the control handoff above all - get a scenario
+        /// instead of a manual live test. NULL when there is no map, when the block is spent,
+        /// or when the create fails.
+        Player* SpawnPlayer(float x, float y, float z, float o);
         /// A creature from the world database (S8's patroller), on the harness map.
         Creature* Find(uint32 lowGuid, uint32 entry);
         Creature* Get(ObjectGuid guid) const;
@@ -145,6 +201,17 @@ namespace Harness
         /// finished, first), else NULL: nothing selected, a legacy binding, or a native that
         /// counts nothing. Only the chase and the follow keep them.
         Motion::RelayCounts const* Relays(Creature* c) const;
+        /// A scenario's self-cast: `caster->CastSpell(caster, spellId, true)` with one reading
+        /// taken in front of it and NOTHING refused. Unit::SpellHitResult has no self case, so a
+        /// spell whose damage class is not SPELL_DAMAGE_CLASS_NONE draws a hit roll against its
+        /// own caster -- a miss, a dodge, a parry or a resist -- and SPELL_ATTR_EX3_CANT_MISS does
+        /// not prevent it (the urand at UnitCombat.cpp:654 is drawn before the attribute is read
+        /// at :658, and resist, dodge and parry follow regardless). Under the harness's fixed seed
+        /// a bad roll fails EVERY run, which reads as a hard regression rather than as flake, so
+        /// this logs one MVTEST WARN naming the spell and its class. Log only: the cast goes out
+        /// either way and no verdict changes. It exists so the next person to debug an aura that
+        /// never applied sees the reason in the run's own log.
+        void SelfCast(Unit* caster, uint32 spellId);
         /// "MVTEST <name> " + the formatted text.
         void Log(char const* fmt, ...) const;
         /// Prints "MVTEST VERDICT <name> <body>" and ends the scenario.
@@ -152,13 +219,14 @@ namespace Harness
         Map* GetMap() const;
 
     private:
-        char const*             m_name;
-        int                     m_order;
-        Timeline                m_timeline;
-        bool                    m_finished;
-        std::vector<ObjectGuid> m_spawned;
-        std::vector<FoundActor> m_found;
-        std::vector<Inform>     m_informs;
+        char const*              m_name;
+        int                      m_order;
+        Timeline                 m_timeline;
+        bool                     m_finished;
+        std::vector<ObjectGuid>  m_spawned;
+        std::vector<OwnedPlayer> m_players;
+        std::vector<FoundActor>  m_found;
+        std::vector<Inform>      m_informs;
     };
 }
 

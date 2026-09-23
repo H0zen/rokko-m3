@@ -102,6 +102,29 @@ namespace Movement
         return c;
     }
 
+    /**
+     * @brief The direction of travel at the spline's current time.
+     * @return The spline's derivative there, normalised; zero when it is degenerate.
+     */
+    Vector3 MoveSpline::ComputeDirection() const
+    {
+        MANGOS_ASSERT(Initialized());
+
+        // The segment and how far along it the mover is: ComputePosition's own two lines,
+        // because this must answer for the same instant and the same point that one does.
+        float u = 1.f;
+        int32 seg_time = spline.length(point_Idx, point_Idx + 1);
+        if (seg_time > 0)
+        {
+            u = (time_passed - spline.length(point_Idx)) / (float)seg_time;
+        }
+
+        Vector3 hermite;
+        spline.evaluate_derivative(point_Idx, u, hermite);
+        const float len = hermite.length();
+        return len > 0.f ? hermite * (1.f / len) : Vector3();
+    }
+
     void MoveSpline::computeParabolicElevation(float& el) const
     {
         if (time_passed > effect_start_time)

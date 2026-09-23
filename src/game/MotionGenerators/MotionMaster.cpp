@@ -46,6 +46,7 @@
 #include "CreatureLinkingMgr.h"
 #include "Pet.h"
 #include "Player.h"
+#include "TaxiRoute.h"
 #include "World.h"
 #include "DBCStores.h"
 #include "ObjectMgr.h"
@@ -967,13 +968,11 @@ void MotionMaster::MoveChase(Unit* target, float dist, float angle)
         return;
     }
     DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s chase to %s", m_owner->GetGuidStr().c_str(), target->GetGuidStr().c_str());
-    Motion::ChaseBehaviour::ChaseParams p;
+    Motion::ChaseBehaviour::Params p;
     p.target = target->GetObjectGuid().GetRawValue();   // resolved per tick; never a stored pointer (design v2 §3.2)
     p.offset = dist;
     p.angle = angle;
     p.routineMs = 1000;   // retail's observed ~1 Hz drift re-check, in place of the generator's 100 ms poll
-    p.lead = sWorld.getConfig(CONFIG_BOOL_MOVEMENT_CHASE_LEAD);   // the experiment (Movement.ChaseLead), off by default
-    p.leadMs = 500;
     Request(R(Motion::Kind::Chase), std::unique_ptr<Motion::Behaviour>(new Motion::ChaseBehaviour(p)));
 }
 
@@ -1140,33 +1139,25 @@ void MotionMaster::MoveTaxiFlight(std::vector<uint32> const& route, uint32 start
     p.startNode = startNode;
     // The hops welded into one node array (design §5): the seam node once -- the incoming hop's
     // last row, kept and marked -- and the outgoing hop's node 0 dropped, as the hop chaining's
-    // pathNode = 1 skipped it.
-    for (size_t hop = 1; hop < route.size(); ++hop)
+    // pathNode = 1 skipped it. The weld itself is TaxiRoute::Weld's, shared with the resume so
+    // that the landing time is measured over exactly the polyline this spline is built from.
+    std::vector<TaxiRouteNode> welded;
+    if (!TaxiRoute::Weld(route, welded))
     {
-        uint32 path = 0;
-        uint32 cost = 0;
-        sObjectMgr.GetTaxiPath(route[hop - 1], route[hop], path, cost);
-        if (!path || path >= sTaxiPathNodesByPath.size() || sTaxiPathNodesByPath[path].size() < (hop == 1 ? 1u : 2u))
-        {
-            sLog.outError("%s attempt taxi over a missing or degenerate path from node %u to node %u", m_owner->GetGuidStr().c_str(), route[hop - 1], route[hop]);
-            static_cast<Player*>(m_owner)->m_taxi.ClearTaxiDestinations();
-            return;
-        }
-        TaxiPathNodeList const& rows = sTaxiPathNodesByPath[path];
-        for (size_t i = (hop == 1 ? 0 : 1); i < rows.size(); ++i)
-        {
-            TaxiPathNodeEntry const& row = rows[i];
-            Motion::TaxiBehaviour::Node node;
-            node.mapId = row.ContinentID;
-            node.pos = Motion::Vector3(row.Loc_0, row.Loc_1, row.Loc_2);
-            node.arrivalEvent = row.ArrivalEventID;
-            node.departureEvent = row.DepartureEventID;
-            p.nodes.push_back(node);
-        }
-        if (hop + 1 < route.size())
-        {
-            p.nodes.back().seam = true;
-        }
+        sLog.outError("%s attempt taxi over a missing or degenerate path along a route of %u nodes", m_owner->GetGuidStr().c_str(), uint32(route.size()));
+        static_cast<Player*>(m_owner)->m_taxi.ClearTaxiDestinations();
+        return;
+    }
+    p.nodes.reserve(welded.size());
+    for (size_t i = 0; i < welded.size(); ++i)
+    {
+        Motion::TaxiBehaviour::Node node;
+        node.mapId = welded[i].mapId;
+        node.pos = Motion::Vector3(welded[i].x, welded[i].y, welded[i].z);
+        node.arrivalEvent = welded[i].arrivalEvent;
+        node.departureEvent = welded[i].departureEvent;
+        node.seam = welded[i].seam;
+        p.nodes.push_back(node);
     }
     if (p.nodes.empty() || startNode >= p.nodes.size())
     {
@@ -1184,8 +1175,21 @@ void MotionMaster::MoveTaxiFlight(std::vector<uint32> const& route, uint32 start
             p.landing = Motion::Vector3(destination->Pos_0, destination->Pos_1, destination->Pos_2);
         }
     }
-    DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s taxi from node %u to node %u (%u path nodes, from %u)",
-                     m_owner->GetGuidStr().c_str(), route.front(), route.back(), uint32(p.nodes.size()), startNode);
+    // THE LANDING TIME, stamped once and only once (design 2026-09-22 §2): the whole remaining
+    // route's flyable length over the very speed this spline is laid at. It is the takeoff that
+    // stamps it -- a resume finds one already set and keeps it, because the contract was bought
+    // at the click and a passenger who spent ten minutes in a battleground does not get those
+    // ten minutes added to his flight. PlayerTaxi::ClearTaxiDestinations drops the stamp with
+    // the route, so the next takeoff always finds zero.
+    Player* passenger = static_cast<Player*>(m_owner);
+    if (!passenger->m_taxi.GetLandingTime())
+    {
+        const float remaining = TaxiResume::Length(welded, startNode);
+        passenger->m_taxi.SetLandingTime(uint32(sWorld.GetGameTime()) + uint32(remaining / p.speed + 0.5f));
+    }
+    DEBUG_FILTER_LOG(LOG_FILTER_AI_AND_MOVEGENSS, "%s taxi from node %u to node %u (%u path nodes, from %u, landing at %u)",
+                     m_owner->GetGuidStr().c_str(), route.front(), route.back(), uint32(p.nodes.size()), startNode,
+                     passenger->m_taxi.GetLandingTime());
     Request(R(Motion::Kind::Taxi), std::unique_ptr<Motion::Behaviour>(new Motion::TaxiBehaviour(p)));
 }
 
@@ -1673,17 +1677,29 @@ void MotionMaster::Uninhibit(Motion::Inhibition what, uint64 source)
 }
 
 /**
+ * @brief The mover authority changed (a grant or a revoke): recompute the client root, which
+ * depends on it. Safe to call when nothing changes -- the projection is edge-triggered on
+ * m_clientRooted.
+ */
+void MotionMaster::RefreshClientRoot()
+{
+    ProjectClientRoot();
+}
+
+/**
  * @brief The client's root flag follows rooted-or-stunned, on the aggregate's edges only, so two
  * roots and a stun releasing in any order leave the mover rooted exactly until the last one goes.
- * A stunned creature is stopped, not rooted, as before (the stun handler's StopMoving); a stunned
- * player or player-charmed unit gets the root (reference 2.3).
+ * A stunned server-driven unit is stopped, not rooted, as before (the stun handler's StopMoving);
+ * a stunned CLIENT MOVER gets the root (reference 2.3) -- a player, or a unit a session is
+ * actually moving. The authority can change while a block is held, which is why the grant and the
+ * revoke call RefreshClientRoot above: Unit::TakePossessOf raises the Possessed inhibition before
+ * SetClientControl hands the body over, so a creature stunned before the take is first projected
+ * as the server-driven unit it still is and only the grant's recompute roots it.
  */
 void MotionMaster::ProjectClientRoot()
 {
-    Unit* charmer = m_owner->GetCharmer();
-    const bool clientMover = m_owner->GetTypeId() == TYPEID_PLAYER || (charmer && charmer->GetTypeId() == TYPEID_PLAYER);
     const bool want = m_arbiter.Inhibited(Motion::Inhibition::Rooted) ||
-                      (clientMover && m_arbiter.Inhibited(Motion::Inhibition::Stunned));
+                      (m_owner->IsClientMover() && m_arbiter.Inhibited(Motion::Inhibition::Stunned));
     if (want == m_clientRooted)
     {
         return;
@@ -1701,6 +1717,9 @@ void MotionMaster::Publish()
 {
     PublishedState next;
     next.reasons = static_cast<uint8>(m_arbiter.Reasons() & kPublishedReasons);
+    // An aura's fear apart from the AI's own low-health flee, which raises the same reason.
+    // Read from the claims, so it ends exactly when the claim does, however the claim ends.
+    next.auraFear = m_arbiter.HasAuraClaim(Motion::Kind::Fear);
     std::vector<uint64> const& dead = m_arbiter.Sources(Motion::Inhibition::Dead);
     for (size_t i = 0; i < dead.size(); ++i)
     {
@@ -1709,7 +1728,35 @@ void MotionMaster::Publish()
             next.feign = true;
         }
     }
-    m_published = next;
+    const bool wasAuraFear = m_published.auraFear;
+    m_published = next;   // assigned FIRST: UpdateSpeed below reads Unit::IsFearedByAura() out of it
+
+    // Retail's x1.25 for a fear aura (Unit::UpdateSpeed) follows the published flag, so that
+    // every route by which the claim can begin or end is covered by construction -- the aura's
+    // own Release, the possession take's CancelControl (Unit.cpp:7149), a full Clear, the death,
+    // and any route nobody has enumerated yet. Enumerating them is what went wrong twice before:
+    // the shell can only patch the callers it has thought of, and the flag is the one place they
+    // all pass through.
+    //
+    // Safe at this point, checked rather than assumed:
+    //  - No recursion. Commit() runs from Scope::~Scope BEFORE m_depth is decremented, so m_depth
+    //    is still 1 here; any facade call made from below would open a NESTED scope, which never
+    //    commits and so never publishes. A publish cannot re-enter a publish.
+    //  - Nothing below opens one anyway. UpdateSpeed reaches back into the kernel exactly twice:
+    //    Unit::PropagateSpeedChange -> MotionMaster::PropagateSpeedChange, which only walks
+    //    m_bound calling SpeedChanged() (no scope, no arbiter mutation, no queued event) -- and
+    //    it is the right moment for it, the selection having just been reconciled; and
+    //    SetSpeedRate's CallForAllControlledUnits, which touches pets and charms, each with its
+    //    own MotionMaster and its own published state.
+    //  - The map phase. SetSpeedRate emits, and Unit::SendEmissions calls AssertMotionOwner.
+    //    Publish() runs inside a facade call already bound by that same rule, and emitting from
+    //    inside a commit is what the outcome effects already do (Effect::RestoreGait -> SetWalk
+    //    -> SendEmissions). No new ownership class is introduced.
+    //  - Cost. Only on a change, which is twice per fear episode.
+    if (next.auraFear != wasAuraFear)
+    {
+        m_owner->UpdateSpeed(MOVE_RUN, true);
+    }
 }
 
 /**
