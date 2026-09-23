@@ -44,6 +44,7 @@
 #include "World.h"
 #include "AccountMgr.h"
 #include "SQLStorages.h"
+#include "WorldSession.h"
 
 
  /**********************************************************************

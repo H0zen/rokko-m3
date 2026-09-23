@@ -33,7 +33,7 @@ endforeach()
 # Database/DatabaseEnv.h and WorldHandlers/ScriptMgr.h join this rule in D3 PR 3, when
 # AchievementMgr and BattleGround.h leave Player.h.
 set(REACH_RULES
-    "Object/Player.h|Object/GMTicketMgr.h,Object/Bag.h,Server/DBCStores.h,WorldHandlers/NPCHandler.h,WorldHandlers/Chat.h"
+    "Object/Player.h|Object/GMTicketMgr.h,Object/Bag.h,Server/DBCStores.h,WorldHandlers/NPCHandler.h,WorldHandlers/Chat.h,Server/WorldSession.h"
     "Object/Unit.h|")
 set(MOTION_ONLY_HEADER "")
 set(MOTION_ALLOWED "Mobility.h")
@@ -112,8 +112,9 @@ foreach(RULE IN LISTS REACH_RULES)
         if(NOT SUFFIX)
             continue()
         endif()
+        string(REPLACE "." "\\." SUFFIX_RE "${SUFFIX}")
         foreach(PATH IN LISTS REACHED)
-            string(REGEX MATCH "(^|/)${SUFFIX}$" HIT "${PATH}")
+            string(REGEX MATCH "(^|/)${SUFFIX_RE}$" HIT "${PATH}")
             if(HIT)
                 list(APPEND VIOLATIONS "${HEADER} reaches ${SUFFIX} (${PATH})")
             endif()

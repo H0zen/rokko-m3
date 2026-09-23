@@ -43,6 +43,7 @@
 #include "DBCStores.h"
 #include "Language.h"
 #include "ObjectMgr.h"
+#include "WorldSession.h"
 
 /**
  * @brief Handler for HandleUnLearnCommand command.

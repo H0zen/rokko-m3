@@ -29,6 +29,7 @@ npc_defiant_troll_q14069
 EndContentData */
 
 #include "precompiled.h"
+#include "WorldSession.h"
 
 /*######
 #

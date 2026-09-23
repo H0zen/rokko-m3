@@ -41,6 +41,7 @@
 #include "AccountMgr.h"
 #include "Util.h"
 #include "ObjectMgr.h"
+#include "WorldSession.h"
 
 /**
 * @brief Helper function to display ban list information.

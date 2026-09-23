@@ -34,6 +34,7 @@
 #include "World.h"
 #include "Util.h"
 #include "PlayerRegistry.h"
+#include "WorldSession.h"
 
 
 /**

@@ -45,6 +45,7 @@
 #include "World.h"
 #include "SQLStorages.h"
 #include "Util.h"
+#include "WorldSession.h"
 
 /**
  * @brief Handler for LookupPlayerSearchCommand command.

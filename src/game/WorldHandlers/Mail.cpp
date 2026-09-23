@@ -49,6 +49,7 @@
 #include "Mail.h"
 #include "Log.h"
 #include "ObjectGuid.h"
+#include "AuctionHouseMgr.h"
 #include "ObjectMgr.h"
 #include "Item.h"
 #include "Player.h"

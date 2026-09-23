@@ -35,6 +35,7 @@
 #include "WorldPacket.h"
 #include "Log.h"
 #include "Util.h"
+#include "WorldSession.h"
 
 /// Create the Weather object
 Weather::Weather(uint32 zone, WeatherZoneChances const* weatherChances) :

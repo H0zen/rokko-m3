@@ -52,6 +52,7 @@
 #include "GameEventMgr.h"
 #include "DisableMgr.h"
 #include "GameTime.h"
+#include "WorldSession.h"
 
 #include "Policies/Singleton.h"
 

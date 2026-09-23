@@ -35,6 +35,7 @@
 #include "CreatureAI.h"
 #include "Unit.h"
 #include "Util.h"
+#include "WorldSession.h"
 
 /**
  * @file PetSpells.cpp

@@ -46,6 +46,7 @@
 #include "GameObject.h"
 #include "ObjectLookup.h"
 #include "ObjectMgr.h"
+#include "WorldSession.h"
 
  /**********************************************************************
      CommandTable : gobjectCommandTable

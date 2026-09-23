@@ -2380,6 +2380,12 @@ void Player::SetGameMaster(bool on)
     UpdateForQuestWorldObjects();
 }
 
+// Check if the player accepts tickets
+bool Player::isAcceptTickets() const { return GetSession()->GetSecurity() >= SEC_GAMEMASTER && (m_ExtraFlags & PLAYER_EXTRA_GM_ACCEPT_TICKETS); }
+
+// Check if the player has GM chat enabled
+bool Player::isGMChat() const { return GetSession()->GetSecurity() >= SEC_MODERATOR && (m_ExtraFlags & PLAYER_EXTRA_GM_CHAT); }
+
 /**
  * @brief Sets whether a game master is visible to other players.
  *

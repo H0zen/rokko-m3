@@ -21,12 +21,28 @@ all_files = []
 for d in DIRS:
     for dirpath, _, names in os.walk(os.path.join(ROOT, d)):
         for name in names:
+            rel = os.path.relpath(os.path.join(dirpath, name), ROOT).replace("\\", "/")
+            # Index every file type the gate's resolve_include() would find (it has no
+            # extension filter), so a header that includes a .inc resolves the same way here.
+            by_name.setdefault(name, rel)
+            by_name.setdefault(rel, rel)
             if name.endswith((".h", ".hpp", ".cpp")):
-                rel = os.path.relpath(os.path.join(dirpath, name), ROOT).replace("\\", "/")
                 all_files.append(rel)
-                if name.endswith((".h", ".hpp")):
-                    by_name.setdefault(name, rel)
-                    by_name.setdefault(rel, rel)
+
+
+def resolve_target(inc, local):
+    if local in by_name:
+        return by_name[local]
+    if "/" in inc:
+        # A path-qualified include (e.g. "Auth/Sha1.h") is tried against each top-level
+        # directory before falling back to a basename match: the tree has Auth/ vs Crypto/
+        # Sha1.h/Md5.h collisions, and basename-first-wins is os.walk order, platform-dependent.
+        for d in DIRS:
+            candidate = by_name.get(f"{d}/{inc}")
+            if candidate:
+                return candidate
+    return by_name.get(inc) or by_name.get(os.path.basename(inc))
+
 
 edges = collections.defaultdict(set)
 for rel in all_files:
@@ -38,7 +54,7 @@ for rel in all_files:
     for match in INCLUDE_RE.finditer(text):
         inc = match.group(1)
         local = os.path.normpath(os.path.join(here, inc)).replace("\\", "/")
-        target = by_name.get(local) or by_name.get(inc) or by_name.get(os.path.basename(inc))
+        target = resolve_target(inc, local)
         if target and target != rel:
             edges[rel].add(target)
 
