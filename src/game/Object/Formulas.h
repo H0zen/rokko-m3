@@ -27,6 +27,7 @@
 #define MANGOS_FORMULAS_H
 
 #include <cmath>
+#include "DBCStores.h"
 #include "World.h"
 
 namespace MaNGOS

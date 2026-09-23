@@ -3601,6 +3601,9 @@ enum BanReturn
     BAN_NOTFOUND
 };
 
+/// Bit set of PlayerChatTag values (see Chat.h). Lived in Chat.h until decoupling D3.
+typedef uint32 ChatTagFlags;
+
 // indexes of BattlemasterList.dbc
 enum BattleGroundTypeId
 {

@@ -79,11 +79,8 @@
 #include "RuneMgr.h"    // RuneMgr is held by value on Player; brings in RuneType/RuneInfo/Runes + owns death-knight rune state
 #include "SpellCooldownMgr.h" // SpellCooldownMgr is held by value on Player; brings in SpellCooldown/SpellCooldowns + owns the cooldown map
 
-#include "Database/DatabaseEnv.h"
-#include "NPCHandler.h"
 #include "QuestDef.h"
 #include "Group.h"
-#include "Bag.h"
 #include "WorldSession.h"
 #include "Pet.h"
 #include "PetMgr.h"
@@ -92,10 +89,7 @@
 #include "AchievementMgr.h"
 #include "ReputationMgr.h"
 #include "BattleGround.h"
-#include "DBCStores.h"
 #include "SharedDefines.h"
-#include "Chat.h"
-#include "GMTicketMgr.h"
 
 #include<string>
 #include<vector>
@@ -118,6 +112,12 @@ struct AreaTrigger;
 #include <memory>
 #include "CinematicFlyover.h"
 #include "Cell.h"
+
+// Decoupling D3: named by pointer or reference only. The .cpp files that use them include them.
+class QueryResult;
+class SqlQueryHolder;
+class Bag;
+struct TrainerSpell;
 
 typedef std::deque<Mail*> PlayerMails;
 
