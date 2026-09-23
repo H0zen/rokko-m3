@@ -27,6 +27,7 @@
 #include "Player.h"
 #include "Language.h"
 #include "Database/DatabaseEnv.h"
+#include "GMTicketMgr.h"
 #include "Log.h"
 #include "Opcodes.h"
 #include "SpellMgr.h"

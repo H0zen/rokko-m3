@@ -43,6 +43,7 @@
 #include "AccountMgr.h"
 #include "DatabaseEnv.h"
 #include "Player.h"
+#include "WorldSession.h"
 
 /**
  * @brief Displays the current account information and access level.

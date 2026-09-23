@@ -288,25 +288,36 @@ class Database
         virtual void HaltDelayThread();
 
         /**
-         * @brief Synchronous DB queries
+         * @brief Runs a query on one of the pooled connections.
+         *
+         * A database that was never Initialize()d has no pool; asking it answers NULL, the
+         * same as a failed query, instead of indexing the empty pool (decoupling D1).
          *
          * @param sql
          * @return QueryResult
          */
         inline QueryResult* Query(const char* sql)
         {
+            if (m_pQueryConnections.empty())
+            {
+                return NULL;
+            }
             SqlConnection::Lock guard(getQueryConnection());
             return guard->Query(sql);
         }
 
         /**
-         * @brief
+         * @brief Same as Query, with named columns. NULL on a database with no pool.
          *
          * @param sql
          * @return QueryNamedResult
          */
         inline QueryNamedResult* QueryNamed(const char* sql)
         {
+            if (m_pQueryConnections.empty())
+            {
+                return NULL;
+            }
             SqlConnection::Lock guard(getQueryConnection());
             return guard->QueryNamed(sql);
         }

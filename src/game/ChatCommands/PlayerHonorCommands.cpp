@@ -36,6 +36,7 @@
 #include "Chat.h"
 #include "Language.h"
 #include "Player.h"
+#include "WorldSession.h"
 
 /**
  * @brief Handler for HandleHonorAddCommand command.

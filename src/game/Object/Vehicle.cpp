@@ -49,6 +49,7 @@
 #include "movement/MoveSpline.h"
 #include "MapManager.h"
 #include "TemporarySummon.h"
+#include "WorldSession.h"
 
 void ObjectMgr::LoadVehicleAccessory()
 {

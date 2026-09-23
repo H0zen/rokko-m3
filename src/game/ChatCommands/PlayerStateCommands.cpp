@@ -32,6 +32,7 @@
 #include "SQLStorages.h"
 #include "PlayerRegistry.h"
 #include "CorpseManager.h"
+#include "WorldSession.h"
 
 /**
  * @file PlayerStateCommands.cpp

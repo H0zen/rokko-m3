@@ -44,6 +44,7 @@
 #include "CellImpl.h"
 #include "Player.h"
 #include "MapPersistentStateMgr.h"
+#include "WorldSession.h"
 
 #ifdef _DEBUG_VMAPS
 #endif

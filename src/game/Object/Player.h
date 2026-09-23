@@ -79,12 +79,8 @@
 #include "RuneMgr.h"    // RuneMgr is held by value on Player; brings in RuneType/RuneInfo/Runes + owns death-knight rune state
 #include "SpellCooldownMgr.h" // SpellCooldownMgr is held by value on Player; brings in SpellCooldown/SpellCooldowns + owns the cooldown map
 
-#include "Database/DatabaseEnv.h"
-#include "NPCHandler.h"
 #include "QuestDef.h"
 #include "Group.h"
-#include "Bag.h"
-#include "WorldSession.h"
 #include "Pet.h"
 #include "PetMgr.h"
 #include "MapReference.h"
@@ -92,10 +88,7 @@
 #include "AchievementMgr.h"
 #include "ReputationMgr.h"
 #include "BattleGround.h"
-#include "DBCStores.h"
 #include "SharedDefines.h"
-#include "Chat.h"
-#include "GMTicketMgr.h"
 
 #include<string>
 #include<vector>
@@ -118,6 +111,12 @@ struct AreaTrigger;
 #include <memory>
 #include "CinematicFlyover.h"
 #include "Cell.h"
+
+// Decoupling D3: named by pointer or reference only. The .cpp files that use them include them.
+class QueryResult;
+class SqlQueryHolder;
+class WorldSession;
+struct TrainerSpell;
 
 typedef std::deque<Mail*> PlayerMails;
 
@@ -1227,7 +1226,7 @@ class Player : public Unit
         void TaxiAbort();
 
         // Check if the player accepts tickets
-        bool isAcceptTickets() const { return GetSession()->GetSecurity() >= SEC_GAMEMASTER && (m_ExtraFlags & PLAYER_EXTRA_GM_ACCEPT_TICKETS); }
+        bool isAcceptTickets() const;
 
         // Set the accept ticket state
         void SetAcceptTicket(bool on) { if (on) { m_ExtraFlags |= PLAYER_EXTRA_GM_ACCEPT_TICKETS; } else { m_ExtraFlags &= ~PLAYER_EXTRA_GM_ACCEPT_TICKETS; } }
@@ -1245,7 +1244,7 @@ class Player : public Unit
         void SetGameMaster(bool on);
 
         // Check if the player has GM chat enabled
-        bool isGMChat() const { return GetSession()->GetSecurity() >= SEC_MODERATOR && (m_ExtraFlags & PLAYER_EXTRA_GM_CHAT); }
+        bool isGMChat() const;
 
         // Set the GM chat state
         void SetGMChat(bool on) { if (on) { m_ExtraFlags |= PLAYER_EXTRA_GM_CHAT; } else { m_ExtraFlags &= ~PLAYER_EXTRA_GM_CHAT; } }

@@ -38,6 +38,7 @@
 #include "CreatureAI.h"
 #include "Unit.h"
 #include "Util.h"
+#include "WorldSession.h"
 
 /**
  * @brief Creates a pet instance of the specified type.

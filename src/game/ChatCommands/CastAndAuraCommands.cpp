@@ -40,6 +40,7 @@
 #include "SpellMgr.h"
 #include "Player.h"
 #include "DBCStores.h"
+#include "WorldSession.h"
 
 /**********************************************************************
     CommandTable : castCommandTable

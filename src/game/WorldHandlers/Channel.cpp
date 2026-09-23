@@ -48,6 +48,7 @@
 #include "World.h"
 #include "SocialMgr.h"
 #include "Chat.h"
+#include "WorldSession.h"
 
 Channel::Channel(const std::string& name, uint32 channel_id)
     : m_announce(true), m_moderate(false), m_name(name), m_flags(0), m_channelId(channel_id)

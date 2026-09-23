@@ -33,6 +33,7 @@
 
 #include "Utilities/Errors.h"
 #include "Player.h"
+#include "Bag.h"
 
 /**
  * @brief Updates a visible virtual weapon slot and consumes temporary enchant charges when needed.

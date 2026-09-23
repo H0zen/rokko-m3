@@ -30,6 +30,7 @@
 #include "Player.h"
 #include "GossipDef.h"
 #include "QuestDef.h"
+#include "WorldSession.h"
 
 // Gossip Item Text
 #define GOSSIP_TEXT_BROWSE_GOODS        "I'd like to browse your goods."

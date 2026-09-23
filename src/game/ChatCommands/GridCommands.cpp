@@ -47,6 +47,7 @@
 #include "ObjectMgr.h"
 #include "Creature.h"
 #include "GridDefines.h"
+#include "WorldSession.h"
 
 #include <algorithm>
 #include <map>

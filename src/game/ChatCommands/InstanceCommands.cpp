@@ -42,6 +42,7 @@
 #include "Player.h"
 #include "DBCStores.h"
 #include "MapPersistentStateMgr.h"
+#include "WorldSession.h"
 
 /**
  * @brief Handler for HandleInstanceListBindsCommand command.

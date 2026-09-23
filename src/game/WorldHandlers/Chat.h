@@ -106,7 +106,6 @@ enum PlayerChatTag
     CHAT_TAG_COM                = 0x08,                     // Commentator
     CHAT_TAG_DEV                = 0x10,                     // Developer
 };
-typedef uint32 ChatTagFlags;
 
 class ChatHandler
 {

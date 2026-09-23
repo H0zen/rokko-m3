@@ -33,6 +33,7 @@
 #include "Database/DatabaseEnv.h"
 #include "ItemEnchantmentMgr.h"
 #include "SQLStorages.h"
+#include "WorldSession.h"
 
 /**
  * @brief Applies item set bonuses when an item is equipped.

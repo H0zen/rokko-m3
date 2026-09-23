@@ -30,6 +30,7 @@
 #include "Object.h"
 #include "GameObject.h"
 #include "Player.h"
+#include "WorldSession.h"
 
 /**
    Function that adds a player to the players of the affected outdoor pvp zones

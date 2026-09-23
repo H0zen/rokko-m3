@@ -288,6 +288,11 @@ void Database::escape_string(std::string& str)
         return;
     }
 
+    if (m_pQueryConnections.empty())                        // never Initialize()d: no
+    {                                                       // character set to escape for
+        return;
+    }
+
     // It DOES matter which connection, and it matters that the lock is held:
     // mysql_real_escape_string reads the connection's character set, and connection
     // zero may be running a query on another thread at the same moment. The old
@@ -316,6 +321,11 @@ SqlConnection* Database::getQueryConnection()
 
 void Database::Ping()
 {
+    if (!m_pAsyncConn || m_pQueryConnections.empty())       // never Initialize()d: nothing to ping
+    {
+        return;
+    }
+
     const char* sql = "SELECT 1";
 
     {

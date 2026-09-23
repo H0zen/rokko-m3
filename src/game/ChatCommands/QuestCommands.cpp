@@ -38,6 +38,7 @@
 #include "Language.h"
 #include "World.h"
 #include "SQLStorages.h"
+#include "WorldSession.h"
 
 /**
  * @brief Adds a quest to the selected player.

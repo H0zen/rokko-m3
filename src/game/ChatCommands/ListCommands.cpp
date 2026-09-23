@@ -45,6 +45,7 @@
 #include "Unit.h"
 #include "Player.h"
 #include "PlayerRegistry.h"
+#include "WorldSession.h"
 
 static uint32 ReputationRankStrIndex[MAX_REPUTATION_RANK] =
 {

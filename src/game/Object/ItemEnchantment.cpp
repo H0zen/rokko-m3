@@ -29,6 +29,7 @@
 #include "Database/DatabaseEnv.h"
 #include "ItemEnchantmentMgr.h"
 #include "SQLStorages.h"
+#include "WorldSession.h"
 
 /**
  * @file ItemEnchantment.cpp

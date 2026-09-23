@@ -40,6 +40,7 @@
 #include "Player.h"
 #include "PoolManager.h"
 #include "MapPersistentStateMgr.h"
+#include "WorldSession.h"
 
 /**
  * @brief Displays summary information for a pool template.

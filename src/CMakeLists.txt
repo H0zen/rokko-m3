@@ -9,14 +9,16 @@ add_subdirectory(motion)
 
 add_subdirectory(genrev)
 
-if(BUILD_MANGOSD)
+# The game library (and the scripts it links) is needed by mangosd and, since decoupling D1,
+# by mangos_tests: a tests-only configuration (-DBUILD_MANGOSD=OFF -DWITH_TESTS=ON) must
+# still have it. Only the mangosd executable itself stays behind BUILD_MANGOSD.
+if(BUILD_MANGOSD OR WITH_TESTS OR WITH_NET_TESTS)
     add_subdirectory(game)
+    add_subdirectory(modules)
 endif()
 
 if(BUILD_MANGOSD)
     add_subdirectory(mangosd)
-
-    add_subdirectory(modules)
 endif()
 
 if(BUILD_REALMD)
