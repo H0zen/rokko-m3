@@ -34,11 +34,16 @@ jobs:
             cc: gcc
             cxx: g++
             pkg: g++
+            pch: 1
+          # The one build without the precompiled header (decoupling D2): pchdef.h hands every
+          # translation unit the whole world, so only a PCH-off build proves that each file
+          # includes what it uses. gcc, aarch64 and MSVC keep proving the shipping PCH build.
           - name: clang
             runner: ubuntu-latest
             cc: clang
             cxx: clang++
             pkg: clang
+            pch: 0
           # The one build without the x86-64 tiers: no mulx, no assembly, no s2n-bignum
           # oracle -- the portable kernel and the fallbacks are what this job proves,
           # on the hardware the design promises them for.
@@ -47,6 +52,7 @@ jobs:
             cc: gcc
             cxx: g++
             pkg: g++
+            pch: 1
 
     name: Build (${{ matrix.name }})
 
@@ -67,7 +73,7 @@ jobs:
       - name: Compiler cache
         uses: hendrikmuhs/ccache-action@f09c25b45002a07be2955cbe52e8cee55643f89d
         with:
-          key: linux-${{ matrix.name }}-pch
+          key: linux-${{ matrix.name }}-pch${{ matrix.pch == 0 && '-off' || '' }}
           max-size: 2G
 
       - name: Configure the compiler cache
@@ -91,7 +97,7 @@ jobs:
           -DWITH_CRYPTO_TESTS=1
           -DWITH_NET_TESTS=0
           -DSCRIPT_LIB_SD3=1
-          -DPCH=1
+          -DPCH=${{ matrix.pch }}
 
       - name: Build
         run: cmake --build "$BUILD_DIR" --parallel
