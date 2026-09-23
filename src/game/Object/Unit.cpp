@@ -4058,13 +4058,22 @@ void Unit::Mount(uint32 mount, uint32 spellId, bool canFly)
             // The predicate is `Flags & 0x2`, the same bit Unit::GetMountCapability itself treats
             // as the flying half of the land pair; testing the capability's SpeedModSpell for
             // aura 207 instead would agree on all 38 MountCapability rows.
-            if (canFly)
+            //
+            // AND THE FLYING ARM DOES NOT DESPAWN ANYTHING HERE (live test 2026-09-22, C4/T7):
+            // retail's trigger is LIFT-OFF, not mounting, and #116 hung it on the aura's apply,
+            // so the pet vanished the instant a flying mount was summoned. The despawn moved to
+            // WorldSession::HandleMoverRelocation, where the first movement word carrying
+            // MOVEFLAG_FLYING under a mount is what fires it. `canFly` is still resolved and
+            // handed down because it is the one thing that says whether this mount can ever
+            // lift off at all, and it is what the harness reads to prove the rule; the pet
+            // itself is now kept on BOTH kinds of mount, exactly as a ground one always should
+            // have kept it.
+            DEBUG_LOG("Unit::Mount: %s mounted with spell %u, capability canFly=%u -- the pet stays until lift-off",
+                      GetGuidStr().c_str(), spellId, canFly ? 1 : 0);
+
+            if (Pet* pet = GetPet())
             {
-                ((Player*)this)->UnsummonPetTemporaryIfAny();
-            }
-            else if (Pet* pet = GetPet())
-            {
-                // Ground. A permanent pet is kept, with its actions disabled while its owner is
+                // A permanent pet is kept, with its actions disabled while its owner is
                 // mounted -- which is what the client shows, a greyed-out pet bar, and what
                 // Unit::Unmount restores from the CharmInfo. A TEMPORARY summon keeps exactly
                 // the gate it had: PetUnsummonAtMount, and the arena with it.
@@ -7176,6 +7185,14 @@ bool Unit::TakePossessOf(Unit* possessed)
     {
         possessedCreature = static_cast<Creature *>(possessed);
     }
+
+    // A BODY THAT WAS SITTING CANNOT BE STEERED (live test 2026-09-22, B1 bonus): mind-control
+    // an AFK creature and the possessor gets the camera and the mover but no right-click turn,
+    // because the client refuses to turn a unit whose stand state is not STAND and nothing on
+    // this path ever stood it up. The take is the moment to do it -- before the control grant
+    // below, so the body is already standing when the client is handed it, the same way
+    // SpellAuraControl.cpp:509 stands a unit up as its stun takes hold.
+    possessed->SetStandState(UNIT_STAND_STATE_STAND);
 
     if (player)
     {

@@ -822,6 +822,15 @@ void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo
 
     if (Player* plMover = mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL)
     {
+        // LIFT-OFF, WHICH IS WHEN THE PET GOES (live test 2026-09-22, C4/T7; the 4.2.0 rule of
+        // design 2026-09-22 section 4). Retail despawns a permanent pet when its mounted owner
+        // LEAVES THE GROUND, not when he summons the mount, and the only word that says he has
+        // is this one: MOVEFLAG_FLYING (0x01000000) appearing in a movement packet that the
+        // previous one did not carry. #116 hung the despawn on the mount aura's apply instead,
+        // so the pet vanished at the summon. Read the word he had before the store below
+        // replaces it; the edge is checked once the store is done.
+        const uint32 wordBeforeThisPacket = plMover->m_movementInfo.GetMovementFlags();
+
         // BEFORE the transport branch, and the ordering is the whole of it.
         // TransportMap::Add reads the passenger's OWN m_movementInfo for his deck offset; the
         // assignment used to sit below this branch, so on the first ONTRANSPORT packet Add read
@@ -934,6 +943,28 @@ void WorldSession::HandleMoverRelocation(Unit* mover, MovementInfo& movementInfo
             plMover->SetPosition(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
         }
         plMover->m_movementInfo = movementInfo;
+
+        // The lift-off edge, read once the word is finally his. Three guards, and each of them
+        // is a case this would otherwise fire on wrongly:
+        //
+        //   * MOUNTED: the pet rule is a mount rule. A druid in flight form, a levitating
+        //     priest and a death knight on a gargoyle are not mounted and keep their pets.
+        //   * NOT ON A TAXI: a flight path also sets MOVEFLAG_FLYING, and the taxi has its own
+        //     unsummon at the takeoff (PlayerTaxi.cpp:712) with its own resummon on landing.
+        //     Firing here as well would hand the pet back on landing and take it again on the
+        //     next leg.
+        //   * HIS OWN BODY: `mover` is whoever the session drives, which during a possession is
+        //     somebody else -- and a possessed PLAYER would otherwise have his possessor's mount
+        //     state read against his own pet.
+        if (!(wordBeforeThisPacket & MOVEFLAG_FLYING) &&
+            movementInfo.HasMovementFlag(MOVEFLAG_FLYING) &&
+            plMover == _player && plMover->IsMounted() && !plMover->IsTaxiFlying())
+        {
+            DEBUG_LOG("WorldSession::HandleMoverRelocation: %s lifted off under a mount (word 0x%08x -> 0x%08x); the pet is put away until he dismounts",
+                      plMover->GetGuidStr().c_str(), wordBeforeThisPacket,
+                      uint32(movementInfo.GetMovementFlags()));
+            plMover->UnsummonPetTemporaryIfAny();
+        }
 
         /* Movement should cancel looting */
         if (ObjectGuid lootGUID = plMover->GetLootGuid())

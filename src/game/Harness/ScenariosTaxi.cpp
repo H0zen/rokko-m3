@@ -159,6 +159,19 @@ namespace Harness
             SpellEffectEntry const* eff = spell ? spell->GetSpellEffect(EFFECT_INDEX_0) : NULL;
             return eff ? p->GetMountCapability(uint32(eff->EffectMiscValue_1)) : NULL;
         }
+
+        /// ONE MOVEMENT WORD, DOWN THE HANDLER THE CLIENT'S OWN PACKETS GO DOWN:
+        /// WorldSession::HandleMoverRelocation with the flags under test and the place he
+        /// already stands, so nothing moves and only the word changes. The mount's lift-off
+        /// edge is decided in there and nowhere else, so a scenario that re-implemented the
+        /// edge would be proving its own copy of it.
+        void Word(Player* p, uint32 flags)
+        {
+            MovementInfo word = p->m_movementInfo;
+            word.SetMovementFlags(MovementFlags(flags));
+            word.ChangePosition(p->Where().X(), p->Where().Y(), p->Where().Z(), p->Where().Facing());
+            p->GetSession()->HandleMoverRelocation(p, word);
+        }
     }
 
     /**
@@ -872,14 +885,35 @@ namespace Harness
      * non-flying entry there rather than assuming", shown rather than asserted, and it is what
      * makes phase 2 a real case and not a ground mount wearing a flying name.
      *
-     * WHAT IS NOT PROVEN HERE, AND WHY. The flying arm's despawn itself is not driven: a real
+     * PHASE 4 AND THE LIFT-OFF (live test 2026-09-22, C4/T7). The user flew with a pet out and
+     * reported the half #116 got wrong: a flying mount despawned the pet THE MOMENT IT WAS
+     * SUMMONED, where retail keeps it until the rider actually leaves the ground. So the despawn
+     * is no longer on the aura's apply at all -- Unit::Mount keeps the pet on both kinds of
+     * mount now -- and the trigger moved to WorldSession::HandleMoverRelocation, which fires it
+     * on the first movement word that carries MOVEFLAG_FLYING while its sender is mounted.
+     * Phase 4 casts the same spell 32235 with the gate from phase 3 still open, so this time it
+     * really can fly, and reads three things: the pet is STILL OUT once the mount has landed
+     * (the half that was broken), a mounted player's ordinary ground-movement word changes
+     * nothing, and the first flying word puts the pet away. Phase 0, before any of it, is the
+     * guard: the same flying word on an UNMOUNTED player must do nothing. (The taxi guard needs
+     * no arm of its own -- Player::TaxiTakeoff deliberately does not set UNIT_FLAG_MOUNT, so
+     * IsMounted() is already false for a passenger, and the taxi's own unsummon and resummon are
+     * orders 908-910's business.)
+     *
+     * WHAT IS NOT PROVEN HERE, AND WHY. No despawn is ever DRIVEN to completion: a real
      * Pet::Unsummon ends in SavePetToDB, which would INSERT a character_pet row for a character
      * that does not exist, and the harness must never write to the character database. Phase 3
-     * therefore reads the capability the aura WOULD hand down -- the one input the change added
-     * -- and stops there; the arm behind it is the single unchanged line
-     * UnsummonPetTemporaryIfAny(), and the despawn is on the live checklist. For the same reason
-     * the negative check for this item must NOT be run headless: reverting the ground arm makes
-     * the harness write that row.
+     * therefore reads the capability the aura WOULD hand down -- the one input #116 added -- and
+     * stops there. Phase 4 goes one step further and drives the DECISION: the pet's owner guid
+     * is cleared immediately before the flying word, which closes SavePetToDB's third gate and
+     * makes Pet::Unsummon return at its owner check, while PetMgr::UnsummonTemporaryIfAny has
+     * already recorded the pet number on the way in. GetTemporaryUnsummonedPetNumber() is
+     * therefore the falsifier for the whole rule -- non-zero exactly when the unsummon was
+     * reached -- and the pet's own disappearance, and its return on dismount, stay on the live
+     * checklist. For the same reason NEITHER negative check may be left to run headless: putting
+     * the despawn back on the ground arm, or back on the flying arm's apply, reaches
+     * UnsummonPetTemporaryIfAny while the pet still has its owner guid, and that writes the row.
+     * (Phase 4's negative check was run once on 2026-09-22 and the row it wrote was deleted.)
      */
     class MountKeepsThePetOnTheGround : public Scenario
     {
@@ -921,6 +955,17 @@ namespace Harness
                 uint32 openedCapability = 0;   ///< what spell 32235 resolves to then
                 uint32 openedFlags = 0;
                 bool   openedCanFly = false;
+
+                // ---- phase 0 and phase 4: the lift-off ------------------------------------
+                bool   afootRan = false;       ///< the unmounted flying word went down the handler
+                uint32 afootNumber = 0;        ///< GetTemporaryUnsummonedPetNumber() after it: must be 0
+                Phase  flying;                 ///< the SAME mount with the gate open: it really can fly
+                bool   liftRan = false;        ///< the two mounted words went down the handler
+                bool   mountedAtLift = false;  ///< ...with the mount still on him
+                uint32 wordBeforeLift = 0;
+                uint32 groundWordNumber = 0;   ///< after a mounted, NOT-flying word: must be 0
+                uint32 liftNumber = 0;         ///< after the flying word: must be the pet's number
+                uint32 wordAfterLift = 0;
             };
 
             Player* p = SpawnPlayer(P0.x, P0.y, Ground(P0.x, P0.y, P0.z), 0.0f);
@@ -939,6 +984,28 @@ namespace Harness
             Log("the player %s stands at (%.1f, %.1f) with his own pet (entry %u, number %u): IsPet=%d controlled=%d his pet guid=%d",
                 g.GetString().c_str(), p->Where().X(), p->Where().Y(), IMP, st->petNumber,
                 pet->IsPet() ? 1 : 0, pet->isControlled() ? 1 : 0, p->GetPetGuid() == gp ? 1 : 0);
+
+            // ---- phase 0: the guard, before anything is mounted -----------------------------
+            //
+            // A flying word from a player who is NOT mounted -- a druid in flight form, a
+            // levitating priest, a death knight on a gargoyle -- keeps his pet. The word is then
+            // taken back off him so phase 4's flying word is a real EDGE and not a repeat.
+            At(100, [this, g, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                Word(p, MOVEFLAG_FLYING);
+                st->afootRan = true;
+                st->afootNumber = p->GetTemporaryUnsummonedPetNumber();
+                Log(" 100ms a FLYING word on an UNMOUNTED player: mounted=%d word 0x%08x, temporary pet number %u",
+                    p->IsMounted() ? 1 : 0, uint32(p->m_movementInfo.GetMovementFlags()), st->afootNumber);
+            });
+            At(200, [this, g]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                Word(p, MOVEFLAG_NONE);
+                Log(" 200ms the flying word taken back off him: word 0x%08x",
+                    uint32(p->m_movementInfo.GetMovementFlags()));
+            });
 
             // ---- phase 1: a plain ground mount --------------------------------------------
             // 1 500 ms of cast time (SpellCastTimes row 16) and a TRIGGERED cast does not skip
@@ -997,8 +1064,48 @@ namespace Harness
                     st->grounded.capabilityId, st->grounded.capabilityFlags);
             });
 
+            // ---- phase 4: the same mount, now airworthy, and the LIFT-OFF -------------------
+            //
+            // The gate opened at 9300 stays open, so spell 32235 resolves to capability 247
+            // (Flags 0x7, the 0x2 set) this time: a mount that really can fly, which is what
+            // #116 despawned the pet for at the apply and what retail keeps it through.
+            st->flying.spell = GROUNDED_FLYER;
+            Cast(10000, g, gp, st, &St::flying, "the SAME flying mount with the gate open");
+            ReadApply(12000, g, gp, st, &St::flying);
+            Sample(12100, 13000, g, gp, st, &St::flying);
+            At(13100, [this, g, gp, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                st->liftRan = true;
+                st->mountedAtLift = p->IsMounted();
+                st->wordBeforeLift = uint32(p->m_movementInfo.GetMovementFlags());
+                // A MOUNTED player walking forward: a movement word with no MOVEFLAG_FLYING in
+                // it must not put the pet away, or the rule is "mounting" again by another name.
+                Word(p, MOVEFLAG_FORWARD);
+                st->groundWordNumber = p->GetTemporaryUnsummonedPetNumber();
+                Log("13100ms a mounted GROUND word: mounted=%d word 0x%08x -> 0x%08x, temporary pet number %u",
+                    st->mountedAtLift ? 1 : 0, st->wordBeforeLift,
+                    uint32(p->m_movementInfo.GetMovementFlags()), st->groundWordNumber);
+            });
+            At(13400, [this, g, gp, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                // SavePetToDB's third gate closed BEFORE the word, not after: the unsummon this
+                // word reaches is a real one, and a real one ends in a character_pet write for a
+                // character that does not exist. With the owner guid gone the write is refused
+                // and Pet::Unsummon returns at its own owner check -- while the pet number has
+                // already been recorded on the way in, which is the whole reading.
+                if (Pet* pet = FindPet(gp)) { pet->SetOwnerGuid(ObjectGuid()); }
+                Word(p, MOVEFLAG_FORWARD | MOVEFLAG_FLYING);
+                st->liftNumber = p->GetTemporaryUnsummonedPetNumber();
+                st->wordAfterLift = uint32(p->m_movementInfo.GetMovementFlags());
+                Log("13400ms THE LIFT-OFF word: word 0x%08x, mounted=%d, temporary pet number %u",
+                    st->wordAfterLift, p->IsMounted() ? 1 : 0, st->liftNumber);
+            });
+            Pull(13700, g, gp, st, &St::flying);
+
             // ---- the pet released, S67's own recipe: the owner guid FIRST -------------------
-            At(10200, [this, g, gp]()
+            At(14000, [this, g, gp]()
             {
                 Player* p = sPlayerRegistry.Find(g);
                 Pet* pet = FindPet(gp);
@@ -1013,9 +1120,9 @@ namespace Harness
                 pet->SetOwnerGuid(ObjectGuid());
                 if (p && p->GetPetGuid() == pet->GetObjectGuid()) { p->SetPet(NULL); }
                 pet->Unsummon(PET_SAVE_NOT_IN_SLOT);
-                Log("10200ms the pet released and unsummoned");
+                Log("14000ms the pet released and unsummoned");
             });
-            At(10600, [this, st]()
+            At(14400, [this, st]()
             {
                 char ground[512], forbidden[512], licensed[448];
                 if (!st->built)
@@ -1055,9 +1162,30 @@ namespace Harness
                              GROUNDED_FLYER, st->grounded.capabilityId, st->grounded.capabilityFlags,
                              FLIGHT_LICENCE, st->openedCapability, st->openedFlags);
                 }
+                // --- phase 4: the half the live test of 2026-09-22 sent back. Three readings,
+                // each its own category, because they fail for different reasons.
+                char stayed[512], afoot[352], lift[512];
+                ReadFlyingApply(*st, stayed, sizeof(stayed));
+                if (!st->afootRan)
+                {
+                    snprintf(afoot, sizeof(afoot), "INVALID(the unmounted-word step never ran)");
+                }
+                else if (st->afootNumber)
+                {
+                    snprintf(afoot, sizeof(afoot), "BUG(a FLYING word from an UNMOUNTED player recorded temporary pet number %u: the lift-off rule is firing on anything that flies, not on a mount)", st->afootNumber);
+                }
+                else
+                {
+                    snprintf(afoot, sizeof(afoot), "OK(a FLYING word from an unmounted player left the pet alone -- flight form, levitation and a gargoyle are not mounts)");
+                }
+                ReadLiftOff(*st, lift, sizeof(lift));
+
                 Verdict(std::string("groundMountKeepsThePet=") + ground +
                         " | forbiddenFlightKeepsThePet=" + forbidden +
-                        " | theSameMountFliesOnceTheGateOpens=" + licensed);
+                        " | theSameMountFliesOnceTheGateOpens=" + licensed +
+                        " | flyingMountKeepsThePetUntilLiftOff=" + stayed +
+                        " | unmountedFlyingWordKeepsThePet=" + afoot +
+                        " | liftOffPutsThePetAway=" + lift);
             });
         }
 
@@ -1216,6 +1344,98 @@ namespace Harness
                      ph.capabilityId, ph.capabilityFlags, ph.samples);
         }
 
+        /// Phase 4's first half: a mount that really CAN fly, and a pet that is still out under
+        /// it. This is the reading the live test of 2026-09-22 sent back -- #116 despawned here.
+        template <class St>
+        void ReadFlyingApply(St const& st, char* out, size_t size) const
+        {
+            Phase const& ph = st.flying;
+            if (!ph.castRan || !ph.readRan)
+            {
+                snprintf(out, size, "INVALID(the flying-mount steps never ran: cast=%d read=%d)", ph.castRan ? 1 : 0, ph.readRan ? 1 : 0);
+                return;
+            }
+            if (ph.capabilityId != LICENSED_CAPABILITY || !ph.canFly)
+            {
+                snprintf(out, size, "INVALID(with the gate open spell %u resolved capability %u flags 0x%02x canFly=%d here, not the flying %u the MountCapability rows say: this is not the flying case it was built to be)",
+                         ph.spell, ph.capabilityId, ph.capabilityFlags, ph.canFly ? 1 : 0, LICENSED_CAPABILITY);
+                return;
+            }
+            if (!ph.petBefore)
+            {
+                snprintf(out, size, "INVALID(he had no live pet of his own going into the flying mount, so there was nothing for it to keep)");
+                return;
+            }
+            if (!ph.aura || !ph.mounted)
+            {
+                snprintf(out, size, "INVALID(the cast of %u left him aura=%d mounted=%d, so Unit::Mount's pet branch was never entered)", ph.spell, ph.aura ? 1 : 0, ph.mounted ? 1 : 0);
+                return;
+            }
+            if (ph.tempNumber)
+            {
+                snprintf(out, size, "BUG(the flying mount recorded temporary pet number %u at its APPLY: the pet was put away for summoning the mount, not for leaving the ground -- capability %u flags 0x%02x)",
+                         ph.tempNumber, ph.capabilityId, ph.capabilityFlags);
+                return;
+            }
+            if (!ph.petAfter || ph.petGone)
+            {
+                snprintf(out, size, "BUG(the pet was not his live pet once the flying mount had landed: at the apply=%d, and gone on %u of the %u samples under it)",
+                         ph.petAfter ? 1 : 0, ph.petGone, ph.samples);
+                return;
+            }
+            if (ph.samples < 8 || ph.unmounted)
+            {
+                snprintf(out, size, "INVALID(%u samples under the flying mount, %u of them with no mount on him)", ph.samples, ph.unmounted);
+                return;
+            }
+            snprintf(out, size, "OK(capability %u flags 0x%02x CAN fly here, and the pet was still his live pet once the mount had landed and on all %u samples under it, with no temporary pet number recorded -- the mount's apply no longer despawns anything)",
+                     ph.capabilityId, ph.capabilityFlags, ph.samples);
+        }
+
+        /// Phase 4's second half: the edge itself, one word at a time.
+        template <class St>
+        void ReadLiftOff(St const& st, char* out, size_t size) const
+        {
+            if (!st.liftRan)
+            {
+                snprintf(out, size, "INVALID(the lift-off steps never ran)");
+                return;
+            }
+            if (!st.flying.mounted || !st.mountedAtLift)
+            {
+                snprintf(out, size, "INVALID(he was not mounted when the words went down: at the apply=%d, at the lift-off=%d)", st.flying.mounted ? 1 : 0, st.mountedAtLift ? 1 : 0);
+                return;
+            }
+            if (st.wordBeforeLift & MOVEFLAG_FLYING)
+            {
+                snprintf(out, size, "INVALID(his word already carried MOVEFLAG_FLYING (0x%08x) before the lift-off, so there was no edge to see)", st.wordBeforeLift);
+                return;
+            }
+            if (st.groundWordNumber)
+            {
+                snprintf(out, size, "BUG(a mounted GROUND word -- 0x%08x, no MOVEFLAG_FLYING -- recorded temporary pet number %u: the pet goes for being mounted, not for leaving the ground)",
+                         st.wordBeforeLift, st.groundWordNumber);
+                return;
+            }
+            if (!(st.wordAfterLift & MOVEFLAG_FLYING))
+            {
+                snprintf(out, size, "INVALID(the lift-off word did not survive the handler: his word reads 0x%08x, with no MOVEFLAG_FLYING in it)", st.wordAfterLift);
+                return;
+            }
+            if (!st.liftNumber)
+            {
+                snprintf(out, size, "BUG(the first mounted word carrying MOVEFLAG_FLYING (0x%08x) recorded NO temporary pet number: the pet rides on through the lift-off)", st.wordAfterLift);
+                return;
+            }
+            if (st.liftNumber != st.petNumber)
+            {
+                snprintf(out, size, "BUG(the lift-off recorded temporary pet number %u, not his pet's %u)", st.liftNumber, st.petNumber);
+                return;
+            }
+            snprintf(out, size, "OK(mounted on a flying mount, a ground word (0x%08x) left the pet alone and the first word carrying MOVEFLAG_FLYING (0x%08x) put pet number %u away -- the despawn is on the lift-off, where 4.2.0 puts it, and no longer on the mount's apply)",
+                     st.wordBeforeLift, st.wordAfterLift, st.liftNumber);
+        }
+
         /// HIGHGUID_PET lives in its own store; Scenario::Get answers only HIGHGUID_UNIT.
         Pet* FindPet(ObjectGuid guid) const
         {
@@ -1280,7 +1500,10 @@ namespace Harness
         {
             std::string w = std::string("INVALID(") + why + ")";
             return "groundMountKeepsThePet=" + w + " | forbiddenFlightKeepsThePet=" + w +
-                   " | theSameMountFliesOnceTheGateOpens=" + w;
+                   " | theSameMountFliesOnceTheGateOpens=" + w +
+                   " | flyingMountKeepsThePetUntilLiftOff=" + w +
+                   " | unmountedFlyingWordKeepsThePet=" + w +
+                   " | liftOffPutsThePetAway=" + w;
         }
     };
 

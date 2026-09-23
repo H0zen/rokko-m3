@@ -68,6 +68,8 @@
 #include "Vehicle.h"
 #include "Geometry/Vector3.h"
 #include "LootMgr.h"
+#include "movement/typedefs.h"
+#include "movement/JumpArc.h"
 #include <random>
 
 /**
@@ -1027,7 +1029,26 @@ void Spell::EffectJump(SpellEffectEntry const* effect)
     ClampToAllowedZ(*m_caster, x, y, z);
 
     float speed = m_spellInfo->Speed ? m_spellInfo->Speed : 27.0f;
-    m_caster->GetMotionMaster()->MoveJump(x, y, z, o, speed, 2.5f, NULL);
+
+    // THE ARC, FROM THE SPELL'S OWN DATA (live test 2026-09-22, B4: "Heroic Leap travels a
+    // straight path"). The 2.5 f that stood here was Heroic Leap's SpellEffect.dbc FLOOR
+    // (spell 6544, effect 1: EffectMiscValue 25, EffectMiscValueB 100 = 2.5 yd and 10 yd, both
+    // heights in tenths of a yard, not speeds -- 6544's speed is Spell.dbc's own 35.0), applied
+    // as a constant to every jump spell and, worse, applied as a CHORD BOW. The capture proved
+    // what that renders: 1.94 yd of rise over a flat 33.4 yd leap, and on a 12.3 yd downhill
+    // leap no rise at all, because the chord fell faster than the bow could lift.
+    //
+    // So the pair is read as the heights they are, the natural gravity arc g*T^2/8 is taken
+    // between them, and Movement::JumpArc solves the amplitude that DELIVERS that clearance
+    // above the launch point on this leg's own slope.
+    const float minHeight = effect->EffectMiscValue_0 ? effect->EffectMiscValue_0 * 0.1f : 0.5f;
+    const float maxHeight = effect->EffectMiscValue_1 ? effect->EffectMiscValue_1 * 0.1f : 1000.0f;
+    const float deltaZ = z - m_caster->Where().Z();
+    const float length = m_caster->Where().DistanceTo(Geometry::Vector3(x, y, z));
+    const float amplitude = Movement::JumpArc::AmplitudeForLeg(minHeight, maxHeight, length, speed,
+                                                               deltaZ, float(Movement::gravity));
+
+    m_caster->GetMotionMaster()->MoveJump(x, y, z, o, speed, amplitude, NULL);
 }
 
 void Spell::EffectTeleportUnits(SpellEffectEntry const* effect)   // TODO - Use target settings for this effect!

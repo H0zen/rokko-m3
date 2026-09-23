@@ -4970,6 +4970,173 @@ namespace Harness
         }
     };
 
+    /**
+     * S74 (order 912): A POSSESSED BODY MUST BE STANDING (live test 2026-09-22, B1 bonus).
+     *
+     * Mind-control a creature that is SITTING -- an AFK player's body, or any creature whose
+     * script sat it down -- and the possessor gets the camera, the mover and the pet bar, but
+     * cannot right-click-turn it: the client will not turn a unit whose stand state is anything
+     * but STAND. Unit::TakePossessOf never touched the stand state, so whatever the body was
+     * doing when it was taken, it went on doing.
+     *
+     * THE FIX IS ONE LINE and the precedent is SpellAuraControl.cpp:509, where a stun stands its
+     * victim up for the same reason. It sits at the take, in front of the client-control grant,
+     * so the body is already standing on the first update block the possessor's client is given
+     * rather than standing up a moment later.
+     *
+     * WHAT IS MEASURED. The stand state the instant TakePossessOf returns -- which is what the
+     * grant hands over -- and then every 100 ms for 2.4 s, because a stand state that is right
+     * for one tick and wrong afterwards would leave the same bug on screen. Remove the line and
+     * bodySittingStandsAtTheTake goes BUG with UNIT_STAND_STATE_SIT printed against it, while
+     * the sit itself (sitTookBeforeTheTake) still reads OK -- so the scenario cannot pass by
+     * failing to sit the body down in the first place.
+     */
+    class PossessionStandsTheBodyUp : public Scenario
+    {
+    public:
+        PossessionStandsTheBodyUp() : Scenario("possession-stands-the-body-up", 912) {}
+
+        bool UsesPlayer() const override { return true; }
+
+        void Prepare() override
+        {
+            struct St
+            {
+                bool   sitRan = false;
+                uint8  stateAfterSit = UNIT_STAND_STATE_STAND;
+                bool   takeRan = false;
+                bool   took = false;
+                bool   charmedAtTake = false;
+                uint8  stateAtTake = UNIT_STAND_STATE_SIT;   ///< THE reading: the instant the take returns
+                uint32 samples = 0;      ///< samples with the possession still held
+                uint32 notStanding = 0;  ///< ...on which the body was not STAND after all
+                uint8  worstAfter = UNIT_STAND_STATE_STAND;
+            };
+            Player* p = SpawnPlayer(SE.x, SE.y, Ground(SE.x, SE.y, SE.z), 0.0f);
+            Creature* body = p ? Spawn(WOLF, SE.x + 4.0f, SE.y, Ground(SE.x + 4.0f, SE.y, SE.z), 3.1f) : NULL;
+            if (!p || !body)
+            {
+                Verdict(Invalid("spawn failed"));
+                return;
+            }
+            Silence(body);
+            const ObjectGuid g = p->GetObjectGuid(), gb = body->GetObjectGuid();
+            auto st = std::make_shared<St>();
+            Log("the player %s stands at (%.1f, %.1f); the wolf he will sit down and then possess 4 yd east, stand state %u",
+                g.GetString().c_str(), p->Where().X(), p->Where().Y(), body->getStandState());
+
+            At(200, [this, gb, st]()
+            {
+                Creature* b = Get(gb); if (!b) { return; }
+                b->SetStandState(UNIT_STAND_STATE_SIT);
+                st->sitRan = true;
+                st->stateAfterSit = b->getStandState();
+                Log("200ms the wolf sat down: stand state %u (SIT is %u)", st->stateAfterSit, uint32(UNIT_STAND_STATE_SIT));
+            });
+            At(500, [this, g, gb, st]()
+            {
+                Player* p = sPlayerRegistry.Find(g);
+                Creature* b = Get(gb);
+                if (!p || !b) { return; }
+                // Unit::TakePossessOf itself, which is the call the possess effect makes; the
+                // reading is taken the instant it returns, i.e. with the client-control grant
+                // inside it already done.
+                st->took = p->TakePossessOf(b);
+                st->takeRan = true;
+                st->stateAtTake = b->getStandState();
+                st->charmedAtTake = b->GetCharmerGuid() == g;
+                Log("500ms the take returns: took=%d charmer=%d stand state %u (STAND is %u), client mover=%d",
+                    st->took ? 1 : 0, st->charmedAtTake ? 1 : 0, st->stateAtTake,
+                    uint32(UNIT_STAND_STATE_STAND), b->IsClientMover() ? 1 : 0);
+            });
+            for (uint32 i = 1; i <= 24; ++i)
+            {
+                At(500 + i * 100, [this, g, gb, st, i]()
+                {
+                    Creature* b = Get(gb); if (!b) { return; }
+                    if (b->GetCharmerGuid() != g) { return; }
+                    ++st->samples;
+                    const uint8 state = b->getStandState();
+                    if (state != UNIT_STAND_STATE_STAND)
+                    {
+                        ++st->notStanding;
+                        if (state > st->worstAfter) { st->worstAfter = state; }
+                    }
+                    if (i % 8 == 0)
+                    {
+                        Log("+%4ums stand state %u, charmer=%d", i * 100, state, b->GetCharmerGuid() == g ? 1 : 0);
+                    }
+                });
+            }
+            At(3100, [this, g, gb]()
+            {
+                Player* p = sPlayerRegistry.Find(g); if (!p) { return; }
+                // The same release S71 uses, and for the same reason: a body still charmed when
+                // the runner despawns it would be freed under a live charmer.
+                p->ResetControlState(false);
+                Creature* b = Get(gb);
+                Log("3100ms the possession released: charmer=%s stand state %u",
+                    b ? b->GetCharmerGuid().GetString().c_str() : "gone",
+                    b ? uint32(b->getStandState()) : 0);
+            });
+            At(3400, [this, st]()
+            {
+                char sat[288], stood[384];
+                if (!st->sitRan)
+                {
+                    snprintf(sat, sizeof(sat), "INVALID(the sit step never ran)");
+                }
+                else if (st->stateAfterSit != UNIT_STAND_STATE_SIT)
+                {
+                    snprintf(sat, sizeof(sat), "INVALID(SetStandState(SIT) left the wolf in stand state %u, so there was never a sitting body to take)", st->stateAfterSit);
+                }
+                else
+                {
+                    snprintf(sat, sizeof(sat), "OK(the wolf was in stand state %u, SIT, going into the take)", st->stateAfterSit);
+                }
+
+                if (!st->takeRan)
+                {
+                    snprintf(stood, sizeof(stood), "INVALID(the take step never ran)");
+                }
+                else if (!st->took || !st->charmedAtTake)
+                {
+                    snprintf(stood, sizeof(stood), "INVALID(TakePossessOf returned %d with charmer=%d, so there was no possession to read)", st->took ? 1 : 0, st->charmedAtTake ? 1 : 0);
+                }
+                else if (st->stateAfterSit != UNIT_STAND_STATE_SIT)
+                {
+                    snprintf(stood, sizeof(stood), "INVALID(the body was not sitting going in, so standing afterwards proves nothing)");
+                }
+                else if (st->stateAtTake != UNIT_STAND_STATE_STAND)
+                {
+                    snprintf(stood, sizeof(stood), "BUG(the take returned with the body still in stand state %u: the possessor holds a sitting body, which his client will not turn)", st->stateAtTake);
+                }
+                else if (st->samples < 12)
+                {
+                    snprintf(stood, sizeof(stood), "INVALID(only %u samples while the possession was held)", st->samples);
+                }
+                else if (st->notStanding)
+                {
+                    snprintf(stood, sizeof(stood), "BUG(the body stood up at the take but was back in stand state %u on %u of the %u samples after it)", st->worstAfter, st->notStanding, st->samples);
+                }
+                else
+                {
+                    snprintf(stood, sizeof(stood), "OK(a body taken while in stand state %u came out of TakePossessOf in stand state %u, STAND, and was still standing on all %u samples over the 2.4 s the possession was held)",
+                             uint32(UNIT_STAND_STATE_SIT), st->stateAtTake, st->samples);
+                }
+                Verdict(std::string("sitTookBeforeTheTake=") + sat +
+                        " | bodySittingStandsAtTheTake=" + stood);
+            });
+        }
+
+    private:
+        static std::string Invalid(char const* why)
+        {
+            std::string w = std::string("INVALID(") + why + ")";
+            return "sitTookBeforeTheTake=" + w + " | bodySittingStandsAtTheTake=" + w;
+        }
+    };
+
 
     void RegisterControlScenarios(Runner& r)
     {
@@ -4999,5 +5166,9 @@ namespace Harness
         // Unit::TakePossessOf, which needs a player possessing HIS OWN PET and which S65's
         // header had to record as unreachable.
         r.Register(new PlayerOwnedPetPossession());
+        // Order 912, behind the taxi family's 908-911 (live test 2026-09-22, B1 bonus): the
+        // stand state a possessed body is handed over in, which decides whether the possessor
+        // can turn it at all.
+        r.Register(new PossessionStandsTheBodyUp());
     }
 }
